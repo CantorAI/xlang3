@@ -34,12 +34,13 @@ std::string_view trim_left_ascii(std::string_view text) {
   return text.substr(offset);
 }
 
-std::string_view trim_inline_comment_for_join(std::string_view line) {
-  // Match the lexer's triple-quote state before treating '#' as a comment;
-  // regex and docstring literals commonly contain both '#' and apostrophes.
-  bool in_string = false;
-  bool triple_string = false;
-  char quote = 0;
+std::string_view trim_inline_comment_for_join(std::string_view line,
+                                            bool in_string = false,
+                                            char quote = 0,
+                                            bool triple_string = false) {
+  // Start in the physical line's inherited quote state: an interior '#' is
+  // literal, but a real comment after its closing delimiter must be trimmed.
+  // Copies keep this scan independent of update_line_join_state's next state.
   bool escaped = false;
   for (size_t i = 0; i < line.size(); ++i) {
     const char ch = line[i];
@@ -560,11 +561,13 @@ void remove_trailing_backslash(std::string& line) {
   }
 }
 
-void append_joined_line(std::string& logical_line, std::string_view line, bool inside_triple_string) {
+void append_joined_line(std::string& logical_line, std::string_view line,
+                        bool continued_string, char continued_quote,
+                        bool continued_triple) {
+  // Preserve literal newlines, then remove only comments outside the string.
   logical_line.push_back('\n');
-  logical_line += inside_triple_string
-      ? std::string(line)
-      : std::string(trim_inline_comment_for_join(line));
+  logical_line.append(trim_inline_comment_for_join(
+      line, continued_string, continued_quote, continued_triple));
 }
 
 std::string_view append_triple_string_tail(std::string& logical_line,
@@ -783,7 +786,7 @@ LexResult Lexer::tokenize() {
           const auto next_line = lines[++line_index];
           logical_end_line = next_line.line;
           append_joined_line(logical_line, next_line.text,
-                             continued_string && continued_triple);
+                             continued_string, continued_quote, continued_triple);
           should_join = update_line_join_state(next_line.text, bracket_depth, explicit_continue,
                                                continued_string, continued_quote, continued_triple);
         }
@@ -814,7 +817,7 @@ LexResult Lexer::tokenize() {
       const auto next_line = lines[++line_index];
       logical_end_line = next_line.line;
       append_joined_line(logical_line, next_line.text,
-                         continued_string && continued_triple);
+                         continued_string, continued_quote, continued_triple);
       should_join = update_line_join_state(next_line.text, bracket_depth, explicit_continue,
                                            continued_string, continued_quote, continued_triple);
     }

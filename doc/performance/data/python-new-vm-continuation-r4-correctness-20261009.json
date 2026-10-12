@@ -1,0 +1,46 @@
+{
+  "status": "trial_validation_failed",
+  "terminal": true,
+  "full_validated": false,
+  "whole_goal_complete": false,
+  "correctness_reused_same_candidate": false,
+  "correctness_passed": false,
+  "phases": [],
+  "idle_guards": [
+    {
+      "phase": "preflight",
+      "timed": false,
+      "busy": [
+        {
+          "Name": "cmake.exe",
+          "ProcessId": 31168
+        },
+        {
+          "Name": "cl.exe",
+          "ProcessId": 3824
+        }
+      ],
+      "logged_untimed_msbuild": [
+        {
+          "Name": "MSBuild.exe",
+          "ProcessId": 29136
+        },
+        {
+          "Name": "MSBuild.exe",
+          "ProcessId": 33268
+        }
+      ],
+      "timing_allowance": false
+    }
+  ],
+  "fixed_gate": null,
+  "official_results": {},
+  "fresh_correctness": true,
+  "scope": "Fresh Python-new source132 complete correctness/default11 gate and unchanged official unpickle_pure_python on CP3.14.7 and X; unpaired fast diagnostics, no full97 or component speed claim",
+  "started_utc": "2026-10-09T11:26:01.464465+00:00",
+  "error": "AssertionError: [{'Name': 'cmake.exe', 'ProcessId': 31168}, {'Name': 'cl.exe', 'ProcessId': 3824}]",
+  "error_traceback": "Traceback (most recent call last):\n  File \"D:\\CantorAI\\xlang3\\scratch\\performance\\validate-python-new-vm-continuation-r4-trial-proposed-20261009.py\", line 250, in main\n    require_idle('preflight', timed=False)\n    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"D:\\CantorAI\\xlang3\\scratch\\performance\\validate-python-new-vm-continuation-r4-trial-proposed-20261009.py\", line 122, in require_idle\n    assert not busy, busy\n           ^^^^^^^^\nAssertionError: [{'Name': 'cmake.exe', 'ProcessId': 31168}, {'Name': 'cl.exe', 'ProcessId': 3824}]\n",
+  "hashes_after": {},
+  "hashes_unchanged": true,
+  "completed_utc": "2026-10-09T11:26:02.078902+00:00"
+}

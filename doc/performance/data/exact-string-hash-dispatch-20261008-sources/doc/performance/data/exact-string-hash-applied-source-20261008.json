@@ -1,0 +1,10 @@
+{
+  "status": "applied",
+  "patch_sha256": "8a0af520a8120302b07f9e7de91297330480a0e24d5e37a83a6fdc386bb443a4",
+  "files": {
+    "src/runtime/value_hash.cpp": {
+      "working_sha256": "aeb9abb4697569a3b28485000337e31d21f2cd9227dbf2ea0e76e2e125d439ed"
+    }
+  },
+  "accepted_control_manifest_sha256": "4b997e4dc069393dcd0b08556918494a4bcc63a884af69bed9467a2d5d081bae"
+}

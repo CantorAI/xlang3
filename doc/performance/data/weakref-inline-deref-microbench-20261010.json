@@ -1,0 +1,124 @@
+{
+  "schema": 1,
+  "date": "2026-10-10",
+  "runtime_versions": {
+    "cpython": "3.14.7",
+    "pyperformance": "1.14.0"
+  },
+  "microbenchmark": {
+    "probe": "benchmarks/diagnostics/weakref_creation_probe.py 20000",
+    "description": "Five order-rotated process samples; targets and refs created outside dereference timing; medians shown.",
+    "runs_seconds": {
+      "cpython3147": {
+        "create": [
+          0.001851600012741983,
+          0.0016918000183068216,
+          0.0018890000064857304,
+          0.0018365000141784549,
+          0.0019326000474393368
+        ],
+        "dereference": [
+          0.0005951999919489026,
+          0.0005955999949947,
+          0.0005892999470233917,
+          0.0007918000337667763,
+          0.0005952999927103519
+        ]
+      },
+      "parent": {
+        "create": [
+          0.031166200002189726,
+          0.041737499996088445,
+          0.03880310000386089,
+          0.03309759998228401,
+          0.03379539999878034
+        ],
+        "dereference": [
+          0.008972299983724952,
+          0.009131700033321977,
+          0.010400400031358004,
+          0.009312899957876652,
+          0.009244700020644814
+        ]
+      },
+      "candidate": {
+        "create": [
+          0.03355379996355623,
+          0.032492399972397834,
+          0.03238240000791848,
+          0.03187999996589497,
+          0.03848270000889897
+        ],
+        "dereference": [
+          0.007918699993751943,
+          0.007673299987800419,
+          0.007872199988923967,
+          0.007522400002926588,
+          0.007889100001193583
+        ]
+      }
+    },
+    "medians_seconds": {
+      "cpython3147": {
+        "create_median_seconds": 0.001851600012741983,
+        "dereference_median_seconds": 0.0005952999927103519
+      },
+      "parent": {
+        "create_median_seconds": 0.03379539999878034,
+        "dereference_median_seconds": 0.009244700020644814
+      },
+      "candidate": {
+        "create_median_seconds": 0.032492399972397834,
+        "dereference_median_seconds": 0.007872199988923967
+      }
+    }
+  },
+  "official_pyperformance": {
+    "benchmark": "typing_runtime_protocols",
+    "mode": "fast",
+    "mean_plus_minus_stddev_seconds": {
+      "candidate": [
+        0.0031,
+        0.00028
+      ],
+      "parent": [
+        0.00325,
+        0.000712
+      ],
+      "cpython3147": [
+        0.000136,
+        7e-06
+      ]
+    },
+    "files": {
+      "candidate": {
+        "path": "weakref-inline-deref-candidate-typing-runtime-protocols-20261010.json",
+        "sha256": "d0f0b848d936fb8f8ed1ba18d4f223361653159c16bac5e6190b77f68599f9df"
+      },
+      "parent": {
+        "path": "weakref-inline-deref-parent-typing-runtime-protocols-20261010.json",
+        "sha256": "170ec20a94892e88677c9e42873c8a443180d0a9088f7dbbd3911bca28926cc9"
+      },
+      "cpython3147": {
+        "path": "weakref-inline-deref-cpython3147-typing-runtime-protocols-20261010.json",
+        "sha256": "ee4c9cc7c3b35383ebac37042756262b0cf42144025598a7ecf612fad413e6e7"
+      }
+    },
+    "candidate_and_parent_unstable_or_fast_mode": true
+  },
+  "hashes_sha256": {
+    "candidate_executable": "07b06a0c46042b2773336a417c80c40aa85984a3056e6a3b5eb361c96b451a95",
+    "candidate_runtime": "6f7a757b868b6ea384b4a4e5ce43476d3d33a3aa23dc9a024ca2c7dcd8def693",
+    "parent_executable": "0b909f692091379759b94d6a8008064d1b8521224d4a61f71865e023d8a15e61",
+    "parent_runtime": "58a4bc54261cb300c74a6aa6fd98e7a1ed904a737f68cca15f55d878baa5478e",
+    "weakref_source": "652fd5186c7193b1665176fa3467f0919f2fd43ba172ce19dbffa0cefc582e74",
+    "creation_probe": "fb6a812a90e2e80b028d82cfc703704e07efb19fc2ea3c5f7dd50e63ec5b9358",
+    "fixture": "b8b7360369bd61551e464026c8b4c07d6290ab2c0758e434e1057b4f18b320a0"
+  },
+  "executable_paths": {
+    "candidate_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "candidate_runtime": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll",
+    "parent_executable": "D:\\CantorAI\\xlang3\\build-repro\\weakref-slot-parent-20261010\\Release\\xlang3.exe",
+    "parent_runtime": "D:\\CantorAI\\xlang3\\build-repro\\weakref-slot-parent-20261010\\Release\\xlang3_runtime.dll"
+  }
+}

@@ -13,13 +13,49 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "test_harness.h"
+#include "sqlite_aggregate_abi_cases.h"
+#include "sqlite_statement_cache_cases.h"
+#include "canonical_slot_read_cases.h"
+#include "native_bound_zero_args_cases.h"
+#include "identity_last_use_cases.h"
+#include "inherited_call_ex_constructor_cases.h"
+#include "hash_exception_cases.h"
+#include "dict_get_exception_cases.h"
+#include "observable_builtin_method_cases.h"
+#include "nested_trace_setting_cases.h"
+#include "exception_loop_owner_cases.h"
+#include "heapq_native_cases.h"
+#include "scoped_sorted_key_cases.h"
+#include "ordinary_canonical_slot_constructor_cases.h"
+#include "class_method_annotation_capture_cases.h"
+#include "frame_locals_retirement_cases.h"
+#include "dict_scalar_append_index_cases.h"
+#include "generic_gc_cases.h"
 
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 #include "executor/xlang_vm/xlang_frame.h"
 
-int main() {
+int main(int argc, char** argv) {
   xlang3::test::CaseResult result;
+  xlang3::test::check_sqlite_aggregate_abi(result, argc > 0 ? argv[0] : nullptr);
+  xlang3::test::check_sqlite_statement_cache(result, argc > 0 ? argv[0] : nullptr);
+  xlang3::test::check_canonical_slot_read_cases(result);
+  xlang3::test::check_native_bound_zero_args(result);
+  xlang3::test::check_identity_last_use_cases(result);
+  xlang3::test::check_inherited_call_ex_constructor(result);
+  xlang3::test::check_hash_exception_cases(result);
+  xlang3::test::check_dict_get_exception_cases(result);
+  xlang3::test::check_observable_builtin_method_cases(result);
+  xlang3::test::check_nested_trace_setting_cases(result);
+  xlang3::test::check_exception_loop_owner_cases(result);
+  xlang3::test::check_heapq_native_cases(result);
+  xlang3::test::check_scoped_sorted_key_cases(result);
+  xlang3::test::check_ordinary_canonical_slot_constructor(result);
+  xlang3::test::check_class_method_annotation_capture(result);
+  xlang3::test::check_frame_locals_retirement(result);
+  xlang3::test::check_dict_scalar_append_index_cases(result);
+  xlang3::test::check_generic_gc_cases(result);
 
   // Same-object owning copies should avoid refcount churn, while copying into
   // a borrowed slot must still acquire an independent reference.
@@ -66,6 +102,32 @@ int main() {
             storage.monitoring_at(3).disabled_events == 1 &&
             storage.monitoring_at(4).disabled_events == 0,
         "sparse caches and dense monitoring state must remain IP-local");
+  }
+
+  // Setter dispatch now uses a sparse cache. Its metadata must allocate the
+  // site before the handler accesses it, and clean any owners on frame return.
+  {
+    xlang3::ir::Module module;
+    module.functions.emplace_back();
+    auto& function = module.functions.back();
+    function.register_count = 3;
+    function.code.push_back({xlang3::ir::Op::SetItem, 0, 1, 2, 0});
+    const std::vector<xlang3::Value> closure;
+    xlang3::XlangVMFrame frame(module, 0, xlang3::CallArgsView{}, closure,
+                              xlang3::Value::none(), {}, 0, false);
+    const bool allocated = frame.instr_cache.cached_site_count() == 1;
+    xlang3::test::expect_true(result, allocated,
+                              "SetItem metadata must allocate its sparse dispatch cache");
+    if (allocated) {
+      auto owner = xlang3::Value::list({});
+      const auto refs = owner.as.obj->refcnt.load();
+      auto& cache = frame.instr_cache[0];
+      cache.domain = xlang3::XlangVMCacheDomain::Call;
+      cache.call.retained_callee = owner;
+      frame.clear_for_pop();
+      xlang3::test::expect_true(result, owner.as.obj->refcnt.load() == refs,
+                                "SetItem metadata must clean owning cache payloads");
+    }
   }
 
   // A fused site's final adaptive domain does not describe every owning

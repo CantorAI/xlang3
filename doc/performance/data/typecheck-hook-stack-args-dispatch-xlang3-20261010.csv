@@ -1,0 +1,17 @@
+case,loops,median_seconds
+python_call_direct,2000,0.000153200
+python_call_indirect,2000,0.000153200
+exact_isinstance_direct,2000,0.000561400
+exact_isinstance_indirect,2000,0.000261700
+exact_issubclass_direct,2000,0.000516200
+exact_issubclass_indirect,2000,0.000253500
+protocol_positive_direct,2000,0.063265900
+protocol_positive_indirect,2000,0.061693500
+protocol_negative_direct,2000,0.092685100
+protocol_nominal_direct,2000,0.009727200
+protocol_many_negative_direct,2000,0.092175800
+protocol_hook_direct,2000,0.052992200
+abc_instancecheck_direct,2000,0.002728800
+static_attribute_direct,2000,0.043622400
+ordinary_attribute_direct,2000,0.000824600
+weakref_deref_direct,2000,0.000182200

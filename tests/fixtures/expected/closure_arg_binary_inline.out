@@ -1,0 +1,11 @@
+closure-binary 12
+closure-cell-live 18
+closure-bigint 9223372036854775818
+closure-free-lhs 22
+closure-kind-before 7
+closure-kind-fallback TypeError
+closure-custom-add ('radd', 9)
+closure-empty-warm 3
+closure-empty-cell NameError
+closure-code-replaced 77
+closure-code-restored 18

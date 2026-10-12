@@ -1,0 +1,15 @@
+callback_boundary loop 0 50000 0.0033693999866954982
+callback_boundary loop 1 50000 0.003381399961654097
+callback_boundary loop 2 50000 0.0033727999543771148
+callback_boundary small_calls 0 50000 0.015879000013228506
+callback_boundary small_calls 1 50000 0.015378299984149635
+callback_boundary small_calls 2 50000 0.016233199974521995
+callback_boundary branch_calls 0 50000 0.016486399981658906
+callback_boundary branch_calls 1 50000 0.016234699985943735
+callback_boundary branch_calls 2 50000 0.01645769999595359
+callback_boundary sort_plain 0 50000 0.002915100019890815
+callback_boundary sort_plain 1 50000 0.002873099991120398
+callback_boundary sort_plain 2 50000 0.00261049997061491
+callback_boundary sort_callback 0 50000 0.04359570000087842
+callback_boundary sort_callback 1 50000 0.04030839999904856
+callback_boundary sort_callback 2 50000 0.03830650000600144

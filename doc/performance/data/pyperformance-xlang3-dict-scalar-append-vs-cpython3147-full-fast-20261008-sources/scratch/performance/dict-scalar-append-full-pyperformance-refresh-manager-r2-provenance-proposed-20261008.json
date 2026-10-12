@@ -1,0 +1,40 @@
+{
+  "status": "frozen_scratch_only_full97_refresh_unexecuted",
+  "controller": "scratch/performance/run-dict-scalar-append-full-pyperformance-refresh-r2-proposed-20261008.py",
+  "controller_sha256": "7c868a85ed63615c06916ea119019afd06ce93773a25745ab8fa255d7ed2f096",
+  "reviewed_parent": "scratch/performance/run-full-pyperformance-refresh-20261008.py",
+  "reviewed_parent_sha256": "07ba58e27fb210904aaa9bb0bc5e3b86ed25eb28a4da58827298129386b64755",
+  "bound_trial_sha256": "0b6f05e17c2878efa135656abcce38338934069b59a9460de9f2ba98a8516dd0",
+  "bound_correctness_sha256": "3d78a8aa54b812289826af708f982a187a348e2272f8e69c0321f965449961f5",
+  "bound_focused_sha256": "0737ff2f405151ed29fdfa22bc0177ea77d18f3b63bdf7aff4662972efb94a38",
+  "bound_source_inventory_sha256": "dc1b869fe0475e3bdd017aa3b667f755cb7a4dd7ad881494f8afb34af387f45e",
+  "source_count": 115,
+  "release_count": 178,
+  "baseline_count": 177,
+  "runner": "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+  "runner_sha256": "c078ee77d5d66165f0bf4b2d782df56e71868ada827c81c5c53516c8d017ceaf",
+  "watch_source_sha256": "50007db5cc6adc2e54012fdfbd48514699513f990906d4a508582ba73d6ae0bf",
+  "cleanup_reviewed_pattern": "measure-dict-scalar-append-original-body-paired-r2-proposed-20261008.py",
+  "cleanup_reviewed_pattern_sha256": "de0aaf91f5c31f3e14d6a18d780440670c44dfbf157bd3c608d545f591852f0f",
+  "definitions": 97,
+  "mode": "fast",
+  "case_timeout_seconds": 300,
+  "case_timeout_overrides": {
+    "networkx*": 600
+  },
+  "fixed_gate": "complete11/21/5/.10 already passed same source115/binaries178, not rerun",
+  "cpython_full_reference": "Historical unpaired Oct7 CP3.14.7 all97/124; no CP full rerun; fresh targeted Oct8 pickle reference retained separately",
+  "raw_policy": "Exact merged binary log, full JSON, failure details, every partial file; any observed external compiler/CTest or watcher failure invalidates full-run timing; no retries/trimming",
+  "limits": [
+    "1-second OS watcher cannot prove absence of sub-second overlap between scans; root must keep run exclusive",
+    "Historical dependency METADATA/benchmark Python hashes do not retrospectively certify all package/data/native/stdlib bytes",
+    "Controller valid completion can include benchmark failures; failed/partial/uncertified GC rows never scored",
+    "Report5dc needs bounded trial-status/current-evidence/new-controller-archive adapter after terminal; no scoring rewrite"
+  ],
+  "author_runtime_python_ast_build_or_measurement_execution": false,
+  "author_live_engine_edits": false,
+  "preserved_r1_controller": "scratch/performance/run-dict-scalar-append-full-pyperformance-refresh-proposed-20261008.py",
+  "preserved_r1_controller_sha256": "1907148317cf6806e57afb15143acf03a86524ea2ae7eb6dd35cee0d4364a56e",
+  "preserved_r1_proof_sha256": "c203d71787f19d6f8b2ab2803da8600595b11dc41c3f4224ea75246012fa78ef",
+  "r2_delta": "Explicit invalid terminal status on cleanup/log-hash failure; separate valid-capture and successful-suite flags; cosmetic dictionary indent. Original workload/97/caps/guards and raw preservation unchanged."
+}

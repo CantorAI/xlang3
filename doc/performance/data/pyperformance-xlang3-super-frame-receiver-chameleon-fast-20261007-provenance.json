@@ -1,0 +1,40 @@
+{
+  "status": "finished",
+  "started_utc": "2026-10-07T16:47:37.599512+00:00",
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "source_base_commit": "90f1c2928b71a863b6e629d12c4c51aa1d6895b2",
+  "engine_source": "Uncommitted guarded direct live-frame receiver for zero-argument super",
+  "source_sha256": {
+    "src/internal/xlang3/runtime.h": "dca079787569f7c21db9b4b1de148e0a8e0b03f892a64ce187d764f0520afecf",
+    "src/builtins/functional_builtins.cpp": "1225ad7e1cacc18b17dd8ffdd45fb8ffc861fb2eab9822ed800dcd86e8fde13d",
+    "src/executor/xlang_vm/xlang_vm_loop.cpp": "fef26f9ebe532f9a15d54446e364c4c495ba5a04ac020006389eb0e6cd14f811",
+    "src/executor/xlang_vm/xlang_vm_inline_support.h": "d642d3faf503302ba670b1d322f3d9ac2ac5f4a9fe098b02fa97cd0a97ba647c",
+    "src/runtime/runtime.cpp": "e66213c46a1ca277a340838b636baeb55d29243e990d632a9c6a0ea2eb9141b9",
+    "tests/run_fixtures.py": "7cf24ce6b154ef935c82d022a6ccef82d5ce8a5457485add86610338399cf02e",
+    "tests/fixtures/core/super_live_receiver.py": "4d76f591f3a1c735b0c1f19758501500a4c34af614a7d7ec6ff9f5ce2f0e9277",
+    "tests/fixtures/expected/super_live_receiver.out": "f6ef437b5bd53379ba7ac1c7eee87413a9eace609df46283e9f0ce5b9da5745e"
+  },
+  "sha256_start": {
+    "exe": "75c4e9f37e1a3425883e11dc1c08172329eaa2c75f2eaa52585b9bfcd33f1aae",
+    "dll": "1cfb1e587622e2c1d86ed73caa296149dfad06af25c03706faab8b2dcbf2dd3f",
+    "hashlib": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239"
+  },
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "mode": "fast",
+  "benchmarks": "chameleon",
+  "expected_definitions": 1,
+  "case_timeout_seconds": 300,
+  "cpython_reference": "pyperformance-cpython314-clean-release-full-fast-20261002.json",
+  "cpython_reference_provenance_limits": "cpython3147-saved-reference-provenance-audit-20261007.json",
+  "fixed_gate": "release-super-frame-receiver-fixed-gate-20261007.json",
+  "fixed_gate_exit_code": 0,
+  "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+  "exit_code": 0,
+  "completed_utc": "2026-10-07T16:48:13.698088+00:00",
+  "sha256_end": {
+    "exe": "75c4e9f37e1a3425883e11dc1c08172329eaa2c75f2eaa52585b9bfcd33f1aae",
+    "dll": "1cfb1e587622e2c1d86ed73caa296149dfad06af25c03706faab8b2dcbf2dd3f",
+    "hashlib": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239"
+  }
+}

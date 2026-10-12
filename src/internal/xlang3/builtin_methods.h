@@ -283,6 +283,7 @@ const BuiltinMethodSpec* list_find_method_spec(const Value& object, const std::s
 bool tuple_get_method(const Value& object, const std::string& name, Value& out);
 bool tuple_install_class_methods(Runtime& runtime, ClassObject& tuple_class);
 bool dict_get_method(const Value& object, const std::string& name, Value& out);
+bool dict_is_canonical_getitem(const NativeFunctionObject& function);
 const BuiltinMethodSpec* dict_find_method_spec(const Value& object, const std::string& name);
 bool dict_install_class_methods(Runtime& runtime, ClassObject& dict_class);
 bool dict_install_view_class_methods(Runtime& runtime, ClassObject& view_class);

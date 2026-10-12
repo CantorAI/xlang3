@@ -1,0 +1,1071 @@
+capture,phase,runtime,case,sample,time_seconds,normalization
+diagnostic,block-00-cpython3147,cpython3147,loop,0,0.0013670000480487943,complete checked body; 50000 input items
+diagnostic,block-00-cpython3147,cpython3147,loop,1,0.001355400017928332,complete checked body; 50000 input items
+diagnostic,block-00-cpython3147,cpython3147,loop,2,0.0012579999747686088,complete checked body; 50000 input items
+diagnostic,block-00-cpython3147,cpython3147,small_calls,0,0.001915199973154813,complete checked body; 50000 input items
+diagnostic,block-00-cpython3147,cpython3147,small_calls,1,0.0018784000421874225,complete checked body; 50000 input items
+diagnostic,block-00-cpython3147,cpython3147,small_calls,2,0.001901899988297373,complete checked body; 50000 input items
+diagnostic,block-00-cpython3147,cpython3147,branch_calls,0,0.002431800006888807,complete checked body; 50000 input items
+diagnostic,block-00-cpython3147,cpython3147,branch_calls,1,0.002565800037700683,complete checked body; 50000 input items
+diagnostic,block-00-cpython3147,cpython3147,branch_calls,2,0.0025539000052958727,complete checked body; 50000 input items
+diagnostic,block-00-cpython3147,cpython3147,sort_plain,0,0.00017980003030970693,complete checked body; 50000 input items
+diagnostic,block-00-cpython3147,cpython3147,sort_plain,1,0.00030239997431635857,complete checked body; 50000 input items
+diagnostic,block-00-cpython3147,cpython3147,sort_plain,2,0.0002750999992713332,complete checked body; 50000 input items
+diagnostic,block-00-cpython3147,cpython3147,sort_callback,0,0.002606900001410395,complete checked body; 50000 input items
+diagnostic,block-00-cpython3147,cpython3147,sort_callback,1,0.002480700029991567,complete checked body; 50000 input items
+diagnostic,block-00-cpython3147,cpython3147,sort_callback,2,0.0024810999748297036,complete checked body; 50000 input items
+diagnostic,block-00-control,control,loop,0,0.003245699976105243,complete checked body; 50000 input items
+diagnostic,block-00-control,control,loop,1,0.0031052999547682703,complete checked body; 50000 input items
+diagnostic,block-00-control,control,loop,2,0.0033457999816164374,complete checked body; 50000 input items
+diagnostic,block-00-control,control,small_calls,0,0.015839300001971424,complete checked body; 50000 input items
+diagnostic,block-00-control,control,small_calls,1,0.015919499972369522,complete checked body; 50000 input items
+diagnostic,block-00-control,control,small_calls,2,0.016130800009705126,complete checked body; 50000 input items
+diagnostic,block-00-control,control,branch_calls,0,0.018104600021615624,complete checked body; 50000 input items
+diagnostic,block-00-control,control,branch_calls,1,0.01848599995719269,complete checked body; 50000 input items
+diagnostic,block-00-control,control,branch_calls,2,0.018583200057037175,complete checked body; 50000 input items
+diagnostic,block-00-control,control,sort_plain,0,0.0024366999859921634,complete checked body; 50000 input items
+diagnostic,block-00-control,control,sort_plain,1,0.0023141999845393,complete checked body; 50000 input items
+diagnostic,block-00-control,control,sort_plain,2,0.002230699989013374,complete checked body; 50000 input items
+diagnostic,block-00-control,control,sort_callback,0,0.03753029997460544,complete checked body; 50000 input items
+diagnostic,block-00-control,control,sort_callback,1,0.03989630000432953,complete checked body; 50000 input items
+diagnostic,block-00-control,control,sort_callback,2,0.03817939996952191,complete checked body; 50000 input items
+diagnostic,block-00-candidate,candidate,loop,0,0.0035284999758005142,complete checked body; 50000 input items
+diagnostic,block-00-candidate,candidate,loop,1,0.0033505999599583447,complete checked body; 50000 input items
+diagnostic,block-00-candidate,candidate,loop,2,0.0033773999894037843,complete checked body; 50000 input items
+diagnostic,block-00-candidate,candidate,small_calls,0,0.01567699998850003,complete checked body; 50000 input items
+diagnostic,block-00-candidate,candidate,small_calls,1,0.01527700002770871,complete checked body; 50000 input items
+diagnostic,block-00-candidate,candidate,small_calls,2,0.015365300001576543,complete checked body; 50000 input items
+diagnostic,block-00-candidate,candidate,branch_calls,0,0.01774489996023476,complete checked body; 50000 input items
+diagnostic,block-00-candidate,candidate,branch_calls,1,0.017075999989174306,complete checked body; 50000 input items
+diagnostic,block-00-candidate,candidate,branch_calls,2,0.01649460004409775,complete checked body; 50000 input items
+diagnostic,block-00-candidate,candidate,sort_plain,0,0.0027663999935612082,complete checked body; 50000 input items
+diagnostic,block-00-candidate,candidate,sort_plain,1,0.0023858000058680773,complete checked body; 50000 input items
+diagnostic,block-00-candidate,candidate,sort_plain,2,0.002460799994878471,complete checked body; 50000 input items
+diagnostic,block-00-candidate,candidate,sort_callback,0,0.03849379997700453,complete checked body; 50000 input items
+diagnostic,block-00-candidate,candidate,sort_callback,1,0.03783589997328818,complete checked body; 50000 input items
+diagnostic,block-00-candidate,candidate,sort_callback,2,0.03736930002924055,complete checked body; 50000 input items
+diagnostic,block-01-cpython3147,cpython3147,loop,0,0.0012271999730728567,complete checked body; 50000 input items
+diagnostic,block-01-cpython3147,cpython3147,loop,1,0.0012752000475302339,complete checked body; 50000 input items
+diagnostic,block-01-cpython3147,cpython3147,loop,2,0.001344099990092218,complete checked body; 50000 input items
+diagnostic,block-01-cpython3147,cpython3147,small_calls,0,0.002056199999060482,complete checked body; 50000 input items
+diagnostic,block-01-cpython3147,cpython3147,small_calls,1,0.0019215000211261213,complete checked body; 50000 input items
+diagnostic,block-01-cpython3147,cpython3147,small_calls,2,0.0019656000076793134,complete checked body; 50000 input items
+diagnostic,block-01-cpython3147,cpython3147,branch_calls,0,0.002371500013396144,complete checked body; 50000 input items
+diagnostic,block-01-cpython3147,cpython3147,branch_calls,1,0.0023871000157669187,complete checked body; 50000 input items
+diagnostic,block-01-cpython3147,cpython3147,branch_calls,2,0.002504300035070628,complete checked body; 50000 input items
+diagnostic,block-01-cpython3147,cpython3147,sort_plain,0,0.00018780003301799297,complete checked body; 50000 input items
+diagnostic,block-01-cpython3147,cpython3147,sort_plain,1,0.00038049998693168163,complete checked body; 50000 input items
+diagnostic,block-01-cpython3147,cpython3147,sort_plain,2,0.00029930000891909003,complete checked body; 50000 input items
+diagnostic,block-01-cpython3147,cpython3147,sort_callback,0,0.002601900021545589,complete checked body; 50000 input items
+diagnostic,block-01-cpython3147,cpython3147,sort_callback,1,0.0025064999936148524,complete checked body; 50000 input items
+diagnostic,block-01-cpython3147,cpython3147,sort_callback,2,0.0024790000170469284,complete checked body; 50000 input items
+diagnostic,block-01-candidate,candidate,loop,0,0.0033693999866954982,complete checked body; 50000 input items
+diagnostic,block-01-candidate,candidate,loop,1,0.003381399961654097,complete checked body; 50000 input items
+diagnostic,block-01-candidate,candidate,loop,2,0.0033727999543771148,complete checked body; 50000 input items
+diagnostic,block-01-candidate,candidate,small_calls,0,0.015879000013228506,complete checked body; 50000 input items
+diagnostic,block-01-candidate,candidate,small_calls,1,0.015378299984149635,complete checked body; 50000 input items
+diagnostic,block-01-candidate,candidate,small_calls,2,0.016233199974521995,complete checked body; 50000 input items
+diagnostic,block-01-candidate,candidate,branch_calls,0,0.016486399981658906,complete checked body; 50000 input items
+diagnostic,block-01-candidate,candidate,branch_calls,1,0.016234699985943735,complete checked body; 50000 input items
+diagnostic,block-01-candidate,candidate,branch_calls,2,0.01645769999595359,complete checked body; 50000 input items
+diagnostic,block-01-candidate,candidate,sort_plain,0,0.002915100019890815,complete checked body; 50000 input items
+diagnostic,block-01-candidate,candidate,sort_plain,1,0.002873099991120398,complete checked body; 50000 input items
+diagnostic,block-01-candidate,candidate,sort_plain,2,0.00261049997061491,complete checked body; 50000 input items
+diagnostic,block-01-candidate,candidate,sort_callback,0,0.04359570000087842,complete checked body; 50000 input items
+diagnostic,block-01-candidate,candidate,sort_callback,1,0.04030839999904856,complete checked body; 50000 input items
+diagnostic,block-01-candidate,candidate,sort_callback,2,0.03830650000600144,complete checked body; 50000 input items
+diagnostic,block-01-control,control,loop,0,0.0040559000335633755,complete checked body; 50000 input items
+diagnostic,block-01-control,control,loop,1,0.0038863999652676284,complete checked body; 50000 input items
+diagnostic,block-01-control,control,loop,2,0.003896400041412562,complete checked body; 50000 input items
+diagnostic,block-01-control,control,small_calls,0,0.016251199995167553,complete checked body; 50000 input items
+diagnostic,block-01-control,control,small_calls,1,0.016374099999666214,complete checked body; 50000 input items
+diagnostic,block-01-control,control,small_calls,2,0.016363299975637347,complete checked body; 50000 input items
+diagnostic,block-01-control,control,branch_calls,0,0.018811599991749972,complete checked body; 50000 input items
+diagnostic,block-01-control,control,branch_calls,1,0.018406499992124736,complete checked body; 50000 input items
+diagnostic,block-01-control,control,branch_calls,2,0.018429399991873652,complete checked body; 50000 input items
+diagnostic,block-01-control,control,sort_plain,0,0.002202100004069507,complete checked body; 50000 input items
+diagnostic,block-01-control,control,sort_plain,1,0.002142900018952787,complete checked body; 50000 input items
+diagnostic,block-01-control,control,sort_plain,2,0.002269499993417412,complete checked body; 50000 input items
+diagnostic,block-01-control,control,sort_callback,0,0.03926270001102239,complete checked body; 50000 input items
+diagnostic,block-01-control,control,sort_callback,1,0.03850109997438267,complete checked body; 50000 input items
+diagnostic,block-01-control,control,sort_callback,2,0.038013000041246414,complete checked body; 50000 input items
+diagnostic,block-02-control,control,loop,0,0.003152600023895502,complete checked body; 50000 input items
+diagnostic,block-02-control,control,loop,1,0.0032216000254265964,complete checked body; 50000 input items
+diagnostic,block-02-control,control,loop,2,0.0032645000028423965,complete checked body; 50000 input items
+diagnostic,block-02-control,control,small_calls,0,0.01602029998321086,complete checked body; 50000 input items
+diagnostic,block-02-control,control,small_calls,1,0.01565319998189807,complete checked body; 50000 input items
+diagnostic,block-02-control,control,small_calls,2,0.016384500020649284,complete checked body; 50000 input items
+diagnostic,block-02-control,control,branch_calls,0,0.018242199963424355,complete checked body; 50000 input items
+diagnostic,block-02-control,control,branch_calls,1,0.01836299995193258,complete checked body; 50000 input items
+diagnostic,block-02-control,control,branch_calls,2,0.017947599990293384,complete checked body; 50000 input items
+diagnostic,block-02-control,control,sort_plain,0,0.002272400015499443,complete checked body; 50000 input items
+diagnostic,block-02-control,control,sort_plain,1,0.002057400008197874,complete checked body; 50000 input items
+diagnostic,block-02-control,control,sort_plain,2,0.0021034000092186034,complete checked body; 50000 input items
+diagnostic,block-02-control,control,sort_callback,0,0.04037679999601096,complete checked body; 50000 input items
+diagnostic,block-02-control,control,sort_callback,1,0.03820760000962764,complete checked body; 50000 input items
+diagnostic,block-02-control,control,sort_callback,2,0.04042570001911372,complete checked body; 50000 input items
+diagnostic,block-02-cpython3147,cpython3147,loop,0,0.0012835999950766563,complete checked body; 50000 input items
+diagnostic,block-02-cpython3147,cpython3147,loop,1,0.0012715000193566084,complete checked body; 50000 input items
+diagnostic,block-02-cpython3147,cpython3147,loop,2,0.001260999997612089,complete checked body; 50000 input items
+diagnostic,block-02-cpython3147,cpython3147,small_calls,0,0.001972600002773106,complete checked body; 50000 input items
+diagnostic,block-02-cpython3147,cpython3147,small_calls,1,0.0022324000019580126,complete checked body; 50000 input items
+diagnostic,block-02-cpython3147,cpython3147,small_calls,2,0.0019913000287488103,complete checked body; 50000 input items
+diagnostic,block-02-cpython3147,cpython3147,branch_calls,0,0.0023323000059463084,complete checked body; 50000 input items
+diagnostic,block-02-cpython3147,cpython3147,branch_calls,1,0.0024273000308312476,complete checked body; 50000 input items
+diagnostic,block-02-cpython3147,cpython3147,branch_calls,2,0.0024482000153511763,complete checked body; 50000 input items
+diagnostic,block-02-cpython3147,cpython3147,sort_plain,0,0.00022799998987466097,complete checked body; 50000 input items
+diagnostic,block-02-cpython3147,cpython3147,sort_plain,1,0.00027329998556524515,complete checked body; 50000 input items
+diagnostic,block-02-cpython3147,cpython3147,sort_plain,2,0.0002484000287950039,complete checked body; 50000 input items
+diagnostic,block-02-cpython3147,cpython3147,sort_callback,0,0.0024115999694913626,complete checked body; 50000 input items
+diagnostic,block-02-cpython3147,cpython3147,sort_callback,1,0.002453699999023229,complete checked body; 50000 input items
+diagnostic,block-02-cpython3147,cpython3147,sort_callback,2,0.002534200029913336,complete checked body; 50000 input items
+diagnostic,block-02-candidate,candidate,loop,0,0.0034137999755330384,complete checked body; 50000 input items
+diagnostic,block-02-candidate,candidate,loop,1,0.003360499977134168,complete checked body; 50000 input items
+diagnostic,block-02-candidate,candidate,loop,2,0.0032360999612137675,complete checked body; 50000 input items
+diagnostic,block-02-candidate,candidate,small_calls,0,0.015440499992109835,complete checked body; 50000 input items
+diagnostic,block-02-candidate,candidate,small_calls,1,0.015071799978613853,complete checked body; 50000 input items
+diagnostic,block-02-candidate,candidate,small_calls,2,0.01565899996785447,complete checked body; 50000 input items
+diagnostic,block-02-candidate,candidate,branch_calls,0,0.017349399975501,complete checked body; 50000 input items
+diagnostic,block-02-candidate,candidate,branch_calls,1,0.01748139999108389,complete checked body; 50000 input items
+diagnostic,block-02-candidate,candidate,branch_calls,2,0.017646199965383857,complete checked body; 50000 input items
+diagnostic,block-02-candidate,candidate,sort_plain,0,0.002159500028938055,complete checked body; 50000 input items
+diagnostic,block-02-candidate,candidate,sort_plain,1,0.001982600020710379,complete checked body; 50000 input items
+diagnostic,block-02-candidate,candidate,sort_plain,2,0.002284899994265288,complete checked body; 50000 input items
+diagnostic,block-02-candidate,candidate,sort_callback,0,0.03795700002228841,complete checked body; 50000 input items
+diagnostic,block-02-candidate,candidate,sort_callback,1,0.03751379996538162,complete checked body; 50000 input items
+diagnostic,block-02-candidate,candidate,sort_callback,2,0.037209499976597726,complete checked body; 50000 input items
+diagnostic,block-03-control,control,loop,0,0.00342110003111884,complete checked body; 50000 input items
+diagnostic,block-03-control,control,loop,1,0.0033127000206150115,complete checked body; 50000 input items
+diagnostic,block-03-control,control,loop,2,0.0032654000096954405,complete checked body; 50000 input items
+diagnostic,block-03-control,control,small_calls,0,0.01698060001945123,complete checked body; 50000 input items
+diagnostic,block-03-control,control,small_calls,1,0.017232000012882054,complete checked body; 50000 input items
+diagnostic,block-03-control,control,small_calls,2,0.01648310001473874,complete checked body; 50000 input items
+diagnostic,block-03-control,control,branch_calls,0,0.017194600019138306,complete checked body; 50000 input items
+diagnostic,block-03-control,control,branch_calls,1,0.01720709999790415,complete checked body; 50000 input items
+diagnostic,block-03-control,control,branch_calls,2,0.017299600003752857,complete checked body; 50000 input items
+diagnostic,block-03-control,control,sort_plain,0,0.002039100043475628,complete checked body; 50000 input items
+diagnostic,block-03-control,control,sort_plain,1,0.001779800048097968,complete checked body; 50000 input items
+diagnostic,block-03-control,control,sort_plain,2,0.0022836000425741076,complete checked body; 50000 input items
+diagnostic,block-03-control,control,sort_callback,0,0.03765520005254075,complete checked body; 50000 input items
+diagnostic,block-03-control,control,sort_callback,1,0.03886219998821616,complete checked body; 50000 input items
+diagnostic,block-03-control,control,sort_callback,2,0.03866720001678914,complete checked body; 50000 input items
+diagnostic,block-03-candidate,candidate,loop,0,0.003364900010637939,complete checked body; 50000 input items
+diagnostic,block-03-candidate,candidate,loop,1,0.003334399953018874,complete checked body; 50000 input items
+diagnostic,block-03-candidate,candidate,loop,2,0.003358700021635741,complete checked body; 50000 input items
+diagnostic,block-03-candidate,candidate,small_calls,0,0.015406100021209568,complete checked body; 50000 input items
+diagnostic,block-03-candidate,candidate,small_calls,1,0.016231900022830814,complete checked body; 50000 input items
+diagnostic,block-03-candidate,candidate,small_calls,2,0.01657889998750761,complete checked body; 50000 input items
+diagnostic,block-03-candidate,candidate,branch_calls,0,0.017127999977674335,complete checked body; 50000 input items
+diagnostic,block-03-candidate,candidate,branch_calls,1,0.016991599986795336,complete checked body; 50000 input items
+diagnostic,block-03-candidate,candidate,branch_calls,2,0.01667859998997301,complete checked body; 50000 input items
+diagnostic,block-03-candidate,candidate,sort_plain,0,0.0022882999619469047,complete checked body; 50000 input items
+diagnostic,block-03-candidate,candidate,sort_plain,1,0.0022037000162526965,complete checked body; 50000 input items
+diagnostic,block-03-candidate,candidate,sort_plain,2,0.0021029000054113567,complete checked body; 50000 input items
+diagnostic,block-03-candidate,candidate,sort_callback,0,0.03687670000363141,complete checked body; 50000 input items
+diagnostic,block-03-candidate,candidate,sort_callback,1,0.037505800020881,complete checked body; 50000 input items
+diagnostic,block-03-candidate,candidate,sort_callback,2,0.037737299979198724,complete checked body; 50000 input items
+diagnostic,block-03-cpython3147,cpython3147,loop,0,0.0013791999663226306,complete checked body; 50000 input items
+diagnostic,block-03-cpython3147,cpython3147,loop,1,0.0013643999700434506,complete checked body; 50000 input items
+diagnostic,block-03-cpython3147,cpython3147,loop,2,0.0013949000276625156,complete checked body; 50000 input items
+diagnostic,block-03-cpython3147,cpython3147,small_calls,0,0.002020800020545721,complete checked body; 50000 input items
+diagnostic,block-03-cpython3147,cpython3147,small_calls,1,0.0018877999973483384,complete checked body; 50000 input items
+diagnostic,block-03-cpython3147,cpython3147,small_calls,2,0.0019444000208750367,complete checked body; 50000 input items
+diagnostic,block-03-cpython3147,cpython3147,branch_calls,0,0.0023305999930016696,complete checked body; 50000 input items
+diagnostic,block-03-cpython3147,cpython3147,branch_calls,1,0.002476000052411109,complete checked body; 50000 input items
+diagnostic,block-03-cpython3147,cpython3147,branch_calls,2,0.002556699968408793,complete checked body; 50000 input items
+diagnostic,block-03-cpython3147,cpython3147,sort_plain,0,0.00016709999181330204,complete checked body; 50000 input items
+diagnostic,block-03-cpython3147,cpython3147,sort_plain,1,0.0002891999902203679,complete checked body; 50000 input items
+diagnostic,block-03-cpython3147,cpython3147,sort_plain,2,0.00025779998395591974,complete checked body; 50000 input items
+diagnostic,block-03-cpython3147,cpython3147,sort_callback,0,0.0025738999829627573,complete checked body; 50000 input items
+diagnostic,block-03-cpython3147,cpython3147,sort_callback,1,0.0025328000192530453,complete checked body; 50000 input items
+diagnostic,block-03-cpython3147,cpython3147,sort_callback,2,0.002597399987280369,complete checked body; 50000 input items
+diagnostic,block-04-candidate,candidate,loop,0,0.0034482000046409667,complete checked body; 50000 input items
+diagnostic,block-04-candidate,candidate,loop,1,0.0033657000167295337,complete checked body; 50000 input items
+diagnostic,block-04-candidate,candidate,loop,2,0.0033952000085264444,complete checked body; 50000 input items
+diagnostic,block-04-candidate,candidate,small_calls,0,0.015152100007981062,complete checked body; 50000 input items
+diagnostic,block-04-candidate,candidate,small_calls,1,0.014838500006590039,complete checked body; 50000 input items
+diagnostic,block-04-candidate,candidate,small_calls,2,0.01540740003110841,complete checked body; 50000 input items
+diagnostic,block-04-candidate,candidate,branch_calls,0,0.016369500022847205,complete checked body; 50000 input items
+diagnostic,block-04-candidate,candidate,branch_calls,1,0.01653889997396618,complete checked body; 50000 input items
+diagnostic,block-04-candidate,candidate,branch_calls,2,0.01638929999899119,complete checked body; 50000 input items
+diagnostic,block-04-candidate,candidate,sort_plain,0,0.002177500049583614,complete checked body; 50000 input items
+diagnostic,block-04-candidate,candidate,sort_plain,1,0.0021846999879926443,complete checked body; 50000 input items
+diagnostic,block-04-candidate,candidate,sort_plain,2,0.0022654999629594386,complete checked body; 50000 input items
+diagnostic,block-04-candidate,candidate,sort_callback,0,0.03770879999501631,complete checked body; 50000 input items
+diagnostic,block-04-candidate,candidate,sort_callback,1,0.03913920000195503,complete checked body; 50000 input items
+diagnostic,block-04-candidate,candidate,sort_callback,2,0.03714779997244477,complete checked body; 50000 input items
+diagnostic,block-04-cpython3147,cpython3147,loop,0,0.001234400027897209,complete checked body; 50000 input items
+diagnostic,block-04-cpython3147,cpython3147,loop,1,0.00133940001251176,complete checked body; 50000 input items
+diagnostic,block-04-cpython3147,cpython3147,loop,2,0.0012734999763779342,complete checked body; 50000 input items
+diagnostic,block-04-cpython3147,cpython3147,small_calls,0,0.0019452000269666314,complete checked body; 50000 input items
+diagnostic,block-04-cpython3147,cpython3147,small_calls,1,0.0019280000124126673,complete checked body; 50000 input items
+diagnostic,block-04-cpython3147,cpython3147,small_calls,2,0.0019188000005669892,complete checked body; 50000 input items
+diagnostic,block-04-cpython3147,cpython3147,branch_calls,0,0.0023520999820902944,complete checked body; 50000 input items
+diagnostic,block-04-cpython3147,cpython3147,branch_calls,1,0.0024601000477559865,complete checked body; 50000 input items
+diagnostic,block-04-cpython3147,cpython3147,branch_calls,2,0.0024160000029951334,complete checked body; 50000 input items
+diagnostic,block-04-cpython3147,cpython3147,sort_plain,0,0.00021650001872330904,complete checked body; 50000 input items
+diagnostic,block-04-cpython3147,cpython3147,sort_plain,1,0.000256399973295629,complete checked body; 50000 input items
+diagnostic,block-04-cpython3147,cpython3147,sort_plain,2,0.00021890003699809313,complete checked body; 50000 input items
+diagnostic,block-04-cpython3147,cpython3147,sort_callback,0,0.002846500021405518,complete checked body; 50000 input items
+diagnostic,block-04-cpython3147,cpython3147,sort_callback,1,0.0025012000114656985,complete checked body; 50000 input items
+diagnostic,block-04-cpython3147,cpython3147,sort_callback,2,0.0023789999540895224,complete checked body; 50000 input items
+diagnostic,block-04-control,control,loop,0,0.003347200050484389,complete checked body; 50000 input items
+diagnostic,block-04-control,control,loop,1,0.003299799980595708,complete checked body; 50000 input items
+diagnostic,block-04-control,control,loop,2,0.003417500003706664,complete checked body; 50000 input items
+diagnostic,block-04-control,control,small_calls,0,0.015701399999670684,complete checked body; 50000 input items
+diagnostic,block-04-control,control,small_calls,1,0.01580880000256002,complete checked body; 50000 input items
+diagnostic,block-04-control,control,small_calls,2,0.016285999969113618,complete checked body; 50000 input items
+diagnostic,block-04-control,control,branch_calls,0,0.01796740002464503,complete checked body; 50000 input items
+diagnostic,block-04-control,control,branch_calls,1,0.018049300007987767,complete checked body; 50000 input items
+diagnostic,block-04-control,control,branch_calls,2,0.018259899981785566,complete checked body; 50000 input items
+diagnostic,block-04-control,control,sort_plain,0,0.0021189000108279288,complete checked body; 50000 input items
+diagnostic,block-04-control,control,sort_plain,1,0.0018681000219658017,complete checked body; 50000 input items
+diagnostic,block-04-control,control,sort_plain,2,0.002531800011638552,complete checked body; 50000 input items
+diagnostic,block-04-control,control,sort_callback,0,0.03930049994960427,complete checked body; 50000 input items
+diagnostic,block-04-control,control,sort_callback,1,0.03769770002691075,complete checked body; 50000 input items
+diagnostic,block-04-control,control,sort_callback,2,0.03964569995878264,complete checked body; 50000 input items
+diagnostic,block-05-candidate,candidate,loop,0,0.00344330002553761,complete checked body; 50000 input items
+diagnostic,block-05-candidate,candidate,loop,1,0.0033448999747633934,complete checked body; 50000 input items
+diagnostic,block-05-candidate,candidate,loop,2,0.0033272000146098435,complete checked body; 50000 input items
+diagnostic,block-05-candidate,candidate,small_calls,0,0.015194299980066717,complete checked body; 50000 input items
+diagnostic,block-05-candidate,candidate,small_calls,1,0.015299199963919818,complete checked body; 50000 input items
+diagnostic,block-05-candidate,candidate,small_calls,2,0.01523089996771887,complete checked body; 50000 input items
+diagnostic,block-05-candidate,candidate,branch_calls,0,0.016692200035322458,complete checked body; 50000 input items
+diagnostic,block-05-candidate,candidate,branch_calls,1,0.016145600005984306,complete checked body; 50000 input items
+diagnostic,block-05-candidate,candidate,branch_calls,2,0.016533999994862825,complete checked body; 50000 input items
+diagnostic,block-05-candidate,candidate,sort_plain,0,0.0021996000432409346,complete checked body; 50000 input items
+diagnostic,block-05-candidate,candidate,sort_plain,1,0.0021892000222578645,complete checked body; 50000 input items
+diagnostic,block-05-candidate,candidate,sort_plain,2,0.00215419998858124,complete checked body; 50000 input items
+diagnostic,block-05-candidate,candidate,sort_callback,0,0.03752170002553612,complete checked body; 50000 input items
+diagnostic,block-05-candidate,candidate,sort_callback,1,0.03851139999460429,complete checked body; 50000 input items
+diagnostic,block-05-candidate,candidate,sort_callback,2,0.038070700014941394,complete checked body; 50000 input items
+diagnostic,block-05-control,control,loop,0,0.003440000000409782,complete checked body; 50000 input items
+diagnostic,block-05-control,control,loop,1,0.003378199995495379,complete checked body; 50000 input items
+diagnostic,block-05-control,control,loop,2,0.0031287000165320933,complete checked body; 50000 input items
+diagnostic,block-05-control,control,small_calls,0,0.01565780001692474,complete checked body; 50000 input items
+diagnostic,block-05-control,control,small_calls,1,0.01572440000018105,complete checked body; 50000 input items
+diagnostic,block-05-control,control,small_calls,2,0.01670969999395311,complete checked body; 50000 input items
+diagnostic,block-05-control,control,branch_calls,0,0.017544800008181483,complete checked body; 50000 input items
+diagnostic,block-05-control,control,branch_calls,1,0.01718060002895072,complete checked body; 50000 input items
+diagnostic,block-05-control,control,branch_calls,2,0.017400400014594197,complete checked body; 50000 input items
+diagnostic,block-05-control,control,sort_plain,0,0.0022473999997600913,complete checked body; 50000 input items
+diagnostic,block-05-control,control,sort_plain,1,0.002029299968853593,complete checked body; 50000 input items
+diagnostic,block-05-control,control,sort_plain,2,0.0021858999971300364,complete checked body; 50000 input items
+diagnostic,block-05-control,control,sort_callback,0,0.03823900001589209,complete checked body; 50000 input items
+diagnostic,block-05-control,control,sort_callback,1,0.038411299989093095,complete checked body; 50000 input items
+diagnostic,block-05-control,control,sort_callback,2,0.038119499979075044,complete checked body; 50000 input items
+diagnostic,block-05-cpython3147,cpython3147,loop,0,0.0013518999912776053,complete checked body; 50000 input items
+diagnostic,block-05-cpython3147,cpython3147,loop,1,0.0013672999921254814,complete checked body; 50000 input items
+diagnostic,block-05-cpython3147,cpython3147,loop,2,0.0012999000027775764,complete checked body; 50000 input items
+diagnostic,block-05-cpython3147,cpython3147,small_calls,0,0.0019625999848358333,complete checked body; 50000 input items
+diagnostic,block-05-cpython3147,cpython3147,small_calls,1,0.0019404999911785126,complete checked body; 50000 input items
+diagnostic,block-05-cpython3147,cpython3147,small_calls,2,0.0019635999924503267,complete checked body; 50000 input items
+diagnostic,block-05-cpython3147,cpython3147,branch_calls,0,0.002417700015939772,complete checked body; 50000 input items
+diagnostic,block-05-cpython3147,cpython3147,branch_calls,1,0.0026005999534390867,complete checked body; 50000 input items
+diagnostic,block-05-cpython3147,cpython3147,branch_calls,2,0.002444799989461899,complete checked body; 50000 input items
+diagnostic,block-05-cpython3147,cpython3147,sort_plain,0,0.000208500016015023,complete checked body; 50000 input items
+diagnostic,block-05-cpython3147,cpython3147,sort_plain,1,0.0002633999683894217,complete checked body; 50000 input items
+diagnostic,block-05-cpython3147,cpython3147,sort_plain,2,0.00020319997565820813,complete checked body; 50000 input items
+diagnostic,block-05-cpython3147,cpython3147,sort_callback,0,0.0025581999798305333,complete checked body; 50000 input items
+diagnostic,block-05-cpython3147,cpython3147,sort_callback,1,0.002596600039396435,complete checked body; 50000 input items
+diagnostic,block-05-cpython3147,cpython3147,sort_callback,2,0.0025997000047937036,complete checked body; 50000 input items
+official-fast,abba-0-control,control,unpickle_pure_python,0,0.002395611249812646,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,1,0.002349476250674343,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,2,0.0023902524997538423,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,3,0.002393623749958351,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,4,0.0024389362501096913,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,5,0.002358102500147652,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,6,0.0023276250001799783,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,7,0.0023615500002051705,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,8,0.0023299749998841436,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,9,0.00235037874954287,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,10,0.002577451250544982,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,11,0.002562405000207946,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,12,0.0023490750005294102,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,13,0.002354116249625804,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,14,0.002439161249640165,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,15,0.0023500974995840805,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,16,0.0023675912496401,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,17,0.0024635062502056824,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,18,0.002363120000518393,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-0-control,control,unpickle_pure_python,19,0.002415662499697646,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,0,0.0023026337497867645,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,1,0.002400935000332538,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,2,0.002386967500206083,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,3,0.0023751387496304234,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,4,0.0024348912505956833,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,5,0.00240711000005831,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,6,0.0023660862505494153,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,7,0.0023535937500128055,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,8,0.0023612999997567386,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,9,0.002326415000425186,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,10,0.0023605587499332613,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,11,0.002392768749996321,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,12,0.0024043262499617414,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,13,0.0023591487501107623,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,14,0.0023465412501536775,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,15,0.002360661249986151,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,16,0.0023443574995326345,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,17,0.0023894762503914534,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,18,0.002332600000227103,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-1-candidate,candidate,unpickle_pure_python,19,0.0023413549999531822,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,0,0.0023074412500136534,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,1,0.0023321012493397577,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,2,0.0023739662501611747,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,3,0.002379332500277087,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,4,0.002383615000144346,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,5,0.002398494999943068,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,6,0.0023910925003292503,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,7,0.0023583549998875243,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,8,0.0023972612500074318,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,9,0.0023983299994142725,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,10,0.0023486787496949544,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,11,0.002467503750085598,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,12,0.002325966249918565,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,13,0.0023083112500899006,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,14,0.0025396525001269766,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,15,0.0023629812501894778,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,16,0.002361984999879496,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,17,0.0024645137498737315,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,18,0.002345511249586707,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-2-candidate,candidate,unpickle_pure_python,19,0.002381302499998128,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,0,0.002367803749802988,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,1,0.002354610000475077,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,2,0.0023763137498463037,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,3,0.0023803912503353787,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,4,0.0024739137494179885,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,5,0.002385502499964787,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,6,0.0023585499999171588,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,7,0.002384378750139149,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,8,0.0023955649994604755,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,9,0.002342416249302914,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,10,0.0024412562503130174,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,11,0.002422849999857135,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,12,0.002395623749907827,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,13,0.0024097737499687356,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,14,0.002389845000288915,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,15,0.0023985412502952387,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,16,0.0024001162506465334,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,17,0.0024128324999765026,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,18,0.00237009750053403,pyperf normalized scored value; see original metadata/inner_loops
+official-fast,abba-3-control,control,unpickle_pure_python,19,0.002362206250109011,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,0,0.0023361212493909988,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,1,0.002403281250008149,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,2,0.002370066249568481,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,3,0.0023268387500138487,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,4,0.002348756250285078,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,5,0.0023694399998930747,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,6,0.002348821250052424,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,7,0.002314416250010254,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,8,0.0023429637498338708,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,9,0.002381417500146199,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,10,0.0023794474996975622,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,11,0.0023844774994358888,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,12,0.0024004387501918244,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,13,0.0026739424996776507,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,14,0.0024010200002521744,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,15,0.002321913749619853,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,16,0.0023505150005803444,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,17,0.002425051249883836,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,18,0.0023413087503286077,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,19,0.0023445712497050407,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,20,0.0023351262498181313,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,21,0.002383553749677958,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,22,0.0023449874999641905,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,23,0.002339172500069253,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,24,0.002387277499656193,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,25,0.0023683712497586384,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,26,0.0023539524998341223,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,27,0.0023761112504871564,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,28,0.0023575862498546483,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,29,0.0023669662499742118,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,30,0.002375886250229087,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,31,0.0023388862500723917,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,32,0.0023824962503567805,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,33,0.002371682499506278,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,34,0.002966825000476092,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,35,0.002419721250043949,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,36,0.0023214950000692625,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,37,0.0023016987499431705,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,38,0.0023805374999938066,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,39,0.0023874949998571537,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,40,0.002411749999737367,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,41,0.002369318749697413,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,42,0.002357490000576945,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,43,0.0024284999999508727,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,44,0.0023666612498345783,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,45,0.0023864062495704275,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,46,0.002373281250038417,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,47,0.002411156250309432,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,48,0.0023453900001186414,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,49,0.0023087812500307337,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,50,0.002362306250142865,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,51,0.0023485974998038728,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,52,0.002361198749713367,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,53,0.002372768749773968,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,54,0.0024077300004137214,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,55,0.0023518687499745282,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,56,0.002648592500190716,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,57,0.002362318750238046,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,58,0.0023654299999179783,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,59,0.002492414999869652,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,60,0.0023494712499086746,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,61,0.002361864999693353,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,62,0.0023616650003532415,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,63,0.002391741249448387,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,64,0.0024540312500903384,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,65,0.00238541124999756,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,66,0.0024282012498588303,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,67,0.0023752324996166863,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,68,0.002344061249459628,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,69,0.0023718875003396534,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,70,0.002458243750152178,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,71,0.002331489999778569,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,72,0.002330503750272328,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,73,0.0023243312505655924,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,74,0.0023446300001523923,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,75,0.0023414187497110108,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,76,0.002331691249855794,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,77,0.00269972250025603,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,78,0.002355507500033127,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,79,0.0023682449995249045,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,80,0.002347068749804748,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,81,0.002398640000319574,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,82,0.0024192124998080543,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,83,0.0023779274997650646,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,84,0.002361757500329986,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,85,0.0023618125000211877,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,86,0.00244977124966681,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,87,0.0024417675005679483,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,88,0.0023173137502453755,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,89,0.0023439487493305934,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,90,0.0023760937503539024,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,91,0.0023124637496948707,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,92,0.002303601250605425,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,93,0.0024333149995072745,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,94,0.0023914662502647842,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,95,0.0023859474997152573,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,96,0.0024099174996081276,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,97,0.002442792499641655,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,98,0.0028027500004100146,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,99,0.0023681887498241848,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,100,0.002362328750314191,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,101,0.0023723049998807255,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,102,0.0023404787498293445,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,103,0.002381707499444019,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,104,0.0023668825000640937,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,105,0.0023575637496833224,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,106,0.0023230175000207966,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,107,0.002348402499774238,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,108,0.0024463012494379656,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,109,0.002390218750224449,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,110,0.002372612500039395,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,111,0.002364876250067027,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,112,0.0024059987503278536,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,113,0.0024225749999459366,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,114,0.0023616200000105892,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,115,0.0023407799999404233,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,116,0.002333548750175396,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,117,0.002359991249977611,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,118,0.0027278637506242378,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-0-control,control,unpickle_pure_python,119,0.002594044999568723,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,0,0.0023899849998997524,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,1,0.002420591249392601,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,2,0.0024517350000678563,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,3,0.0030034687501029112,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,4,0.0023399174999212844,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,5,0.0023336987505899742,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,6,0.0023681862498051488,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,7,0.002343803750409279,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,8,0.0023793487504008225,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,9,0.002366135000193026,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,10,0.0023164137499406936,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,11,0.0023322687498875893,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,12,0.0023827387500205076,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,13,0.0023507824997068385,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,14,0.002314483750524232,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,15,0.002370296249864623,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,16,0.0023839624998799993,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,17,0.002445081250334624,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,18,0.002372559999639634,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,19,0.0023246537501108834,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,20,0.0023567950003780423,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,21,0.0023908512499474454,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,22,0.0023487312500947155,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,23,0.0023557725005957765,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,24,0.00237245750031434,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,25,0.0030624175000411925,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,26,0.0023891074997663964,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,27,0.0023480437499529216,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,28,0.002409122500102967,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,29,0.0024050275002082343,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,30,0.002362108750094194,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,31,0.002378017500450369,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,32,0.0023786462494172155,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,33,0.0023053462500683963,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,34,0.002356084999337327,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,35,0.0023366637498838825,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,36,0.0023633725002582652,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,37,0.0023536125001555773,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,38,0.0023505837496486494,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,39,0.0024070912499155384,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,40,0.0024088575002679134,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,41,0.0023346187503193506,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,42,0.0023367999994661657,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,43,0.002357662499707658,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,44,0.002413804999378044,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,45,0.0023909337498480452,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,46,0.0029537062502640763,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,47,0.002385912500176346,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,48,0.0023810612503439186,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,49,0.0023507224999775645,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,50,0.0023273749997315464,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,51,0.0024305137500050477,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,52,0.002333527500013588,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,53,0.002306917500391137,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,54,0.002326869999524206,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,55,0.002400213749933755,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,56,0.0023365699998976197,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,57,0.0023381987499305978,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,58,0.0023820175003493203,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,59,0.0023543837502074893,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,60,0.0023512250001658684,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,61,0.0023524775002442765,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,62,0.0023320000000239816,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,63,0.002400493749883026,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,64,0.0023547500000859144,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,65,0.00234035000030417,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,66,0.002490853750350652,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,67,0.0029596275002404583,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,68,0.0023986962500202936,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,69,0.002280248750321334,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,70,0.00231519125009072,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,71,0.002394101249956293,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,72,0.0022765800000343005,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,73,0.002327977499953704,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,74,0.0023498462498537263,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,75,0.0023563362497952766,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,76,0.0023597349994815887,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,77,0.002291427500313148,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,78,0.002451223749812925,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,79,0.0024013137495785485,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,80,0.0023703687504166735,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,81,0.002408007500343956,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,82,0.002419993749936111,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,83,0.0023782849995768627,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,84,0.0023863862501457334,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,85,0.002356982499622973,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,86,0.0024221849998866674,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,87,0.0023059537503286264,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,88,0.0029522900003939867,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,89,0.002398486250604037,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,90,0.0023675000004004685,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,91,0.0023734025002340787,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,92,0.0024131899997883012,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,93,0.0024112337501719593,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,94,0.0024370899998757524,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,95,0.0023349325005256106,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,96,0.0023391324997646735,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,97,0.002383670000563143,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,98,0.0023766800004523247,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,99,0.0024366912504774517,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,100,0.0023269899997103495,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,101,0.0023628537499462256,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,102,0.0023804637501598338,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,103,0.0023688937493716367,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,104,0.002369816249847645,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,105,0.0023721612502413335,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,106,0.0023870337499829475,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,107,0.002359301249816781,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,108,0.0023693650000495836,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,109,0.0024052987500908785,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,110,0.00268227874985314,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,111,0.002361931250197813,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,112,0.002354807499796152,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,113,0.002427168750000419,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,114,0.0023452249995898457,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,115,0.002353067500371253,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,116,0.0023809112499293406,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,117,0.002417121250618948,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,118,0.0023760412499541418,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-1-candidate,candidate,unpickle_pure_python,119,0.002354961249511689,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,0,0.0023597774998052046,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,1,0.002366561250528321,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,2,0.0023870524993981233,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,3,0.002392336249613436,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,4,0.0023236312503286173,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,5,0.0023654399999941235,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,6,0.002308985000126995,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,7,0.002357783750630915,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,8,0.002314480000495678,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,9,0.0023705125000560655,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,10,0.002325716250197729,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,11,0.002314050000131829,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,12,0.00235190750026959,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,13,0.002322586249647429,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,14,0.0023328324998146853,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,15,0.0022746425005607308,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,16,0.002440165000007255,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,17,0.002672154999891063,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,18,0.0023864187496656086,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,19,0.002359003750461852,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,20,0.0023536237495136447,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,21,0.0024341937496501487,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,22,0.0023656650002521927,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,23,0.0023258037501364013,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,24,0.0024225650005973874,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,25,0.0023568562501168344,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,26,0.002346358750219224,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,27,0.0023770050000166522,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,28,0.0024182199995266274,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,29,0.002396414999384433,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,30,0.0023855400002503304,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,31,0.0023814112500986084,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,32,0.002365789999748813,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,33,0.0023598262494488155,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,34,0.002365425000607502,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,35,0.0023238624999066815,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,36,0.002349176250572782,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,37,0.002513808749790769,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,38,0.0025150437504635192,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,39,0.0024409037498116957,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,40,0.00236304874997586,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,41,0.0023609937496075874,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,42,0.002379621249565389,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,43,0.0023663699997996447,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,44,0.0024488200004270768,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,45,0.0023374824995698873,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,46,0.0023469974999898112,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,47,0.0023756825001328254,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,48,0.0023905937501695006,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,49,0.0023553237500891556,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,50,0.0023469687497708947,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,51,0.0023788487502315546,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,52,0.0023716050003713463,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,53,0.002331523750035558,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,54,0.0023802112504199614,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,55,0.0024627225000585897,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,56,0.002399638750648592,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,57,0.002349297500040848,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,58,0.0023699687502812595,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,59,0.0031729274996905588,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,60,0.0023634899996977767,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,61,0.002361201249732403,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,62,0.0023610500000359027,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,63,0.002355419999366859,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,64,0.0023134174996812364,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,65,0.002362392500072019,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,66,0.0023722337500657886,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,67,0.0023814012500224637,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,68,0.0024477412502164953,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,69,0.002350298749661306,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,70,0.0023817662498913706,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,71,0.002427437499864027,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,72,0.002326662500126986,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,73,0.0023042925000481772,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,74,0.0023086837500159163,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,75,0.0023813724998035467,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,76,0.0023072374999173915,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,77,0.002333400000497932,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,78,0.002351228750194423,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,79,0.0023462950004613957,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,80,0.003415445000428008,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,81,0.0024620975003927016,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,82,0.002393289999599801,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,83,0.002371715000481345,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,84,0.0023141112498706205,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,85,0.0023807075005606746,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,86,0.0023895487502159085,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,87,0.0025479800002358387,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,88,0.002439540000341367,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,89,0.0023607062503288034,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,90,0.0023970549998921344,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,91,0.002363649999460904,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,92,0.002327297499869019,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,93,0.002416946250014007,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,94,0.002361796250625048,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,95,0.0023524987504060847,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,96,0.0023532662497018466,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,97,0.0024315250004292464,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,98,0.0024092087500321214,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,99,0.0023610100004589187,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,100,0.0023019462496449705,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,101,0.003020814999763388,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,102,0.002329407499928493,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,103,0.002344272500340594,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,104,0.002360562499961816,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,105,0.002365460000146413,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,106,0.0023258025001268836,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,107,0.0023784787503245753,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,108,0.0023526012504589745,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,109,0.002357845000369707,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,110,0.0023850749996199736,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,111,0.002365301249665208,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,112,0.002411566250520991,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,113,0.0024258812503830996,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,114,0.00234813374991063,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,115,0.002386748749995604,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,116,0.002355702500062762,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,117,0.00234865250022267,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,118,0.0023504600001615474,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-2-candidate,candidate,unpickle_pure_python,119,0.0023801699993782678,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,0,0.0023442362500645684,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,1,0.0023641150000912603,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,2,0.002469983749324456,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,3,0.0023349125003733207,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,4,0.0023556375002954156,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,5,0.002357986249990063,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,6,0.0024042575001658405,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,7,0.0025134237497695723,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,8,0.0025768049999896903,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,9,0.0023662987499847078,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,10,0.002378131250588922,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,11,0.0023466337501304225,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,12,0.002398223750060424,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,13,0.0024369450002268422,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,14,0.0023662549996515737,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,15,0.002372557499620598,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,16,0.0023540212503576187,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,17,0.0024266850006824823,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,18,0.00241970749993925,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,19,0.002382487499562558,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,20,0.002489629999763565,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,21,0.002351686250040075,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,22,0.00238543125014985,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,23,0.002326162499957718,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,24,0.0023522375005995853,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,25,0.002366123750107363,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,26,0.0023598212494107427,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,27,0.0023553387502033727,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,28,0.0023752137502015104,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,29,0.0028831674993853086,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,30,0.0023467912498745134,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,31,0.00231345499996678,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,32,0.0023549887497210874,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,33,0.002344576250470709,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,34,0.002379101249971427,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,35,0.0023568875003547873,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,36,0.0024374175001867114,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,37,0.002414960000169231,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,38,0.002395342499949038,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,39,0.0024003237500437534,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,40,0.0023827475000871346,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,41,0.0023343287502939347,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,42,0.002400862500508083,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,43,0.0023421587502525654,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,44,0.00241489125037333,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,45,0.0023393637500703337,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,46,0.002345741249882849,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,47,0.0023533762505394407,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,48,0.002376451249438105,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,49,0.0024188037496060133,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,50,0.002931797500059474,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,51,0.0024319925003510436,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,52,0.0023752799999783745,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,53,0.0023571199999423698,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,54,0.0023518274996604306,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,55,0.002332348749769153,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,56,0.0024734475002333054,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,57,0.0024146750001818873,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,58,0.002349278749898076,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,59,0.002361542499420466,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,60,0.0023780412499036173,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,61,0.002417845000309171,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,62,0.002356619999773102,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,63,0.0023818599998776334,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,64,0.0023974525000085125,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,65,0.002403366249927785,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,66,0.0023722725003608503,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,67,0.0024261787497380284,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,68,0.0024300212506204845,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,69,0.0023899562504084313,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,70,0.002394016250036657,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,71,0.003000796250125859,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,72,0.002394140000251355,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,73,0.002396250000310829,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,74,0.0023799337497621307,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,75,0.0023857200001657477,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,76,0.002362814999651164,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,77,0.00238003375052358,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,78,0.0024391799997829366,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,79,0.0024208274997363334,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,80,0.002348841250204714,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,81,0.0023869862503488547,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,82,0.0024036925002292263,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,83,0.0024119012501614633,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,84,0.0023419249999278692,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,85,0.0023762587494275066,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,86,0.0023583487498399338,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,87,0.0023644225002499297,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,88,0.0023751649998303035,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,89,0.0023502962496422695,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,90,0.002363603750563925,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,91,0.002378306249738671,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,92,0.00326135625000461,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,93,0.0024457075000100304,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,94,0.00236287999941851,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,95,0.0023658525002247187,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,96,0.0023646287496376316,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,97,0.002398145000188379,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,98,0.0024476012506056575,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,99,0.002348383750359062,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,100,0.002328032499644905,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,101,0.0023583775000588503,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,102,0.002376411249861121,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,103,0.0023179499999969265,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,104,0.002366644999710843,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,105,0.0024191299999074545,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,106,0.0024064675002591685,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,107,0.0023853650003729855,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,108,0.002333236249978654,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,109,0.0024099837501125876,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,110,0.002321677500003716,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,111,0.002341398749558721,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,112,0.0023693737501162106,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,113,0.0030453437502728775,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,114,0.0023767262500768993,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,115,0.0023786775003827644,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,116,0.002368127500085393,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,117,0.002396520000183955,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,118,0.0023507525002059992,pyperf normalized scored value; see original metadata/inner_loops
+official-rigorous,abba-3-control,control,unpickle_pure_python,119,0.002341506250377279,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,0,0.0387447249959223,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,1,0.03876920000766404,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,2,0.039878900002804585,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,3,0.038843425005325116,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,4,0.03882702499686275,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,5,0.03850152500672266,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,6,0.03892539998923894,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,7,0.03885362499568146,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,8,0.038424149999627843,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,9,0.040013524994719774,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,10,0.03922692500054836,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,11,0.039633224994759075,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,12,0.039586400002008304,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,13,0.03881957499834243,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,14,0.039015374990412965,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,15,0.03898559999652207,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,16,0.03913077499601059,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,17,0.03911062500264961,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,18,0.03889060000074096,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,deltablue,19,0.03905212499375921,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,0,0.044870725003420375,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,1,0.044911374992807396,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,2,0.0456323000107659,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,3,0.046519550000084564,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,4,0.04500415000075009,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,5,0.045099574999767356,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,6,0.04556650000449736,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,7,0.0674671250017127,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,8,0.04557667500921525,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,9,0.04722012499405537,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,10,0.04576847499993164,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,11,0.044970299990382046,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,12,0.04804987499665003,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,13,0.04498287499882281,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,14,0.045697800000198185,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,15,0.04654452500108164,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,16,0.045650125000975095,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,17,0.04585572500946,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,18,0.04562364998855628,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,hexiom,19,0.04525112500414252,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,0,0.3593405000283383,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,1,0.35471060004783794,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,2,0.3569832000066526,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,3,0.34734139998909086,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,4,0.356364700011909,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,5,0.34983580000698566,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,6,0.3561481999931857,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,7,0.35353689995827153,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,8,0.34995050000725314,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,9,0.34977259999141097,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,10,0.35027809999883175,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,11,0.3514662000234239,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,12,0.3503328000078909,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,13,0.37719980004476383,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,14,0.3473010999732651,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,15,0.3502384999883361,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,16,0.34031259996118024,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,17,0.36037690000375733,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,18,0.33957979996921495,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-0-control,control,richards,19,0.33814890001667663,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,0,0.04131210000196006,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,1,0.03891677499632351,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,2,0.04320025000197347,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,3,0.054038000002037734,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,4,0.038170075000380166,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,5,0.037707124996813945,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,6,0.037720699998317286,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,7,0.03726592499879189,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,8,0.038495750006404705,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,9,0.04077050001069438,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,10,0.03944467499968596,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,11,0.03857469999638852,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,12,0.039502599989646114,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,13,0.03848025000479538,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,14,0.03860622500360478,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,15,0.03862864999973681,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,16,0.03940862500166986,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,17,0.0389431249932386,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,18,0.03779030000441708,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,deltablue,19,0.03855275000387337,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,0,0.0454799750004895,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,1,0.04567680000036489,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,2,0.0464702750032302,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,3,0.045971774990903214,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,4,0.04515730000275653,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,5,0.06012989999726415,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,6,0.04475755000021309,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,7,0.044526274999952875,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,8,0.04559960000915453,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,9,0.0466705250000814,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,10,0.04528512500110082,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,11,0.04427392499928828,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,12,0.044946124995476566,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,13,0.04540777500369586,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,14,0.045471099991118535,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,15,0.04483099999197293,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,16,0.04412612500891555,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,17,0.04516362499271054,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,18,0.04568892500537913,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,hexiom,19,0.0486200749874115,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,0,0.3552600999828428,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,1,0.35235980001743883,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,2,0.3497131000040099,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,3,0.3604695000103675,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,4,0.3798248000093736,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,5,0.3533082000212744,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,6,0.35097460000542924,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,7,0.35130099998787045,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,8,0.3574444000259973,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,9,0.3513170000514947,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,10,0.40497810003580526,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,11,0.36267250002129003,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,12,0.354941500001587,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,13,0.34599010000238195,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,14,0.3496351999929175,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,15,0.34861270000692457,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,16,0.3480565000209026,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,17,0.35787100001471117,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,18,0.35520470002666116,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-1-candidate,candidate,richards,19,0.3542327999603003,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,0,0.039491825009463355,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,1,0.03963052498875186,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,2,0.03968459999305196,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,3,0.03860532499675173,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,4,0.038013299999875017,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,5,0.03801864999695681,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,6,0.03776327500236221,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,7,0.03858675000083167,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,8,0.03813627499039285,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,9,0.058023150006192736,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,10,0.03998169999977108,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,11,0.038223575000301935,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,12,0.03860319999512285,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,13,0.038499600006616674,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,14,0.038733649998903275,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,15,0.03881987500062678,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,16,0.03891765000298619,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,17,0.03856469999300316,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,18,0.050791225003194995,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,deltablue,19,0.038775900000473484,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,0,0.04670497500046622,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,1,0.04608859999279957,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,2,0.04481680000026245,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,3,0.04472552498918958,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,4,0.047302599996328354,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,5,0.04682292499637697,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,6,0.044626699993386865,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,7,0.0455656749982154,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,8,0.04466607500216924,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,9,0.04500545001064893,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,10,0.04555560000881087,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,11,0.045319149998249486,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,12,0.045647550010471605,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,13,0.052356249987496994,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,14,0.04546409999602474,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,15,0.04522425000322983,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,16,0.0483685249928385,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,17,0.0468645750079304,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,18,0.04427567499806173,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,hexiom,19,0.0449887000140734,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,0,0.34418719995301217,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,1,0.3498346999986097,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,2,0.35083720000693575,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,3,0.3531985000008717,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,4,0.352803599962499,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,5,0.34966410003835335,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,6,0.3469580999808386,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,7,0.34914090001257136,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,8,0.350553399999626,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,9,0.34272620000410825,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,10,0.3492116000270471,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,11,0.34398639999562874,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,12,0.3427051000180654,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,13,0.34412630001315847,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,14,0.4036598000093363,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,15,0.35150439996505156,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,16,0.34209279995411634,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,17,0.3489848999888636,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,18,0.3496813999954611,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-2-candidate,candidate,richards,19,0.34631459997035563,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,0,0.039309900006628595,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,1,0.03936529999191407,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,2,0.04222389998903964,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,3,0.03956077499606181,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,4,0.03882612500456162,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,5,0.03839075000723824,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,6,0.03899062500568107,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,7,0.038281275003100745,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,8,0.03799122499185614,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,9,0.040493225009413436,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,10,0.03885032499965746,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,11,0.03849545000412036,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,12,0.03984692500671372,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,13,0.03916214998753276,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,14,0.038573499987251125,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,15,0.03828644999885,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,16,0.03978927498974372,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,17,0.039285124992602505,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,18,0.03890719999617431,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,deltablue,19,0.03927377500804141,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,0,0.04581657500239089,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,1,0.04650537499401253,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,2,0.04513839998980984,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,3,0.04587829999218229,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,4,0.04731390000961255,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,5,0.047453349994611926,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,6,0.046551500010536984,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,7,0.04616382499807514,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,8,0.045507975009968504,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,9,0.04738294999697246,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,10,0.045085950012435205,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,11,0.04569189999892842,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,12,0.054568849998759106,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,13,0.046066375012742355,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,14,0.045300800004042685,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,15,0.04552264999074396,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,16,0.04460062499856576,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,17,0.04578082499210723,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,18,0.04564475000370294,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,hexiom,19,0.04742820000683423,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,0,0.34842430002754554,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,1,0.3466783000039868,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,2,0.3508416999829933,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,3,0.3546062000095844,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,4,0.3468484000186436,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,5,0.34893870004452765,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,6,0.34933579998323694,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,7,0.35023300000466406,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,8,0.34951159998308867,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,9,0.35587710002437234,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,10,0.3582169999717735,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,11,0.3550654000137001,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,12,0.3550278000184335,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,13,0.351138100028038,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,14,0.35183399997185916,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,15,0.36566960002528504,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,16,0.3505375999957323,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,17,0.35704030003398657,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,18,0.3498221000190824,pyperf normalized scored value; see original metadata/inner_loops
+call-heavy-fast,abba-3-control,control,richards,19,0.35478949995012954,pyperf normalized scored value; see original metadata/inner_loops

@@ -1,0 +1,86 @@
+{
+  "status": "draft_only_not_applied_not_built_not_measured",
+  "revision": 3,
+  "head": "fcee35e37696902da6c10310f74f6976aa7cf3a7",
+  "eligibility": "Exact descriptor owner equals receiver class; no ancestor flattened slot of the requested name; inherited/alias/deleted/custom hooks remain generic.",
+  "native_hook_guards": "Both ops_attr InstanceSlot read branches recheck per-instance native_get_attr; outlined helper already guards before cache access.",
+  "source_sha256_before": "7053dadaee378a8a27acebd69fbb1b7797fc61c1bd9de39daa22ac411ce8bcb5",
+  "source_sha256_after": "7053dadaee378a8a27acebd69fbb1b7797fc61c1bd9de39daa22ac411ce8bcb5",
+  "ops_sha256_before": "0fe7a2eac4ea362a0ca3b3e62ebaecf85ad8794e929e7a59dfb26cf875943d5d",
+  "ops_sha256_after": "0fe7a2eac4ea362a0ca3b3e62ebaecf85ad8794e929e7a59dfb26cf875943d5d",
+  "check_command": [
+    "git",
+    "apply",
+    "--check",
+    "--",
+    "scratch/performance/sqlglot-canonical-slot-promotion-proposal-r3-20261007.patch"
+  ],
+  "check_exit": 0,
+  "artifacts": [
+    {
+      "path": "src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "bytes": 11993,
+      "sha256": "7053dadaee378a8a27acebd69fbb1b7797fc61c1bd9de39daa22ac411ce8bcb5"
+    },
+    {
+      "path": "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h",
+      "bytes": 76337,
+      "sha256": "0fe7a2eac4ea362a0ca3b3e62ebaecf85ad8794e929e7a59dfb26cf875943d5d"
+    },
+    {
+      "path": "scratch/performance/sqlglot-canonical-slot-promotion-proposal-source-20261007.cpp",
+      "bytes": 11993,
+      "sha256": "7053dadaee378a8a27acebd69fbb1b7797fc61c1bd9de39daa22ac411ce8bcb5"
+    },
+    {
+      "path": "scratch/performance/sqlglot-canonical-slot-promotion-ops-source-r3-20261007.h",
+      "bytes": 76337,
+      "sha256": "0fe7a2eac4ea362a0ca3b3e62ebaecf85ad8794e929e7a59dfb26cf875943d5d"
+    },
+    {
+      "path": "scratch/performance/sqlglot-canonical-slot-promotion-proposal-candidate-r2-20261007.cpp",
+      "bytes": 15369,
+      "sha256": "5c98093697f91ecdfb6ce97716208e216bf79b83d4204edad2115f75443ca503"
+    },
+    {
+      "path": "scratch/performance/sqlglot-canonical-slot-promotion-proposal-candidate-r3-20261007.cpp",
+      "bytes": 15672,
+      "sha256": "b4f79a6b1382cdebfe02de73633e6f479f81ffcc02ff2e48277181efc7e28ca4"
+    },
+    {
+      "path": "scratch/performance/sqlglot-canonical-slot-promotion-ops-candidate-r3-20261007.h",
+      "bytes": 76594,
+      "sha256": "ef65e328e8353c2c8d7f50711f2ce55224dee353790e3188e0be8b500d32263d"
+    },
+    {
+      "path": "scratch/performance/sqlglot-canonical-slot-promotion-proposal-r3-20261007.patch",
+      "bytes": 6837,
+      "sha256": "ea616cd331a1df319a6d6289272c93cc376e4303489f3f7bceb37d0e6cf833fa"
+    },
+    {
+      "path": "scratch/performance/sqlglot-canonical-slot-promotion-proposal-apply-check-r3-20261007.log",
+      "bytes": 119,
+      "sha256": "e2d924fcc7c2cee7fd5f1002e7cc766eba94340a2553821792a358ecacbb9de6"
+    },
+    {
+      "path": "scratch/performance/prepare-sqlglot-slot-proposal-r3-20261007.ps1",
+      "bytes": 7065,
+      "sha256": "5f971b4b13bc06b0f376f48db4fe814413f96c51888b36a63a5ee8e690353a96"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-native-hook-cases-draft-20261007.h",
+      "bytes": 7206,
+      "sha256": "29b6240dd52a473562763afc48164edef26eea758d6da323ce7109f9bfe2e82a"
+    },
+    {
+      "path": "scratch/performance/sqlglot-canonical-slot-promotion-fixture-draft-20261007.py",
+      "bytes": 3620,
+      "sha256": "09fc943ced8246be083a89c996884ab5dd6d3b9f59c2efe47c6592dd896544d5"
+    },
+    {
+      "path": "scratch/performance/sqlglot-canonical-slot-promotion-fixture-draft-20261007.out",
+      "bytes": 590,
+      "sha256": "1d26064c266d943d4b2d0a1dca8dd687a743e763a7b525bf4ba0b52cd8691a4d"
+    }
+  ]
+}

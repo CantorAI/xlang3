@@ -1,0 +1,614 @@
+{
+  "status": "frozen_engine_ownership_only_C5_validation_and_acceptance_pending",
+  "head": "7233cf3e2bb99ebcb6281293b2f68898152eee31",
+  "historical_C4_manifest": "scratch/performance/c4-owned-commit-plan-20261008-final-manifest.json",
+  "historical_C4_manifest_sha256": "255e77aa5421d9a172887dc6f22dbb918375e1a2b49b44f27ad67d52d9b48d8a",
+  "historical_C4_patch_sha256": "8ce32571d00e7740d15682bce08c9efd2ab0aa6a3201c4dc14e4af3fb141582b",
+  "final_inventory": "doc/performance/data/class-constructor-plan-c5-applied-source-20261008.json",
+  "final_inventory_sha256": "69aaf03539202bbc7fced4dfe46df5f3a801a6d40b8e0360a68245de6ce71937",
+  "source_count": 106,
+  "changed_since_C4": [
+    "src/executor/xlang_vm/xlang_vm_inline_call.h"
+  ],
+  "publisher_proof": "scratch/performance/class-canonical-default-new-representation-r4-proposed-20261008-provenance.json",
+  "publisher_proof_sha256": "9869cca91a83edea5f6198baf9691764e7ae0b42836ee1148ce6a7d73a1ae35c",
+  "publisher_patch_sha256": "a4352339e5803d9563fc3efa726fa75b1780f44c4a701431b0850c2f60501ebf",
+  "owned_target_count": 41,
+  "existing_whole_owned_count": 18,
+  "new_whole_owned_count": 23,
+  "cpp_header_policy": "ordinary_canonical_slot_constructor_cases.h remains actual61ef47dd; no scratch diagnostic header is included.",
+  "owned_files": [
+    {
+      "path": "src/builtins/functional_builtins.cpp",
+      "compiled_raw_sha256": "db0d23b44327ea6ca09d55c6e9351fd75e99cc187b3e0a10a0c7df1b86bddfc3",
+      "normalized_current_sha256": "db0d23b44327ea6ca09d55c6e9351fd75e99cc187b3e0a10a0c7df1b86bddfc3",
+      "head_blob": "78fd9fd0f6b81e923000ad09f6e9e9183cbe0d6b",
+      "head_normalized_sha256": "507be58fb121b4666a8157cde53e8c54a02fa8afb3325aea2c96b0884bd5f669",
+      "before_snapshot": "scratch/performance/pprint-sorted-key-scoped-entry-proposal-20261008-inputs/src/builtins/functional_builtins.cpp",
+      "before_raw_sha256": "507be58fb121b4666a8157cde53e8c54a02fa8afb3325aea2c96b0884bd5f669",
+      "before_normalized_sha256": "507be58fb121b4666a8157cde53e8c54a02fa8afb3325aea2c96b0884bd5f669",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/src/builtins/functional_builtins.cpp",
+      "stage_blob_sha256": "db0d23b44327ea6ca09d55c6e9351fd75e99cc187b3e0a10a0c7df1b86bddfc3"
+    },
+    {
+      "path": "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h",
+      "compiled_raw_sha256": "599604510360af33cdc1ba9fcbf65dd6f1971e3540449680aec8b5320928e30a",
+      "normalized_current_sha256": "a0b5e3def6e76bd3f053c5dc21b8ed18fa8cf1e2ec0398f43cb3cbf3d1e5ce61",
+      "head_blob": "888ddc9be3d59f7b4a1a3b0048dd1ad9f31fe4e9",
+      "head_normalized_sha256": "b8c1123d33a4413a9c286c586125407c17e661210710cfac1418de5c0af8cd92",
+      "before_snapshot": "scratch/performance/ordinary-canonical-slot-constructor-c1-before-sources-20261008/src/executor/xlang_vm/ops/xlang_vm_ops_attr.h",
+      "before_raw_sha256": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+      "before_normalized_sha256": "b8c1123d33a4413a9c286c586125407c17e661210710cfac1418de5c0af8cd92",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/src/executor/xlang_vm/ops/xlang_vm_ops_attr.h",
+      "stage_blob_sha256": "a0b5e3def6e76bd3f053c5dc21b8ed18fa8cf1e2ec0398f43cb3cbf3d1e5ce61"
+    },
+    {
+      "path": "src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "compiled_raw_sha256": "a84f771ff95698f27c5536bb8ce81d5de6f5c21c80c705f3933b5c13a2c35069",
+      "normalized_current_sha256": "a84f771ff95698f27c5536bb8ce81d5de6f5c21c80c705f3933b5c13a2c35069",
+      "head_blob": "8998f37877d2199203f327d29c2bcf05db546722",
+      "head_normalized_sha256": "fa72d225786d85527bbc50c3640792cebd41e8546f69b707c523ba13c6b05235",
+      "before_snapshot": "scratch/performance/ordinary-canonical-slot-constructor-c1-before-sources-20261008/src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "before_raw_sha256": "fa72d225786d85527bbc50c3640792cebd41e8546f69b707c523ba13c6b05235",
+      "before_normalized_sha256": "fa72d225786d85527bbc50c3640792cebd41e8546f69b707c523ba13c6b05235",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "stage_blob_sha256": "a84f771ff95698f27c5536bb8ce81d5de6f5c21c80c705f3933b5c13a2c35069"
+    },
+    {
+      "path": "src/executor/xlang_vm/xlang_frame.h",
+      "compiled_raw_sha256": "c144ecfa382778c73b9f4ad3a34a2644dae080afdcde307855cd961623400ff2",
+      "normalized_current_sha256": "c144ecfa382778c73b9f4ad3a34a2644dae080afdcde307855cd961623400ff2",
+      "head_blob": "a13582f9aad05a00b9a090abe69b6aea2570e35c",
+      "head_normalized_sha256": "9d233f79a628db676b106677378843b838983faf70023ae13a95ff7723427f1a",
+      "before_snapshot": "scratch/performance/ordinary-canonical-slot-constructor-c1-before-sources-20261008/src/executor/xlang_vm/xlang_frame.h",
+      "before_raw_sha256": "9d233f79a628db676b106677378843b838983faf70023ae13a95ff7723427f1a",
+      "before_normalized_sha256": "9d233f79a628db676b106677378843b838983faf70023ae13a95ff7723427f1a",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/src/executor/xlang_vm/xlang_frame.h",
+      "stage_blob_sha256": "c144ecfa382778c73b9f4ad3a34a2644dae080afdcde307855cd961623400ff2"
+    },
+    {
+      "path": "src/executor/xlang_vm/xlang_interpreter.cpp",
+      "compiled_raw_sha256": "f309acf74a45f5d212d97f0f0b51b65ed7ff9b86a56bbbdf0ae5047125341ab8",
+      "normalized_current_sha256": "f309acf74a45f5d212d97f0f0b51b65ed7ff9b86a56bbbdf0ae5047125341ab8",
+      "head_blob": "798e5feabd497c1f7604d49c9c3d16ee28dee887",
+      "head_normalized_sha256": "e3721837db83a872ee2f9f31f475ec4667c69f93c392ba9e7655ca3eeef89b19",
+      "before_snapshot": "scratch/performance/ordinary-canonical-slot-constructor-c1-before-sources-20261008/src/executor/xlang_vm/xlang_interpreter.cpp",
+      "before_raw_sha256": "e3721837db83a872ee2f9f31f475ec4667c69f93c392ba9e7655ca3eeef89b19",
+      "before_normalized_sha256": "e3721837db83a872ee2f9f31f475ec4667c69f93c392ba9e7655ca3eeef89b19",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/src/executor/xlang_vm/xlang_interpreter.cpp",
+      "stage_blob_sha256": "f309acf74a45f5d212d97f0f0b51b65ed7ff9b86a56bbbdf0ae5047125341ab8"
+    },
+    {
+      "path": "src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "compiled_raw_sha256": "9633377725d293f8e206ec8bc1c554ef6333ce6c05c3ecfe92c8281cec89934c",
+      "normalized_current_sha256": "e9788340cc836223c2d99c7131e23d6c2400aa41790eb2c3dc2387b55dc4e75d",
+      "head_blob": "31ffad6a34f00627f98c9bbf05bea497573dc691",
+      "head_normalized_sha256": "a65817da76f797cfaf3a35b3fbf9eddf30ae0aefa8514aea22b9fd031914e7a8",
+      "before_snapshot": "scratch/performance/ordinary-canonical-slot-constructor-c1-before-sources-20261008/src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "before_raw_sha256": "264a0d6c78dc4b946fe4b1f00dd7dd6d52581589a6950d4ecaf394d312994c7a",
+      "before_normalized_sha256": "a65817da76f797cfaf3a35b3fbf9eddf30ae0aefa8514aea22b9fd031914e7a8",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "stage_blob_sha256": "e9788340cc836223c2d99c7131e23d6c2400aa41790eb2c3dc2387b55dc4e75d"
+    },
+    {
+      "path": "src/executor/xlang_vm/xlang_vm_inline_call.h",
+      "compiled_raw_sha256": "f6038df4eecca5e26c4eb8eef40b165e5bb082adf39735d6d7808bfdb36f13bf",
+      "normalized_current_sha256": "f6038df4eecca5e26c4eb8eef40b165e5bb082adf39735d6d7808bfdb36f13bf",
+      "head_blob": "4179f2f9946e04513afa9ee3c9a0c8917b7c907b",
+      "head_normalized_sha256": "2ee5e45313c5838bbac2f105a026f818ea9df401c7f866e950d76c88d7045d5d",
+      "before_snapshot": "scratch/performance/ordinary-canonical-slot-constructor-c1-before-sources-20261008/src/executor/xlang_vm/xlang_vm_inline_call.h",
+      "before_raw_sha256": "6b0e68889c4a375293083b1b1693b9a70eaef345a6692ad628d64bb35845eda7",
+      "before_normalized_sha256": "2ee5e45313c5838bbac2f105a026f818ea9df401c7f866e950d76c88d7045d5d",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c5-owned-commit-follow-up-20261008/stage-blobs/src/executor/xlang_vm/xlang_vm_inline_call.h",
+      "stage_blob_sha256": "f6038df4eecca5e26c4eb8eef40b165e5bb082adf39735d6d7808bfdb36f13bf"
+    },
+    {
+      "path": "src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "compiled_raw_sha256": "edf6c52d37cc85990a1cfd995b769786773e13bdf70bc8908bd52d3d803da30d",
+      "normalized_current_sha256": "edf6c52d37cc85990a1cfd995b769786773e13bdf70bc8908bd52d3d803da30d",
+      "head_blob": "7f1c2d0e2dc6f7a43c45331e7ce67e09645410b9",
+      "head_normalized_sha256": "86229a917b3838bd3f86a4ffc5ae5a163f91a20b7fe93d9b1e24d252f5942c2d",
+      "before_snapshot": "scratch/performance/inherited-handled-entry-seed-proposed-20261008-inputs/src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "before_raw_sha256": "86229a917b3838bd3f86a4ffc5ae5a163f91a20b7fe93d9b1e24d252f5942c2d",
+      "before_normalized_sha256": "86229a917b3838bd3f86a4ffc5ae5a163f91a20b7fe93d9b1e24d252f5942c2d",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "stage_blob_sha256": "edf6c52d37cc85990a1cfd995b769786773e13bdf70bc8908bd52d3d803da30d"
+    },
+    {
+      "path": "src/internal/xlang3/ir.h",
+      "compiled_raw_sha256": "b6417aea98ee8169aa551d849492fd2dfdfca6300a6b491fe7cce85c3242f064",
+      "normalized_current_sha256": "b6417aea98ee8169aa551d849492fd2dfdfca6300a6b491fe7cce85c3242f064",
+      "head_blob": "2c8064d8c714d4512054731cf21205e47809acee",
+      "head_normalized_sha256": "2715ef98a1cc452164a84017755f9ea0b8d251999898518794ebb680c9735dcb",
+      "before_snapshot": "scratch/performance/ordinary-canonical-slot-constructor-c1-before-sources-20261008/src/internal/xlang3/ir.h",
+      "before_raw_sha256": "2c7a6ec831c9ead4df9c35745131d02d0ce44ed1749f137c05267e19e23700e9",
+      "before_normalized_sha256": "2715ef98a1cc452164a84017755f9ea0b8d251999898518794ebb680c9735dcb",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/src/internal/xlang3/ir.h",
+      "stage_blob_sha256": "b6417aea98ee8169aa551d849492fd2dfdfca6300a6b491fe7cce85c3242f064"
+    },
+    {
+      "path": "src/internal/xlang3/object_model.h",
+      "compiled_raw_sha256": "c447bcb0e388b5de946cc293264187eabd2e2fcb58b5cd5283fc126141d44434",
+      "normalized_current_sha256": "c447bcb0e388b5de946cc293264187eabd2e2fcb58b5cd5283fc126141d44434",
+      "head_blob": "3f45f901271c8a0ac2893aceacbdfb683723ca07",
+      "head_normalized_sha256": "e8642394a719f68c9666517c3a24d7487e30d088fa3ea4f9961d86bd36fd4023",
+      "before_snapshot": "scratch/performance/ordinary-canonical-slot-constructor-c1-before-sources-20261008/src/internal/xlang3/object_model.h",
+      "before_raw_sha256": "7a7e767de9ac93bc83992cb2367cc0cf15353f8da54326e867297bbcef1eec03",
+      "before_normalized_sha256": "e8642394a719f68c9666517c3a24d7487e30d088fa3ea4f9961d86bd36fd4023",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/src/internal/xlang3/object_model.h",
+      "stage_blob_sha256": "c447bcb0e388b5de946cc293264187eabd2e2fcb58b5cd5283fc126141d44434"
+    },
+    {
+      "path": "src/internal/xlang3/pyc_magic.h",
+      "compiled_raw_sha256": "2f45558470b77def716afce97a195f642b6064a63d445c56ae76e0ee80400cc5",
+      "normalized_current_sha256": "2f45558470b77def716afce97a195f642b6064a63d445c56ae76e0ee80400cc5",
+      "head_blob": "898e5091bc6ee67c32118d97b629823045161835",
+      "head_normalized_sha256": "6e427329aa09fb57f220c6c152afb361040ed133ef73c619b37815807ed1449e",
+      "before_snapshot": "scratch/performance/class-frame-namespace-success-cleanup-proposed-20261008-raw-inputs/src/internal/xlang3/pyc_magic.h",
+      "before_raw_sha256": "6e427329aa09fb57f220c6c152afb361040ed133ef73c619b37815807ed1449e",
+      "before_normalized_sha256": "6e427329aa09fb57f220c6c152afb361040ed133ef73c619b37815807ed1449e",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/src/internal/xlang3/pyc_magic.h",
+      "stage_blob_sha256": "2f45558470b77def716afce97a195f642b6064a63d445c56ae76e0ee80400cc5"
+    },
+    {
+      "path": "src/runtime/object_model.cpp",
+      "compiled_raw_sha256": "10806dd37498170b7172f469ca44d190698f85c0a6adb2bed104053df1c0fedc",
+      "normalized_current_sha256": "5cf6fb32265c2c6db0f342c9010d97949d24430d910c118561dee6c625c9f5c2",
+      "head_blob": "25a88e748638103aaa1798028dadb49923518f5e",
+      "head_normalized_sha256": "c8c9d4577c9871ed7273da63ccd5f629b9bd647a3ffd7da7f2a7c8788c721ca9",
+      "before_snapshot": "scratch/performance/ordinary-canonical-slot-constructor-c1-before-sources-20261008/src/runtime/object_model.cpp",
+      "before_raw_sha256": "67783af1a4294a87d9ad18d192d74d789fe3d4b06637fa9cf7b30f015355f547",
+      "before_normalized_sha256": "c8c9d4577c9871ed7273da63ccd5f629b9bd647a3ffd7da7f2a7c8788c721ca9",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/src/runtime/object_model.cpp",
+      "stage_blob_sha256": "5cf6fb32265c2c6db0f342c9010d97949d24430d910c118561dee6c625c9f5c2"
+    },
+    {
+      "path": "src/runtime/runtime.cpp",
+      "compiled_raw_sha256": "67b6383867234d092f479512feb80da9387b3a8c5280701ae87cca77947a9af9",
+      "normalized_current_sha256": "67b6383867234d092f479512feb80da9387b3a8c5280701ae87cca77947a9af9",
+      "head_blob": "99ca20bfa9e9f1740ab6a399e2aac133edcd65e2",
+      "head_normalized_sha256": "af56795388ebdf0ea0a519363df48957c43af78aaa7e0e198c04a35b5afe2bb7",
+      "before_snapshot": "scratch/performance/nested-profile-setting-persistence-r3-proposal-20261008-raw-inputs/src/runtime/runtime.cpp",
+      "before_raw_sha256": "15025bbe69bcd6de8a9cdf491811155b4ff7badd8e73a78be57fb7d2d4ea05e4",
+      "before_normalized_sha256": "af56795388ebdf0ea0a519363df48957c43af78aaa7e0e198c04a35b5afe2bb7",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/src/runtime/runtime.cpp",
+      "stage_blob_sha256": "67b6383867234d092f479512feb80da9387b3a8c5280701ae87cca77947a9af9"
+    },
+    {
+      "path": "src/sema/lower.cpp",
+      "compiled_raw_sha256": "12aae5ef15a98288aa359112ee8a6bd64f0213a228a3b11132849fad0f62fb04",
+      "normalized_current_sha256": "12aae5ef15a98288aa359112ee8a6bd64f0213a228a3b11132849fad0f62fb04",
+      "head_blob": "f7f1e6d1abc7828fc9036e65e1187709172a6fe1",
+      "head_normalized_sha256": "1b8524613c733c99d0057093ee20d747f5a386b522bbeec130811218665b7858",
+      "before_snapshot": "scratch/performance/class-frame-namespace-success-cleanup-proposed-20261008-raw-inputs/src/sema/lower.cpp",
+      "before_raw_sha256": "ef8bf0b3185ee4d13180cd5be50e66a85ac255621983123570af55f35a4f9cbd",
+      "before_normalized_sha256": "1b8524613c733c99d0057093ee20d747f5a386b522bbeec130811218665b7858",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/src/sema/lower.cpp",
+      "stage_blob_sha256": "12aae5ef15a98288aa359112ee8a6bd64f0213a228a3b11132849fad0f62fb04"
+    },
+    {
+      "path": "tests/cpp/class_method_annotation_capture_cases.h",
+      "compiled_raw_sha256": "ee63338ba3376b55caa7f1a0648b4e4017736cd7699b9d5b555acafe4dc49edf",
+      "normalized_current_sha256": "ee63338ba3376b55caa7f1a0648b4e4017736cd7699b9d5b555acafe4dc49edf",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/cpp/class_method_annotation_capture_cases.h",
+      "stage_blob_sha256": "ee63338ba3376b55caa7f1a0648b4e4017736cd7699b9d5b555acafe4dc49edf"
+    },
+    {
+      "path": "tests/cpp/interpreter_tests.cpp",
+      "compiled_raw_sha256": "59bdb1c2e85079d28ad7359ebdc3b0e76c0c56bf3880e79c8da6384418b2d172",
+      "normalized_current_sha256": "59bdb1c2e85079d28ad7359ebdc3b0e76c0c56bf3880e79c8da6384418b2d172",
+      "head_blob": "d018a77a54349cc043c2297ea9b74166c5b6575f",
+      "head_normalized_sha256": "2ff48a1c6ff2e7ac2b8465869740fbcb7098d034405979e4b4370a8b7b2de020",
+      "before_snapshot": "scratch/performance/sorted-key-scoped-entry-registration-r2-proposed-20261008-sources/tests/cpp/interpreter_tests.cpp",
+      "before_raw_sha256": "2ff48a1c6ff2e7ac2b8465869740fbcb7098d034405979e4b4370a8b7b2de020",
+      "before_normalized_sha256": "2ff48a1c6ff2e7ac2b8465869740fbcb7098d034405979e4b4370a8b7b2de020",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/cpp/interpreter_tests.cpp",
+      "stage_blob_sha256": "59bdb1c2e85079d28ad7359ebdc3b0e76c0c56bf3880e79c8da6384418b2d172"
+    },
+    {
+      "path": "tests/cpp/observable_builtin_method_cases.h",
+      "compiled_raw_sha256": "dab30cb33fdb48c82e692d6c24d344a721f306d4a175bda0b08b5f9b46e879b0",
+      "normalized_current_sha256": "dab30cb33fdb48c82e692d6c24d344a721f306d4a175bda0b08b5f9b46e879b0",
+      "head_blob": "ac0890fcb213631818c019d28487b27d11ae80df",
+      "head_normalized_sha256": "a481e589de35552dbfd507f46a729b067fdbf06c8bf744fdc0fa5952ad528bd1",
+      "before_snapshot": "scratch/performance/nested-profile-setting-persistence-r3-proposal-20261008-raw-inputs/tests/cpp/observable_builtin_method_cases.h",
+      "before_raw_sha256": "a481e589de35552dbfd507f46a729b067fdbf06c8bf744fdc0fa5952ad528bd1",
+      "before_normalized_sha256": "a481e589de35552dbfd507f46a729b067fdbf06c8bf744fdc0fa5952ad528bd1",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/cpp/observable_builtin_method_cases.h",
+      "stage_blob_sha256": "dab30cb33fdb48c82e692d6c24d344a721f306d4a175bda0b08b5f9b46e879b0"
+    },
+    {
+      "path": "tests/cpp/ordinary_canonical_slot_constructor_cases.h",
+      "compiled_raw_sha256": "61ef47dd60f865f0d910f3aaa5f8514100e48f6fa7784d91ec6560623e846ae5",
+      "normalized_current_sha256": "61ef47dd60f865f0d910f3aaa5f8514100e48f6fa7784d91ec6560623e846ae5",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/cpp/ordinary_canonical_slot_constructor_cases.h",
+      "stage_blob_sha256": "61ef47dd60f865f0d910f3aaa5f8514100e48f6fa7784d91ec6560623e846ae5"
+    },
+    {
+      "path": "tests/cpp/scoped_sorted_key_cases.h",
+      "compiled_raw_sha256": "08460b4fb51d8310290a28ecbc80de76c542d537fdc88f0a5d28bb81bc02f92a",
+      "normalized_current_sha256": "08460b4fb51d8310290a28ecbc80de76c542d537fdc88f0a5d28bb81bc02f92a",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/cpp/scoped_sorted_key_cases.h",
+      "stage_blob_sha256": "08460b4fb51d8310290a28ecbc80de76c542d537fdc88f0a5d28bb81bc02f92a"
+    },
+    {
+      "path": "tests/fixtures/core/class_method_annotation_capture.py",
+      "compiled_raw_sha256": "68de96b73c5a6f3bb4e89110a840d1298533be05fd3f8d95452a6f72bfcc9bac",
+      "normalized_current_sha256": "68de96b73c5a6f3bb4e89110a840d1298533be05fd3f8d95452a6f72bfcc9bac",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/core/class_method_annotation_capture.py",
+      "stage_blob_sha256": "68de96b73c5a6f3bb4e89110a840d1298533be05fd3f8d95452a6f72bfcc9bac"
+    },
+    {
+      "path": "tests/fixtures/core/class_namespace_lifetime.py",
+      "compiled_raw_sha256": "8c629e931a5da3aafc544a0e869d16ffc711b78cf4177f42e7ab90e4a539cecb",
+      "normalized_current_sha256": "8c629e931a5da3aafc544a0e869d16ffc711b78cf4177f42e7ab90e4a539cecb",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/core/class_namespace_lifetime.py",
+      "stage_blob_sha256": "8c629e931a5da3aafc544a0e869d16ffc711b78cf4177f42e7ab90e4a539cecb"
+    },
+    {
+      "path": "tests/fixtures/core/explicit_slot_descriptor_fallback.py",
+      "compiled_raw_sha256": "96a4b1e491898e0e9e86ffcf737c2a3abc93fc30702aa56262d5e8f2242a6041",
+      "normalized_current_sha256": "96a4b1e491898e0e9e86ffcf737c2a3abc93fc30702aa56262d5e8f2242a6041",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/core/explicit_slot_descriptor_fallback.py",
+      "stage_blob_sha256": "96a4b1e491898e0e9e86ffcf737c2a3abc93fc30702aa56262d5e8f2242a6041"
+    },
+    {
+      "path": "tests/fixtures/core/nested_profile_setting.py",
+      "compiled_raw_sha256": "9b2e6a38dc339115de0d0399f9fcf1fb8b22cd792bf270d480d42a7a8c8320bf",
+      "normalized_current_sha256": "9b2e6a38dc339115de0d0399f9fcf1fb8b22cd792bf270d480d42a7a8c8320bf",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/core/nested_profile_setting.py",
+      "stage_blob_sha256": "9b2e6a38dc339115de0d0399f9fcf1fb8b22cd792bf270d480d42a7a8c8320bf"
+    },
+    {
+      "path": "tests/fixtures/core/ordinary_canonical_slot_constructor.py",
+      "compiled_raw_sha256": "66ccda4fb3380583d5a1dcae8757ebce278b59a066b7c2f80940af230b6d0acf",
+      "normalized_current_sha256": "66ccda4fb3380583d5a1dcae8757ebce278b59a066b7c2f80940af230b6d0acf",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/core/ordinary_canonical_slot_constructor.py",
+      "stage_blob_sha256": "66ccda4fb3380583d5a1dcae8757ebce278b59a066b7c2f80940af230b6d0acf"
+    },
+    {
+      "path": "tests/fixtures/core/slot_descriptor_owner.py",
+      "compiled_raw_sha256": "e060d66788862b0a7afc7112d5d41d128a78f54a053532f00a578d0fadeea916",
+      "normalized_current_sha256": "e060d66788862b0a7afc7112d5d41d128a78f54a053532f00a578d0fadeea916",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/core/slot_descriptor_owner.py",
+      "stage_blob_sha256": "e060d66788862b0a7afc7112d5d41d128a78f54a053532f00a578d0fadeea916"
+    },
+    {
+      "path": "tests/fixtures/core/sorted_key_iteration_owner.py",
+      "compiled_raw_sha256": "420f8350b3a52f07a94dd7fc8fe8e6a62504a6fa993d19417f009b02106d93f1",
+      "normalized_current_sha256": "420f8350b3a52f07a94dd7fc8fe8e6a62504a6fa993d19417f009b02106d93f1",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/core/sorted_key_iteration_owner.py",
+      "stage_blob_sha256": "420f8350b3a52f07a94dd7fc8fe8e6a62504a6fa993d19417f009b02106d93f1"
+    },
+    {
+      "path": "tests/fixtures/core/sorted_key_nested_handled_context.py",
+      "compiled_raw_sha256": "b07f57cd7d8017bd0c9e316aa61d2b53c417d5c7a21ebd32bd14c72e545d5766",
+      "normalized_current_sha256": "1c4252acbe72703c04684376b5ad80f05586210c4907335202da6863e5514890",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/core/sorted_key_nested_handled_context.py",
+      "stage_blob_sha256": "1c4252acbe72703c04684376b5ad80f05586210c4907335202da6863e5514890"
+    },
+    {
+      "path": "tests/fixtures/core/sorted_key_scoped_entry.py",
+      "compiled_raw_sha256": "ccf3922036d85af6f2c654c29046c924b993cb3c1be2b0d65e23fe5fe24f6f26",
+      "normalized_current_sha256": "ccf3922036d85af6f2c654c29046c924b993cb3c1be2b0d65e23fe5fe24f6f26",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/core/sorted_key_scoped_entry.py",
+      "stage_blob_sha256": "ccf3922036d85af6f2c654c29046c924b993cb3c1be2b0d65e23fe5fe24f6f26"
+    },
+    {
+      "path": "tests/fixtures/core/synchronous_class_argument_lifetime.py",
+      "compiled_raw_sha256": "03e9da6a612c5e4a254c5038a3e97fb84bd4337061e61eb8544b0f50e3962064",
+      "normalized_current_sha256": "03e9da6a612c5e4a254c5038a3e97fb84bd4337061e61eb8544b0f50e3962064",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/core/synchronous_class_argument_lifetime.py",
+      "stage_blob_sha256": "03e9da6a612c5e4a254c5038a3e97fb84bd4337061e61eb8544b0f50e3962064"
+    },
+    {
+      "path": "tests/fixtures/expected/class_method_annotation_capture.out",
+      "compiled_raw_sha256": "9972c9b1f2fdd09e7da86211ed0c751857535d88d5106902199e7980a2073ce1",
+      "normalized_current_sha256": "9972c9b1f2fdd09e7da86211ed0c751857535d88d5106902199e7980a2073ce1",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/expected/class_method_annotation_capture.out",
+      "stage_blob_sha256": "9972c9b1f2fdd09e7da86211ed0c751857535d88d5106902199e7980a2073ce1"
+    },
+    {
+      "path": "tests/fixtures/expected/class_namespace_lifetime.out",
+      "compiled_raw_sha256": "f35e2622dc23c9544ee4dc5c0777c54e4eca16e15fcc0edc822958afa6488f33",
+      "normalized_current_sha256": "f35e2622dc23c9544ee4dc5c0777c54e4eca16e15fcc0edc822958afa6488f33",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/expected/class_namespace_lifetime.out",
+      "stage_blob_sha256": "f35e2622dc23c9544ee4dc5c0777c54e4eca16e15fcc0edc822958afa6488f33"
+    },
+    {
+      "path": "tests/fixtures/expected/explicit_slot_descriptor_fallback.out",
+      "compiled_raw_sha256": "e483778822db8a0e110d63a34d1bbb64857637f248f0ea18adfcbd8c2b8be06b",
+      "normalized_current_sha256": "e483778822db8a0e110d63a34d1bbb64857637f248f0ea18adfcbd8c2b8be06b",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/expected/explicit_slot_descriptor_fallback.out",
+      "stage_blob_sha256": "e483778822db8a0e110d63a34d1bbb64857637f248f0ea18adfcbd8c2b8be06b"
+    },
+    {
+      "path": "tests/fixtures/expected/nested_profile_setting.out",
+      "compiled_raw_sha256": "01ecf4bf1a5a75774e1c2fc10d7c7a969ad0d75af58304f5ee37e9b74bcae532",
+      "normalized_current_sha256": "01ecf4bf1a5a75774e1c2fc10d7c7a969ad0d75af58304f5ee37e9b74bcae532",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/expected/nested_profile_setting.out",
+      "stage_blob_sha256": "01ecf4bf1a5a75774e1c2fc10d7c7a969ad0d75af58304f5ee37e9b74bcae532"
+    },
+    {
+      "path": "tests/fixtures/expected/ordinary_canonical_slot_constructor.out",
+      "compiled_raw_sha256": "570277a5c4866c36f62677059de54e72132b6df9224b48cb60647e2e9e9e3399",
+      "normalized_current_sha256": "570277a5c4866c36f62677059de54e72132b6df9224b48cb60647e2e9e9e3399",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/expected/ordinary_canonical_slot_constructor.out",
+      "stage_blob_sha256": "570277a5c4866c36f62677059de54e72132b6df9224b48cb60647e2e9e9e3399"
+    },
+    {
+      "path": "tests/fixtures/expected/slot_descriptor_owner.out",
+      "compiled_raw_sha256": "0b5d7a5e4ccd67dbf8f20901de7eba17406c1a2db074ede56c07c8c825e9fe99",
+      "normalized_current_sha256": "0b5d7a5e4ccd67dbf8f20901de7eba17406c1a2db074ede56c07c8c825e9fe99",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/expected/slot_descriptor_owner.out",
+      "stage_blob_sha256": "0b5d7a5e4ccd67dbf8f20901de7eba17406c1a2db074ede56c07c8c825e9fe99"
+    },
+    {
+      "path": "tests/fixtures/expected/sorted_key_iteration_owner.out",
+      "compiled_raw_sha256": "ec9d5bcd9dd1fa03ecab990d1e8e48a3d573e938328ba8cf13629219217f2a64",
+      "normalized_current_sha256": "ec9d5bcd9dd1fa03ecab990d1e8e48a3d573e938328ba8cf13629219217f2a64",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/expected/sorted_key_iteration_owner.out",
+      "stage_blob_sha256": "ec9d5bcd9dd1fa03ecab990d1e8e48a3d573e938328ba8cf13629219217f2a64"
+    },
+    {
+      "path": "tests/fixtures/expected/sorted_key_nested_handled_context.out",
+      "compiled_raw_sha256": "92ca4b59af1fa87ef558a34cc96baebbb62cdaaaaac5e97b3d52d4ab88e0967f",
+      "normalized_current_sha256": "ef3ff1b11f51da47ff3b7506a78abe5e882aae380f67f89fa59a59b17e655de5",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/expected/sorted_key_nested_handled_context.out",
+      "stage_blob_sha256": "ef3ff1b11f51da47ff3b7506a78abe5e882aae380f67f89fa59a59b17e655de5"
+    },
+    {
+      "path": "tests/fixtures/expected/sorted_key_scoped_entry.out",
+      "compiled_raw_sha256": "ba8f18a40977207425881487b5ccde27f432cb5d75a1bde14fc14be9c8798d31",
+      "normalized_current_sha256": "ba8f18a40977207425881487b5ccde27f432cb5d75a1bde14fc14be9c8798d31",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/expected/sorted_key_scoped_entry.out",
+      "stage_blob_sha256": "ba8f18a40977207425881487b5ccde27f432cb5d75a1bde14fc14be9c8798d31"
+    },
+    {
+      "path": "tests/fixtures/expected/synchronous_class_argument_lifetime.out",
+      "compiled_raw_sha256": "401358caef97a64d7bc97fc415106d9deffd14266138f1d7aa1246cbe5d4bfcd",
+      "normalized_current_sha256": "401358caef97a64d7bc97fc415106d9deffd14266138f1d7aa1246cbe5d4bfcd",
+      "action": "new_whole_owned_file",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/fixtures/expected/synchronous_class_argument_lifetime.out",
+      "stage_blob_sha256": "401358caef97a64d7bc97fc415106d9deffd14266138f1d7aa1246cbe5d4bfcd"
+    },
+    {
+      "path": "tests/run_fixtures.ps1",
+      "compiled_raw_sha256": "7b01b301392eb50ddaff00ffbf5b6c4bee2bb2a38f034fb42b6c5a8e44cc123c",
+      "normalized_current_sha256": "7b01b301392eb50ddaff00ffbf5b6c4bee2bb2a38f034fb42b6c5a8e44cc123c",
+      "head_blob": "4381e964c0677c06fcad4f08808822e427a85cf8",
+      "head_normalized_sha256": "befeb39759738e27e8f00408e1d0bd2539af85afa9256692f104146f8240ec1e",
+      "before_snapshot": "scratch/performance/sorted-key-scoped-entry-registration-r2-proposed-20261008-sources/tests/run_fixtures.ps1",
+      "before_raw_sha256": "befeb39759738e27e8f00408e1d0bd2539af85afa9256692f104146f8240ec1e",
+      "before_normalized_sha256": "befeb39759738e27e8f00408e1d0bd2539af85afa9256692f104146f8240ec1e",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/run_fixtures.ps1",
+      "stage_blob_sha256": "7b01b301392eb50ddaff00ffbf5b6c4bee2bb2a38f034fb42b6c5a8e44cc123c"
+    },
+    {
+      "path": "tests/run_fixtures.py",
+      "compiled_raw_sha256": "4278b1ca027354cc6efb107d37cca4d0cf3e84008d34dd7f8701162c3a1ed884",
+      "normalized_current_sha256": "4278b1ca027354cc6efb107d37cca4d0cf3e84008d34dd7f8701162c3a1ed884",
+      "head_blob": "b5483bffe8e93e9f8ec6f38cb48fc258f47efb13",
+      "head_normalized_sha256": "c6cc4fe211c8b1b77b612b931550f58d8dedffd30ed13067e4270ff96d0c1f32",
+      "before_snapshot": "scratch/performance/sorted-key-scoped-entry-registration-r2-proposed-20261008-sources/tests/run_fixtures.py",
+      "before_raw_sha256": "c6cc4fe211c8b1b77b612b931550f58d8dedffd30ed13067e4270ff96d0c1f32",
+      "before_normalized_sha256": "c6cc4fe211c8b1b77b612b931550f58d8dedffd30ed13067e4270ff96d0c1f32",
+      "before_matches_HEAD": true,
+      "action": "existing_whole_owned_delta",
+      "stage_blob": "scratch/performance/c4-owned-commit-plan-20261008/stage-blobs/tests/run_fixtures.py",
+      "stage_blob_sha256": "4278b1ca027354cc6efb107d37cca4d0cf3e84008d34dd7f8701162c3a1ed884"
+    }
+  ],
+  "preserved_dirty_outside_union": [
+    {
+      "path": ".gitattributes",
+      "compiled_or_worktree_raw_sha256": "4a8eaf71f80ca31a9d8b190bab15a26cedf89fba0a1855cd932c7681da080b70",
+      "normalized_content_matches_HEAD": false,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "CMakeLists.txt",
+      "compiled_or_worktree_raw_sha256": "29126ab0246dd89f091b61c33bfa9edd463f4b5b8d81fa5b0129a1c1f890b855",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "benchmarks/diagnostics/native_vm_opcode_timer.h",
+      "compiled_or_worktree_raw_sha256": "bb9a541a20b7a4265920ee5322ddf9285674a26a3807e625a026a6c9e3ad7453",
+      "normalized_content_matches_HEAD": false,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "src/executor/xlang_vm/ops/xlang_vm_ops_iteration.h",
+      "compiled_or_worktree_raw_sha256": "e0715f4a93414cd4835321eb18a0afa787baca78b5b12e84af65452017f49ed6",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "src/executor/xlang_vm/xlang_value_buffer.h",
+      "compiled_or_worktree_raw_sha256": "81adb318ec012ff61057647164934ae0e4fd4f5cf8e2d2effa65f1d0fd8695e5",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "src/internal/xlang3/builtins.h",
+      "compiled_or_worktree_raw_sha256": "1d2f392d18d62c35635e39cbf887c9bcf0cc422f4bd163beeb3036083122402b",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "src/internal/xlang3/interpreter_events.h",
+      "compiled_or_worktree_raw_sha256": "26784e63638dbfc836b195734910b492084108cc3d566d72d6fd227939d57349",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "src/internal/xlang3/module_object.h",
+      "compiled_or_worktree_raw_sha256": "8b5da9ea5eea7cf55b1aec8f1d413866d1405ca5aad08257d50f071c23a29fd2",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "src/internal/xlang3/perf_counters.h",
+      "compiled_or_worktree_raw_sha256": "5db542b24a9959e1513cbe1c80d6ae15148d8612c6edf0a88f74dc07464e4c22",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "src/runtime/generator.cpp",
+      "compiled_or_worktree_raw_sha256": "8316896bb60aa35c956d3f3b55047d79e955a6da89de67be91837fc3593f934b",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "src/runtime/interpreter_events.cpp",
+      "compiled_or_worktree_raw_sha256": "49e16fe303ca9346c3f0759832f95166f93d5dca88666c3640b8813ba130eca4",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "src/runtime/modules/system/asyncio_future.cpp",
+      "compiled_or_worktree_raw_sha256": "1d615b0cf23623cf0ab277ce3a3ba85c2c197dddf9c2ae80a0ac18eb699ce403",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "src/runtime/modules/system/asyncio_task.cpp",
+      "compiled_or_worktree_raw_sha256": "78ca9fb2197953146d3630c5313312553afe4b626608a6cfcfa7ff5bc6194d19",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "src/runtime/modules/system/contextvars_module.cpp",
+      "compiled_or_worktree_raw_sha256": "829002229ee12aa8320d2e8956082970f8f5c2e57500d8069e18652636dacee4",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "src/runtime/perf_counters.cpp",
+      "compiled_or_worktree_raw_sha256": "a0d837e0a018cba36f82cc08dea6f524147ce7230e4dd0b331d96f87cff0835a",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "tests/cpp/runtime_value_tests.cpp",
+      "compiled_or_worktree_raw_sha256": "7b5ac4f61c3937985f374d506602866d81a15db9596914789345696772a5f261",
+      "normalized_content_matches_HEAD": false,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "tests/fixtures/core/dict_views.py",
+      "compiled_or_worktree_raw_sha256": "f8ccfc31f5dd0d913c51bbaff2eb443b62e946440b1f13dda0fc3968912e5463",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "tests/fixtures/core/sqlite_statement_cache.py",
+      "compiled_or_worktree_raw_sha256": "d2ec917ab11e9c4f1e672bd0eef60c2aaa7400160cd6b6fb76ca6e151d2b3701",
+      "normalized_content_matches_HEAD": false,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "tests/fixtures/core/str_join_generator.py",
+      "compiled_or_worktree_raw_sha256": "27973c713060ef271a8822463811d685e247aa9125703f0c291cbe40bf9c2af3",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "tests/fixtures/expected/dict_views.out",
+      "compiled_or_worktree_raw_sha256": "c559d3260901089667e63a4d1a3ff41488ba93ab76cf01e6ddb660f5fc1aedd9",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    },
+    {
+      "path": "tests/fixtures/expected/str_join_generator.out",
+      "compiled_or_worktree_raw_sha256": "14fb83c4bc9bda715ed5b6cf6b07c179043c2bfc180441debe51d24ece69ddb2",
+      "normalized_content_matches_HEAD": true,
+      "action": "preserve_unrelated_dirty_path_do_not_stage_with_this_engine_plan"
+    }
+  ],
+  "restored_excluded": [
+    "src/internal/xlang3/functional_iterators.h",
+    "src/internal/xlang3/interpreter.h",
+    "src/runtime/functional_iterators.cpp"
+  ],
+  "patch": "scratch/performance/c5-owned-commit-follow-up-20261008-owned-only.patch",
+  "patch_sha256": "3cddd11287c9eff18aea194f709dea0c32dcdb4419033c82f250ddf4665e72ed",
+  "nul_paths": "scratch/performance/c5-owned-commit-follow-up-20261008-owned-paths.nul",
+  "nul_paths_sha256": "e73260c7c654901794e4687581f8f3763676a037837ce7c51a7789c89353d835",
+  "cached_apply_check_exit": 0,
+  "index_sha256_before": "3416a0d0b9776c0ee4ac6cfb301af29d1a5111bfe166f35aff7914345fbcde97",
+  "index_sha256_after": "3416a0d0b9776c0ee4ac6cfb301af29d1a5111bfe166f35aff7914345fbcde97",
+  "stage_policy": [
+    "Root must first accept actual C5 correctness, fixed-gate and original affected benchmark validation. Ownership readiness is not acceptance.",
+    "Before any staging revalidate HEAD7233, C5 inventory69aaf035, all106 current source hashes, all41 compiled raw target hashes and all41 stage blobs.",
+    "If any later engine/test revision changes a pinned target, preserve this plan and prepare an explicit follow-up owned delta; do not stage stale blobs.",
+    "On matching sources and the expected index, root may run git apply --cached --check <owned-only.patch> then git apply --cached <owned-only.patch>. This changes only the index, preserving worktree files.",
+    "Verify cached target set/content against this manifest before commit. Do not git add broad source/test/archive directories. Documentation evidence requires a separate exact ownership audit."
+  ],
+  "normalization_policy": "Stage blobs replace CRLF with LF only. Earliest before snapshots for all18 changed existing files match HEAD after that exact normalization. No unrelated semantic delta/hunk is included. Current raw files stay untouched.",
+  "staged": false,
+  "index_mutated": false,
+  "live_source_changes": false,
+  "runtime_execution": false,
+  "build_execution": false,
+  "metadata_only_initial_draft": "scratch/performance/c5-owned-commit-follow-up-20261008-manifest-initial-draft-preserved.json",
+  "metadata_only_initial_draft_sha256": "3e33490695c0074aeb330522fae12885f8571c14ef28b4bee4f35a009525224b",
+  "metadata_correction": "Clarify that future acceptance/staging conditions apply to current C5, preserving historical C4 conditions in the original plan. All source/blob/patch/NUL maps remain unchanged."
+}

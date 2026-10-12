@@ -1,0 +1,71 @@
+official body loaded; setup_seconds 35.399511900002835
+diagnostic_call_seconds 0 1.7315005999989808
+diagnostic_call_seconds 1 1.7079788999981247
+diagnostic_call_seconds 2 1.7067663999914657
+diagnostic_call_seconds 3 1.735247900011018
+diagnostic_call_seconds 4 1.758401099999901
+diagnostic_call_seconds 5 1.7208721000060905
+diagnostic_call_seconds 6 1.7165720000048168
+diagnostic_call_seconds 7 1.7207678999984637
+diagnostic_call_seconds 8 1.715945100004319
+diagnostic_call_seconds 9 1.78691909997724
+diagnostic_call_seconds 10 1.7066420000046492
+diagnostic_call_seconds 11 1.7071206000109669
+diagnostic_call_seconds 12 1.722568199998932
+diagnostic_call_seconds 13 1.7557282999914605
+diagnostic_call_seconds 14 1.7990128999808803
+diagnostic_call_seconds 15 1.758326200011652
+diagnostic_call_seconds 16 1.7190333000035025
+diagnostic_call_seconds 17 1.7190556999994442
+diagnostic_call_seconds 18 1.7189560999977402
+diagnostic_call_seconds 19 1.711844800011022
+{
+  "diagnostic_only": true,
+  "profiled": false,
+  "benchmark": "shortest_path",
+  "setup_seconds": 35.399511900002835,
+  "call_seconds": [
+    1.7315005999989808,
+    1.7079788999981247,
+    1.7067663999914657,
+    1.735247900011018,
+    1.758401099999901,
+    1.7208721000060905,
+    1.7165720000048168,
+    1.7207678999984637,
+    1.715945100004319,
+    1.78691909997724,
+    1.7066420000046492,
+    1.7071206000109669,
+    1.722568199998932,
+    1.7557282999914605,
+    1.7990128999808803,
+    1.758326200011652,
+    1.7190333000035025,
+    1.7190556999994442,
+    1.7189560999977402,
+    1.711844800011022
+  ],
+  "call_events": []
+}
+exit=0 samples=4287 unavailable=23 output=doc\performance\data\networkx-set-growing-body-native-samples-20261007.json
+   285 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x5d8859
+   189 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x5b948c
+   188 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x5d8779
+   166 tid=23020 C:\WINDOWS\SYSTEM32\ntdll.dll+0x274bd
+   140 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x5d335b
+   119 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x572296
+   106 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x5d338b
+    91 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x5d875e
+    86 tid=23020 C:\WINDOWS\SYSTEM32\ntdll.dll+0x1cd63
+    72 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x3272
+    66 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x5d339e
+    62 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x572306
+    45 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x5b94e1
+    39 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x5d8879
+    36 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x85e500
+    31 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x5d8799
+    30 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x70b57c
+    28 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x5d8f98
+    26 tid=23020 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x5d8e08
+    25 tid=23020 C:\WINDOWS\SYSTEM32\ntdll.dll+0x1ccd4

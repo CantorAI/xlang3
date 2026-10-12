@@ -1,0 +1,70 @@
+{
+  "status": "scratch_only_native_bound_zero_args_rebased_not_applied_built_or_run",
+  "original_proposal_patch_sha256": "e9e73bff7b756adba34e2763cf522c447a80ca9a56e119e1ff54c3f7429647d1",
+  "original_provenance_sha256": "9bea29418c4b3c49e696fdb42657fbecbba712d08c8d0162565ebb56e0058e17",
+  "rebase_note": "Current uncommitted combined SQLite/identity/hash registrations retained; identical held engine and fixture bytes, plus PowerShell fixture registration",
+  "head": "9de05e0d945a2d75ea50dfb7ddba4843363dfe41",
+  "apply_check_exit": 0,
+  "scope": "Only argc==0 bound native dispatch uses owning stack self/function; argc>0 vector unchanged; ordinary Python dispatch preserved",
+  "targets": [
+    {
+      "path": "src/runtime/functional_iterators.cpp",
+      "source_sha256_before": "cfe434b7fa9f4dee64ddac97371e97deb80e0cfba56c80bd84c10ef10f82eb66",
+      "source_sha256_after": "cfe434b7fa9f4dee64ddac97371e97deb80e0cfba56c80bd84c10ef10f82eb66",
+      "source_copy": "scratch/performance/native-bound-zero-args-rebased-20261008-sources/src/runtime/functional_iterators.cpp",
+      "candidate_copy": "scratch/performance/native-bound-zero-args-rebased-20261008-candidates/src/runtime/functional_iterators.cpp",
+      "candidate_sha256": "6cf12ee4790b0630cc17bc3cfbf0b9c3058a1a030bcb02299c47b87b1dc86b2f"
+    },
+    {
+      "path": "tests/cpp/interpreter_tests.cpp",
+      "source_sha256_before": "1f1fcf9973a26b61f276105c3381ed375fc661a01a476a44438a14be3188dbfd",
+      "source_sha256_after": "1f1fcf9973a26b61f276105c3381ed375fc661a01a476a44438a14be3188dbfd",
+      "source_copy": "scratch/performance/native-bound-zero-args-rebased-20261008-sources/tests/cpp/interpreter_tests.cpp",
+      "candidate_copy": "scratch/performance/native-bound-zero-args-rebased-20261008-candidates/tests/cpp/interpreter_tests.cpp",
+      "candidate_sha256": "04c4338382faffbe044393f8e3601e7dc3a223bf1001f8abe43b985fca18ad95"
+    },
+    {
+      "path": "tests/run_fixtures.py",
+      "source_sha256_before": "7cb0f7cfc818360f78773c3a3fba52b56c5ee7ea12d2912e92ecf6b2406f6144",
+      "source_sha256_after": "7cb0f7cfc818360f78773c3a3fba52b56c5ee7ea12d2912e92ecf6b2406f6144",
+      "source_copy": "scratch/performance/native-bound-zero-args-rebased-20261008-sources/tests/run_fixtures.py",
+      "candidate_copy": "scratch/performance/native-bound-zero-args-rebased-20261008-candidates/tests/run_fixtures.py",
+      "candidate_sha256": "beb6ff587c3ba301fe006939bf5202ee4876a04e78e3aee215f0b64e66a601dc"
+    },
+    {
+      "path": "tests/run_fixtures.ps1",
+      "source_sha256_before": "d1cd79b629e8a3de390df8503162d6e1d5a9802e70f9bcb703378d2e9e25662d",
+      "source_sha256_after": "d1cd79b629e8a3de390df8503162d6e1d5a9802e70f9bcb703378d2e9e25662d",
+      "source_copy": "scratch/performance/native-bound-zero-args-rebased-20261008-sources/tests/run_fixtures.ps1",
+      "candidate_copy": "scratch/performance/native-bound-zero-args-rebased-20261008-candidates/tests/run_fixtures.ps1",
+      "candidate_sha256": "26162227f3338d2501a6b564e8a3ec59c6667539ff543910a32993f71eb3ab2d"
+    },
+    {
+      "path": "tests/cpp/native_bound_zero_args_cases.h",
+      "source_sha256_before": null,
+      "source_sha256_after": null,
+      "source_copy": null,
+      "candidate_copy": "scratch/performance/native-bound-zero-args-rebased-20261008-candidates/tests/cpp/native_bound_zero_args_cases.h",
+      "candidate_sha256": "55d72bb9e0f146e80ca4a916d1e131046974e61f1d5c033b9a4c5945703df06c"
+    },
+    {
+      "path": "tests/fixtures/core/native_bound_zero_args.py",
+      "source_sha256_before": null,
+      "source_sha256_after": null,
+      "source_copy": null,
+      "candidate_copy": "scratch/performance/native-bound-zero-args-rebased-20261008-candidates/tests/fixtures/core/native_bound_zero_args.py",
+      "candidate_sha256": "5c846f807ef07ba8f1a6653c9591a6ec8d60d4b31ae802f6c60149a929489d85"
+    },
+    {
+      "path": "tests/fixtures/expected/native_bound_zero_args.out",
+      "source_sha256_before": null,
+      "source_sha256_after": null,
+      "source_copy": null,
+      "candidate_copy": "scratch/performance/native-bound-zero-args-rebased-20261008-candidates/tests/fixtures/expected/native_bound_zero_args.out",
+      "candidate_sha256": "08765c8e4fbffbd0ae42a572378a8bd85bc740da5432c969d9223d19c22e08c6"
+    }
+  ],
+  "patch_sha256": "bd0fefd6fa25011a4364b2310fdb2771bfd4b30de2f127c0d493c4b1f7830c98",
+  "probe_sha256": "3823fc09d47caa35ed158677a5a565ad1118c64b1ef9e345a6584a717f8fca70",
+  "generator_sha256": "20fe4a083e1311404b1bdc8ef8e4ec02a2eb70d91d19b72644adce7c8a5727ae"
+}

@@ -15,6 +15,8 @@ limitations under the License.
 #include "xlang3/native_package_loader.h"
 
 #include "xlang3/attribute.h"
+#include "xlang3/builtins.h"
+#include "xlang3/functional_iterators.h"
 #include "xlang3/c_api_bridge.h"
 #include "xlang3/module_object.h"
 #include "xlang3/mapping.h"
@@ -792,6 +794,82 @@ X3Status host_take_exception(X3CallContext* context, X3Value* out) {
   return X3_STATUS_OK;
 }
 
+// Native library callbacks can run during payload cleanup without a call
+// context. Transport the existing exception identity through the package ABI;
+// do not manufacture a replacement from its rendered error message.
+X3Status host_runtime_take_exception(X3Runtime* runtime, X3Value* out) {
+  XlangRuntimeExecutionGuard guard;
+  if (runtime == nullptr || out == nullptr) return X3_STATUS_ERROR;
+  auto* rt = reinterpret_cast<Runtime*>(runtime);
+  Value exception;
+  (void)rt->take_pending_exception(exception);
+  *out = to_c_value(exception);
+  return X3_STATUS_OK;
+}
+
+X3Status host_runtime_restore_exception(X3Runtime* runtime, X3Value raw) {
+  XlangRuntimeExecutionGuard guard;
+  if (runtime == nullptr) return X3_STATUS_ERROR;
+  auto* rt = reinterpret_cast<Runtime*>(runtime);
+  if (raw.tag == X3_TAG_INVALID) {
+    rt->set_pending_exception(Value());
+    return X3_STATUS_OK;
+  }
+  std::string error;
+  Value exception = from_c_value(raw, error);
+  if (!error.empty() || value_as_instance(exception) == nullptr) return X3_STATUS_ERROR;
+  rt->set_pending_exception(std::move(exception));
+  return X3_STATUS_OK;
+}
+
+// Intrinsic native-to-Python integer-index conversion. Public operator.index,
+// instance attributes and __getattribute__ overrides do not define this
+// protocol; use the runtime's existing type-level special-method binding.
+X3Status host_value_index(X3Runtime* runtime, X3Value raw, X3Value* out) {
+  XlangRuntimeExecutionGuard guard;
+  if (runtime == nullptr || out == nullptr) return X3_STATUS_ERROR;
+  auto* rt = reinterpret_cast<Runtime*>(runtime);
+  std::string error;
+  Value input = from_c_value(raw, error);
+  if (!error.empty()) { rt->set_last_error(error); return X3_STATUS_ERROR; }
+  Value integer;
+  if (input.tag == ValueTag::Bool) integer = Value::int64(input.as.b ? 1 : 0);
+  else if (input.tag == ValueTag::Int64 || value_as_bigint(input) != nullptr) integer = input;
+  else {
+    Value method;
+    if (!object_get_special_method(*rt, input, "__index__", method, error)) {
+      Value pending;
+      if (rt->take_pending_exception(pending)) rt->set_pending_exception(std::move(pending));
+      else {
+        error = "'" + std::string(value_binary_type_name(input)) + "' object cannot be interpreted as an integer";
+        rt->raise_class_error("TypeError", error);
+      }
+      rt->set_last_error(error);
+      return X3_STATUS_ERROR;
+    }
+    if (!runtime_call_callable(*rt, method, nullptr, 0, integer, error)) {
+      rt->set_last_error(error);
+      return X3_STATUS_ERROR;
+    }
+    if (integer.tag == ValueTag::Bool) {
+      const auto* category = rt->find_builtin("DeprecationWarning");
+      const Value message = Value::string("__index__ returned non-int (type bool).  The ability to return an instance of a strict subclass of int is deprecated, and may be removed in a future version of Python.");
+      if (category == nullptr || !runtime_warn(*rt, message, *category, 1, error)) {
+        rt->set_last_error(error);
+        return X3_STATUS_ERROR;
+      }
+      integer = Value::int64(integer.as.b ? 1 : 0);
+    } else if (integer.tag != ValueTag::Int64 && value_as_bigint(integer) == nullptr) {
+      error = "__index__ returned non-int (type " + std::string(value_binary_type_name(integer)) + ")";
+      rt->raise_class_error("TypeError", error);
+      rt->set_last_error(error);
+      return X3_STATUS_ERROR;
+    }
+  }
+  *out = to_c_value(integer); // an owned ABI result; callback exceptions stay pending on failure
+  return X3_STATUS_OK;
+}
+
 const X3PackageHost kPackageHostTemplate = {
     X3_ABI_VERSION,
     sizeof(X3PackageHost),
@@ -876,6 +954,9 @@ const X3PackageHost kPackageHostTemplate = {
     host_instance_set_native_gc_references,
     x3_buffer_acquire,
     x3_buffer_release,
+    host_runtime_take_exception,
+    host_runtime_restore_exception,
+    host_value_index,
 };
 
 std::vector<std::filesystem::path> collect_native_library_candidates(

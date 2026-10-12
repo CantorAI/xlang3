@@ -1,0 +1,22 @@
+{
+  "terminal": true,
+  "status": "untimed_semantics_and_ir_verified",
+  "timed": false,
+  "checks": {
+    "original_real_native_method_call": true,
+    "saved_real_native_direct_call": true,
+    "both_fixed_two_argument_python_functions": true,
+    "shared_selected_python_function_local": true,
+    "same_class_and_state_arguments": true,
+    "timed_branch_retains_ordinary_python_call": true,
+    "same_loop_result_replacement": true
+  },
+  "capture_sha256": "bd6fd41c0f8f05952d529f6ac85c7a036dbe5684090815edef511edca13618c7",
+  "ir_sha256": "944a9bfbc3baeb95afa4ac23ec82aabf46d202919759a22a7e8be68474fb6a05",
+  "controller_sha256": "05c8da01e10d577672b9d4d2c7c2d58114586b0886e023ae6823cd9cdad05a5d",
+  "child_sha256": "b1f32d611604d5ef67575bf1c6cdb4c6cd6f1bf7281aef37c13c228ef6ef2ee2",
+  "corrected_reader": "IR function heading is __new__; qualified name is on its separate qualname line.",
+  "scope": "CPython 3.14.7 and current XLang3 untimed route semantics passed. The emitted timed branch has ordinary Python Call entry and native calls in both bodies; no timings or dynamic fast-path hit count.",
+  "report_limits": "Child loop-included fields describe its dormant timed branch. verify_only=True, empty seconds and zero timed operations prove this capture did not run the benchmark loops.",
+  "hashes_unchanged": true
+}

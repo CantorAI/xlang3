@@ -1,0 +1,231 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="1780" viewBox="0 0 1280 1780">
+<style>text{font-family:Arial,sans-serif;fill:#172033}.title{font-size:23px;font-weight:bold}.sub{font-size:13px;fill:#4b5563}.label{font-size:12px}.tick{font-size:11px;fill:#4b5563}.value{font-size:11px;font-weight:bold}.grid{stroke:#e5e7eb;stroke-width:1}.baseline{stroke:#111827;stroke-width:2}.slow{fill:#e58b31}.fast{fill:#169a70}</style>
+<rect width="100%" height="100%" fill="white"/>
+<text x="28" y="34" class="title">XLang3 vs CPython 3.14.7 — pyperformance fast mode</text>
+<text x="28" y="57" class="sub">67/97 definitions completed; 30/97 failed. CPython time ÷ XLang3 time: geomean 0.137×. Right of 1× is faster.</text>
+<line x1="270.0" y1="79" x2="270.0" y2="1714" class="grid"/>
+<text x="270.0" y="71" text-anchor="middle" class="tick">0.02×</text>
+<line x1="439.1" y1="79" x2="439.1" y2="1714" class="grid"/>
+<text x="439.1" y="71" text-anchor="middle" class="tick">0.05×</text>
+<line x1="567.1" y1="79" x2="567.1" y2="1714" class="grid"/>
+<text x="567.1" y="71" text-anchor="middle" class="tick">0.1×</text>
+<line x1="695.0" y1="79" x2="695.0" y2="1714" class="grid"/>
+<text x="695.0" y="71" text-anchor="middle" class="tick">0.2×</text>
+<line x1="864.1" y1="79" x2="864.1" y2="1714" class="grid"/>
+<text x="864.1" y="71" text-anchor="middle" class="tick">0.5×</text>
+<line x1="992.1" y1="79" x2="992.1" y2="1714" class="baseline"/>
+<text x="992.1" y="71" text-anchor="middle" class="tick">1×</text>
+<line x1="1120.0" y1="79" x2="1120.0" y2="1714" class="grid"/>
+<text x="1120.0" y="71" text-anchor="middle" class="tick">2×</text>
+<text x="260" y="116" text-anchor="end" class="label">async_tree_eager_memoization_tg</text>
+<rect x="270.0" y="106" width="139.2" height="14" rx="2" class="slow"/>
+<text x="1133" y="117" class="value">0.04×</text>
+<text x="260" y="139" text-anchor="end" class="label">sqlglot_v2_parse</text>
+<rect x="270.0" y="129" width="145.8" height="14" rx="2" class="slow"/>
+<text x="1133" y="140" class="value">0.04×</text>
+<text x="260" y="162" text-anchor="end" class="label">sqlglot_v2_transpile</text>
+<rect x="270.0" y="152" width="160.9" height="14" rx="2" class="slow"/>
+<text x="1133" y="163" class="value">0.05×</text>
+<text x="260" y="185" text-anchor="end" class="label">async_tree_cpu_io_mixed_tg</text>
+<rect x="270.0" y="175" width="161.1" height="14" rx="2" class="slow"/>
+<text x="1133" y="186" class="value">0.05×</text>
+<text x="260" y="208" text-anchor="end" class="label">async_tree_cpu_io_mixed</text>
+<rect x="270.0" y="198" width="162.2" height="14" rx="2" class="slow"/>
+<text x="1133" y="209" class="value">0.05×</text>
+<text x="260" y="231" text-anchor="end" class="label">async_tree_memoization</text>
+<rect x="270.0" y="221" width="162.9" height="14" rx="2" class="slow"/>
+<text x="1133" y="232" class="value">0.05×</text>
+<text x="260" y="254" text-anchor="end" class="label">async_tree_memoization_tg</text>
+<rect x="270.0" y="244" width="164.2" height="14" rx="2" class="slow"/>
+<text x="1133" y="255" class="value">0.05×</text>
+<text x="260" y="277" text-anchor="end" class="label">async_tree_eager_memoization</text>
+<rect x="270.0" y="267" width="165.9" height="14" rx="2" class="slow"/>
+<text x="1133" y="278" class="value">0.05×</text>
+<text x="260" y="300" text-anchor="end" class="label">pickle_pure_python</text>
+<rect x="270.0" y="290" width="166.1" height="14" rx="2" class="slow"/>
+<text x="1133" y="301" class="value">0.05×</text>
+<text x="260" y="323" text-anchor="end" class="label">async_tree_eager_cpu_io_mixed</text>
+<rect x="270.0" y="313" width="167.0" height="14" rx="2" class="slow"/>
+<text x="1133" y="324" class="value">0.05×</text>
+<text x="260" y="346" text-anchor="end" class="label">sqlglot_v2_optimize</text>
+<rect x="270.0" y="336" width="175.8" height="14" rx="2" class="slow"/>
+<text x="1133" y="347" class="value">0.05×</text>
+<text x="260" y="369" text-anchor="end" class="label">async_tree_eager_tg</text>
+<rect x="270.0" y="359" width="178.0" height="14" rx="2" class="slow"/>
+<text x="1133" y="370" class="value">0.05×</text>
+<text x="260" y="392" text-anchor="end" class="label">sqlglot_v2_normalize</text>
+<rect x="270.0" y="382" width="187.2" height="14" rx="2" class="slow"/>
+<text x="1133" y="393" class="value">0.06×</text>
+<text x="260" y="415" text-anchor="end" class="label">subparsers</text>
+<rect x="270.0" y="405" width="187.6" height="14" rx="2" class="slow"/>
+<text x="1133" y="416" class="value">0.06×</text>
+<text x="260" y="438" text-anchor="end" class="label">async_tree_none</text>
+<rect x="270.0" y="428" width="190.8" height="14" rx="2" class="slow"/>
+<text x="1133" y="439" class="value">0.06×</text>
+<text x="260" y="461" text-anchor="end" class="label">async_tree_eager</text>
+<rect x="270.0" y="451" width="197.0" height="14" rx="2" class="slow"/>
+<text x="1133" y="462" class="value">0.06×</text>
+<text x="260" y="484" text-anchor="end" class="label">async_tree_none_tg</text>
+<rect x="270.0" y="474" width="203.6" height="14" rx="2" class="slow"/>
+<text x="1133" y="485" class="value">0.06×</text>
+<text x="260" y="507" text-anchor="end" class="label">html5lib</text>
+<rect x="270.0" y="497" width="215.6" height="14" rx="2" class="slow"/>
+<text x="1133" y="508" class="value">0.06×</text>
+<text x="260" y="530" text-anchor="end" class="label">logging_silent</text>
+<rect x="270.0" y="520" width="225.0" height="14" rx="2" class="slow"/>
+<text x="1133" y="531" class="value">0.07×</text>
+<text x="260" y="553" text-anchor="end" class="label">many_optionals</text>
+<rect x="270.0" y="543" width="250.0" height="14" rx="2" class="slow"/>
+<text x="1133" y="554" class="value">0.08×</text>
+<text x="260" y="576" text-anchor="end" class="label">deltablue</text>
+<rect x="270.0" y="566" width="251.4" height="14" rx="2" class="slow"/>
+<text x="1133" y="577" class="value">0.08×</text>
+<text x="260" y="599" text-anchor="end" class="label">unpickle_pure_python</text>
+<rect x="270.0" y="589" width="252.2" height="14" rx="2" class="slow"/>
+<text x="1133" y="600" class="value">0.08×</text>
+<text x="260" y="622" text-anchor="end" class="label">richards_super</text>
+<rect x="270.0" y="612" width="256.8" height="14" rx="2" class="slow"/>
+<text x="1133" y="623" class="value">0.08×</text>
+<text x="260" y="645" text-anchor="end" class="label">pathlib</text>
+<rect x="270.0" y="635" width="259.7" height="14" rx="2" class="slow"/>
+<text x="1133" y="646" class="value">0.08×</text>
+<text x="260" y="668" text-anchor="end" class="label">deepcopy_reduce</text>
+<rect x="270.0" y="658" width="261.2" height="14" rx="2" class="slow"/>
+<text x="1133" y="669" class="value">0.08×</text>
+<text x="260" y="691" text-anchor="end" class="label">deepcopy</text>
+<rect x="270.0" y="681" width="263.3" height="14" rx="2" class="slow"/>
+<text x="1133" y="692" class="value">0.08×</text>
+<text x="260" y="714" text-anchor="end" class="label">logging_simple</text>
+<rect x="270.0" y="704" width="265.4" height="14" rx="2" class="slow"/>
+<text x="1133" y="715" class="value">0.08×</text>
+<text x="260" y="737" text-anchor="end" class="label">comprehensions</text>
+<rect x="270.0" y="727" width="266.5" height="14" rx="2" class="slow"/>
+<text x="1133" y="738" class="value">0.08×</text>
+<text x="260" y="760" text-anchor="end" class="label">generators</text>
+<rect x="270.0" y="750" width="267.2" height="14" rx="2" class="slow"/>
+<text x="1133" y="761" class="value">0.09×</text>
+<text x="260" y="783" text-anchor="end" class="label">regex_compile</text>
+<rect x="270.0" y="773" width="270.6" height="14" rx="2" class="slow"/>
+<text x="1133" y="784" class="value">0.09×</text>
+<text x="260" y="806" text-anchor="end" class="label">nqueens</text>
+<rect x="270.0" y="796" width="271.1" height="14" rx="2" class="slow"/>
+<text x="1133" y="807" class="value">0.09×</text>
+<text x="260" y="829" text-anchor="end" class="label">deepcopy_memo</text>
+<rect x="270.0" y="819" width="271.6" height="14" rx="2" class="slow"/>
+<text x="1133" y="830" class="value">0.09×</text>
+<text x="260" y="852" text-anchor="end" class="label">meteor_contest</text>
+<rect x="270.0" y="842" width="280.0" height="14" rx="2" class="slow"/>
+<text x="1133" y="853" class="value">0.09×</text>
+<text x="260" y="875" text-anchor="end" class="label">richards</text>
+<rect x="270.0" y="865" width="291.2" height="14" rx="2" class="slow"/>
+<text x="1133" y="876" class="value">0.10×</text>
+<text x="260" y="898" text-anchor="end" class="label">chaos</text>
+<rect x="270.0" y="888" width="303.1" height="14" rx="2" class="slow"/>
+<text x="1133" y="899" class="value">0.10×</text>
+<text x="260" y="921" text-anchor="end" class="label">logging_format</text>
+<rect x="270.0" y="911" width="305.8" height="14" rx="2" class="slow"/>
+<text x="1133" y="922" class="value">0.10×</text>
+<text x="260" y="944" text-anchor="end" class="label">go</text>
+<rect x="270.0" y="934" width="317.9" height="14" rx="2" class="slow"/>
+<text x="1133" y="945" class="value">0.11×</text>
+<text x="260" y="967" text-anchor="end" class="label">raytrace</text>
+<rect x="270.0" y="957" width="320.2" height="14" rx="2" class="slow"/>
+<text x="1133" y="968" class="value">0.11×</text>
+<text x="260" y="990" text-anchor="end" class="label">hexiom</text>
+<rect x="270.0" y="980" width="322.4" height="14" rx="2" class="slow"/>
+<text x="1133" y="991" class="value">0.11×</text>
+<text x="260" y="1013" text-anchor="end" class="label">pyflate</text>
+<rect x="270.0" y="1003" width="325.9" height="14" rx="2" class="slow"/>
+<text x="1133" y="1014" class="value">0.12×</text>
+<text x="260" y="1036" text-anchor="end" class="label">async_generators</text>
+<rect x="270.0" y="1026" width="327.2" height="14" rx="2" class="slow"/>
+<text x="1133" y="1037" class="value">0.12×</text>
+<text x="260" y="1059" text-anchor="end" class="label">2to3</text>
+<rect x="270.0" y="1049" width="335.7" height="14" rx="2" class="slow"/>
+<text x="1133" y="1060" class="value">0.12×</text>
+<text x="260" y="1082" text-anchor="end" class="label">telco</text>
+<rect x="270.0" y="1072" width="344.2" height="14" rx="2" class="slow"/>
+<text x="1133" y="1083" class="value">0.13×</text>
+<text x="260" y="1105" text-anchor="end" class="label">coroutines</text>
+<rect x="270.0" y="1095" width="345.3" height="14" rx="2" class="slow"/>
+<text x="1133" y="1106" class="value">0.13×</text>
+<text x="260" y="1128" text-anchor="end" class="label">unpickle</text>
+<rect x="270.0" y="1118" width="371.9" height="14" rx="2" class="slow"/>
+<text x="1133" y="1129" class="value">0.15×</text>
+<text x="260" y="1151" text-anchor="end" class="label">regex_effbot</text>
+<rect x="270.0" y="1141" width="377.9" height="14" rx="2" class="slow"/>
+<text x="1133" y="1152" class="value">0.15×</text>
+<text x="260" y="1174" text-anchor="end" class="label">asyncio_tcp</text>
+<rect x="270.0" y="1164" width="400.4" height="14" rx="2" class="slow"/>
+<text x="1133" y="1175" class="value">0.18×</text>
+<text x="260" y="1197" text-anchor="end" class="label">tornado_http</text>
+<rect x="270.0" y="1187" width="411.1" height="14" rx="2" class="slow"/>
+<text x="1133" y="1198" class="value">0.19×</text>
+<text x="260" y="1220" text-anchor="end" class="label">crypto_pyaes</text>
+<rect x="270.0" y="1210" width="423.5" height="14" rx="2" class="slow"/>
+<text x="1133" y="1221" class="value">0.20×</text>
+<text x="260" y="1243" text-anchor="end" class="label">spectral_norm</text>
+<rect x="270.0" y="1233" width="425.6" height="14" rx="2" class="slow"/>
+<text x="1133" y="1244" class="value">0.20×</text>
+<text x="260" y="1266" text-anchor="end" class="label">json_loads</text>
+<rect x="270.0" y="1256" width="451.0" height="14" rx="2" class="slow"/>
+<text x="1133" y="1267" class="value">0.23×</text>
+<text x="260" y="1289" text-anchor="end" class="label">json_dumps</text>
+<rect x="270.0" y="1279" width="458.9" height="14" rx="2" class="slow"/>
+<text x="1133" y="1290" class="value">0.24×</text>
+<text x="260" y="1312" text-anchor="end" class="label">connected_components</text>
+<rect x="270.0" y="1302" width="473.6" height="14" rx="2" class="slow"/>
+<text x="1133" y="1313" class="value">0.26×</text>
+<text x="260" y="1335" text-anchor="end" class="label">shortest_path</text>
+<rect x="270.0" y="1325" width="480.7" height="14" rx="2" class="slow"/>
+<text x="1133" y="1336" class="value">0.27×</text>
+<text x="260" y="1358" text-anchor="end" class="label">unpack_sequence</text>
+<rect x="270.0" y="1348" width="483.7" height="14" rx="2" class="slow"/>
+<text x="1133" y="1359" class="value">0.27×</text>
+<text x="260" y="1381" text-anchor="end" class="label">unpickle_list</text>
+<rect x="270.0" y="1371" width="490.0" height="14" rx="2" class="slow"/>
+<text x="1133" y="1382" class="value">0.28×</text>
+<text x="260" y="1404" text-anchor="end" class="label">regex_v8</text>
+<rect x="270.0" y="1394" width="492.8" height="14" rx="2" class="slow"/>
+<text x="1133" y="1405" class="value">0.29×</text>
+<text x="260" y="1427" text-anchor="end" class="label">nbody</text>
+<rect x="270.0" y="1417" width="500.0" height="14" rx="2" class="slow"/>
+<text x="1133" y="1428" class="value">0.30×</text>
+<text x="260" y="1450" text-anchor="end" class="label">asyncio_websockets</text>
+<rect x="270.0" y="1440" width="542.6" height="14" rx="2" class="slow"/>
+<text x="1133" y="1451" class="value">0.38×</text>
+<text x="260" y="1473" text-anchor="end" class="label">pidigits</text>
+<rect x="270.0" y="1463" width="557.9" height="14" rx="2" class="slow"/>
+<text x="1133" y="1474" class="value">0.41×</text>
+<text x="260" y="1496" text-anchor="end" class="label">pickle</text>
+<rect x="270.0" y="1486" width="592.2" height="14" rx="2" class="slow"/>
+<text x="1133" y="1497" class="value">0.49×</text>
+<text x="260" y="1519" text-anchor="end" class="label">typing_runtime_protocols</text>
+<rect x="270.0" y="1509" width="604.5" height="14" rx="2" class="slow"/>
+<text x="1133" y="1520" class="value">0.53×</text>
+<text x="260" y="1542" text-anchor="end" class="label">regex_dna</text>
+<rect x="270.0" y="1532" width="638.6" height="14" rx="2" class="slow"/>
+<text x="1133" y="1543" class="value">0.64×</text>
+<text x="260" y="1565" text-anchor="end" class="label">float</text>
+<rect x="270.0" y="1555" width="661.6" height="14" rx="2" class="slow"/>
+<text x="1133" y="1566" class="value">0.72×</text>
+<text x="260" y="1588" text-anchor="end" class="label">python_startup</text>
+<rect x="270.0" y="1578" width="673.9" height="14" rx="2" class="slow"/>
+<text x="1133" y="1589" class="value">0.77×</text>
+<text x="260" y="1611" text-anchor="end" class="label">pickle_dict</text>
+<rect x="270.0" y="1601" width="727.9" height="14" rx="2" class="fast"/>
+<text x="1133" y="1612" class="value">1.03×</text>
+<text x="260" y="1634" text-anchor="end" class="label">python_startup_no_site</text>
+<rect x="270.0" y="1624" width="735.2" height="14" rx="2" class="fast"/>
+<text x="1133" y="1635" class="value">1.07×</text>
+<text x="260" y="1657" text-anchor="end" class="label">pickle_list</text>
+<rect x="270.0" y="1647" width="744.8" height="14" rx="2" class="fast"/>
+<text x="1133" y="1658" class="value">1.13×</text>
+<text x="260" y="1680" text-anchor="end" class="label">fannkuch</text>
+<rect x="270.0" y="1670" width="751.8" height="14" rx="2" class="fast"/>
+<text x="1133" y="1681" class="value">1.17×</text>
+<text x="260" y="1703" text-anchor="end" class="label">gc_traversal</text>
+<rect x="270.0" y="1693" width="828.3" height="14" rx="2" class="fast"/>
+<text x="1133" y="1704" class="value">1.78×</text>
+<text x="270" y="1756" class="sub">Logarithmic scale; 1× means equal time; faster ratios extend right of the vertical 1× line.</text>
+</svg>

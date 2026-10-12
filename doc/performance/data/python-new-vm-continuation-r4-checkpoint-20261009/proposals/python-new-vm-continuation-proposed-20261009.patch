@@ -1,0 +1,451 @@
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+index d24ed564..8ac8521f 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+@@ -303,7 +303,9 @@ XLANG3_HOT_INLINE bool xlang_vm_resolve_class_new_callable(
+     Runtime& runtime,
+     const Value& class_value,
+     ClassObject* klass,
+-    Value& out) {
++    Value& out,
++    bool* plain_python_new = nullptr) {
++  if (plain_python_new != nullptr) *plain_python_new = false;
+   if (klass == nullptr ||
+       (xlang_vm_call_class_is_builtin_module_class(*klass) &&
+        klass->name != "complex" && klass->name != "iterator") ||
+@@ -331,11 +333,90 @@ XLANG3_HOT_INLINE bool xlang_vm_resolve_class_new_callable(
+     return true;
+   }
+   if (value_as_function(out) != nullptr) {
++    // Only the raw Function/exact StaticMethod selection is eligible. A
++    // descriptor which returns a Function still uses the synchronous path.
++    if (plain_python_new != nullptr) *plain_python_new = true;
+     return true;
+   }
+   return class_get_bound_attr(runtime, class_value, Value::none(), "__new__", out, ignored);
+ }
+ 
++XLANG3_HOT_INLINE bool xlang_vm_plain_sync_function(const FunctionObject* function) {
++  if (function == nullptr || function->module == nullptr ||
++      function->function_id >= function->module->functions.size()) return false;
++  const auto& body = function->module->functions[function->function_id];
++  return !body.is_generator && !body.is_async && !body.is_coroutine;
++}
++
++template <typename MakeGeneratorIfNeeded, typename PushFrame>
++XLANG3_HOT_INLINE bool xlang_vm_try_push_python_class_new(
++    Runtime& runtime, const Value& class_value, ClassObject* klass,
++    const Value& new_callable, CallArgsView args, const ir::Module& module,
++    const std::shared_ptr<const ir::Module>& module_owner, size_t register_count, uint32_t return_dst,
++    size_t& ip, Value& out, bool& pushed_frame, bool& attempted,
++    MakeGeneratorIfNeeded&& make_generator_if_needed, PushFrame&& push_frame) {
++  attempted = false;
++  auto* function = value_as_function(new_callable);
++  const Value* builtin_type = runtime.find_builtin("type");
++  if (klass == nullptr || klass->native_type_constructor != nullptr ||
++      builtin_type == nullptr || !value_is(klass->metaclass, *builtin_type) ||
++      !xlang_vm_plain_sync_function(function) || args.has_keywords() ||
++      args.kw_star_arg != UINT32_MAX ||
++      (args.kw_star_args != nullptr && !args.kw_star_args->empty()) ||
++      args.size() > UINT32_MAX - 2 ||
++      !inline_calls_allowed(runtime) || runtime.debug_poll_needed() ||
++      interpreter_pending_events() != 0) return false;
++  size_t expanded_size = args.size();
++  auto count_tuple = [&](uint32_t reg) -> bool {
++    if (args.registers == nullptr || reg >= register_count) return false;
++    const auto& value = args.registers[reg];
++    if (value.tag != ValueTag::Object || value.as.obj == nullptr ||
++        value.as.obj->kind != ObjectKind::Tuple) return false;
++    const auto* tuple = value_as_tuple(value);
++    if (tuple->items.size() > UINT32_MAX - 2 - expanded_size) return false;
++    expanded_size += tuple->items.size();
++    return true;
++  };
++  if (args.star_args != nullptr && !args.star_args->empty()) {
++    for (uint32_t reg : *args.star_args) if (!count_tuple(reg)) return false;
++  } else if (args.star_arg != UINT32_MAX && !count_tuple(args.star_arg)) {
++    return false;
++  }
++  attempted = true;
++
++  // This changes execution topology, not the Python body or its result. A
++  // normal frame push avoids recursively constructing an Interpreter for
++  // plain __new__. Keep selection and all original inputs in an owning tuple
++  // until fresh __init__ and old-output cleanup finish; nothing is cached
++  // across calls. Copy construction upgrades borrowed register arguments.
++  std::vector<Value> context;
++  context.reserve(expanded_size + 2);
++  context.push_back(new_callable);
++  context.push_back(class_value);
++  for (size_t i = 0; i < args.size(); ++i) context.push_back(args.get(i));
++  // CallEx admits only exact Tuple expansion and no keywords. Match the old
++  // helper's explicit-then-star materialization order without invoking Python
++  // iteration. List/subclass/custom iterators and ** mappings decline before
++  // any expansion or __new__ execution; the original helper runs exactly once.
++  auto append_tuple = [&](uint32_t reg) {
++    for (const auto& item : value_as_tuple(args.registers[reg])->items)
++      context.push_back(item);
++  };
++  if (args.star_args != nullptr && !args.star_args->empty()) {
++    for (uint32_t reg : *args.star_args) append_tuple(reg);
++  } else if (args.star_arg != UINT32_MAX) {
++    append_tuple(args.star_arg);
++  }
++  Value continuation = Value::tuple(std::move(context));
++  const auto* tuple = value_as_tuple(continuation);
++  CallArgsView new_args;
++  new_args.leading = tuple->items.data() + 1;
++  new_args.leading_count = static_cast<uint32_t>(tuple->items.size() - 1);
++  return call_user_function(
++      function, new_args, module, module_owner, return_dst, ip, out,
++      pushed_frame, make_generator_if_needed, push_frame,
++      FrameReturnMode::ContinuePythonClassNew, std::move(continuation));
++}
+ template <typename RaiseRuntimeError, typename RaiseExceptionValue>
+ XLANG3_HOT_INLINE bool xlang_vm_call_class_new_then_init_sync(
+     Runtime& runtime,
+@@ -2508,7 +2589,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
+     PushFrame&& push_frame,
+     CallBuiltinTypeConstructor&& call_builtin_type_constructor_fn,
+     RaiseRuntimeError&& raise_runtime_error,
+-    RaiseExceptionValue&& raise_exception_value) {
++    RaiseExceptionValue&& raise_exception_value, bool allow_python_new_continuation = false) {
+   xlang_vm_cache_touch(instr_cache[ip], XlangVMCacheDomain::Call);
+   if (in.a >= regs.size() || in.b >= fn.call_specs.size()) {
+     result.errors.push_back("invalid extended call");
+@@ -2728,7 +2809,22 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
+       }
+     }
+     Value early_new_callable;
+-    if (xlang_vm_resolve_class_new_callable(runtime, callee, klass, early_new_callable)) {
++    bool plain_python_new = false;
++    if (xlang_vm_resolve_class_new_callable(runtime, callee, klass, early_new_callable, &plain_python_new)) {
++      if (allow_python_new_continuation && plain_python_new) {
++        bool attempted = false;
++        const bool ok = xlang_vm_try_push_python_class_new(
++            runtime, callee, klass, early_new_callable, call_args, module,
++            module_owner, regs.size(), in.dst, ip, regs[in.dst], pushed_frame, attempted,
++            make_generator_if_needed, push_frame);
++        if (attempted) {
++          if (!ok) {
++            if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
++            return XlangVMOpFlow::ContinueLoop;
++          }
++          return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
++        }
++      }
+       Value new_callable;
+       value_assign_fast(new_callable, early_new_callable);
+       if (!xlang_vm_call_class_new_then_init_sync(
+@@ -3091,7 +3187,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
+     ExecuteSlotConstructor&& execute_slot_constructor_fn,
+     RaiseRuntimeError&& raise_runtime_error,
+     RaiseExceptionValue&& raise_exception_value,
+-    XlangVMSmallValueBuffer* locals = nullptr) {
++    XlangVMSmallValueBuffer* locals = nullptr, bool allow_python_new_continuation = false) {
+   xlang_vm_cache_touch(instr_cache[ip], XlangVMCacheDomain::Call);
+   if (in.b >= fn.call_args.size()) {
+     result.errors.push_back("invalid call arg list");
+@@ -3552,7 +3648,22 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
+       }
+     }
+     Value early_new_callable;
+-    if (xlang_vm_resolve_class_new_callable(runtime, callee, klass, early_new_callable)) {
++    bool plain_python_new = false;
++    if (xlang_vm_resolve_class_new_callable(runtime, callee, klass, early_new_callable, &plain_python_new)) {
++      if (allow_python_new_continuation && plain_python_new) {
++        bool attempted = false;
++        const bool ok = xlang_vm_try_push_python_class_new(
++            runtime, callee, klass, early_new_callable, call_args, module,
++            module_owner, regs.size(), in.dst, ip, regs[in.dst], pushed_frame, attempted,
++            make_generator_if_needed, push_frame);
++        if (attempted) {
++          if (!ok) {
++            if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
++            return XlangVMOpFlow::ContinueLoop;
++          }
++          return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
++        }
++      }
+       Value new_callable;
+       value_assign_fast(new_callable, early_new_callable);
+       if (!xlang_vm_call_class_new_then_init_sync(
+diff --git a/src/executor/xlang_vm/xlang_frame.h b/src/executor/xlang_vm/xlang_frame.h
+index d9ba15ef..ce72072f 100644
+--- a/src/executor/xlang_vm/xlang_frame.h
++++ b/src/executor/xlang_vm/xlang_frame.h
+@@ -248,6 +248,10 @@ enum class FrameReturnMode : uint8_t {
+   StoreConstructedInstance,
+   StoreBoolean,
+   StoreNegatedBoolean,
++  // Owned context tuple: selected __new__, called class, original arguments.
++  ContinuePythonClassNew,
++  // Owned tuple: new result, preceding context, selected bound initializer.
++  StorePythonClassNewInstance,
+ };
+ 
+ enum class ExceptionHandlerKind : uint8_t {
+diff --git a/src/executor/xlang_vm/xlang_vm_loop.cpp b/src/executor/xlang_vm/xlang_vm_loop.cpp
+index dc6e2a1c..a3f31afa 100644
+--- a/src/executor/xlang_vm/xlang_vm_loop.cpp
++++ b/src/executor/xlang_vm/xlang_vm_loop.cpp
+@@ -1682,72 +1682,6 @@ RuntimeResult Interpreter::run_function(
+     }
+   };
+ 
+-  auto finish_frame = [&](const Value& return_value) -> bool {
+-    Value owned_return_value;
+-    value_assign_fast(owned_return_value, return_value);
+-    VMFrame& finished = frames[frame_count - 1];
+-    runtime_.retire_live_frame_snapshot(
+-        finished.activation_id, static_cast<uint32_t>(finished.ip),
+-        finished.locals.value_data(), finished.locals.size());
+-    if ((finished.monitoring_events & kSysMonitoringEventPyReturn) != 0) {
+-      if (!emit_monitoring_event(finished, kSysMonitoringEventPyReturn, &owned_return_value)) {
+-        return false;
+-      }
+-    }
+-    if (hook_is_active(finished.trace_function)) {
+-      if (!emit_trace_event(finished, "return", owned_return_value)) {
+-        return false;
+-      }
+-    }
+-    if (runtime_.profile_event_may_dispatch() &&
+-        hook_is_active(runtime_.profile_function()) && !runtime_.profile_dispatch_active()) {
+-      if (!emit_profile_event(finished, "return", owned_return_value)) {
+-        return false;
+-      }
+-    }
+-    const uint32_t return_dst = finished.return_dst;
+-    const bool has_caller = finished.has_caller;
+-    const FrameReturnMode return_mode = finished.return_mode;
+-    Value continuation_value;
+-    if (return_mode == FrameReturnMode::StoreConstructedInstance) {
+-      value_assign_fast(continuation_value, finished.continuation_value);
+-    }
+-    while (!active_exception_handler_frames.empty() && active_exception_handler_frames.back() == frame_count) {
+-      restore_active_exception_context();
+-    }
+-    complete_inlined_coroutine(finished);
+-    if (!has_caller) {
+-      value_assign_fast(result.value, owned_return_value);
+-      finished.clear_for_pop();
+-      --frame_count;
+-      ++frame_stack_generation;
+-      return false;
+-    }
+-    finished.clear_for_pop();
+-    --frame_count;
+-    ++frame_stack_generation;
+-    // Subscription assignment invokes a normal Python frame but ignores its
+-    // result. Never overwrite the container register with __setitem__'s return.
+-    if (return_mode == FrameReturnMode::DiscardReturnValue) {
+-      auto& caller = frames[frame_count - 1];
+-      // The pushed frame skips the opcode loop's normal post-instruction
+-      // retirement. Release consumed temporary exports after the setter has
+-      // returned, before the caller attempts a resize in its next statement.
+-      if (caller.ip != 0) caller.release_memoryviews_last_used_at(caller.ip - 1);
+-      return true;
+-    }
+-    Value& target = frames[frame_count - 1].regs[return_dst];
+-    if (return_mode == FrameReturnMode::StoreConstructedInstance) {
+-      value_assign_fast(target, continuation_value);
+-    } else if (return_mode == FrameReturnMode::StoreBoolean ||
+-               return_mode == FrameReturnMode::StoreNegatedBoolean) {
+-      value_set_bool(target, value_truthy(owned_return_value) != (return_mode == FrameReturnMode::StoreNegatedBoolean));
+-    } else {
+-      value_assign_fast(target, owned_return_value);
+-    }
+-    return true;
+-  };
+-
+   auto make_traceback_from_frames = [&](bool track_live_frames = false,
+                                         size_t lowest_frame = 0) -> Value {
+     if (traceback_builtins.tag == ValueTag::Invalid) {
+@@ -1984,6 +1918,169 @@ RuntimeResult Interpreter::run_function(
+     return false;
+   };
+ 
++  auto finish_frame = [&](const Value& return_value) -> bool {
++    Value owned_return_value;
++    value_assign_fast(owned_return_value, return_value);
++    VMFrame& finished = frames[frame_count - 1];
++    runtime_.retire_live_frame_snapshot(
++        finished.activation_id, static_cast<uint32_t>(finished.ip),
++        finished.locals.value_data(), finished.locals.size());
++    if ((finished.monitoring_events & kSysMonitoringEventPyReturn) != 0) {
++      if (!emit_monitoring_event(finished, kSysMonitoringEventPyReturn, &owned_return_value)) {
++        return false;
++      }
++    }
++    if (hook_is_active(finished.trace_function)) {
++      if (!emit_trace_event(finished, "return", owned_return_value)) {
++        return false;
++      }
++    }
++    if (runtime_.profile_event_may_dispatch() &&
++        hook_is_active(runtime_.profile_function()) && !runtime_.profile_dispatch_active()) {
++      if (!emit_profile_event(finished, "return", owned_return_value)) {
++        return false;
++      }
++    }
++    const uint32_t return_dst = finished.return_dst;
++    const bool has_caller = finished.has_caller;
++    const FrameReturnMode return_mode = finished.return_mode;
++    Value continuation_value;
++    if (return_mode == FrameReturnMode::StoreConstructedInstance ||
++        return_mode == FrameReturnMode::ContinuePythonClassNew ||
++        return_mode == FrameReturnMode::StorePythonClassNewInstance) {
++      value_assign_fast(continuation_value, finished.continuation_value);
++    }
++    while (!active_exception_handler_frames.empty() && active_exception_handler_frames.back() == frame_count) {
++      restore_active_exception_context();
++    }
++    complete_inlined_coroutine(finished);
++    if (!has_caller) {
++      value_assign_fast(result.value, owned_return_value);
++      finished.clear_for_pop();
++      --frame_count;
++      ++frame_stack_generation;
++      return false;
++    }
++    finished.clear_for_pop();
++    --frame_count;
++    ++frame_stack_generation;
++    // Subscription assignment invokes a normal Python frame but ignores its
++    // result. Never overwrite the container register with __setitem__'s return.
++    if (return_mode == FrameReturnMode::DiscardReturnValue) {
++      auto& caller = frames[frame_count - 1];
++      // The pushed frame skips the opcode loop's normal post-instruction
++      // retirement. Release consumed temporary exports after the setter has
++      // returned, before the caller attempts a resize in its next statement.
++      if (caller.ip != 0) caller.release_memoryviews_last_used_at(caller.ip - 1);
++      return true;
++    }
++    if (return_mode == FrameReturnMode::ContinuePythonClassNew) {
++      const auto* context = value_as_tuple(continuation_value);
++      if (context == nullptr || context->items.size() < 2) {
++        return dispatch_exception(runtime_.make_exception("RuntimeError", "invalid __new__ continuation"));
++      }
++      const size_t caller_index = frame_count - 1;
++      // call_user_function advanced the suspended caller. This continuation is
++      // still executing that Call: expose its callsite during fresh lookup and
++      // synchronous callbacks, and advance only on success or an init push.
++      if (frames[caller_index].ip != 0) --frames[caller_index].ip;
++      refresh_runtime_frame_views();
++      {
++        auto& caller = frames[caller_index];
++        runtime_.set_current_globals_module(caller.globals_module);
++        runtime_.set_current_frame_locals(
++            &caller.fn->locals, caller.locals.value_data(), caller.locals.size());
++        runtime_.set_current_frame(
++            &caller.module_owner, caller.function_id, &caller.globals_module, caller.ip);
++      }
++      auto raise_constructor_error = [&](const std::string& message) -> bool {
++        Value pending;
++        if (!runtime_.take_pending_exception(pending))
++          pending = runtime_.make_exception("RuntimeError", message);
++        return dispatch_exception(std::move(pending), true);
++      };
++      // Frame-local cleanup and __new__ return observers have completed. Do
++      // not carry an initializer/MRO proof across them: use the current result
++      // type and resolve __init__ afresh, just as the synchronous helper does.
++      auto* called_class = value_as_class(context->items[1]);
++      auto* instance = value_as_instance(owned_return_value);
++      auto* module_instance = value_as_module(owned_return_value);
++      auto* result_class = instance != nullptr ? value_as_class(instance->klass)
++          : module_instance != nullptr ? value_as_class(module_instance->klass) : nullptr;
++      if (result_class != nullptr && called_class != nullptr &&
++          class_is_subclass(result_class, called_class)) {
++        Value init;
++        std::string error;
++        const bool found = module_instance != nullptr
++            ? module_get_attr(owned_return_value, "__init__", init, error)
++            : object_get_attr(owned_return_value, "__init__", init, error);
++        if (found && init.tag != ValueTag::Invalid &&
++            !xlang_vm::ops::xlang_vm_is_default_object_hook(init, "object.__init__")) {
++          auto* bound = value_as_bound_method(init);
++          auto* function = bound == nullptr ? nullptr : value_as_function(bound->function);
++          if (bound != nullptr && value_is(bound->self, owned_return_value) &&
++              xlang_vm::ops::xlang_vm_plain_sync_function(function)) {
++            std::vector<Value> init_args;
++            init_args.reserve(context->items.size() - 1);
++            init_args.push_back(bound->self);
++            for (size_t i = 2; i < context->items.size(); ++i)
++              init_args.push_back(context->items[i]);
++            CallArgsView view;
++            view.leading = init_args.data();
++            view.leading_count = static_cast<uint32_t>(init_args.size());
++            // Keep both selected functions and original inputs alive through
++            // init's body, frame cleanup, and replacement of the old output.
++            Value completion = Value::tuple({owned_return_value, continuation_value, init});
++            auto init_module_owner = function->module;
++            if (!push_frame(
++                    *init_module_owner, function->function_id,
++                    view.with_keyword_defaults(*function), function->closure,
++                    function->defaults, function->globals_module, init_module_owner,
++                    return_dst, FrameReturnMode::StorePythonClassNewInstance,
++                    std::move(completion))) {
++              return result.errors.empty() && frame_count != 0;
++            }
++            // push_frame can relocate frame storage. No borrowed caller or
++            // selected-function fields are read after it has taken ownership.
++            ++frames[caller_index].ip;
++            return true;
++          }
++          Value ignored;
++          const std::vector<std::pair<std::string, Value>> no_keywords;
++          if (!runtime_call_callable_kw(
++                  runtime_, init, context->items.data() + 2,
++                  static_cast<uint32_t>(context->items.size() - 2),
++                  no_keywords, ignored, error)) {
++            return raise_constructor_error(error.empty() ? "__init__ failed" : error);
++          }
++        }
++      }
++      value_assign_fast(frames[caller_index].regs[return_dst], owned_return_value);
++      ++frames[caller_index].ip;
++      return true;
++    }
++    if (return_mode == FrameReturnMode::StorePythonClassNewInstance) {
++      const auto* completion = value_as_tuple(continuation_value);
++      if (completion == nullptr || completion->items.size() != 3) {
++        return dispatch_exception(runtime_.make_exception("RuntimeError", "invalid __init__ continuation"));
++      }
++      // The current custom-new helper ignores __init__'s return value. Keep
++      // that policy and its selected-owner lifetime; no callable-policy change.
++      value_assign_fast(frames[frame_count - 1].regs[return_dst], completion->items[0]);
++      return true;
++    }
++    Value& target = frames[frame_count - 1].regs[return_dst];
++    if (return_mode == FrameReturnMode::StoreConstructedInstance) {
++      value_assign_fast(target, continuation_value);
++    } else if (return_mode == FrameReturnMode::StoreBoolean ||
++               return_mode == FrameReturnMode::StoreNegatedBoolean) {
++      value_set_bool(target, value_truthy(owned_return_value) != (return_mode == FrameReturnMode::StoreNegatedBoolean));
++    } else {
++      value_assign_fast(target, owned_return_value);
++    }
++    return true;
++  };
++
+   std::function<bool(const Value&)> exception_matches = [&](const Value& handler_type) -> bool {
+     if (auto* tuple = value_as_tuple(handler_type)) {
+       for (const auto& item : tuple->items) {
+diff --git a/src/executor/xlang_vm/xlang_vm_op_rows.h b/src/executor/xlang_vm/xlang_vm_op_rows.h
+index b7dbf7cf..383f7bfc 100644
+--- a/src/executor/xlang_vm/xlang_vm_op_rows.h
++++ b/src/executor/xlang_vm/xlang_vm_op_rows.h
+@@ -58,10 +58,10 @@ XLANG3_VM_FLOW(StoreInstanceSlot, xlang3::xlang_vm::ops::store_instance_slot(in,
+ XLANG3_VM_FLOW_TRACKED(LoadLocalInstanceSlot, xlang3::xlang_vm::ops::load_local_instance_slot(in, fn, runtime_, regs, locals, raise_unbound_local_error, raise_runtime_error, raise_exception_value))
+ XLANG3_VM_FLOW(LoadInstanceSlotLocal, xlang3::xlang_vm::ops::load_instance_slot_local(in, fn, runtime_, regs, locals, raise_unbound_local_error, raise_runtime_error, raise_exception_value))
+ XLANG3_VM_FLOW(StoreLocalInstanceSlot, xlang3::xlang_vm::ops::store_local_instance_slot(in, fn, regs, locals, raise_unbound_local_error, raise_runtime_error))
+-XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(Call, xlang3::xlang_vm::ops::call(in, fn, module, module_owner, runtime_, regs, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_arg_binary_function, execute_arg_binary_function, analyze_slot_constructor, execute_slot_constructor, raise_runtime_error, raise_exception_value, &locals))
++XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(Call, xlang3::xlang_vm::ops::call(in, fn, module, module_owner, runtime_, regs, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_arg_binary_function, execute_arg_binary_function, analyze_slot_constructor, execute_slot_constructor, raise_runtime_error, raise_exception_value, &locals, generator == nullptr && !resuming_pause))
+ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallLocal, xlang3::xlang_vm::ops::call_local(in, fn, module, module_owner, runtime_, regs, locals, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_arg_binary_function, execute_arg_binary_function, analyze_slot_constructor, execute_slot_constructor, raise_runtime_error, raise_exception_value, raise_unbound_local_error))
+ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallGlobal, xlang3::xlang_vm::ops::call_global(in, fn, module, module_owner, runtime_, regs, globals_module, globals_, globals_version_, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_arg_binary_function, execute_arg_binary_function, analyze_slot_constructor, execute_slot_constructor, raise_runtime_error, raise_exception_value, raise_name_error))
+-XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallEx, xlang3::xlang_vm::ops::call_ex(in, fn, module, module_owner, frame.monitoring_code, runtime_, regs, frames, frame_count, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, raise_runtime_error, raise_exception_value))
++XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallEx, xlang3::xlang_vm::ops::call_ex(in, fn, module, module_owner, frame.monitoring_code, runtime_, regs, frames, frame_count, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, raise_runtime_error, raise_exception_value, generator == nullptr && !resuming_pause))
+ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallMethod, xlang3::xlang_vm::ops::call_method(in, fn, module, module_owner, runtime_, regs, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_const_method, analyze_self_binary_method, execute_self_binary_method, analyze_self_slot_method, execute_self_slot_method, analyze_self_slot_const_sum_method, execute_self_slot_const_sum_method, raise_runtime_error, raise_exception_value, &frame.monitoring_code))
+ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallMethodEx, xlang3::xlang_vm::ops::call_method_ex(in, fn, module, module_owner, frame.monitoring_code, runtime_, regs, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
+ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallLocalMethod, xlang3::xlang_vm::ops::call_local_method(in, fn, module, module_owner, runtime_, regs, locals, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_const_method, analyze_self_binary_method, execute_self_binary_method, analyze_self_slot_method, execute_self_slot_method, analyze_self_slot_const_sum_method, execute_self_slot_const_sum_method, raise_runtime_error, raise_exception_value, raise_unbound_local_error, &frame.monitoring_code))

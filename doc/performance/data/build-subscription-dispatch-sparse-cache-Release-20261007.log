@@ -1,0 +1,8 @@
+ninja: Entering directory `build-repro\main-verify-20261006'
+[0/2] Re-checking globbed directories...
+[1/11] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\executor\xlang_vm\xlang_vm_attr.cpp.obj
+[2/11] Building CXX object CMakeFiles\xlang3_interpreter_tests.dir\Release\tests\cpp\interpreter_tests.cpp.obj
+[3/11] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\executor\xlang_vm\xlang_interpreter.cpp.obj
+[4/11] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\executor\xlang_vm\xlang_vm_loop.cpp.obj
+[5/11] Linking CXX shared library Release\xlang3_runtime.dll
+[6/7] Linking CXX executable Release\xlang3_interpreter_tests.exe

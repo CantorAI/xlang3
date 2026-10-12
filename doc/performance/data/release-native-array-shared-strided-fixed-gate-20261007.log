@@ -1,0 +1,12 @@
+local_slots              pass         1.027x
+scalar_arithmetic        pass         1.007x
+range_for                pass         0.993x
+function_calls           pass         0.979x
+class_construct          pass         1.002x
+list_append              pass         1.008x
+property_access          pass         0.984x
+deepcopy_memo            pass         0.864x
+json_dumps               pass         1.011x
+gc_traversal             pass         0.995x
+subparsers               pass         0.946x
+Performance check: pass. Report: doc\performance\data\release-native-array-shared-strided-fixed-gate-20261007.json

@@ -1,0 +1,5 @@
+ordinary class writes preserve MRO tuple True
+descriptor writes preserve MRO tuple True
+base changes replace descendant MRO tuples True
+failed base changes preserve prior MRO tuple True
+cached MRO tuple participates in class collection True

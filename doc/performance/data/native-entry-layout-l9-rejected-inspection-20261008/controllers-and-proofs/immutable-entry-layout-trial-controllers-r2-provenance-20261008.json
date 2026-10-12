@@ -1,0 +1,24 @@
+{
+  "status": "frozen_scratch_only_r2_correctness_policy_revision_unexecuted_unparsed",
+  "artifacts_sha256": {
+    "scratch/performance/check-immutable-entry-layout-focused-r2-20261008.py": "4b5d28ec1fd6ec59ebfbc9b7baa40f2c3b879e5f332da0cacf7ef0806fb42517",
+    "scratch/performance/measure-immutable-entry-layout-paired-r2-20261008.py": "640725fd35a8f062333332ca6f2dabbac76735f5412dc798d65af1fe245c0b7a",
+    "scratch/performance/immutable-entry-layout-trial-plan-r2-20261008.md": "b4cd4ec4d0a1899219b3bd64994123fd5f8bf76a3e4518f131ed674b8209cee6"
+  },
+  "preserved_r1_provenance_sha256": "2f7267f95c13c8b839f0dc41b38c74e380d73bbcef87ccb89eae4564d31a2f69",
+  "preserved_preflight": "doc/performance/data/native-entry-layout-l9-focused-20261008.json",
+  "preserved_preflight_sha256": "eb61e201e289fb81ad8f001c013e50e9d4b459c4af72d5d0768fc1647d2883c9",
+  "preserved_preflight_phases": 0,
+  "no_tests_retried": true,
+  "correctness_delta": "MSBuild worker names omitted only from untimed focus busy set; workers logged; other tool guards and all code/control hashes retained",
+  "timing_delta": "Only focus-controller path/SHA updated; strict benchmark idle/watcher unchanged",
+  "actual_source_count": 111,
+  "actual_inventory_sha256": "b4fdcbcb4dbcea8eb263411e306a475b5321d50a311f9c2bc7f9c7425d1cc4ec",
+  "actual_sources_unchanged": true,
+  "root_reported_build_terminal_exit": 0,
+  "build_log": "doc/performance/data/native-entry-layout-l9-build-20261008.log",
+  "build_log_sha256": "2a2b1df6b42d3d5534e9edca0706b547a617b6e8702fecd2fb7fd9c6e2d7f4c9",
+  "runtime_ast_build_by_author": false,
+  "live_source_test_edits_by_author": false,
+  "do_not_kill_or_suspend_visual_studio": true
+}

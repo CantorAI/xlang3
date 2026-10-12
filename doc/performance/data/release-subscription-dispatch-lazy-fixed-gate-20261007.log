@@ -1,0 +1,12 @@
+local_slots              pass         0.999x
+scalar_arithmetic        pass         1.008x
+range_for                pass         1.011x
+function_calls           pass         0.978x
+class_construct          pass         0.996x
+list_append              pass         0.985x
+property_access          pass         1.003x
+deepcopy_memo            pass         0.874x
+json_dumps               pass         0.982x
+gc_traversal             pass         1.015x
+subparsers               pass         0.941x
+Performance check: pass. Report: doc\performance\data\release-subscription-dispatch-lazy-fixed-gate-20261007.json

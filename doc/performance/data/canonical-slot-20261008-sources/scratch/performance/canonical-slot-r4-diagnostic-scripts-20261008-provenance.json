@@ -1,0 +1,49 @@
+{
+  "status": "scripts_frozen_not_executed_by_subagent",
+  "cpython_executable": "C:/Python/Python314/python.exe",
+  "required_version": "3.14.7",
+  "run_directory": "D:/CantorAI/xlang3",
+  "expected_early_output": "doc/performance/data/canonical-slot-r4-early-20261008.json",
+  "expected_paired_output": "doc/performance/data/canonical-slot-r4-paired-20261008.json",
+  "original_paired_output": "doc/performance/data/canonical-slot-paired-20261008.json",
+  "original_paired_sha256": "f63902bab873afaba6aa70aa6ebf629db9674b4eee6962b087502377cf43fbf2",
+  "unchanged_probes": [
+    {
+      "path": "scratch/performance/canonical-slot-probe-20261008.py",
+      "sha256": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+      "unchanged_from_original_pair": true
+    },
+    {
+      "path": "scratch/performance/canonical-slot-sqlglot-probe-20261008.py",
+      "sha256": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+      "unchanged_from_original_pair": true
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "scratch/performance/check-canonical-slot-r4-20261008.py",
+      "bytes": 2444,
+      "sha256": "1ca75f92cf61bad84c98d05db3cfda9a3099f1116016d6902ea685990d56e3fe"
+    },
+    {
+      "path": "scratch/performance/compare-canonical-slot-r4-20261008.py",
+      "bytes": 5118,
+      "sha256": "2eba18fbeba42ceb4d828da1eaa2cd0721892df618b87e9dca95498f89d792ec"
+    },
+    {
+      "path": "scratch/performance/canonical_slot_r4_support_20261008.py",
+      "bytes": 9077,
+      "sha256": "bd06e6fd7e78b1106d6f0eef01a3fac68f0996395e36ea5ebccfb7ec5decb831"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-probe-20261008.py",
+      "bytes": 931,
+      "sha256": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-sqlglot-probe-20261008.py",
+      "bytes": 1009,
+      "sha256": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae"
+    }
+  ]
+}

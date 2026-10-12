@@ -1,0 +1,2138 @@
+{
+  "status": "terminal_lazy_globals_rejected_trial_export",
+  "decision": "rejected",
+  "interpretation": "mixed descriptive rows; consistent string-dict regression; no significant overall gain or fresh full97 claim",
+  "validation_sha256": "729c26186b56188f6e29a5b88830d2fe09fde07a3c251789dabcce9636d38a06",
+  "paired_sha256": "472bbcefeb5b2cfac5d0bc219b84320f09519119d171356142190a3c4a35ce96",
+  "candidate_binary_sha256": {
+    "exe": "1a829b66359ad0280e1d42eb64a94b96af4baf71e9d62cd58e6f3c757616c8f7",
+    "dll": "6bec6a778451e2fd2382c62fce9319e2e6169bef8f24031ce0adbfd87c11f8c3"
+  },
+  "source_inventory_sha256": "2f59b807624d88d097e4415e0da322bcd35841f44e8b2c4825b6c43f08f99945",
+  "changed_source_sha256": {
+    "src/internal/xlang3/interpreter.h": "e1baa802d6023f634bab278f85bc5e1d472aa39f22be884bc04dd93bca6ad522",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_variables.h": "3fac73794910a75f067997586ebb85c52b9c96afefa6f97fe530011340d9d168",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_import_raw.h": "c791a10b4ec3729d914ab7517949568413940058a3e5818ae9f51c75654e53a4",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_fused.h": "0cae4b35b2b0c2d4b4820fd2576eaff184e25291472f493c9f34447cfb846ea9",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "9f985e9742983d88e81820c7c33c753fdfbf3799ff2fc04861640876e9a470d6",
+    "tests/cpp/interpreter_tests.cpp": "a58811867318b8fc58350a4c340757fbda467f30b27f7bd0a7544112d54c1cbf",
+    "tests/cpp/interpreter_lazy_globals_cases.h": "d7573bee561b650583c955518df3e33f2d41afb957b4b5cc0abea7f10bf903a8"
+  },
+  "fixture_counts": {
+    "core": 381,
+    "compatibility_sections": 11,
+    "expected_failures": 3
+  },
+  "official_statistics": [
+    {
+      "benchmark": "sqlite_synth",
+      "runtime": "cpython3147_saved",
+      "values": 20,
+      "mean_seconds": 1.8329872131461756e-06,
+      "sample_sd_seconds": 1.0908251533346726e-08,
+      "cv_percent": 0.5951078902849293,
+      "speed_vs_cpython": 1.0
+    },
+    {
+      "benchmark": "sqlite_synth",
+      "runtime": "xlang3_candidate",
+      "values": 20,
+      "mean_seconds": 6.8713909912254675e-06,
+      "sample_sd_seconds": 6.486213507212001e-07,
+      "cv_percent": 9.439447581275283,
+      "speed_vs_cpython": 0.2667563547885483
+    },
+    {
+      "benchmark": "sqlglot_v2_parse",
+      "runtime": "cpython3147_saved",
+      "values": 20,
+      "mean_seconds": 0.0009882882422175498,
+      "sample_sd_seconds": 1.0772736398572881e-05,
+      "cv_percent": 1.0900399234135079,
+      "speed_vs_cpython": 1.0
+    },
+    {
+      "benchmark": "sqlglot_v2_parse",
+      "runtime": "xlang3_candidate",
+      "values": 20,
+      "mean_seconds": 0.01818853187323839,
+      "sample_sd_seconds": 0.0001789054455895485,
+      "cv_percent": 0.9836167472800824,
+      "speed_vs_cpython": 0.05433578966709584
+    }
+  ],
+  "paired_summary": [
+    {
+      "path": "string_dict_get",
+      "median_pair_control_over_candidate": 0.8654559403305443,
+      "pair_ratios": "0.9865369094794236;0.86097506730716;0.8489358293998581;0.8728219231673873;0.8540770187633546;0.8654559403305443;0.8854029820845398",
+      "control_pooled_median_seconds": 0.0015915000112727284,
+      "candidate_pooled_median_seconds": 0.0018395999795757234
+    },
+    {
+      "path": "python_key_dict_get",
+      "median_pair_control_over_candidate": 1.0422136713101307,
+      "pair_ratios": "1.2553823560542359;1.0422136713101307;0.987389708313432;1.037614502694711;1.0470278055866735;1.0655570534077097;1.037153832577362",
+      "control_pooled_median_seconds": 0.04661610000766814,
+      "candidate_pooled_median_seconds": 0.04459030000725761
+    },
+    {
+      "path": "builtin_hash_string",
+      "median_pair_control_over_candidate": 0.986351129552634,
+      "pair_ratios": "1.1775380362172763;0.9835916091865011;0.9020699186558973;0.959300189039225;1.0294034840832822;0.986351129552634;0.9965378750253683",
+      "control_pooled_median_seconds": 0.006202699994901195,
+      "candidate_pooled_median_seconds": 0.006231000006664544
+    },
+    {
+      "path": "builtin_hash_python_key",
+      "median_pair_control_over_candidate": 1.029324308851734,
+      "pair_ratios": "1.3286837705891403;1.0107504732618544;0.9234173467763744;1.0276223101730313;1.0466736826317058;1.0538870190879102;1.029324308851734",
+      "control_pooled_median_seconds": 0.032108699990203604,
+      "candidate_pooled_median_seconds": 0.031169599998975173
+    },
+    {
+      "path": "direct_python_hash_method",
+      "median_pair_control_over_candidate": 0.9947905019112122,
+      "pair_ratios": "1.0389174988570555;0.9865834795833235;0.6843194801574127;1.0003077346544738;0.9941260361360511;1.0001157043166662;0.9947905019112122",
+      "control_pooled_median_seconds": 0.01233890000730753,
+      "candidate_pooled_median_seconds": 0.012345600000116974
+    },
+    {
+      "path": "saved_python_hash_method",
+      "median_pair_control_over_candidate": 0.9825901475420142,
+      "pair_ratios": "0.9825901475420142;0.9772035942002647;0.9113489770453481;0.9620438344992167;0.9956329714893604;0.9926300274322549;1.037174201858702",
+      "control_pooled_median_seconds": 0.011454099992988631,
+      "candidate_pooled_median_seconds": 0.011746700009098276
+    },
+    {
+      "path": "ordinary_python_hash_function",
+      "median_pair_control_over_candidate": 0.9942073850699173,
+      "pair_ratios": "1.005130325231886;0.9879615761725115;0.9942073850699173;0.9145060975862668;0.9471870503928659;1.0030733553284028;1.0347216374742687",
+      "control_pooled_median_seconds": 0.011850200011394918,
+      "candidate_pooled_median_seconds": 0.012086300004739314
+    },
+    {
+      "path": "ordinary_python_hash_wrapper",
+      "median_pair_control_over_candidate": 1.045224206837479,
+      "pair_ratios": "1.045224206837479;1.0184701996177152;1.0510935965661217;0.8478509346907195;1.0812000398662804;1.110314257881144;1.0281461186659677",
+      "control_pooled_median_seconds": 0.037921000010101125,
+      "candidate_pooled_median_seconds": 0.03680040000472218
+    }
+  ],
+  "inputs": [
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008.json",
+      "sha256": "729c26186b56188f6e29a5b88830d2fe09fde07a3c251789dabcce9636d38a06",
+      "bytes": 331204,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-final-source-20261008.json",
+      "sha256": "2f59b807624d88d097e4415e0da322bcd35841f44e8b2c4825b6c43f08f99945",
+      "bytes": 5265,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-final-source-20261008.json"
+    },
+    {
+      "source": "modules/sqlite/sqlite_handles.h",
+      "sha256": "14bac0cb256d3fd86fd9422ba7b423cb16ae6a5185c714d5f71fa84a34e8c620",
+      "bytes": 2120,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/modules/sqlite/sqlite_handles.h"
+    },
+    {
+      "source": "modules/sqlite/sqlite_package.cpp",
+      "sha256": "e4349e80b5c519b290853c1ac80443a5351f4d4f9def41449af71c3d1178457d",
+      "bytes": 88934,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/modules/sqlite/sqlite_package.cpp"
+    },
+    {
+      "source": "modules/sqlite/sqlite_values.cpp",
+      "sha256": "c691c90ba6b7a43c12bce47dfef75101b22b76732303a196ac30b9d6ad3533dc",
+      "bytes": 5785,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/modules/sqlite/sqlite_values.cpp"
+    },
+    {
+      "source": "sdk/xlang3/abi/xmodule.h",
+      "sha256": "7aa4ae5bcbfd266741ce592d1b2821f112a21ceb1a6ebdeaedea8ddf1d7cbded",
+      "bytes": 10513,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/sdk/xlang3/abi/xmodule.h"
+    },
+    {
+      "source": "src/builtins/functional_builtins.cpp",
+      "sha256": "bc9bf733c5bd0564edb38693eb8616808519c30145c80c71918b64a7401f33ce",
+      "bytes": 235180,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/builtins/functional_builtins.cpp"
+    },
+    {
+      "source": "src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h",
+      "sha256": "e9ef84b3936ab301d33de6ab5236b486ad0ded16db62cba44d96f04980b3ab57",
+      "bytes": 49270,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h"
+    },
+    {
+      "source": "src/executor/xlang_vm/xlang_frame.h",
+      "sha256": "3cf2b395131e1b2ab460bbb0a0126d22d6fae1614f979f9d01650aa0574c5992",
+      "bytes": 53218,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/executor/xlang_vm/xlang_frame.h"
+    },
+    {
+      "source": "src/executor/xlang_vm/xlang_vm_op_rows.h",
+      "sha256": "59b070aff17647ee1c333be02657699e11bb0c28b91612fc31dec41cafaecfbd",
+      "bytes": 29533,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/executor/xlang_vm/xlang_vm_op_rows.h"
+    },
+    {
+      "source": "src/import/native_package_loader.cpp",
+      "sha256": "c3196390d2ca48d4e67a6492277ddf98ad1a3c05c1ce01f53d4cc341cfbd6a00",
+      "bytes": 41572,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/import/native_package_loader.cpp"
+    },
+    {
+      "source": "src/internal/xlang3/ir.h",
+      "sha256": "2c7a6ec831c9ead4df9c35745131d02d0ce44ed1749f137c05267e19e23700e9",
+      "bytes": 12648,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/internal/xlang3/ir.h"
+    },
+    {
+      "source": "src/ir/codec.cpp",
+      "sha256": "6726f090de59651f7570007c130e2b7129fac3a2133f67905c374d841f9da384",
+      "bytes": 37436,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/ir/codec.cpp"
+    },
+    {
+      "source": "src/ir/dump.cpp",
+      "sha256": "f21ba927c25f7c1d272b18840694635e1883849cb07f6d45653045659ba08039",
+      "bytes": 17817,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/ir/dump.cpp"
+    },
+    {
+      "source": "src/runtime/value_hash.cpp",
+      "sha256": "aeb9abb4697569a3b28485000337e31d21f2cd9227dbf2ea0e76e2e125d439ed",
+      "bytes": 26073,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/runtime/value_hash.cpp"
+    },
+    {
+      "source": "src/sema/lower.cpp",
+      "sha256": "ef8bf0b3185ee4d13180cd5be50e66a85ac255621983123570af55f35a4f9cbd",
+      "bytes": 316884,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/sema/lower.cpp"
+    },
+    {
+      "source": "tests/cpp/hash_exception_cases.h",
+      "sha256": "3eba7cbdb81eaed2893ab62f8ce94636c0441f2614d4ba145abd639fa4a0a06d",
+      "bytes": 5056,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/cpp/hash_exception_cases.h"
+    },
+    {
+      "source": "tests/cpp/identity_last_use_cases.h",
+      "sha256": "d719e470cd684456945fd7dfc9ebd0954905227aff346ad2764185280143b28c",
+      "bytes": 22971,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/cpp/identity_last_use_cases.h"
+    },
+    {
+      "source": "tests/cpp/interpreter_tests.cpp",
+      "sha256": "a58811867318b8fc58350a4c340757fbda467f30b27f7bd0a7544112d54c1cbf",
+      "bytes": 29719,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/cpp/interpreter_tests.cpp"
+    },
+    {
+      "source": "tests/cpp/sqlite_aggregate_abi_cases.h",
+      "sha256": "424debac1951802dba2619736f4d935502ad261cc82bc13247beb27adac69f0a",
+      "bytes": 13254,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/cpp/sqlite_aggregate_abi_cases.h"
+    },
+    {
+      "source": "tests/cpp/sqlite_aggregate_sdk_probe.py",
+      "sha256": "318c0a6e64b6c1cbb4f4a6cfa2b49b6186d271ae4bbfc09e04109d606649bc18",
+      "bytes": 918,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/cpp/sqlite_aggregate_sdk_probe.py"
+    },
+    {
+      "source": "tests/fixtures/core/hash_exception_preservation.py",
+      "sha256": "f7378cf25ff91efe12773b7ad5aa5c45038a4d5ab7e7e957f90f6ec088aae150",
+      "bytes": 2435,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/core/hash_exception_preservation.py"
+    },
+    {
+      "source": "tests/fixtures/core/identity_last_use.py",
+      "sha256": "59bf91eacb4d738d7a7ccfdf2590fa79670192bc6410a5775121345c77550cb4",
+      "bytes": 8952,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/core/identity_last_use.py"
+    },
+    {
+      "source": "tests/fixtures/core/sqlite_cursor_completion.py",
+      "sha256": "3d3f6071911c60a54a3dbed4a6da8062a0fe76e92c83d6e7a92cb94fa84c80d6",
+      "bytes": 3650,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/core/sqlite_cursor_completion.py"
+    },
+    {
+      "source": "tests/fixtures/core/sqlite_native_aggregate.py",
+      "sha256": "5e8b444a8f47eae17d597bbea7455f0b8301102ffe89c016b76fde1474a9a650",
+      "bytes": 9045,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/core/sqlite_native_aggregate.py"
+    },
+    {
+      "source": "tests/fixtures/expected/hash_exception_preservation.out",
+      "sha256": "d6b626f45bea180d87ae227099885d951f70f580a03bd5254a45c42b6379e859",
+      "bytes": 157,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/expected/hash_exception_preservation.out"
+    },
+    {
+      "source": "tests/fixtures/expected/identity_last_use.out",
+      "sha256": "be5a71bfe8c5071242d0acf992e8fa4d63515d12c09c28c70d9cff3b0c043d6d",
+      "bytes": 492,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/expected/identity_last_use.out"
+    },
+    {
+      "source": "tests/fixtures/expected/sqlite_cursor_completion.out",
+      "sha256": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6",
+      "bytes": 260,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/expected/sqlite_cursor_completion.out"
+    },
+    {
+      "source": "tests/fixtures/expected/sqlite_native_aggregate.out",
+      "sha256": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba",
+      "bytes": 179,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/expected/sqlite_native_aggregate.out"
+    },
+    {
+      "source": "tests/run_fixtures.ps1",
+      "sha256": "53e7ec88e03037dd072f944c7ab7096685c05c33c47492529fb3db598fc2c221",
+      "bytes": 14759,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/run_fixtures.ps1"
+    },
+    {
+      "source": "tests/run_fixtures.py",
+      "sha256": "5dc89e12e52b6417e69c8c33c28d56d2bc5562ec8cd16f008e4f2fc80eaca9ec",
+      "bytes": 12530,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/run_fixtures.py"
+    },
+    {
+      "source": "src/executor/xlang_vm/xlang_vm_inline_support.h",
+      "sha256": "e7443366a917f5ac98c6df3f83dbf695287c56ee0f2be89b34fbe2c73334d86f",
+      "bytes": 123921,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/executor/xlang_vm/xlang_vm_inline_support.h"
+    },
+    {
+      "source": "src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "sha256": "9f985e9742983d88e81820c7c33c753fdfbf3799ff2fc04861640876e9a470d6",
+      "bytes": 231327,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_call.h"
+    },
+    {
+      "source": "src/runtime/functional_iterators.cpp",
+      "sha256": "4a038c4b5152b87f8fa4d8d83a0f4961b069b8731cd99a4245c74ee5eee21e2e",
+      "bytes": 43334,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/runtime/functional_iterators.cpp"
+    },
+    {
+      "source": "tests/cpp/native_bound_zero_args_cases.h",
+      "sha256": "ef1c0aa7cfb9dcf67b498c619eadd99b2e8c383f0c82e4abb63f83faf3484e7c",
+      "bytes": 6307,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/cpp/native_bound_zero_args_cases.h"
+    },
+    {
+      "source": "tests/fixtures/core/native_bound_zero_args.py",
+      "sha256": "b4441c1fa0d8708624f35c41051bb0d5f207c26bd87c812a78543e0a0032c0aa",
+      "bytes": 4331,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/core/native_bound_zero_args.py"
+    },
+    {
+      "source": "tests/fixtures/expected/native_bound_zero_args.out",
+      "sha256": "742ffaebccdfe0fce29673e9b31ad5885e3f592dcfe2c172c57498bbd2d18e84",
+      "bytes": 438,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/expected/native_bound_zero_args.out"
+    },
+    {
+      "source": "src/internal/xlang3/interpreter.h",
+      "sha256": "e1baa802d6023f634bab278f85bc5e1d472aa39f22be884bc04dd93bca6ad522",
+      "bytes": 5853,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/internal/xlang3/interpreter.h"
+    },
+    {
+      "source": "src/executor/xlang_vm/ops/xlang_vm_ops_variables.h",
+      "sha256": "3fac73794910a75f067997586ebb85c52b9c96afefa6f97fe530011340d9d168",
+      "bytes": 61629,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_variables.h"
+    },
+    {
+      "source": "src/executor/xlang_vm/ops/xlang_vm_ops_import_raw.h",
+      "sha256": "c791a10b4ec3729d914ab7517949568413940058a3e5818ae9f51c75654e53a4",
+      "bytes": 7539,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_import_raw.h"
+    },
+    {
+      "source": "src/executor/xlang_vm/ops/xlang_vm_ops_fused.h",
+      "sha256": "0cae4b35b2b0c2d4b4820fd2576eaff184e25291472f493c9f34447cfb846ea9",
+      "bytes": 5779,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_fused.h"
+    },
+    {
+      "source": "tests/cpp/interpreter_lazy_globals_cases.h",
+      "sha256": "d7573bee561b650583c955518df3e33f2d41afb957b4b5cc0abea7f10bf903a8",
+      "bytes": 13324,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/cpp/interpreter_lazy_globals_cases.h"
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/_argon2_cffi_bindings._ffi.x3pkg.dll",
+      "sha256": "5e63a3ddf31187bbb0309d241cfa5e13491de37509c7a87a9789fceed2c85c0f",
+      "bytes": 194048,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/_brotli.x3pkg.dll",
+      "sha256": "b12a085bb360c8ae989a054547f7c709da73856d90bdd41cd3a8912523344ad8",
+      "bytes": 978432,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/_cffi_backend.x3pkg.dll",
+      "sha256": "c4b106a1d9d73611e4cbacb0e6cbff2201834152dbc132610791e833a9a4092f",
+      "bytes": 215552,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/_zstd.x3pkg.dll",
+      "sha256": "a6a488ee1a24c18f4d2b23f7e42e46e174f4a5fc76d7152802a0554d83f45772",
+      "bytes": 582656,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/cryptography.hazmat.bindings._rust.x3pkg.dll",
+      "sha256": "41dc824b8d534d8bba293036b6910f470629dbf630ff30c2adbeaa0acb941951",
+      "bytes": 4265472,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/httptools.parser.parser.x3pkg.dll",
+      "sha256": "9f8d0d7adbd17d29b1dded060a464abc1a8569d97c78e8d7a9cecb77acf3073d",
+      "bytes": 175616,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/httptools.parser.url_parser.x3pkg.dll",
+      "sha256": "edbda48a9d23f47fff9d734bf404bc665fb4d82d37a8b20f642338adf87c7254",
+      "bytes": 136192,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/mmap.x3pkg.dll",
+      "sha256": "f503d4f7796022a2b954618f02514508b1f573abc9604990478119087fb035f5",
+      "bytes": 145408,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/_argon2_cffi_bindings._ffi.x3pkg.dll",
+      "sha256": "9a3e5cde168f60c533d7fa1e5e41f05a1e96a608803eda47bddd0af0b92f0667",
+      "bytes": 194048,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/_brotli.x3pkg.dll",
+      "sha256": "a43835ffd2bea6a091df27e6e1e3971331a7eeb96fdbd5b147c1fbbe3c2f3311",
+      "bytes": 978432,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/_cffi_backend.x3pkg.dll",
+      "sha256": "e971c46c1b87b19d019d5d44f843034308c4c415435cf21b5ad76a823090682e",
+      "bytes": 215552,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/_zstd.x3pkg.dll",
+      "sha256": "591fa88334d437472babb705bbd0769873506c8780533fccdf63d265f9c69c33",
+      "bytes": 582656,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/cryptography.hazmat.bindings._rust.x3pkg.dll",
+      "sha256": "479a267e442707a34a67743dbdf84d0badc25fc82f9ce8d17c2bf6a7adbaafc8",
+      "bytes": 4265472,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/httptools.parser.parser.x3pkg.dll",
+      "sha256": "1baca62c77d276801f35f62ea7db6d1f05d3ae43553c79858d79494cdfd67815",
+      "bytes": 175616,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/httptools.parser.url_parser.x3pkg.dll",
+      "sha256": "a3cb43df0e71d0a79d8a9b16ff88fb9824b96b1b1119f233ed8d438b415eaf24",
+      "bytes": 136192,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/mmap.x3pkg.dll",
+      "sha256": "538e181e244ab2d55502834a55d297a529fb73c4d736aa626ad37795e399265c",
+      "bytes": 145408,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/psutil._psutil_windows.x3pkg.dll",
+      "sha256": "32f0250b27b8b45b8a6dbf03e9c317d4f1f6417aea0205739bc32a40aa5432b3",
+      "bytes": 182272,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/pydantic_core._pydantic_core.x3pkg.dll",
+      "sha256": "243f29df3c4d8f4b312919b19df24b2f27f7a602a654332d563b8e7b3355e15f",
+      "bytes": 3066880,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/rpds.rpds.x3pkg.dll",
+      "sha256": "856ba50ad598d23432085a8f1db266821142be96898ab9a3d3ef1bec3b3b2134",
+      "bytes": 305664,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang1_compat_sample.x3pkg.dll",
+      "sha256": "9468633701f943a31ee9126fb24023bd72fb8cea92d3b853baa7e2dcfca76489",
+      "bytes": 205312,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang__blake2.x3pkg.dll",
+      "sha256": "d1dc8469d59900b85783e4a5a9f3f899748fa27115709868a532fd068e3c9c3c",
+      "bytes": 137728,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang__hashlib.x3pkg.dll",
+      "sha256": "6e26d3dd819f751950558c8e7695ac6b3fd29fd9d1b54f88f30f7b00d885d384",
+      "bytes": 3916800,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang__ssl.x3pkg.dll",
+      "sha256": "aeac669c50f2c78b3a281119728aca01d01871fa29cab2feab1351496e8dfb96",
+      "bytes": 4781568,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang_curmodule_probe.x3pkg.dll",
+      "sha256": "4057f59f8268d3d94551a5bd096d431d1727cc09433f85fd5bc8835900768f99",
+      "bytes": 14848,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang_device.x3pkg.dll",
+      "sha256": "9c2d0b7d9d6c5de3cfc405ade9a3408952372f2467e7349ccd7640a96225a5e8",
+      "bytes": 141312,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang_graph_native.x3pkg.dll",
+      "sha256": "a17c49b0810c9894f2e67313ddbf9b38d6a96030b99a44b025434de9bd90910f",
+      "bytes": 59904,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang_json.x3pkg.dll",
+      "sha256": "eade9bb4b73ee83748e21a16f64f37249056cfbf5aadc6d6f64776dc3265ab28",
+      "bytes": 172032,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang_net.x3pkg.dll",
+      "sha256": "af1e501a0a0d00d710a3cda4c1e1b008462caa06505aa280a42d281af58187cd",
+      "bytes": 6201344,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang_sqlite3.x3pkg.dll",
+      "sha256": "dac3fdda223d5d91367ad7bfbf839bf061c6d9287dfab7298038004c7626936d",
+      "bytes": 1063936,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/xlang_yaml.x3pkg.dll",
+      "sha256": "42ada58589b1cc302029e3c2a414c46431cc7fdd069286237f6f354fe8c6a783",
+      "bytes": 352768,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/modules/zstandard.backend_c.x3pkg.dll",
+      "sha256": "3a4ae5d3c73ed8088d94040a0ae038df7232decbdd5351609a7de6e19c852022",
+      "bytes": 576512,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/psutil._psutil_windows.x3pkg.dll",
+      "sha256": "aeaadd62012b195a931f4d35c68eaddcc58fc482ea6a6d963bd08562245e061f",
+      "bytes": 182272,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/pydantic_core._pydantic_core.x3pkg.dll",
+      "sha256": "c7dea7ee7716078cd744cf6d6a7d08477713333db4d4f03543496bc5046424e6",
+      "bytes": 3066880,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/rpds.rpds.x3pkg.dll",
+      "sha256": "8df7c0ea3aa8a0248ba53bb08c871a60627dc70302ba264e7ff759bab61ac145",
+      "bytes": 305664,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang1_compat_sample.x3pkg.dll",
+      "sha256": "0e501c3d5e58f4413f24ea78d6816b5abbb18f27eb06bcb7369a7ef336f6289e",
+      "bytes": 205312,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang__blake2.x3pkg.dll",
+      "sha256": "c7c52a771c328e443b3b9c2a13067fcbf4fcae4838e17f5c44242e3c36241d68",
+      "bytes": 137728,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang__hashlib.x3pkg.dll",
+      "sha256": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239",
+      "bytes": 3916800,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang__ssl.x3pkg.dll",
+      "sha256": "1c01c0600681ee1f37244b2f96f8562a14881a9f0f84d417af6a8ecc9bb0889c",
+      "bytes": 4781568,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang_curmodule_probe.x3pkg.dll",
+      "sha256": "8c37613b80ad573ec302b1012feb2c8714e3f4d682eab1828e86ef47ec9e1909",
+      "bytes": 14848,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang_device.x3pkg.dll",
+      "sha256": "2ae2e314025b899f5b434658cee0f1d2d70b89c5aeeb7b94ffa9eb8833ce12b0",
+      "bytes": 141312,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang_graph_native.x3pkg.dll",
+      "sha256": "604db04686b43eb3d12fdbb2945c9b3c5af010f3d842103551fe63dd05849bf5",
+      "bytes": 59904,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang_json.x3pkg.dll",
+      "sha256": "d8fa3264318a8a973c1272a3f908259a876b67959e4de86a59e5f5d0f42398b7",
+      "bytes": 172032,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang_net.x3pkg.dll",
+      "sha256": "b5a3c71f36eac9c82a264ab45f3b4be15463b7b1bfe352bc662e4cd29e8075bd",
+      "bytes": 6201344,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang_sqlite3.x3pkg.dll",
+      "sha256": "e1ec4a03fa242b161ba1f8834a43c983d04b0f9b78542c9900c9595fc64a4044",
+      "bytes": 1099776,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/xlang_yaml.x3pkg.dll",
+      "sha256": "5232bd1187ac429151ba7879de44e116a4a97ce80355b3d9230b4365946ee798",
+      "bytes": 352768,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/modules/zstandard.backend_c.x3pkg.dll",
+      "sha256": "86098ae832848f2a835452bb2d219850755caf9cd3f1fbfd13c9d36e88b02867",
+      "bytes": 576512,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/python.exe",
+      "sha256": "1a829b66359ad0280e1d42eb64a94b96af4baf71e9d62cd58e6f3c757616c8f7",
+      "bytes": 188416,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3-baseline-20261006.exe",
+      "sha256": "ff66e309bed7f3226f52f59e06842f448992f31805d54685ea755365ccd2d389",
+      "bytes": 187904,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3-candidate-memview-20261006.exe",
+      "sha256": "d8d151806be42ba0ea61fd67a404dd130c3a3cea6e08550854e4e13fdbae8fba",
+      "bytes": 187904,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3-candidate-valuecounter-20261006.exe",
+      "sha256": "e22b6fce0f04c8a8affa7efd15607b64fc38870ea6b584940993a97a0b0a2e36",
+      "bytes": 186880,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3.exe",
+      "sha256": "1a829b66359ad0280e1d42eb64a94b96af4baf71e9d62cd58e6f3c757616c8f7",
+      "bytes": 188416,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_abi_ownership.exe",
+      "sha256": "034e3256383da7dbb7e1e5ad19e43114376badfd8f8c45e874565de800107467",
+      "bytes": 28160,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_charconv_compat_tests.exe",
+      "sha256": "8cf96429f08975a5ac552314b8c9b036259c5d12b446b91e0c0ffb6bcc5694cc",
+      "bytes": 31232,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_cpp_ipc_client.exe",
+      "sha256": "1a4a5dcb1b6743cc1c31bdf15743d1aa96d440b8967f64194b7d4363de33a778",
+      "bytes": 56320,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_dap_session_tests.exe",
+      "sha256": "c9c3e708ff0d70d563d13ccd1b5a9a0c14a1337d6329e926b797aa4bf4dbb3c4",
+      "bytes": 166912,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_debug_session_tests.exe",
+      "sha256": "3ecdd292bbd8569369e9c4dbd6612ffce4e83871c7a4713ab71c779f54cae3bf",
+      "bytes": 34816,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_embedded_package_tests.exe",
+      "sha256": "c1ad3fc265b1f80d25463c17968f556de1eb5dd48edab2c70d78b03907d33899",
+      "bytes": 252928,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_graph_process_tests.exe",
+      "sha256": "9c49cb609a319600c44467edec85861142d7f130bd04193ee3e4374861c52639",
+      "bytes": 87552,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_interpreter_tests.exe",
+      "sha256": "58f2447fe789646eac3b4b7d52e8a1d5ca7fa26a910d9aae906274cbe7f00c2c",
+      "bytes": 381440,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_ipc_capacity_tests.exe",
+      "sha256": "2abd4982550d137a64af558b63e3edf12378a063766c6594ce9f5dcddb12dc98",
+      "bytes": 33792,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_ir_codec_tests.exe",
+      "sha256": "cfef320e2201da74edfe254de31d954a5b90a6cebdb8e1e865b6045249545862",
+      "bytes": 34816,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_memory_tests.exe",
+      "sha256": "9cd8f5fdab86cfdb819763bcc659327793607746752f6e2faff3c4cc643f918f",
+      "bytes": 24064,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_module_slot_tests.exe",
+      "sha256": "9f7791fd13fb28f8127eee473e26fdc7aea3529571078f5a9326701357c33c9c",
+      "bytes": 50688,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_native_package_real_tests.exe",
+      "sha256": "138ffd9ce7be54544891fadaaaa7f21b782a802280725936d0e6dbcfe4dd3059",
+      "bytes": 52736,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_native_path_tests.exe",
+      "sha256": "870d765b6edcfb99a92eab97fa0739ddb28718c260ee8b77ed9d1bc66f5c72d7",
+      "bytes": 60928,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_parser_tests.exe",
+      "sha256": "b7cf26f5ca95a91d1aed40c6c1d990f2972392c021714606d73c521010a6f031",
+      "bytes": 31232,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_runtime-baseline-20261006.dll",
+      "sha256": "395bf96c94508a8e9e326d2c79c427489b729ac84cd244bacd4edc037f331b1e",
+      "bytes": 19594240,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_runtime-candidate-memview-20261006.dll",
+      "sha256": "ffddfe7612772c4c1ed1f5ee6dcafe46e81713ad40350145e407381db3b392aa",
+      "bytes": 19594240,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_runtime-candidate-valuecounter-20261006.dll",
+      "sha256": "1b78882bdb269086d3dc615205247aa0d3fcdc5e6e413234175b64a1fb10316b",
+      "bytes": 19336192,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_runtime.dll",
+      "sha256": "6bec6a778451e2fd2382c62fce9319e2e6169bef8f24031ce0adbfd87c11f8c3",
+      "bytes": 19824128,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_runtime_value_tests.exe",
+      "sha256": "822f5a21d0ce0da9204cd0e80c1504c145ed51be49a9bf975043388261388b64",
+      "bytes": 141824,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_sdk_c_header_smoke.exe",
+      "sha256": "57b15f7000008d8dc5ad0c039214fb4104acf39535a963f17aea7f46b4294823",
+      "bytes": 10240,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_sdk_stream_call_tests.exe",
+      "sha256": "77ee96596c8e369fcc8fde08ae6ba881f7e7d5557c560ecba7077ede7041804a",
+      "bytes": 87552,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_smoke.exe",
+      "sha256": "c6749c8efe7a3b6f199a159ebfdb0a6b2bdcc1150c08ab5abff9b0861414977b",
+      "bytes": 38912,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_static_runtime_shutdown.exe",
+      "sha256": "f1f60bc543442d3b1013252976079847ca78520bce2c3e31e35dbde5bd57b155",
+      "bytes": 27136,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_task_tests.exe",
+      "sha256": "d039397a1752baecf27bd1fe7aaacd50c83378c29e9583e8181f6d428923d960",
+      "bytes": 40448,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_tensor_cpu_tests.exe",
+      "sha256": "4236244d69c75c55a965ad326871177b6ffac7f2f47ca8c09cc3c7c5267be4c7",
+      "bytes": 163328,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_vfs_tests.exe",
+      "sha256": "f662753a8af8213080133e69024153621ffd4e2ad307a6424b12735f4019c09e",
+      "bytes": 76800,
+      "archived": null
+    },
+    {
+      "source": "build-repro/main-verify-20261006/Release/xlang3_xlang1_compat_package_tests.exe",
+      "sha256": "7de0bdadde8efde03b62357356acaa53ccb730c23c48a2d084606e04142962e5",
+      "bytes": 65024,
+      "archived": null
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-native-bound-zero-args.stdout.log",
+      "sha256": "742ffaebccdfe0fce29673e9b31ad5885e3f592dcfe2c172c57498bbd2d18e84",
+      "bytes": 438,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-native-bound-zero-args.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-native-bound-zero-args.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-native-bound-zero-args.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-sqlite-native-aggregate.stdout.log",
+      "sha256": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba",
+      "bytes": 179,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-sqlite-native-aggregate.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-sqlite-native-aggregate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-sqlite-native-aggregate.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-sqlite-cursor-completion.stdout.log",
+      "sha256": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6",
+      "bytes": 260,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-sqlite-cursor-completion.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-sqlite-cursor-completion.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-sqlite-cursor-completion.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-identity-last-use.stdout.log",
+      "sha256": "be5a71bfe8c5071242d0acf992e8fa4d63515d12c09c28c70d9cff3b0c043d6d",
+      "bytes": 492,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-identity-last-use.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-identity-last-use.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-identity-last-use.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-hash-exception-preservation.stdout.log",
+      "sha256": "d6b626f45bea180d87ae227099885d951f70f580a03bd5254a45c42b6379e859",
+      "bytes": 157,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-hash-exception-preservation.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-hash-exception-preservation.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-hash-exception-preservation.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-exact-string-hash.stdout.log",
+      "sha256": "ed8793bedad4f781d719b81cddb118bcf1cefc7cd6127be9de888cd090c380e2",
+      "bytes": 146,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-exact-string-hash.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-exact-string-hash.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-exact-string-hash.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-cursor-writer-guards.stdout.log",
+      "sha256": "ccdd1a8347641063fbfa3d17641ee8576ce982fcc73b65457240fd7de9715f96",
+      "bytes": 161,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-cursor-writer-guards.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-cursor-writer-guards.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-cursor-writer-guards.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-ctest-inventory.stdout.log",
+      "sha256": "17bc6e61084e616bfb4d1aea2fddfa527e1e1cb147419f45937f6abb45c39fa7",
+      "bytes": 8756,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-ctest-inventory.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-ctest-inventory.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-ctest-inventory.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-cpp-native-sqlite.stdout.log",
+      "sha256": "892a9ba4cff98cc372bca967295b402d0550e0d0423b1b6bd188b84004b712bf",
+      "bytes": 1171,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-cpp-native-sqlite.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-cpp-native-sqlite.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-cpp-native-sqlite.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-manual-old-xlang-sqlite-api.stdout.log",
+      "sha256": "36449d6aaa8b51b49315f871c305cf5e7568199909ce178a331245b7fe4a6a92",
+      "bytes": 237,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-manual-old-xlang-sqlite-api.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-manual-old-xlang-sqlite-api.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-manual-old-xlang-sqlite-api.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-manual-python-sqlite3-api.stdout.log",
+      "sha256": "c9ae392c8a76084bb521fcd89dc73d8617755aae1741c705f2ba60efe9606ecb",
+      "bytes": 538,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-manual-python-sqlite3-api.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-manual-python-sqlite3-api.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-manual-python-sqlite3-api.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-full-fixtures-core-compat-expected.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-full-fixtures-core-compat-expected.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-full-fixtures-core-compat-expected.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-full-fixtures-core-compat-expected.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-fixed-gate.stdout.log",
+      "sha256": "8c420222692b01575212b1b73609d53c7d20ffe98e37b358c6389e6ef8735971",
+      "bytes": 641,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-fixed-gate.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-fixed-gate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-fixed-gate.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlite-synth.stdout.log",
+      "sha256": "516a0d5ec0f3bedb7ada6f9fe1f5e2ea84473141e488598f20cee45322f78255",
+      "bytes": 858,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlite-synth.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlite-synth.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlite-synth.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlglot-v2-parse.stdout.log",
+      "sha256": "d62da603067a48dd0f98ddd794c2e8a4e89e39a2128f65b6eaaf9efb2c597f54",
+      "bytes": 481,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlglot-v2-parse.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlglot-v2-parse.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlglot-v2-parse.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-fixed-gate.json",
+      "sha256": "8d809d3c9c6526aa3d3acc6174f473076ead8eabc20ebe35b1e1f58f3679ae27",
+      "bytes": 62460,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-fixed-gate.json"
+    },
+    {
+      "source": "doc/performance/data/native-bound-zero-args-cpython3147-reference-20261008.json",
+      "sha256": "54f789c2ec7f9dbb5a252e6df098cef8b033e327a437ba5a5e03a079899c07ec",
+      "bytes": 695,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/native-bound-zero-args-cpython3147-reference-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/native-bound-zero-args-cpython3147-reference-20261008.stdout.log",
+      "sha256": "742ffaebccdfe0fce29673e9b31ad5885e3f592dcfe2c172c57498bbd2d18e84",
+      "bytes": 438,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/native-bound-zero-args-cpython3147-reference-20261008.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/native-bound-zero-args-cpython3147-reference-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/native-bound-zero-args-cpython3147-reference-20261008.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/identity-last-use-r2-cpython3147-reference-20261008.json",
+      "sha256": "c97f7e96023c0458fa8dd538e3dc54e54f58119fea0fac87306d69d33e084c38",
+      "bytes": 550,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/identity-last-use-r2-cpython3147-reference-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/identity-last-use-r2-cpython3147-reference-20261008.stdout.log",
+      "sha256": "be5a71bfe8c5071242d0acf992e8fa4d63515d12c09c28c70d9cff3b0c043d6d",
+      "bytes": 492,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/identity-last-use-r2-cpython3147-reference-20261008.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/identity-last-use-r2-cpython3147-reference-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/identity-last-use-r2-cpython3147-reference-20261008.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/hash-exception-preservation-cpython3147-reference-20261008.json",
+      "sha256": "484af9be7f8d432808033d2beab177377ced02a3a358dda3a8caaa388ec672b8",
+      "bytes": 740,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/hash-exception-preservation-cpython3147-reference-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/hash-exception-preservation-cpython3147-reference-20261008.stdout.log",
+      "sha256": "d6b626f45bea180d87ae227099885d951f70f580a03bd5254a45c42b6379e859",
+      "bytes": 157,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/hash-exception-preservation-cpython3147-reference-20261008.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/hash-exception-preservation-cpython3147-reference-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/hash-exception-preservation-cpython3147-reference-20261008.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/exact-string-hash-cpython3147-reference-20261008.json",
+      "sha256": "dbebb81b9cfc01cd17f1c273447d51deea1d5f45bc50fd9656e4f5ad8715d6fb",
+      "bytes": 693,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/exact-string-hash-cpython3147-reference-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/exact-string-hash-cpython3147-reference-20261008.stdout.log",
+      "sha256": "ed8793bedad4f781d719b81cddb118bcf1cefc7cd6127be9de888cd090c380e2",
+      "bytes": 146,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/exact-string-hash-cpython3147-reference-20261008.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/exact-string-hash-cpython3147-reference-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/exact-string-hash-cpython3147-reference-20261008.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-aggregate-r5-validation-20261008.json",
+      "sha256": "c6aad48e1019722ea4641d24ece575ed25c7f380e6e756c48f4c599290444e96",
+      "bytes": 3237,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-aggregate-r5-validation-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-aggregate-r5-validation-20261008-cpython3147-focused.log",
+      "sha256": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba",
+      "bytes": 179,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-aggregate-r5-validation-20261008-cpython3147-focused.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-r6-cpython3147-20261008.json",
+      "sha256": "71fca99c3285789e656dc2a43617c3a5cbee44e13d9a16e0d0ec927d4b51233c",
+      "bytes": 347,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-r6-cpython3147-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-r6-cpython3147-20261008.log",
+      "sha256": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6",
+      "bytes": 260,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-r6-cpython3147-20261008.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008.json",
+      "sha256": "e987d91443fcdedfbdb2164f23c839b3a1016672bbc0af29ed29243c929e43fb",
+      "bytes": 70024,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008.json"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-execute.stdout.log",
+      "sha256": "eca7fd3f29e859bab1774ff9972444f9a8eb5bf2cb3990f9788f8aa80cb4b741",
+      "bytes": 2034,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-execute.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-execute.stderr.log",
+      "sha256": "7a49bedbabc814106006259ef8f9f9912be47b06b5385d3258effacb3a7ebeec",
+      "bytes": 433,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-execute.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchone.stdout.log",
+      "sha256": "66d53f4f2e9810124ba034d3fa14ab7494cfd80823877b1abe4b1044e18291b8",
+      "bytes": 3583,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchone.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchone.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchone.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchall.stdout.log",
+      "sha256": "ae0c1bdfc94b1e89b0bb86f8df502d08a2934632784a79ff9ddec1185d9070b9",
+      "bytes": 3583,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchall.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchall.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchall.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-next.stdout.log",
+      "sha256": "988aa9ccc6d48047d092d464a58d8a0995cac02fb39c208f644e1ad5e95d4e11",
+      "bytes": 3465,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-next.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-next.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-next.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-close.stdout.log",
+      "sha256": "b3354aaf163b4eb092d79b86f94de4d0168be0924b9a62847ea37d312d39459f",
+      "bytes": 3496,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-close.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-close.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-close.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executescript.stdout.log",
+      "sha256": "6cf1210a52f618f14e6b06bdfb87c227c90b8f7acc840e63063727026d598f9c",
+      "bytes": 3754,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executescript.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executescript.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executescript.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executemany.stdout.log",
+      "sha256": "128108dfa2e545a30b0e20884c34c673591b2de56ed5a10caf5b355344d5d80e",
+      "bytes": 2178,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executemany.stdout.log"
+    },
+    {
+      "source": "doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executemany.stderr.log",
+      "sha256": "f1b957866d1fd0fc1edcb0e20d3601012cda6f2de682f74822be5744b0606a74",
+      "bytes": 433,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executemany.stderr.log"
+    },
+    {
+      "source": "doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007-provenance.json",
+      "sha256": "3d6c8cb2c72c786583c382b835e8e411f56ca285963bc2835f757a13f399f85c",
+      "bytes": 41162,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007-provenance.json"
+    },
+    {
+      "source": "doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.json",
+      "sha256": "ac474df5576ac85f6f5350363affecc439d4f658b4dfa3dbe291b46964276eb0",
+      "bytes": 217975,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.json"
+    },
+    {
+      "source": "doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.log",
+      "sha256": "6a1824eed3abad4cebae80356f0f600f1a8728755730d2f64c0bd7d4b3ca9e6c",
+      "bytes": 71763,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-paired-20261008.json",
+      "sha256": "472bbcefeb5b2cfac5d0bc219b84320f09519119d171356142190a3c4a35ce96",
+      "bytes": 57791,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008.json"
+    },
+    {
+      "source": "build-repro/controls/native-bound-zero-args-checkpoint-20261008/xlang3.exe",
+      "sha256": "ce91860370312b46b68d20a63813e489efab3e8d921e4278d663418852d00873",
+      "bytes": 187904,
+      "archived": null
+    },
+    {
+      "source": "build-repro/controls/native-bound-zero-args-checkpoint-20261008/xlang3_runtime.dll",
+      "sha256": "8375974b6f94955c55399c4ae0adf47f203a831cdcc024361ec1664ef384773e",
+      "bytes": 19806208,
+      "archived": null
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-paired-20261008-0-control.log",
+      "sha256": "fb591012836238adbc893d525388d2fd4cf4fed72c276e695504223780018809",
+      "bytes": 2148,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-0-control.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-paired-20261008-0-candidate.log",
+      "sha256": "6fe5314b5a65ba4aad0c5e295b0d47b9cf0669ff9b5192f12177641a2e566317",
+      "bytes": 2152,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-0-candidate.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-paired-20261008-1-candidate.log",
+      "sha256": "7afb215f32f5fa9f4ed77dcc6d0a5001c177792341bf78ab7193be06a24a7bfb",
+      "bytes": 2151,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-1-candidate.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-paired-20261008-1-control.log",
+      "sha256": "71ed46a54887f1d3f983489a8af685f6e5316eeb22172b47e5492033cdb704b5",
+      "bytes": 2152,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-1-control.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-paired-20261008-2-control.log",
+      "sha256": "11bf9770a5b0ec11012056173cf31799b73fe764a5dff4eae5007df06fc8e50f",
+      "bytes": 2150,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-2-control.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-paired-20261008-2-candidate.log",
+      "sha256": "e775528fd1b77052f1607b063897f3aea98fc0483a13266c9f964201cd02cfdf",
+      "bytes": 2153,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-2-candidate.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-paired-20261008-3-candidate.log",
+      "sha256": "1d976ef989f0e1a812e18f94e82429b3c9d9a4cffe6aa25c133201cbc2eaf5ea",
+      "bytes": 2150,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-3-candidate.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-paired-20261008-3-control.log",
+      "sha256": "173658ff069d1e01769cb437f7faa003e0df0fbc1786e65dff9265e3dd84277f",
+      "bytes": 2153,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-3-control.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-paired-20261008-4-control.log",
+      "sha256": "4bcb14fcea5ce752f383250757ee4eb34289c4c34813b8a0d4158a6f14d153e4",
+      "bytes": 2152,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-4-control.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-paired-20261008-4-candidate.log",
+      "sha256": "95eaf63375537c91cdc17d1a8b8c6d81ee4bb7a41042f0e8ce0813ea2b489c0a",
+      "bytes": 2148,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-4-candidate.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-paired-20261008-5-candidate.log",
+      "sha256": "104778e9d54a693fe7e8b1f7e4ea8dcb22c6a2f6ad5eb2a464c27faddc47978b",
+      "bytes": 2156,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-5-candidate.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-paired-20261008-5-control.log",
+      "sha256": "53a6f87b57b85f8a4fe38c224804c62a4bfcd12fbc86ecd51b5a78834ef79af4",
+      "bytes": 2149,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-5-control.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-paired-20261008-6-control.log",
+      "sha256": "abb4653bb61aff151d4399300d2b0e9b9d72a26e12877ef058fb79d6981744ec",
+      "bytes": 2142,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-6-control.log"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-paired-20261008-6-candidate.log",
+      "sha256": "5325d5e1b1324adb57e9d880eb62ad7ae158504f73edc23dcd05221181315bb3",
+      "bytes": 2150,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-6-candidate.log"
+    },
+    {
+      "source": "scratch/performance/interpreter-lazy-globals-zeroargc-actual-rebased-20261008.patch",
+      "sha256": "353afa8c500b6ec142af0f8b5944e0582ed3cabef860dd038c29b71f18d56331",
+      "bytes": 24727,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/interpreter-lazy-globals-zeroargc-actual-rebased-20261008.patch"
+    },
+    {
+      "source": "scratch/performance/interpreter-lazy-globals-zeroargc-actual-rebased-20261008-provenance.json",
+      "sha256": "d3d7f6ee8c0e67b752eaa70fc2dc0023666475b38f8fc334c91a6a1943f3df21",
+      "bytes": 3966,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/interpreter-lazy-globals-zeroargc-actual-rebased-20261008-provenance.json"
+    },
+    {
+      "source": "scratch/performance/interpreter-lazy-globals-r2-proposal-20261008.patch",
+      "sha256": "cf2fdba359483bebb5d2b5e40ebac19f426da9f7abe06f898160b805c723425b",
+      "bytes": 24727,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/interpreter-lazy-globals-r2-proposal-20261008.patch"
+    },
+    {
+      "source": "scratch/performance/interpreter-lazy-globals-r2-proposal-20261008-provenance.json",
+      "sha256": "fb629863142f93a745347ab5cf666ccdbffbcc10f4c3a2347ab2e81058031fe7",
+      "bytes": 3472,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/interpreter-lazy-globals-r2-proposal-20261008-provenance.json"
+    },
+    {
+      "source": "scratch/performance/interpreter-lazy-globals-zeroargc-actual-rebased-review-20261008.md",
+      "sha256": "d6cac73188fa7b4d77a9e11af1b68712f3e2af786d66926be7a8966f38f8a9f1",
+      "bytes": 3022,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/interpreter-lazy-globals-zeroargc-actual-rebased-review-20261008.md"
+    },
+    {
+      "source": "scratch/performance/measure-interpreter-lazy-globals-paired-20261008.py",
+      "sha256": "cafa0f2eb31f918946a03dc2bddd741a43e574441b179189e470ae3186c0de6f",
+      "bytes": 5564,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/measure-interpreter-lazy-globals-paired-20261008.py"
+    },
+    {
+      "source": "scratch/performance/python-hash-callback-cost-probe-20261008.py",
+      "sha256": "3823fc09d47caa35ed158677a5a565ad1118c64b1ef9e345a6584a717f8fca70",
+      "bytes": 4484,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/python-hash-callback-cost-probe-20261008.py"
+    },
+    {
+      "source": "scratch/performance/validate-interpreter-lazy-globals-20261008.py",
+      "sha256": "1186f09f5dceab734934a247c3be4822c8bcacb4eb7a78f95a90363edb5e303b",
+      "bytes": 23020,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/validate-interpreter-lazy-globals-20261008.py"
+    },
+    {
+      "source": "scratch/performance/apply-interpreter-lazy-globals-trial-20261008.py",
+      "sha256": "753697ba4a27456ac5da1cd22a232399368cb76c35481a500ea48d1c6f1252a7",
+      "bytes": 4053,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/apply-interpreter-lazy-globals-trial-20261008.py"
+    },
+    {
+      "source": "doc/performance/data/build-interpreter-lazy-globals-Release-20261008.log",
+      "sha256": "feac4befc0cb9d5d27acfecbb9bdc72ebd8d832ac0f6013dda14993f47bdfe45",
+      "bytes": 3145,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/build-interpreter-lazy-globals-Release-20261008.log"
+    },
+    {
+      "source": "build-repro/controls/native-bound-zero-args-checkpoint-20261008/preserved-release-provenance.json",
+      "sha256": "27d3359d99f5306d793824f5b886fc038a70119599c669fe9c28acc00948eb8b",
+      "bytes": 20376,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/build-repro/controls/native-bound-zero-args-checkpoint-20261008/preserved-release-provenance.json"
+    },
+    {
+      "source": "scratch/performance/export-interpreter-lazy-globals-trial-20261008.py",
+      "sha256": "5f48f39a5f2893d7c41fc452eb4e4949643c3cb1e92f4f3a749a91cd1bfddc34",
+      "bytes": 19694,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/export-interpreter-lazy-globals-trial-20261008.py"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlite-synth-fast.json",
+      "sha256": "e6b8ecdfbff9db9d603395b90e494d7be340ec51e32d3c38d71d9459e99a4052",
+      "bytes": 2194,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlite-synth-fast.json"
+    },
+    {
+      "source": "doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlglot-v2-parse-fast.json",
+      "sha256": "3c803bf7a99d8e4972a42f88f68f3ef66056f531d32bb17e6e80089a6599c6b8",
+      "bytes": 1747,
+      "archived": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlglot-v2-parse-fast.json"
+    }
+  ],
+  "owned_generated": [
+    {
+      "path": "doc/performance/charts/interpreter-lazy-globals-trial-20261008.svg",
+      "sha256": "d49c41bbf7e2867e134b257c5464ad0278cf0eda922f384f9c0d1f55fe6b075a",
+      "bytes": 1325
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-official-summary.csv",
+      "sha256": "258ad16deb220a2d6681ee460db1546cd13f2dc5f7f177356ae331ee07652642",
+      "bytes": 526
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-official-values.csv",
+      "sha256": "6f77b8c932c809a33c736d56d5abd5d8409a499680ae096a491387bd780dc9f1",
+      "bytes": 4573
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-paired-summary.csv",
+      "sha256": "1ee08b4a67dbd1fdd2d54e2ef351db67413699afd962dd6f80e9e0503d198abe",
+      "bytes": 1839
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-paired-values.csv",
+      "sha256": "aeb96855b5dd7b4b045117e68a28ba2de447dff6d30a130e0ba97ba06d66ad50",
+      "bytes": 39119
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/build-repro/controls/native-bound-zero-args-checkpoint-20261008/preserved-release-provenance.json",
+      "sha256": "27d3359d99f5306d793824f5b886fc038a70119599c669fe9c28acc00948eb8b",
+      "bytes": 20376
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/build-interpreter-lazy-globals-Release-20261008.log",
+      "sha256": "feac4befc0cb9d5d27acfecbb9bdc72ebd8d832ac0f6013dda14993f47bdfe45",
+      "bytes": 3145
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/exact-string-hash-cpython3147-reference-20261008.json",
+      "sha256": "dbebb81b9cfc01cd17f1c273447d51deea1d5f45bc50fd9656e4f5ad8715d6fb",
+      "bytes": 693
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/exact-string-hash-cpython3147-reference-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/exact-string-hash-cpython3147-reference-20261008.stdout.log",
+      "sha256": "ed8793bedad4f781d719b81cddb118bcf1cefc7cd6127be9de888cd090c380e2",
+      "bytes": 146
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/hash-exception-preservation-cpython3147-reference-20261008.json",
+      "sha256": "484af9be7f8d432808033d2beab177377ced02a3a358dda3a8caaa388ec672b8",
+      "bytes": 740
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/hash-exception-preservation-cpython3147-reference-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/hash-exception-preservation-cpython3147-reference-20261008.stdout.log",
+      "sha256": "d6b626f45bea180d87ae227099885d951f70f580a03bd5254a45c42b6379e859",
+      "bytes": 157
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/identity-last-use-r2-cpython3147-reference-20261008.json",
+      "sha256": "c97f7e96023c0458fa8dd538e3dc54e54f58119fea0fac87306d69d33e084c38",
+      "bytes": 550
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/identity-last-use-r2-cpython3147-reference-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/identity-last-use-r2-cpython3147-reference-20261008.stdout.log",
+      "sha256": "be5a71bfe8c5071242d0acf992e8fa4d63515d12c09c28c70d9cff3b0c043d6d",
+      "bytes": 492
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-final-source-20261008.json",
+      "sha256": "2f59b807624d88d097e4415e0da322bcd35841f44e8b2c4825b6c43f08f99945",
+      "bytes": 5265
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-0-candidate.log",
+      "sha256": "6fe5314b5a65ba4aad0c5e295b0d47b9cf0669ff9b5192f12177641a2e566317",
+      "bytes": 2152
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-0-control.log",
+      "sha256": "fb591012836238adbc893d525388d2fd4cf4fed72c276e695504223780018809",
+      "bytes": 2148
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-1-candidate.log",
+      "sha256": "7afb215f32f5fa9f4ed77dcc6d0a5001c177792341bf78ab7193be06a24a7bfb",
+      "bytes": 2151
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-1-control.log",
+      "sha256": "71ed46a54887f1d3f983489a8af685f6e5316eeb22172b47e5492033cdb704b5",
+      "bytes": 2152
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-2-candidate.log",
+      "sha256": "e775528fd1b77052f1607b063897f3aea98fc0483a13266c9f964201cd02cfdf",
+      "bytes": 2153
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-2-control.log",
+      "sha256": "11bf9770a5b0ec11012056173cf31799b73fe764a5dff4eae5007df06fc8e50f",
+      "bytes": 2150
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-3-candidate.log",
+      "sha256": "1d976ef989f0e1a812e18f94e82429b3c9d9a4cffe6aa25c133201cbc2eaf5ea",
+      "bytes": 2150
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-3-control.log",
+      "sha256": "173658ff069d1e01769cb437f7faa003e0df0fbc1786e65dff9265e3dd84277f",
+      "bytes": 2153
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-4-candidate.log",
+      "sha256": "95eaf63375537c91cdc17d1a8b8c6d81ee4bb7a41042f0e8ce0813ea2b489c0a",
+      "bytes": 2148
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-4-control.log",
+      "sha256": "4bcb14fcea5ce752f383250757ee4eb34289c4c34813b8a0d4158a6f14d153e4",
+      "bytes": 2152
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-5-candidate.log",
+      "sha256": "104778e9d54a693fe7e8b1f7e4ea8dcb22c6a2f6ad5eb2a464c27faddc47978b",
+      "bytes": 2156
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-5-control.log",
+      "sha256": "53a6f87b57b85f8a4fe38c224804c62a4bfcd12fbc86ecd51b5a78834ef79af4",
+      "bytes": 2149
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-6-candidate.log",
+      "sha256": "5325d5e1b1324adb57e9d880eb62ad7ae158504f73edc23dcd05221181315bb3",
+      "bytes": 2150
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008-6-control.log",
+      "sha256": "abb4653bb61aff151d4399300d2b0e9b9d72a26e12877ef058fb79d6981744ec",
+      "bytes": 2142
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-paired-20261008.json",
+      "sha256": "472bbcefeb5b2cfac5d0bc219b84320f09519119d171356142190a3c4a35ce96",
+      "bytes": 57791
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-cpp-native-sqlite.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-cpp-native-sqlite.stdout.log",
+      "sha256": "892a9ba4cff98cc372bca967295b402d0550e0d0423b1b6bd188b84004b712bf",
+      "bytes": 1171
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-ctest-inventory.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-ctest-inventory.stdout.log",
+      "sha256": "17bc6e61084e616bfb4d1aea2fddfa527e1e1cb147419f45937f6abb45c39fa7",
+      "bytes": 8756
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-fixed-gate.json",
+      "sha256": "8d809d3c9c6526aa3d3acc6174f473076ead8eabc20ebe35b1e1f58f3679ae27",
+      "bytes": 62460
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-fixed-gate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-fixed-gate.stdout.log",
+      "sha256": "8c420222692b01575212b1b73609d53c7d20ffe98e37b358c6389e6ef8735971",
+      "bytes": 641
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-cursor-writer-guards.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-cursor-writer-guards.stdout.log",
+      "sha256": "ccdd1a8347641063fbfa3d17641ee8576ce982fcc73b65457240fd7de9715f96",
+      "bytes": 161
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-exact-string-hash.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-exact-string-hash.stdout.log",
+      "sha256": "ed8793bedad4f781d719b81cddb118bcf1cefc7cd6127be9de888cd090c380e2",
+      "bytes": 146
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-hash-exception-preservation.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-hash-exception-preservation.stdout.log",
+      "sha256": "d6b626f45bea180d87ae227099885d951f70f580a03bd5254a45c42b6379e859",
+      "bytes": 157
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-identity-last-use.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-identity-last-use.stdout.log",
+      "sha256": "be5a71bfe8c5071242d0acf992e8fa4d63515d12c09c28c70d9cff3b0c043d6d",
+      "bytes": 492
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-native-bound-zero-args.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-native-bound-zero-args.stdout.log",
+      "sha256": "742ffaebccdfe0fce29673e9b31ad5885e3f592dcfe2c172c57498bbd2d18e84",
+      "bytes": 438
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-sqlite-cursor-completion.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-sqlite-cursor-completion.stdout.log",
+      "sha256": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6",
+      "bytes": 260
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-sqlite-native-aggregate.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-focused-sqlite-native-aggregate.stdout.log",
+      "sha256": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba",
+      "bytes": 179
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-full-fixtures-core-compat-expected.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-full-fixtures-core-compat-expected.stdout.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-manual-old-xlang-sqlite-api.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-manual-old-xlang-sqlite-api.stdout.log",
+      "sha256": "36449d6aaa8b51b49315f871c305cf5e7568199909ce178a331245b7fe4a6a92",
+      "bytes": 237
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-manual-python-sqlite3-api.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-manual-python-sqlite3-api.stdout.log",
+      "sha256": "c9ae392c8a76084bb521fcd89dc73d8617755aae1741c705f2ba60efe9606ecb",
+      "bytes": 538
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlglot-v2-parse-fast.json",
+      "sha256": "3c803bf7a99d8e4972a42f88f68f3ef66056f531d32bb17e6e80089a6599c6b8",
+      "bytes": 1747
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlglot-v2-parse.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlglot-v2-parse.stdout.log",
+      "sha256": "d62da603067a48dd0f98ddd794c2e8a4e89e39a2128f65b6eaaf9efb2c597f54",
+      "bytes": 481
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlite-synth-fast.json",
+      "sha256": "e6b8ecdfbff9db9d603395b90e494d7be340ec51e32d3c38d71d9459e99a4052",
+      "bytes": 2194
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlite-synth.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008-official-sqlite-synth.stdout.log",
+      "sha256": "516a0d5ec0f3bedb7ada6f9fe1f5e2ea84473141e488598f20cee45322f78255",
+      "bytes": 858
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/interpreter-lazy-globals-validation-20261008.json",
+      "sha256": "729c26186b56188f6e29a5b88830d2fe09fde07a3c251789dabcce9636d38a06",
+      "bytes": 331204
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/native-bound-zero-args-cpython3147-reference-20261008.json",
+      "sha256": "54f789c2ec7f9dbb5a252e6df098cef8b033e327a437ba5a5e03a079899c07ec",
+      "bytes": 695
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/native-bound-zero-args-cpython3147-reference-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/native-bound-zero-args-cpython3147-reference-20261008.stdout.log",
+      "sha256": "742ffaebccdfe0fce29673e9b31ad5885e3f592dcfe2c172c57498bbd2d18e84",
+      "bytes": 438
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007-provenance.json",
+      "sha256": "3d6c8cb2c72c786583c382b835e8e411f56ca285963bc2835f757a13f399f85c",
+      "bytes": 41162
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.json",
+      "sha256": "ac474df5576ac85f6f5350363affecc439d4f658b4dfa3dbe291b46964276eb0",
+      "bytes": 217975
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.log",
+      "sha256": "6a1824eed3abad4cebae80356f0f600f1a8728755730d2f64c0bd7d4b3ca9e6c",
+      "bytes": 71763
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-aggregate-r5-validation-20261008-cpython3147-focused.log",
+      "sha256": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba",
+      "bytes": 179
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-aggregate-r5-validation-20261008.json",
+      "sha256": "c6aad48e1019722ea4641d24ece575ed25c7f380e6e756c48f4c599290444e96",
+      "bytes": 3237
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-r6-cpython3147-20261008.json",
+      "sha256": "71fca99c3285789e656dc2a43617c3a5cbee44e13d9a16e0d0ec927d4b51233c",
+      "bytes": 347
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-r6-cpython3147-20261008.log",
+      "sha256": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6",
+      "bytes": 260
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-close.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-close.stdout.log",
+      "sha256": "b3354aaf163b4eb092d79b86f94de4d0168be0924b9a62847ea37d312d39459f",
+      "bytes": 3496
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-execute.stderr.log",
+      "sha256": "7a49bedbabc814106006259ef8f9f9912be47b06b5385d3258effacb3a7ebeec",
+      "bytes": 433
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-execute.stdout.log",
+      "sha256": "eca7fd3f29e859bab1774ff9972444f9a8eb5bf2cb3990f9788f8aa80cb4b741",
+      "bytes": 2034
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executemany.stderr.log",
+      "sha256": "f1b957866d1fd0fc1edcb0e20d3601012cda6f2de682f74822be5744b0606a74",
+      "bytes": 433
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executemany.stdout.log",
+      "sha256": "128108dfa2e545a30b0e20884c34c673591b2de56ed5a10caf5b355344d5d80e",
+      "bytes": 2178
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executescript.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-executescript.stdout.log",
+      "sha256": "6cf1210a52f618f14e6b06bdfb87c227c90b8f7acc840e63063727026d598f9c",
+      "bytes": 3754
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchall.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchall.stdout.log",
+      "sha256": "ae0c1bdfc94b1e89b0bb86f8df502d08a2934632784a79ff9ddec1185d9070b9",
+      "bytes": 3583
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchone.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-fetchone.stdout.log",
+      "sha256": "66d53f4f2e9810124ba034d3fa14ab7494cfd80823877b1abe4b1044e18291b8",
+      "bytes": 3583
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-next.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008-next.stdout.log",
+      "sha256": "988aa9ccc6d48047d092d464a58d8a0995cac02fb39c208f644e1ad5e95d4e11",
+      "bytes": 3465
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/doc/performance/data/sqlite-cursor-writer-guard-isolated-cpython3147-20261008.json",
+      "sha256": "e987d91443fcdedfbdb2164f23c839b3a1016672bbc0af29ed29243c929e43fb",
+      "bytes": 70024
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/modules/sqlite/sqlite_handles.h",
+      "sha256": "14bac0cb256d3fd86fd9422ba7b423cb16ae6a5185c714d5f71fa84a34e8c620",
+      "bytes": 2120
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/modules/sqlite/sqlite_package.cpp",
+      "sha256": "e4349e80b5c519b290853c1ac80443a5351f4d4f9def41449af71c3d1178457d",
+      "bytes": 88934
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/modules/sqlite/sqlite_values.cpp",
+      "sha256": "c691c90ba6b7a43c12bce47dfef75101b22b76732303a196ac30b9d6ad3533dc",
+      "bytes": 5785
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/apply-interpreter-lazy-globals-trial-20261008.py",
+      "sha256": "753697ba4a27456ac5da1cd22a232399368cb76c35481a500ea48d1c6f1252a7",
+      "bytes": 4053
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/export-interpreter-lazy-globals-trial-20261008.py",
+      "sha256": "5f48f39a5f2893d7c41fc452eb4e4949643c3cb1e92f4f3a749a91cd1bfddc34",
+      "bytes": 19694
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/interpreter-lazy-globals-r2-proposal-20261008-provenance.json",
+      "sha256": "fb629863142f93a745347ab5cf666ccdbffbcc10f4c3a2347ab2e81058031fe7",
+      "bytes": 3472
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/interpreter-lazy-globals-r2-proposal-20261008.patch",
+      "sha256": "cf2fdba359483bebb5d2b5e40ebac19f426da9f7abe06f898160b805c723425b",
+      "bytes": 24727
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/interpreter-lazy-globals-zeroargc-actual-rebased-20261008-provenance.json",
+      "sha256": "d3d7f6ee8c0e67b752eaa70fc2dc0023666475b38f8fc334c91a6a1943f3df21",
+      "bytes": 3966
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/interpreter-lazy-globals-zeroargc-actual-rebased-20261008.patch",
+      "sha256": "353afa8c500b6ec142af0f8b5944e0582ed3cabef860dd038c29b71f18d56331",
+      "bytes": 24727
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/interpreter-lazy-globals-zeroargc-actual-rebased-review-20261008.md",
+      "sha256": "d6cac73188fa7b4d77a9e11af1b68712f3e2af786d66926be7a8966f38f8a9f1",
+      "bytes": 3022
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/measure-interpreter-lazy-globals-paired-20261008.py",
+      "sha256": "cafa0f2eb31f918946a03dc2bddd741a43e574441b179189e470ae3186c0de6f",
+      "bytes": 5564
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/python-hash-callback-cost-probe-20261008.py",
+      "sha256": "3823fc09d47caa35ed158677a5a565ad1118c64b1ef9e345a6584a717f8fca70",
+      "bytes": 4484
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/scratch/performance/validate-interpreter-lazy-globals-20261008.py",
+      "sha256": "1186f09f5dceab734934a247c3be4822c8bcacb4eb7a78f95a90363edb5e303b",
+      "bytes": 23020
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/sdk/xlang3/abi/xmodule.h",
+      "sha256": "7aa4ae5bcbfd266741ce592d1b2821f112a21ceb1a6ebdeaedea8ddf1d7cbded",
+      "bytes": 10513
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/builtins/functional_builtins.cpp",
+      "sha256": "bc9bf733c5bd0564edb38693eb8616808519c30145c80c71918b64a7401f33ce",
+      "bytes": 235180
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h",
+      "sha256": "e9ef84b3936ab301d33de6ab5236b486ad0ded16db62cba44d96f04980b3ab57",
+      "bytes": 49270
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "sha256": "9f985e9742983d88e81820c7c33c753fdfbf3799ff2fc04861640876e9a470d6",
+      "bytes": 231327
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_fused.h",
+      "sha256": "0cae4b35b2b0c2d4b4820fd2576eaff184e25291472f493c9f34447cfb846ea9",
+      "bytes": 5779
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_import_raw.h",
+      "sha256": "c791a10b4ec3729d914ab7517949568413940058a3e5818ae9f51c75654e53a4",
+      "bytes": 7539
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_variables.h",
+      "sha256": "3fac73794910a75f067997586ebb85c52b9c96afefa6f97fe530011340d9d168",
+      "bytes": 61629
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/executor/xlang_vm/xlang_frame.h",
+      "sha256": "3cf2b395131e1b2ab460bbb0a0126d22d6fae1614f979f9d01650aa0574c5992",
+      "bytes": 53218
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/executor/xlang_vm/xlang_vm_inline_support.h",
+      "sha256": "e7443366a917f5ac98c6df3f83dbf695287c56ee0f2be89b34fbe2c73334d86f",
+      "bytes": 123921
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/executor/xlang_vm/xlang_vm_op_rows.h",
+      "sha256": "59b070aff17647ee1c333be02657699e11bb0c28b91612fc31dec41cafaecfbd",
+      "bytes": 29533
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/import/native_package_loader.cpp",
+      "sha256": "c3196390d2ca48d4e67a6492277ddf98ad1a3c05c1ce01f53d4cc341cfbd6a00",
+      "bytes": 41572
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/internal/xlang3/interpreter.h",
+      "sha256": "e1baa802d6023f634bab278f85bc5e1d472aa39f22be884bc04dd93bca6ad522",
+      "bytes": 5853
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/internal/xlang3/ir.h",
+      "sha256": "2c7a6ec831c9ead4df9c35745131d02d0ce44ed1749f137c05267e19e23700e9",
+      "bytes": 12648
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/ir/codec.cpp",
+      "sha256": "6726f090de59651f7570007c130e2b7129fac3a2133f67905c374d841f9da384",
+      "bytes": 37436
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/ir/dump.cpp",
+      "sha256": "f21ba927c25f7c1d272b18840694635e1883849cb07f6d45653045659ba08039",
+      "bytes": 17817
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/runtime/functional_iterators.cpp",
+      "sha256": "4a038c4b5152b87f8fa4d8d83a0f4961b069b8731cd99a4245c74ee5eee21e2e",
+      "bytes": 43334
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/runtime/value_hash.cpp",
+      "sha256": "aeb9abb4697569a3b28485000337e31d21f2cd9227dbf2ea0e76e2e125d439ed",
+      "bytes": 26073
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/src/sema/lower.cpp",
+      "sha256": "ef8bf0b3185ee4d13180cd5be50e66a85ac255621983123570af55f35a4f9cbd",
+      "bytes": 316884
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/cpp/hash_exception_cases.h",
+      "sha256": "3eba7cbdb81eaed2893ab62f8ce94636c0441f2614d4ba145abd639fa4a0a06d",
+      "bytes": 5056
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/cpp/identity_last_use_cases.h",
+      "sha256": "d719e470cd684456945fd7dfc9ebd0954905227aff346ad2764185280143b28c",
+      "bytes": 22971
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/cpp/interpreter_lazy_globals_cases.h",
+      "sha256": "d7573bee561b650583c955518df3e33f2d41afb957b4b5cc0abea7f10bf903a8",
+      "bytes": 13324
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/cpp/interpreter_tests.cpp",
+      "sha256": "a58811867318b8fc58350a4c340757fbda467f30b27f7bd0a7544112d54c1cbf",
+      "bytes": 29719
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/cpp/native_bound_zero_args_cases.h",
+      "sha256": "ef1c0aa7cfb9dcf67b498c619eadd99b2e8c383f0c82e4abb63f83faf3484e7c",
+      "bytes": 6307
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/cpp/sqlite_aggregate_abi_cases.h",
+      "sha256": "424debac1951802dba2619736f4d935502ad261cc82bc13247beb27adac69f0a",
+      "bytes": 13254
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/cpp/sqlite_aggregate_sdk_probe.py",
+      "sha256": "318c0a6e64b6c1cbb4f4a6cfa2b49b6186d271ae4bbfc09e04109d606649bc18",
+      "bytes": 918
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/core/hash_exception_preservation.py",
+      "sha256": "f7378cf25ff91efe12773b7ad5aa5c45038a4d5ab7e7e957f90f6ec088aae150",
+      "bytes": 2435
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/core/identity_last_use.py",
+      "sha256": "59bf91eacb4d738d7a7ccfdf2590fa79670192bc6410a5775121345c77550cb4",
+      "bytes": 8952
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/core/native_bound_zero_args.py",
+      "sha256": "b4441c1fa0d8708624f35c41051bb0d5f207c26bd87c812a78543e0a0032c0aa",
+      "bytes": 4331
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/core/sqlite_cursor_completion.py",
+      "sha256": "3d3f6071911c60a54a3dbed4a6da8062a0fe76e92c83d6e7a92cb94fa84c80d6",
+      "bytes": 3650
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/core/sqlite_native_aggregate.py",
+      "sha256": "5e8b444a8f47eae17d597bbea7455f0b8301102ffe89c016b76fde1474a9a650",
+      "bytes": 9045
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/expected/hash_exception_preservation.out",
+      "sha256": "d6b626f45bea180d87ae227099885d951f70f580a03bd5254a45c42b6379e859",
+      "bytes": 157
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/expected/identity_last_use.out",
+      "sha256": "be5a71bfe8c5071242d0acf992e8fa4d63515d12c09c28c70d9cff3b0c043d6d",
+      "bytes": 492
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/expected/native_bound_zero_args.out",
+      "sha256": "742ffaebccdfe0fce29673e9b31ad5885e3f592dcfe2c172c57498bbd2d18e84",
+      "bytes": 438
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/expected/sqlite_cursor_completion.out",
+      "sha256": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6",
+      "bytes": 260
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/fixtures/expected/sqlite_native_aggregate.out",
+      "sha256": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba",
+      "bytes": 179
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/run_fixtures.ps1",
+      "sha256": "53e7ec88e03037dd072f944c7ab7096685c05c33c47492529fb3db598fc2c221",
+      "bytes": 14759
+    },
+    {
+      "path": "doc/performance/data/interpreter-lazy-globals-trial-20261008-sources/tests/run_fixtures.py",
+      "sha256": "5dc89e12e52b6417e69c8c33c28d56d2bc5562ec8cd16f008e4f2fc80eaca9ec",
+      "bytes": 12530
+    },
+    {
+      "path": "doc/performance/interpreter-lazy-globals-trial-20261008.md",
+      "sha256": "5977c6d8d08edf59d0601c97859b4bb4905429aca0ad93e9fbeac8e1d365605e",
+      "bytes": 5067
+    }
+  ]
+}

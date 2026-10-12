@@ -54,6 +54,10 @@ bool sha2_bytes_view(const Value& value, std::string_view& out, std::string& err
     return true;
   }
   if (auto* view = value_as_memoryview(value); view != nullptr && !view->released) {
+    if (!view->contiguous) {
+      error = "memoryview: underlying buffer is not C-contiguous";
+      return false;
+    }
     out = memoryview_object_view(*view);
     return true;
   }
@@ -272,7 +276,7 @@ bool sha2_update(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   auto* state = sha2_state(args[0], error);
   std::string_view data;
   if (state == nullptr || !sha2_bytes_view(args[1], data, error)) {
-    runtime.raise_class_error("TypeError", error);
+    runtime.raise_class_error(error == "memoryview: underlying buffer is not C-contiguous" ? "BufferError" : "TypeError", error);
     return false;
   }
   state->data.append(data.data(), data.size());
@@ -361,7 +365,7 @@ bool sha2_constructor(Runtime& runtime, const Value* args, uint32_t argc, Value&
   if (argc == 1) {
     std::string_view view;
     if (!sha2_bytes_view(args[0], view, error)) {
-      runtime.raise_class_error("TypeError", error);
+      runtime.raise_class_error(error == "memoryview: underlying buffer is not C-contiguous" ? "BufferError" : "TypeError", error);
       return false;
     }
     data.assign(view.data(), view.size());

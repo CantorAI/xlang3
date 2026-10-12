@@ -54,6 +54,8 @@ struct NativeSerializationCodec {
 
 struct GeneratorObject;
 
+using NativeAstKindLookup = std::string_view (*)(const Value&, bool, void*);
+
 struct RuntimeFrameView {
   const std::shared_ptr<const ir::Module>* module_owner = nullptr;
   const Value* globals_module = nullptr;
@@ -69,6 +71,9 @@ struct RuntimeFrameView {
   std::vector<Value>* native_call_args = nullptr;
   const std::vector<Value>* closure = nullptr;
   GeneratorObject* generator_owner = nullptr;
+  const Value* cell_values = nullptr;
+  size_t cell_count = 0;
+  const Value* captured_builtins = nullptr;
 };
 
 enum class RuntimeDebugStepMode : uint8_t {
@@ -133,6 +138,7 @@ public:
       bool fast_releases_vm_lock = false,
       NativeKeywordFunctionCallback keyword_callback = nullptr);
   const Value* find_builtin(const std::string& name) const;
+  const Value* find_module(const std::string& name) const;
   bool resolve_builtin(const std::string& name, Value& out) const;
   const Value* find_native_symbol(const std::string& name) const;
   bool register_native_codec(std::shared_ptr<NativeSerializationCodec> codec);
@@ -163,6 +169,18 @@ public:
   void hide_cached_module(const std::string& name);
   const Value& module_registry_dict() const { return modules_dict_; }
   void register_native_package_cleanup(void* data, void (*cleanup)(void*));
+  void register_native_ast_kind_lookup(NativeAstKindLookup lookup, void* context) {
+    native_ast_kind_lookup_ = lookup;
+    native_ast_kind_context_ = context;
+  }
+  std::string_view native_ast_node_kind(const Value& node) const {
+    return native_ast_kind_lookup_ == nullptr ? std::string_view{}
+        : native_ast_kind_lookup_(node, false, native_ast_kind_context_);
+  }
+  std::string_view native_ast_class_kind(const Value& klass) const {
+    return native_ast_kind_lookup_ == nullptr ? std::string_view{}
+        : native_ast_kind_lookup_(klass, true, native_ast_kind_context_);
+  }
   void retain_serialized_objects(std::vector<Value> objects);
   uint64_t collect_serialized_objects(bool force = false);
   void register_raw_block_handler(std::string language, std::string provider, RawBlockHandler handler);
@@ -201,6 +219,12 @@ public:
   bool set_sys_argv(const std::vector<std::string>& argv, std::string& error);
   bool decode_python_source(std::string_view bytes, std::string& source, std::string& error) const;
   void set_trace_function(Value trace_function);
+  // Native C-hook installation differs from sys.settrace's callable trampoline.
+  void set_native_trace_function(Value trace_function);
+  bool native_trace_delivery() const;
+  bool native_trace_event_may_dispatch() const {
+    return native_trace_possible_.load(std::memory_order_relaxed);
+  }
   const Value& trace_function() const;
   bool trace_event_may_dispatch() const {
     return trace_possible_.load(std::memory_order_relaxed);
@@ -246,6 +270,7 @@ public:
   uint32_t current_frame_function_id() const;
   const std::shared_ptr<const ir::Module>* current_frame_module_owner() const;
   bool current_frame_free_var(const std::string& name, Value& out) const;
+  bool try_current_frame_first_argument(Value& out) const;
   void set_current_frame_locals(const std::vector<std::string>* names, const Value* values, size_t count);
   void clear_current_frame_locals();
   Value current_locals_snapshot() const;
@@ -282,6 +307,7 @@ public:
   bool finalizing() const { return finalizing_; }
 
 private:
+  void set_trace_function_mode(Value trace_function, bool native_delivery);
   void initialize();
   void refresh_debug_poll_needed();
 
@@ -295,6 +321,7 @@ private:
   Value trace_function_;
   Value thread_trace_function_;
   std::atomic_bool trace_possible_{false};
+  std::atomic_bool native_trace_possible_{false};
   Value profile_function_;
   Value thread_profile_function_;
   std::atomic_bool profile_possible_{false};
@@ -343,6 +370,10 @@ private:
   std::unordered_map<std::string, PythonImportDirectoryCacheEntry> python_import_directory_cache_;
   Value modules_dict_;
   std::vector<std::pair<void*, void (*)(void*)>> native_package_cleanups_;
+  // The native AST package owns the retained canonical classes. Its private
+  // lookup remains stable when Python rebinds _ast.AST or another public name.
+  NativeAstKindLookup native_ast_kind_lookup_ = nullptr;
+  void* native_ast_kind_context_ = nullptr;
   std::vector<Value> serialized_objects_;
   std::unordered_map<std::string, Value> native_symbols_;
   std::mutex code_objects_mutex_;

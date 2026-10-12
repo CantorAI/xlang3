@@ -1,0 +1,12 @@
+local_slots              pass         0.986x
+scalar_arithmetic        pass         0.977x
+range_for                pass         1.041x
+function_calls           pass         0.987x
+class_construct          pass         0.994x
+list_append              pass         0.994x
+property_access          pass         1.020x
+deepcopy_memo            pass         0.870x
+json_dumps               pass         0.993x
+gc_traversal             pass         1.015x
+subparsers               pass         0.943x
+Performance check: pass. Report: doc\performance\data\native-append-repr-fixed-release-gate-20261007.json

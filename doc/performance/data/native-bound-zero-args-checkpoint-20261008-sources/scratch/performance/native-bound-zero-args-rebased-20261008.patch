@@ -1,0 +1,365 @@
+diff --git a/src/runtime/functional_iterators.cpp b/src/runtime/functional_iterators.cpp
+index 1b2ed7d1..3fbd9e72 100644
+--- a/src/runtime/functional_iterators.cpp
++++ b/src/runtime/functional_iterators.cpp
+@@ -495,6 +495,19 @@ bool runtime_call_callable(
+   }
+ 
+   if (auto* bound = value_as_bound_method(callable)) {
++    if (argc == 0) {
++      // Hashing and other native protocol callbacks often call a bound Python
++      // method with only self. Keep its argument on the stack instead of
++      // allocating a one-element vector for every native-to-Python entry.
++      // Own both fields before dispatch: output may alias the LAST callable
++      // owner, and a native callback can replace output then reread args or
++      // collect/reenter. Release self before the target, like BoundMethod.
++      // Ordinary dispatch retains binding, tracing, monitoring and errors;
++      // explicit arguments keep the existing general vector path below.
++      Value function = bound->function;
++      Value self = bound->self;
++      return runtime_call_callable(runtime, function, &self, 1, out, error);
++    }
+     std::vector<Value> bound_args;
+     bound_args.reserve(static_cast<size_t>(argc) + 1);
+     bound_args.push_back(bound->self);
+diff --git a/tests/cpp/interpreter_tests.cpp b/tests/cpp/interpreter_tests.cpp
+index c4390287..2e9866bd 100644
+--- a/tests/cpp/interpreter_tests.cpp
++++ b/tests/cpp/interpreter_tests.cpp
+@@ -15,6 +15,7 @@ limitations under the License.
+ #include "test_harness.h"
+ #include "sqlite_aggregate_abi_cases.h"
+ #include "canonical_slot_read_cases.h"
++#include "native_bound_zero_args_cases.h"
+ #include "identity_last_use_cases.h"
+ #include "hash_exception_cases.h"
+ 
+@@ -26,6 +27,7 @@ int main(int argc, char** argv) {
+   xlang3::test::CaseResult result;
+   xlang3::test::check_sqlite_aggregate_abi(result, argc > 0 ? argv[0] : nullptr);
+   xlang3::test::check_canonical_slot_read_cases(result);
++  xlang3::test::check_native_bound_zero_args(result);
+   xlang3::test::check_identity_last_use_cases(result);
+   xlang3::test::check_hash_exception_cases(result);
+ 
+diff --git a/tests/run_fixtures.py b/tests/run_fixtures.py
+index 8c7e5a43..175ff604 100644
+--- a/tests/run_fixtures.py
++++ b/tests/run_fixtures.py
+@@ -9,6 +9,7 @@ import tempfile
+ 
+ 
+ CORE_CASES = """
++native_bound_zero_args
+ hash_exception_preservation
+ identity_last_use
+ sqlite_cursor_completion
+diff --git a/tests/run_fixtures.ps1 b/tests/run_fixtures.ps1
+index 60824458..5cbaaa0f 100644
+--- a/tests/run_fixtures.ps1
++++ b/tests/run_fixtures.ps1
+@@ -22,6 +22,7 @@ if (-not $XLang3) {
+ 
+ $root = $PSScriptRoot
+ $cases = @(
++    "native_bound_zero_args",
+     "identity_last_use",
+     "hash_exception_preservation",
+     "sqlite_cursor_completion",
+diff --git a/tests/cpp/native_bound_zero_args_cases.h b/tests/cpp/native_bound_zero_args_cases.h
+new file mode 100644
+index 00000000..515d6d72
+--- /dev/null
++++ b/tests/cpp/native_bound_zero_args_cases.h
+@@ -0,0 +1,125 @@
++#pragma once
++#include "test_harness.h"
++#include "xlang3/builtins.h"
++#include "xlang3/functional_iterators.h"
++#include "xlang3/object_model.h"
++#include <sstream>
++
++namespace xlang3::test {
++
++struct NativeBoundZeroAudit {
++  int calls = 0;
++  int self_cleanup = 0;
++  int function_cleanup = 0;
++  bool cleanup_early = false;
++  bool argument_survived = true;
++  bool self_released_before_function = true;
++  bool fail = false;
++  uint32_t expected_argc = 1;
++};
++
++inline void native_bound_zero_self_cleanup(void* context) {
++  auto* audit = static_cast<NativeBoundZeroAudit*>(context);
++  ++audit->self_cleanup;
++}
++
++inline void native_bound_zero_function_cleanup(void* context) {
++  auto* audit = static_cast<NativeBoundZeroAudit*>(context);
++  audit->self_released_before_function &= audit->self_cleanup == 1;
++  ++audit->function_cleanup;
++}
++
++inline bool native_bound_zero_nested(
++    Runtime&, const Value* args, uint32_t argc, Value& out,
++    std::string& error, void*) {
++  if (argc != 1 || args[0].tag != ValueTag::Int64) {
++    error = "invalid nested bound callback arguments";
++    return false;
++  }
++  value_assign_fast(out, args[0]);
++  return true;
++}
++
++inline bool native_bound_zero_callback(
++    Runtime& runtime, const Value* args, uint32_t argc, Value& out,
++    std::string& error, void* context) {
++  auto* audit = static_cast<NativeBoundZeroAudit*>(context);
++  ++audit->calls;
++  if (argc != audit->expected_argc) {
++    error = "unexpected explicit argument count";
++    return false;
++  }
++  // In the zero-argument test, this drops the LAST bound-method owner and
++  // would invalidate a borrowed &bound->self or &bound->function argument.
++  out = Value::none();
++  audit->cleanup_early |= audit->self_cleanup != 0 || audit->function_cleanup != 0;
++  (void)weakref_collect_cycles(runtime);
++  audit->argument_survived &= instance_get_native_data(args[0], "NativeBoundZeroAudit") == audit;
++  Value nested_function = runtime.make_native_function("native_bound_zero_nested", native_bound_zero_nested);
++  Value nested_method = Value::bound_method(Value::int64(7), std::move(nested_function));
++  Value nested_out;
++  const bool nested_ok = runtime_call_callable(runtime, nested_method, nullptr, 0, nested_out, error);
++  audit->argument_survived &= nested_ok && nested_out.tag == ValueTag::Int64 && nested_out.as.i64 == 7;
++  audit->argument_survived &= instance_get_native_data(args[0], "NativeBoundZeroAudit") == audit;
++  audit->cleanup_early |= audit->self_cleanup != 0 || audit->function_cleanup != 0;
++  if (argc == 2) {
++    audit->argument_survived &= args[1].tag == ValueTag::Int64 && args[1].as.i64 == 9;
++  }
++  if (audit->fail) {
++    error = "native bound callback failed after reentry";
++    return false;
++  }
++  out = Value::int64(41);
++  return true;
++}
++
++inline void check_native_bound_zero_args(CaseResult& result) {
++  std::ostringstream output;
++  Runtime runtime(output);
++  for (const bool fail : {false, true}) {
++    NativeBoundZeroAudit audit;
++    audit.fail = fail;
++    Value klass = Value::class_object("NativeBoundZeroReceiver", {});
++    Value self = Value::instance(klass);
++    std::string error;
++    expect_true(result, instance_set_native_data(self, "NativeBoundZeroAudit", &audit,
++        native_bound_zero_self_cleanup, error), "install native argument lifetime audit");
++    Value function = runtime.make_native_function("native_bound_zero_callback", native_bound_zero_callback,
++        &audit, native_bound_zero_function_cleanup);
++    Value callable = Value::bound_method(std::move(self), std::move(function));
++    const bool ok = runtime_call_callable(runtime, callable, nullptr, 0, callable, error);
++    expect_true(result, ok == !fail && audit.calls == 1 && audit.argument_survived && !audit.cleanup_early,
++        "aliased output must not release self/function before callback rereads arguments, GC and reentry");
++    expect_true(result, audit.self_cleanup == 1 && audit.function_cleanup == 1 &&
++        audit.self_released_before_function,
++        "zero-argument callback must release self before function after success or failure without retaining owners");
++    expect_true(result, fail ? error == "native bound callback failed after reentry" &&
++        callable.tag == ValueTag::None : callable.tag == ValueTag::Int64 && callable.as.i64 == 41,
++        "zero-argument stack dispatch must preserve native output and failure");
++  }
++  // The nonzero path remains the existing vector path. Keep its target alive
++  // externally and verify explicit argument order independently of output alias.
++  {
++    NativeBoundZeroAudit audit;
++    audit.expected_argc = 2;
++    Value klass = Value::class_object("NativeBoundArgumentReceiver", {});
++    Value self = Value::instance(klass);
++    std::string error;
++    expect_true(result, instance_set_native_data(self, "NativeBoundZeroAudit", &audit,
++        native_bound_zero_self_cleanup, error), "install explicit argument lifetime audit");
++    Value function = runtime.make_native_function("native_bound_argument_callback", native_bound_zero_callback,
++        &audit, native_bound_zero_function_cleanup);
++    Value callable = Value::bound_method(std::move(self), function);
++    Value explicit_arg = Value::int64(9);
++    Value out;
++    expect_true(result, runtime_call_callable(runtime, callable, &explicit_arg, 1, out, error) &&
++        out.tag == ValueTag::Int64 && out.as.i64 == 41 && audit.calls == 1 &&
++        audit.argument_survived && !audit.cleanup_early,
++        "existing nonzero bound vector dispatch must preserve self then explicit arguments");
++    value_set_invalid(callable);
++    value_set_invalid(function);
++    expect_true(result, audit.self_cleanup == 1 && audit.function_cleanup == 1 &&
++        audit.self_released_before_function, "explicit path must release its original owners");
++  }
++}
++} // namespace xlang3::test
+diff --git a/tests/fixtures/core/native_bound_zero_args.py b/tests/fixtures/core/native_bound_zero_args.py
+new file mode 100644
+index 00000000..2950034d
+--- /dev/null
++++ b/tests/fixtures/core/native_bound_zero_args.py
+@@ -0,0 +1,148 @@
++"""Generic native-to-Python bound calls retain ordinary Python semantics."""
++import contextvars
++import gc
++import sys
++import traceback
++import weakref
++
++context = contextvars.Context()
++
++
++class Receiver:
++    def __init__(self, name):
++        self._name_ = name
++
++    def __hash__(self):
++        return hash(self._name_)
++
++    def read(self, value=7):
++        return self._name_, value
++
++    def fail(self):
++        raise LookupError('bound callback failure')
++
++    def generate(self):
++        yield self._name_
++
++
++receiver = Receiver('SELECT')
++table = {receiver: 17}
++for _ in range(8):
++    assert table.get(receiver) == 17 and hash(receiver) == hash('SELECT')
++    assert context.run(receiver.read) == ('SELECT', 7)
++assert context.run(receiver.read, 9) == ('SELECT', 9)
++assert context.run(receiver.read, value=11) == ('SELECT', 11)
++Receiver.read.__defaults__ = (13,)
++assert context.run(receiver.read) == ('SELECT', 13)
++print('zero and explicit bound calls preserve hashes, defaults and keywords: OK')
++
++
++saved = receiver.read
++
++
++def replacement(self, value=19):
++    return self._name_ + ' replacement', value
++
++
++Receiver.read.__code__ = replacement.__code__
++Receiver.read.__defaults__ = (19,)
++assert context.run(saved) == ('SELECT replacement', 19)
++assert context.run(saved, 23) == ('SELECT replacement', 23)
++print('saved bound calls observe live code and default replacement: OK')
++
++
++try:
++    raise KeyError('outer')
++except KeyError as outer:
++    try:
++        context.run(receiver.fail)
++    except LookupError as caught:
++        assert str(caught) == 'bound callback failure'
++        assert 'fail' in [frame.name for frame in traceback.extract_tb(caught.__traceback__)]
++    else:
++        raise AssertionError('callback failure was lost')
++    assert sys.exception() is outer
++iterator = context.run(receiver.generate)
++assert next(iterator) == 'SELECT'
++try:
++    next(iterator)
++except StopIteration:
++    pass
++else:
++    raise AssertionError('generator completed incorrectly')
++print('exception state, callback traceback and generator binding are preserved: OK')
++
++
++def check_lifetime():
++    events = []
++    holder = {}
++
++    class Temporary:
++        def read(self):
++            holder.clear()
++            gc.collect()
++            assert reference() is self
++            return 29
++
++        def __del__(self):
++            events.append('released')
++
++    temporary = Temporary()
++    reference = weakref.ref(temporary)
++    holder['method'] = temporary.read
++    del temporary
++    assert context.run(holder['method']) == 29
++    return reference, events
++
++
++reference, events = check_lifetime()
++gc.collect()
++assert reference() is None and events == ['released']
++print('last callable owner can disappear during callback without losing self: OK')
++
++
++trace_events = []
++
++
++def trace(frame, event, arg):
++    if frame.f_code.co_name == 'replacement':
++        trace_events.append(event)
++    return trace
++
++
++sys.settrace(trace)
++try:
++    assert context.run(saved) == ('SELECT replacement', 19)
++finally:
++    sys.settrace(None)
++assert trace_events.count('call') == 1 and trace_events.count('return') == 1
++print('zero-argument bound callbacks keep Python trace entry and return: OK')
++
++monitoring = sys.monitoring
++tool = monitoring.PROFILER_ID
++starts = []
++returns = []
++code = Receiver.read.__code__
++
++
++def monitor_start(current_code, offset):
++    starts.append(current_code)
++
++
++def monitor_return(current_code, offset, value):
++    returns.append(value)
++
++
++monitoring.use_tool_id(tool, 'native-bound-zero-args')
++try:
++    monitoring.register_callback(tool, monitoring.events.PY_START, monitor_start)
++    monitoring.register_callback(tool, monitoring.events.PY_RETURN, monitor_return)
++    monitoring.set_local_events(tool, code, monitoring.events.PY_START | monitoring.events.PY_RETURN)
++    assert context.run(saved) == ('SELECT replacement', 19)
++finally:
++    monitoring.set_local_events(tool, code, 0)
++    monitoring.register_callback(tool, monitoring.events.PY_START, None)
++    monitoring.register_callback(tool, monitoring.events.PY_RETURN, None)
++    monitoring.free_tool_id(tool)
++assert len(starts) == 1 and returns == [('SELECT replacement', 19)]
++print('local monitoring observes ordinary native-bound Python entry and return: OK')
+diff --git a/tests/fixtures/expected/native_bound_zero_args.out b/tests/fixtures/expected/native_bound_zero_args.out
+new file mode 100644
+index 00000000..d5f9a58a
+--- /dev/null
++++ b/tests/fixtures/expected/native_bound_zero_args.out
+@@ -0,0 +1,6 @@
++zero and explicit bound calls preserve hashes, defaults and keywords: OK
++saved bound calls observe live code and default replacement: OK
++exception state, callback traceback and generator binding are preserved: OK
++last callable owner can disappear during callback without losing self: OK
++zero-argument bound callbacks keep Python trace entry and return: OK
++local monitoring observes ordinary native-bound Python entry and return: OK

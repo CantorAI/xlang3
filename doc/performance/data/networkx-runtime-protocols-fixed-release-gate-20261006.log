@@ -1,0 +1,12 @@
+local_slots              pass         0.997x
+scalar_arithmetic        pass         1.022x
+range_for                pass         1.047x
+function_calls           pass         0.973x
+class_construct          pass         1.010x
+list_append              pass         0.993x
+property_access          pass         0.998x
+deepcopy_memo            pass         0.886x
+json_dumps               pass         0.991x
+gc_traversal             pass         1.017x
+subparsers               pass         1.001x
+Performance check: pass. Report: doc\performance\data\networkx-runtime-protocols-fixed-release-gate-20261006.json

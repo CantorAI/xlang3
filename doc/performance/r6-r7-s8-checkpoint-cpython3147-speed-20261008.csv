@@ -1,0 +1,3 @@
+benchmark,cpython_version,reference_date,candidate_date,cp_mean_seconds,cp_sample_sd_seconds,x_mean_seconds,x_sample_sd_seconds,x_speed_with_cpython_1x,x_times_slower,cp_values,x_values,comparison,warning_retained
+pyflate,3.14.7,2026-10-07,2026-10-08,0.3449285399998189,0.010504642698187698,2.621684839995578,0.07901109180443758,0.1315675075576211,7.6006608209252695,20,20,unpaired_saved_reference,true
+pickle_pure_python,3.14.7,2026-10-07,2026-10-08,0.0002574978671850658,4.002636252912106E-06,0.00629570600009174,0.0006357183240803964,0.040900554629030264,24.449546199801976,20,20,unpaired_saved_reference,true

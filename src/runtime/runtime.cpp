@@ -19,6 +19,7 @@ limitations under the License.
 
 #include "xlang3/attribute.h"
 #include "xlang3/builtins.h"
+#include "xlang3/eval_locals.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/generator.h"
 #include "xlang3/ir.h"
@@ -86,6 +87,7 @@ struct RuntimeCurrentFrameState {
   const Value* local_values = nullptr;
   size_t local_count = 0;
   Value trace_function;
+  bool native_trace_delivery = false;
   bool trace_dispatch_active = false;
   Value profile_function;
   bool profile_dispatch_active = false;
@@ -1050,7 +1052,31 @@ const Value* Runtime::find_builtin(const std::string& name) const {
   return &it->second;
 }
 
+const Value* Runtime::find_module(const std::string& name) const {
+  const auto it = modules_.find(name);
+  return it == modules_.end() ? nullptr : &it->second;
+}
+
 bool Runtime::resolve_builtin(const std::string& name, Value& out) const {
+  // Dict-backed dynamic execution supplies its own builtins namespace. Do not
+  // fall through an explicitly empty/custom namespace to the global builtins.
+  if (mapping_is_dict(current_globals_module()) && name.rfind("__xlang3_", 0) != 0) {
+    Value namespace_value;
+    std::string ignored;
+    const auto& state = current_frame_state(*this);
+    const Value* captured = state.frame_stack != nullptr && state.frame_stack_count != 0
+        ? state.frame_stack[state.frame_stack_count - 1].captured_builtins : nullptr;
+    bool found = captured != nullptr && captured->tag != ValueTag::Invalid;
+    if (found) value_assign_fast(namespace_value, *captured);
+    else found = mapping_get_string_item(current_globals_module(), "__builtins__", namespace_value, ignored);
+    if (found) {
+      if (value_as_module(namespace_value) != nullptr)
+        return module_get_attr(namespace_value, name, out, ignored);
+      if (mapping_is_dict(namespace_value))
+        return mapping_get_string_item(namespace_value, name, out, ignored);
+      return false;
+    }
+  }
   const auto module = modules_.find("builtins");
   if (module != modules_.end()) {
     std::string ignored;
@@ -1110,19 +1136,46 @@ bool Runtime::publish_sys_path(std::string& error) {
 #endif
 
 void Runtime::set_trace_function(Value trace_function) {
+  set_trace_function_mode(std::move(trace_function), false);
+}
+
+void Runtime::set_native_trace_function(Value trace_function) {
+  set_trace_function_mode(std::move(trace_function), true);
+}
+
+void Runtime::set_trace_function_mode(Value trace_function, bool native_delivery) {
+  if (native_delivery) native_trace_possible_.store(true, std::memory_order_relaxed);
   if (trace_function.tag != ValueTag::Invalid && trace_function.tag != ValueTag::None) {
     trace_possible_.store(true, std::memory_order_relaxed);
   }
   Value next;
   value_assign_fast(next, trace_function);
   auto& state = current_frame_state(*this);
-  value_set_invalid(state.trace_function);
-  state.trace_function = next;
+  auto& saved_frames = current_frame_stack(*this);
+  // Tracing is a thread setting. A nested callback's change must survive
+  // restoration of its caller's frame; keep this work in the cold setter.
+  // Publish every new hook before retiring old owners. Their cleanup may
+  // reenter and replace tracing, so perform no later publication afterward.
+  std::vector<Value> retired_traces;
+  retired_traces.reserve(saved_frames.size() + 1);
+  retired_traces.push_back(std::move(state.trace_function));
+  for (auto& saved : saved_frames)
+    retired_traces.push_back(std::move(saved.trace_function));
+  state.native_trace_delivery = native_delivery && next.tag != ValueTag::None && next.tag != ValueTag::Invalid;
+  value_assign_fast(state.trace_function, next);
+  for (auto& saved : saved_frames) {
+    saved.native_trace_delivery = state.native_trace_delivery;
+    value_assign_fast(saved.trace_function, next);
+  }
 }
 
 const Value& Runtime::trace_function() const {
   const auto& state = current_frame_state(*this);
   return state.trace_function.tag == ValueTag::Invalid ? trace_function_ : state.trace_function;
+}
+
+bool Runtime::native_trace_delivery() const {
+  return current_frame_state(*this).native_trace_delivery;
 }
 
 bool Runtime::trace_dispatch_active() const {
@@ -1150,8 +1203,22 @@ void Runtime::set_profile_function(Value profile_function) {
   Value next;
   value_assign_fast(next, profile_function);
   auto& state = current_frame_state(*this);
-  value_set_invalid(state.profile_function);
-  state.profile_function = next;
+  auto& saved_frames = current_frame_stack(*this);
+  // The hook is a thread setting, not a saved-frame setting. A native callback
+  // or finalizer can install or disable it in a nested Interpreter; restoring
+  // its caller's frame must preserve that change. Update only this cold setter
+  // rather than adding observer work to ordinary entry/pop or opcode dispatch.
+  // Unpublish every old hook into owning temporaries before publishing the new
+  // hook, then retire them after all snapshots agree. Old-hook cleanup may
+  // reenter and replace the hook again, without stale publication afterwards.
+  std::vector<Value> retired_profiles;
+  retired_profiles.reserve(saved_frames.size() + 1);
+  retired_profiles.push_back(std::move(state.profile_function));
+  for (auto& saved : saved_frames)
+    retired_profiles.push_back(std::move(saved.profile_function));
+  value_assign_fast(state.profile_function, next);
+  for (auto& saved : saved_frames)
+    value_assign_fast(saved.profile_function, next);
 }
 
 const Value& Runtime::profile_function() const {
@@ -1172,13 +1239,17 @@ bool Runtime::emit_profile_event(const char* event_name, const Value& arg, std::
 }
 
 bool Runtime::emit_profile_event_for_frame(const Value& frame, const char* event_name, const Value& arg, std::string& error) {
-  const Value& hook = profile_function();
-  if (hook.tag == ValueTag::Invalid || hook.tag == ValueTag::None || profile_dispatch_active()) {
+  const Value& borrowed_hook = profile_function();
+  if (borrowed_hook.tag == ValueTag::Invalid || borrowed_hook.tag == ValueTag::None || profile_dispatch_active()) {
     return true;
   }
   if (frame.tag == ValueTag::None) {
     return true;
   }
+  // A hook can remove its last setting owner while executing. Keep the actual
+  // callable alive through callback/result cleanup, only on active dispatch.
+  Value hook;
+  value_assign_fast(hook, borrowed_hook);
   Value profile_args[3] = {
       frame,
       Value::string(event_name == nullptr ? "" : event_name),
@@ -1461,9 +1532,11 @@ Value locals_snapshot_from_view(const RuntimeFrameView& view) {
   return Value::dict(std::move(entries));
 }
 
-Value frame_locals_from_view(const RuntimeFrameView& view) {
+Value frame_locals_from_view(Runtime& runtime, const RuntimeFrameView& view) {
   if (view.module_owner != nullptr && view.module_owner->get() != nullptr &&
       view.globals_module != nullptr && view.function_id == view.module_owner->get()->entry) {
+    const auto* fn = &view.module_owner->get()->functions[view.function_id];
+    if (const Value* eval_locals = current_eval_locals(runtime, fn)) return *eval_locals;
     return module_namespace_dict(*view.globals_module);
   }
   return locals_snapshot_from_view(view);
@@ -1492,12 +1565,14 @@ Value logical_frame_locals_from_view(const RuntimeFrameView& view,
   return view.local_values[range.locals_slot];
 }
 
-void initialize_lazy_frame_locals(Value& frame_value, const RuntimeFrameView& view) {
+void initialize_lazy_frame_locals(Runtime& runtime, Value& frame_value, const RuntimeFrameView& view) {
   auto* frame = value_as_frame(frame_value);
   if (frame == nullptr) return;
   if (view.module_owner != nullptr && view.module_owner->get() != nullptr &&
       view.globals_module != nullptr && view.function_id == view.module_owner->get()->entry) {
-    frame->locals = module_namespace_dict(*view.globals_module);
+    const auto* fn = &view.module_owner->get()->functions[view.function_id];
+    const Value* eval_locals = current_eval_locals(runtime, fn);
+    frame->locals = eval_locals == nullptr ? module_namespace_dict(*view.globals_module) : *eval_locals;
     frame->local_snapshot.clear();
     frame->has_lazy_locals = false;
     return;
@@ -1533,11 +1608,14 @@ Value materialize_frame_from_stack(
       static_cast<uint32_t>(*view.instruction_index),
       Value::invalid(),
       std::move(back),
-      builtins,
+      view.captured_builtins != nullptr && view.captured_builtins->tag != ValueTag::Invalid
+          ? (value_as_module(*view.captured_builtins) != nullptr
+              ? module_namespace_dict(*view.captured_builtins) : *view.captured_builtins)
+          : builtins,
       view.activation_id);
   if (view.generator_owner != nullptr)
     frame_set_generator_owner(runtime, physical, *view.generator_owner);
-  initialize_lazy_frame_locals(physical, view);
+  initialize_lazy_frame_locals(runtime, physical, view);
   const auto& module = **view.module_owner;
   if (view.function_id >= module.functions.size()) {
     return physical;
@@ -1587,7 +1665,7 @@ Value materialize_frame_state(
       Value::invalid(),
       base_back,
       builtins);
-  initialize_lazy_frame_locals(frame, view);
+  initialize_lazy_frame_locals(runtime, frame, view);
   return frame;
 }
 
@@ -1796,7 +1874,7 @@ void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals,
         deferred_releases.push_back(std::move(tracked->locals));
         deferred_snapshots.emplace_back();
         deferred_snapshots.back().swap(tracked->local_snapshot);
-        tracked->locals = frame_locals_from_view(*matching_view);
+        tracked->locals = frame_locals_from_view(*this, *matching_view);
         tracked->has_lazy_locals = false;
       }
       tracked->live = true;
@@ -1818,7 +1896,7 @@ void Runtime::refresh_live_frame_snapshots(bool refresh_traceback_locals,
         deferred_releases.push_back(std::move(tracked->locals));
         deferred_snapshots.emplace_back();
         deferred_snapshots.back().swap(tracked->local_snapshot);
-        tracked->locals = frame_locals_from_view(current_view);
+        tracked->locals = frame_locals_from_view(*this, current_view);
         tracked->has_lazy_locals = false;
       }
       if (tracked->refresh_instruction) {
@@ -1927,6 +2005,7 @@ void Runtime::retire_live_frame_snapshot(
     size_t local_count) {
   if (activation_id == 0 || !has_live_frame_snapshots_.load(std::memory_order_acquire)) return;
   std::vector<Value> old_local_snapshot;
+  Value displaced_materialized_locals;
   std::vector<Value> retired_refs;
   {
     std::lock_guard<std::mutex> lock(live_frame_snapshots_mutex_);
@@ -1947,6 +2026,42 @@ void Runtime::retire_live_frame_snapshot(
             if (!names[index].empty() && names[index][0] == '#')
               old_local_snapshot.push_back(
                   std::move(retired->local_snapshot[index]));
+        }
+      } else if (local_values != nullptr && retired->module != nullptr &&
+                 retired->function_id < retired->module->functions.size() &&
+                 retired->function_id != retired->module->entry) {
+        auto* materialized = value_as_dict(retired->locals);
+        if (materialized != nullptr && materialized->backing_module == nullptr) {
+          // Reading f_locals while executing does not freeze future locals.
+          // Keep an escaped mapping alias current at retirement, without
+          // adding per-instruction work or replacing module/eval namespaces.
+          RuntimeFrameView final_view;
+          final_view.local_names = &retired->module->functions[retired->function_id].locals;
+          final_view.local_values = local_values;
+          final_view.local_count = local_count;
+          displaced_materialized_locals = locals_snapshot_from_view(final_view);
+          auto* displaced = value_as_dict(displaced_materialized_locals);
+          // Frame locals proxies also retain user-added extra keys. Preserve
+          // those existing owners without hash/equality callbacks; only known
+          // visible physical local names are replaced or deleted by this copy.
+          const auto& names = *final_view.local_names;
+          for (const auto& entry : materialized->entries) {
+            const auto* key = value_as_string(entry.first);
+            const bool physical_name = key != nullptr && std::any_of(
+                names.begin(), names.end(), [&](const std::string& name) {
+                  return !name.empty() && name[0] != '#' &&
+                      string_object_view(*key) == std::string_view(name);
+                });
+            if (!physical_name) displaced->entries.push_back(entry);
+          }
+          materialized->entries.swap(displaced->entries);
+          // Entries are authoritative, including same-sized replacements.
+          // Both dictionaries changed entries; invalidate every index proof.
+          materialized->indexed_entry_count = displaced->indexed_entry_count = static_cast<size_t>(-1);
+          materialized->runtime_hash_indexed_entry_count = displaced->runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
+          materialized->intrinsic_hash_checked_entry_count = displaced->intrinsic_hash_checked_entry_count = static_cast<size_t>(-1);
+          // Displaced Value owners remain in the outer temporary until the
+          // frame is retired and the registry mutex has been released.
         }
       }
       retired->live = false;
@@ -1986,6 +2101,45 @@ void Runtime::clear_current_frame_locals() {
   state.local_count = 0;
 }
 
+bool Runtime::try_current_frame_first_argument(Value& out) const {
+  const auto& state = current_frame_state(*this);
+  const RuntimeFrameView* frame = nullptr;
+  if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
+    const auto& view = state.frame_stack[state.frame_stack_count - 1];
+    // Inlined logical frames keep a separate locals mapping. Do not confuse
+    // their receiver with the first parameter of the enclosing physical frame.
+    if (active_logical_frame_range(view) != nullptr ||
+        view.module_owner != state.module_owner || view.function_id != state.function_id ||
+        view.local_values != state.local_values) return false;
+    frame = &view;
+  }
+  if (state.module_owner == nullptr || state.module_owner->get() == nullptr ||
+      state.local_names == nullptr || state.local_values == nullptr ||
+      state.local_count == 0 || state.local_names->empty()) return false;
+  const auto& module = **state.module_owner;
+  if (state.function_id == module.entry || state.function_id >= module.functions.size()) return false;
+  const auto& function = module.functions[state.function_id];
+  if (function.params.empty() || function.params[0].empty() ||
+      (*state.local_names)[0] != function.params[0]) return false;
+  const Value* receiver = &state.local_values[0];
+  for (size_t index = 0; index < function.cell_slots.size(); ++index) {
+    if (function.cell_slots[index] != 0) continue;
+    if (frame == nullptr || frame->cell_values == nullptr || index >= frame->cell_count) return false;
+    auto* cell = value_as_cell(frame->cell_values[index]);
+    if (cell == nullptr) return false;
+    // A nested nonlocal assignment updates the cell, not the stale local copy.
+    receiver = &cell->value;
+    break;
+  }
+  // Parameter binding puts the first argument in local slot zero. Prove that
+  // layout above and retain only this live value: zero-argument super() must not
+  // allocate/hash a dictionary containing every local on each Python call.
+  // Unusual frame layouts use the existing snapshot path. An invalid live
+  // value reports deletion to the caller instead of reviving a stale receiver.
+  value_assign_fast(out, *receiver);
+  return true;
+}
+
 Value Runtime::current_locals_snapshot() const {
   const auto& state = current_frame_state(*this);
   if (state.frame_stack != nullptr && state.frame_stack_count != 0) {
@@ -1997,6 +2151,9 @@ Value Runtime::current_locals_snapshot() const {
   if (state.module_owner != nullptr && state.module_owner->get() != nullptr &&
       state.globals_module != nullptr &&
       state.function_id == state.module_owner->get()->entry) {
+    const ir::Function* function = &state.module_owner->get()->functions[state.function_id];
+    if (const Value* eval_locals = current_eval_locals(const_cast<Runtime&>(*this), function)) return *eval_locals;
+    if (mapping_is_dict(*state.globals_module)) return *state.globals_module;
     return module_namespace_dict(*state.globals_module);
   }
   if (state.local_names == nullptr || state.local_values == nullptr) {

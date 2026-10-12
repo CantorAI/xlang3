@@ -1,0 +1,21 @@
+{
+  "manager_version": "Python 3.14.7",
+  "source_checkpoint": "7190cc4a",
+  "candidate_kind": "local native string descriptor and explicit None whitespace corrections",
+  "benchmarks": [
+    "chameleon"
+  ],
+  "mode": "fast",
+  "case_timeout_seconds": 300,
+  "started_utc": "2026-10-07T06:39:08.6726625Z",
+  "sha256_start": {
+    "dll": "29431877C4306B05E43ABA818CB96A6CFEA548D90D55189FB21B8DE6AD0758F3",
+    "exe": "303F2E8BDCA58C4B555D13ADD7BFC41EEF9E0019F4780A0C9729596CE07DF177"
+  },
+  "sha256_end": {
+    "dll": "29431877C4306B05E43ABA818CB96A6CFEA548D90D55189FB21B8DE6AD0758F3",
+    "exe": "303F2E8BDCA58C4B555D13ADD7BFC41EEF9E0019F4780A0C9729596CE07DF177"
+  },
+  "exit_code": 1,
+  "completed_utc": "2026-10-07T06:39:11.8923548Z"
+}

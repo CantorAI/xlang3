@@ -183,7 +183,12 @@ void module_sync_namespace_dict(ModuleObject& module) {
 
 Value module_namespace_dict(const Value& object) {
   auto* module = value_as_module(object);
-  if (module == nullptr) return Value::dict({});
+  if (module == nullptr) {
+    // Dynamic code frames retain a dict directly. Exposing their namespace
+    // must preserve identity rather than manufacture an empty module dict.
+    if (mapping_is_dict(object)) return object;
+    return Value::dict({});
+  }
   if (value_as_dict(module->namespace_dict) == nullptr) {
     module->namespace_dict = Value::dict({});
     value_as_dict(module->namespace_dict)->backing_module = module;
@@ -332,7 +337,23 @@ bool module_get_attr(const Value& object, const std::string& name, Value& out, s
                  !class_has_builtin_base_name(exception_class, "AttributeError"))) {
               module->runtime->set_pending_exception(std::move(pending));
             } else {
-              error = value_to_string(pending);
+              // A module subclass's __getattr__ signals a missing attribute
+              // by raising AttributeError. Preserve its Python message; the
+              // generic value renderer would turn it into an object address.
+              const Value* str_function = module->runtime->find_builtin("str");
+              Value rendered;
+              std::string str_error;
+              if (str_function != nullptr && runtime_call_callable(
+                      *module->runtime, *str_function, &pending, 1, rendered,
+                      str_error)) {
+                if (const auto* text = value_as_string(rendered)) {
+                  error = string_object_to_string(*text);
+                } else {
+                  error = value_to_string(pending);
+                }
+              } else {
+                error = value_to_string(pending);
+              }
             }
           }
           return false;

@@ -1,0 +1,29 @@
+{
+  "warning": "Historical one-off scripts; do not replay unchanged.",
+  "files": {
+    "immutable-key-hash-probe-20261007.py": "2d6202a501022633275a333ca3c2138755ce05813617d18adb53d88e8cd9ca83",
+    "observe-immutable-key-hash-baseline-20261007.py": "f7acf2638037487ce3b26a7bbd2b55efa8e78efc361fc752a8203c5463e359eb",
+    "compare-immutable-key-hash-trial-20261007.py": "2db17deb82256276e96fac5bdd89fef4da9bf1fa266d3db6e4fe5a0dce43f389",
+    "prepare-immutable-key-hash-validation-20261007.py": "2e726dab6bce0efeee231888f2b84b8de60afa5fa4abeb4b057db565789e85d2",
+    "validate-immutable-key-hash-20261007.py": "bae4b50345ab5a83d7e72781e25f402e2df700cce054fb81a14876bbf7a3b1ef",
+    "export-immutable-key-hash-pairs-20261007.py": "729d84c79f8aa6f51587ed4b77c35a2f9b8094bc483e2987f48572fa1a3e137a",
+    "dict-composite-scaling-probe-20261007.py": "8fdc71f472464c997b1766841a296bfc3de9cb4182762d454abfc379bfa8cc1a",
+    "native-trivial-callback-probe-20261007.py": "5e9d74ed22141a9aa96e86293a42cb4d76eb2cb38252330273a87d368cfbcc67",
+    "dict-callback-boundary-probe-20261007.py": "4a5cb7358005574fc2426db47c430caac7d7b1b7c453ec386b991c350402a47b",
+    "prepare-immutable-key-hash-evidence-20261007.py": "4201607eafda5fd03e130e6b794f119b28732129e609103bec7bb29cc69af1b8",
+    "finalize-immutable-key-hash-evidence-20261007.py": "287a4e217e5f932ce056b670f4ef202a577de40803512fbd4cd0f47c86494ca6",
+    "stage-immutable-key-hash-checkpoint-20261007.py": "5e384654412979cd506ef54a07443804dd412082849783787e547dcdd248c7a7",
+    "compiled-sources/value.h": "b3b88f529eb86acc117ccf5fbf61ac44e6572a96189d60389d1c6728c9bf75b1",
+    "compiled-sources/value.cpp": "18be33a526dbcc6627490a12a68aefc9e168d42afbf238ce38fa240e74bba0e0",
+    "compiled-sources/value_hash.cpp": "15af31213d9f7141f2c20f15dc72508d30443f6a260228507f6a5ca2431abdfa",
+    "compiled-sources/xlang_vm_ops_containers.h": "9476cd2e6a84986679844fddb6669a092a5e235b9496523226b1926a9b7c404a",
+    "compiled-sources/codec.cpp": "2c9fac9dddef37d52a1acd2e249fd91fe93c6fd89274a36bab539c2e5cd038ed",
+    "compiled-sources/value_graph_reader.cpp": "7e96a6a6d248a54525cea52a2397833a5b33fc4a0500a862eaff06c73cf52729",
+    "compiled-sources/value_graph_lifetime.cpp": "66a56c2b298a5cec161fd41baaf6c97978c5a6e6f9a037d7e9e67edf1c4e09c8",
+    "compiled-sources/marshal_module.cpp": "9570f9ea055e9dc613617124b7daa7cc1699b466bb338f95b0e34df5207f37af",
+    "compiled-sources/mapping_iterator_ownership_cases.h": "abb53006b112616ea2c470a874c32f9dad5c68287d5a84f2eab1689cd272a7de",
+    "compiled-sources/run_fixtures.py": "7b6fcff6325dcea1d0148e57473c7a9f29c1af071ea169d08e27d6ba384c1bc8",
+    "compiled-sources/immutable_key_hash.py": "77205b0cac112abd23a9dea8ef8a9aff27e8c3d0249cd0529d61f4e93e64aa98",
+    "compiled-sources/immutable_key_hash.out": "a60ac4c02a4e99dd24b2185ec8378f943dc2b20059429230f11fd28440b62e8b"
+  }
+}

@@ -1,0 +1,157 @@
+diff --git a/src/sema/lower.cpp b/src/sema/lower.cpp
+index b42f8504..d1a65b62 100644
+--- a/src/sema/lower.cpp
++++ b/src/sema/lower.cpp
+@@ -6261,14 +6261,15 @@ private:
+     return dst;
+   }
+ 
+-  template <typename Body>
++  template <typename Body, typename PrepareTargets>
+   uint32_t lower_comprehension_loop(
+       const ast::Expr& target_expr,
+       const ast::Expr& iterable,
+       const ast::Expr* filter,
+       bool is_async,
+       uint32_t dst,
+-      Body body) {
++      Body body,
++      PrepareTargets prepare_targets) {
+     const auto* target_name = dynamic_cast<const ast::NameExpr*>(&target_expr);
+     const bool has_single_name_target = target_name != nullptr;
+     int64_t range_start = 0;
+@@ -6301,6 +6302,12 @@ private:
+       name_aliases_[name] = hidden_name;
+     }
+ 
++    // Decide captured target storage before emitting stores or filters. A
++    // later dict-key load can otherwise fuse a plain target store before a
++    // value lambda discovers the cell. Noncapturing targets keep their
++    // existing local-store and body-fusion eligibility.
++    prepare_targets();
++
+     uint32_t single_hidden_slot = 0;
+     if (has_single_name_target) {
+       single_hidden_slot = ensure_local(name_aliases_[target_name->name]);
+@@ -6461,12 +6468,53 @@ private:
+     bool is_async = false;
+   };
+ 
+-  template <typename Body>
++  void prepare_comprehension_target_cells(
++      const std::vector<LowerCompClause>& clauses,
++      size_t index,
++      const ast::Expr& result,
++      const ast::Expr* value = nullptr) {
++    std::vector<std::string> names;
++    std::unordered_set<std::string> seen;
++    std::unordered_set<std::string> later_targets;
++    // The current iterable was already lowered in its enclosing scope.
++    // Only closure-producing expressions require target cells; ordinary
++    // target reads remain local reads and can still fuse with local stores.
++    if (clauses[index].filter != nullptr) {
++      collect_expression_captures(*clauses[index].filter, later_targets,
++                                  names, seen, false);
++    }
++    for (size_t next = index + 1; next < clauses.size(); ++next) {
++      const auto& clause = clauses[next];
++      collect_expression_captures(*clause.iterable, later_targets,
++                                  names, seen, false);
++      for (const auto& name : assignment_names(*clause.target_expr)) {
++        later_targets.insert(resolve_name(name));
++      }
++      if (clause.filter != nullptr) {
++        collect_expression_captures(*clause.filter, later_targets,
++                                    names, seen, false);
++      }
++    }
++    collect_expression_captures(result, later_targets, names, seen, false);
++    if (value != nullptr) {
++      collect_expression_captures(*value, later_targets, names, seen, false);
++    }
++    for (const auto& name : names) {
++      if (name.rfind("#comp.", 0) == 0 &&
++          hidden_locals_.find(name) != hidden_locals_.end() &&
++          locals_.find(name) != locals_.end()) {
++        ensure_cell_for_local(name);
++      }
++    }
++  }
++
++  template <typename Body, typename PrepareTargets>
+   uint32_t lower_comprehension_clauses(
+       const std::vector<LowerCompClause>& clauses,
+       size_t index,
+       uint32_t dst,
+-      Body body) {
++      Body body,
++      PrepareTargets prepare_targets) {
+     if (index >= clauses.size()) {
+       body();
+       return dst;
+@@ -6478,7 +6526,9 @@ private:
+         clause.filter,
+         clause.is_async,
+         dst,
+-        [&]() { lower_comprehension_clauses(clauses, index + 1, dst, body); });
++        [&]() { lower_comprehension_clauses(clauses, index + 1, dst,
++                                          body, prepare_targets); },
++        [&]() { prepare_targets(index); });
+   }
+ 
+   std::vector<LowerCompClause> list_comp_clauses(const ast::ListCompExpr& comp) {
+@@ -6543,6 +6593,10 @@ private:
+         clauses, 0, 0, [&]() {
+           const auto value = child_lowerer.lower_expr(*comp.result);
+           child_lowerer.emit(ir::Op::Yield, 0, value);
++        },
++        [&](size_t index) {
++          child_lowerer.prepare_comprehension_target_cells(
++              clauses, index, *comp.result);
+         });
+     module_.functions.push_back(child_lowerer.finish());
+     const uint32_t function_id = static_cast<uint32_t>(module_.functions.size() - 1);
+@@ -7014,6 +7068,9 @@ private:
+       return lower_comprehension_clauses(
+           clauses, 0, dst, [&]() {
+             emit(ir::Op::ListAppend, dst, lower_expr(*comp->result));
++          },
++          [&](size_t index) {
++            prepare_comprehension_target_cells(clauses, index, *comp->result);
+           });
+     }
+     if (auto* comp = dynamic_cast<const ast::DictCompExpr*>(&expr)) {
+@@ -7025,6 +7082,10 @@ private:
+             const auto key = lower_expr(*comp->key);
+             const auto value = lower_expr(*comp->value);
+             emit(ir::Op::DictSet, dst, key, value);
++          },
++          [&](size_t index) {
++            prepare_comprehension_target_cells(
++                clauses, index, *comp->key, comp->value.get());
+           });
+     }
+     if (auto* comp = dynamic_cast<const ast::SetCompExpr*>(&expr)) {
+@@ -7034,6 +7095,9 @@ private:
+       return lower_comprehension_clauses(
+           clauses, 0, dst, [&]() {
+             emit(ir::Op::SetAdd, dst, lower_expr(*comp->result));
++          },
++          [&](size_t index) {
++            prepare_comprehension_target_cells(clauses, index, *comp->result);
+           });
+     }
+     if (auto* comp = dynamic_cast<const ast::GeneratorExpr*>(&expr)) {
+diff --git a/src/internal/xlang3/pyc_magic.h b/src/internal/xlang3/pyc_magic.h
+index b8b90680..61dfd8c4 100644
+--- a/src/internal/xlang3/pyc_magic.h
++++ b/src/internal/xlang3/pyc_magic.h
+@@ -21,7 +21,7 @@ namespace xlang3 {
+ // Bump for changed IR encodings, marshal layouts or lowering semantics.
+ // Structurally readable source caches can still retain obsolete owner lifetimes
+ // (for example a completed synthetic class frame) after a compiler correction.
+-inline constexpr char kPycMagic[4] = {'O', 'X', '\x12', '\n'};
++inline constexpr char kPycMagic[4] = {'O', 'X', '\x13', '\n'};
+ inline constexpr std::string_view kPycMagicView{kPycMagic, sizeof(kPycMagic)};
+ 
+ } // namespace xlang3

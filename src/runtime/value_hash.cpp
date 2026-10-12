@@ -28,13 +28,43 @@ namespace xlang3 {
 
 namespace {
 
+constexpr size_t kHashNotCached = static_cast<size_t>(-1);
+
+size_t immutable_bytes_hash(const BytesObject& object) {
+  size_t hash = object.cached_hash.load(std::memory_order_relaxed);
+  if (hash != kHashNotCached) return hash;
+  hash = std::hash<std::string_view>{}(bytes_object_view(object));
+  // A real sentinel-valued bytes hash remains correct, simply uncached.
+  object.cached_hash.store(hash, std::memory_order_relaxed);
+  return hash;
+}
+
+bool intrinsic_tuple_hash_member(const Value& item) {
+  if (item.tag == ValueTag::None || item.tag == ValueTag::Bool ||
+      item.tag == ValueTag::Int64) return true;
+  if (item.tag != ValueTag::Object || item.as.obj == nullptr) return false;
+  switch (item.as.obj->kind) {
+    case ObjectKind::String:
+    case ObjectKind::Bytes:
+    case ObjectKind::BigInt:
+      return true;
+    case ObjectKind::Tuple: {
+      const auto* nested = reinterpret_cast<const TupleObject*>(item.as.obj);
+      return nested->construction_complete &&
+          nested->cached_intrinsic_hash.load(std::memory_order_relaxed) != kHashNotCached;
+    }
+    default:
+      return false;
+  }
+}
+
 struct HashBinaryView {
   const char* data = nullptr;
   size_t size = 0;
   bool readonly = true;
 };
 
-HashBinaryView hash_binary_view(const Value& value) {
+HashBinaryView hash_binary_view(const Value& value, std::string& scratch) {
   if (auto* bytes = value_as_bytes(value)) {
     const auto view = bytes_object_view(*bytes);
     return {view.data(), view.size(), true};
@@ -51,7 +81,12 @@ HashBinaryView hash_binary_view(const Value& value) {
       // Native owners can change their buffer even through a read-only view.
       return {storage.data(), storage.size(), false};
     }
-    const auto owner = hash_binary_view(memoryview->owner);
+    if (!memoryview->contiguous) {
+      std::string error;
+      if (!memoryview_copy_bytes(*memoryview, scratch, error)) return {};
+      return {scratch.data(), scratch.size(), memoryview->readonly && value_as_bytes(memoryview->owner) != nullptr};
+    }
+    const auto owner = hash_binary_view(memoryview->owner, scratch);
     if (owner.data == nullptr || memoryview->offset > owner.size || owner.size - memoryview->offset < memoryview->size) {
       return {};
     }
@@ -174,8 +209,9 @@ bool value_key_equal(const Value& lhs, const Value& rhs) {
                       lhs.flags != 0 && lhs.flags == rhs.flags);
   }
   if (is_binary_like_value(lhs) && is_binary_like_value(rhs)) {
-    const auto left = hash_binary_view(lhs);
-    const auto right = hash_binary_view(rhs);
+    std::string left_scratch, right_scratch;
+    const auto left = hash_binary_view(lhs, left_scratch);
+    const auto right = hash_binary_view(rhs, right_scratch);
     return left.data != nullptr && right.data != nullptr && left.size == right.size &&
            (left.size == 0 || std::char_traits<char>::compare(left.data, right.data, left.size) == 0);
   }
@@ -323,6 +359,14 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
         out = std::hash<const void*>{}(value.as.obj);
         return true;
       }
+      // Exact strings are immutable and cannot contain Python numeric payloads.
+      // Read their cached hash before numeric conversion: those conversions
+      // otherwise repeat four failed generic attribute lookups on every hash.
+      // String subclasses remain Instance objects on the ordinary hook path.
+      if (auto* string = value_as_string(value)) {
+        out = string_object_hash(*string);
+        return true;
+      }
       {
         if (value_int_like_hash(value, out)) {
           return true;
@@ -331,10 +375,6 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
         if (int_payload_value(value, int_payload)) {
           return value_int_like_hash(Value::int64(int_payload), out);
         }
-        if (auto* string = value_as_string(value)) {
-          out = string_object_hash(*string);
-          return true;
-        }
         std::string_view string_payload;
         if (string_payload_view(value, string_payload)) {
           out = std::hash<std::string_view>{}(string_payload);
@@ -342,7 +382,7 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
         }
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
-        out = std::hash<std::string_view>{}(bytes_object_view(*reinterpret_cast<BytesObject*>(value.as.obj)));
+        out = immutable_bytes_hash(*reinterpret_cast<BytesObject*>(value.as.obj));
         return true;
       }
       if (auto* complex = value_as_complex(value)) {
@@ -352,7 +392,8 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
         return true;
       }
       if (auto* view = value_as_memoryview(value)) {
-        const auto bytes = hash_binary_view(value);
+        std::string scratch;
+        const auto bytes = hash_binary_view(value, scratch);
         if (view->released || bytes.data == nullptr) {
           error = "operation forbidden on released memoryview object";
           return false;
@@ -366,7 +407,10 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
       }
       if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Tuple) {
         const auto* tuple = reinterpret_cast<TupleObject*>(value.as.obj);
+        const size_t cached = tuple->cached_intrinsic_hash.load(std::memory_order_relaxed);
+        if (cached != kHashNotCached) { out = cached; return true; }
         size_t hash = 0x345678ul;
+        bool intrinsic = tuple->construction_complete;
         for (const auto& item : tuple->items) {
           size_t item_hash = 0;
           if (!value_hash_key(item, item_hash, error)) {
@@ -374,8 +418,14 @@ bool value_hash_key(const Value& value, size_t& out, std::string& error) {
           }
           hash = (hash ^ item_hash) * 1000003ul;
           hash ^= tuple->items.size();
+          intrinsic = intrinsic && intrinsic_tuple_hash_member(item);
         }
         out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
+        // A fresh BPE pair participates in multiple native dict hashes. Reuse
+        // the completed immutable result without suppressing Python callbacks,
+        // caching partial builders, or retaining failures. Nested caches prove
+        // the same guard recursively, without an additional tree walk.
+        if (intrinsic) tuple->cached_intrinsic_hash.store(out, std::memory_order_relaxed);
         return true;
       }
       if (auto* alias = value_as_generic_alias(value)) {
@@ -525,14 +575,19 @@ bool runtime_value_hash_key(Runtime& runtime, const Value& value, size_t& out, s
     return true;
   }
   if (const auto* tuple = value_as_tuple(value)) {
+    const size_t cached = tuple->cached_intrinsic_hash.load(std::memory_order_relaxed);
+    if (cached != kHashNotCached) { out = cached; return true; }
     size_t hash = 0x345678ul;
+    bool intrinsic = tuple->construction_complete;
     for (const auto& item : tuple->items) {
       size_t item_hash = 0;
       if (!runtime_value_hash_key(runtime, item, item_hash, error)) return false;
       hash = (hash ^ item_hash) * 1000003ul;
       hash ^= tuple->items.size();
+      intrinsic = intrinsic && intrinsic_tuple_hash_member(item);
     }
     out = hash == static_cast<size_t>(-1) ? static_cast<size_t>(-2) : hash;
+    if (intrinsic) tuple->cached_intrinsic_hash.store(out, std::memory_order_relaxed);
     return true;
   }
   if (const auto* alias = value_as_generic_alias(value)) {

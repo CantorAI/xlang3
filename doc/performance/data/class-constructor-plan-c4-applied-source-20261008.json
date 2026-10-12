@@ -1,0 +1,2145 @@
+{
+  "status": "applied_unbuilt_unvalidated_class_plan_c4",
+  "parent_inventory": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\ordinary-canonical-slot-constructor-c3-applied-source-20261008.json",
+  "parent_inventory_sha256": "9b5d2658b17ae2ca2252cbb0153310ba7f913ea98e7d87273e458a072102703f",
+  "preserved_control": "D:\\CantorAI\\xlang3\\build-repro\\controls\\class-constructor-c3-before-persistent-plan-20261008\\preserved-release-provenance.json",
+  "preserved_control_sha256": "9c2d50b10c58a00bf476bfd4f6463c3d2a0c2acf38ac8740e7b5c82540876c39",
+  "proposal_proofs": {
+    "scratch/performance/class-canonical-slot-plan-cache-r3-proposed-20261008-provenance.json": "bd19ec037a3cb7195b1433dd4f324c18258d669299e19c2a43ffe13e7e69e85b",
+    "scratch/performance/class-canonical-slot-plan-cache-cpp-proposed-20261008-provenance.json": "e7f395156c6fca4b2fd60b94d315ca5a4d697587c45dcd7c43cc308b56626cc5"
+  },
+  "applied_targets": {
+    "src/internal/xlang3/object_model.h": "c447bcb0e388b5de946cc293264187eabd2e2fcb58b5cd5283fc126141d44434",
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "6f55ac1d215797d169e4760fd81ef0185c329a4f7f1a45cc0c878a8e0f226556",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "a84f771ff95698f27c5536bb8ce81d5de6f5c21c80c705f3933b5c13a2c35069",
+    "tests/cpp/ordinary_canonical_slot_constructor_cases.h": "61ef47dd60f865f0d910f3aaa5f8514100e48f6fa7784d91ec6560623e846ae5"
+  },
+  "source_count": 106,
+  "source_sha256": {
+    "CMakeLists.txt": "29126ab0246dd89f091b61c33bfa9edd463f4b5b8d81fa5b0129a1c1f890b855",
+    "modules/sqlite/sqlite_handles.cpp": "a644d98065c47395df4cc81600edfbb2ddf5e9c6820521e2a2eb402c979f484f",
+    "modules/sqlite/sqlite_handles.h": "50d4ece32eb3d0aa2a6a5e73ab903a9c8d09e390fcba5b049d2351d2eac64b0b",
+    "modules/sqlite/sqlite_package.cpp": "034e5d03cd2b911a893126d8909e6c9605608701d05baba3e2cd0c8bd2e62c3d",
+    "modules/sqlite/sqlite_values.cpp": "c691c90ba6b7a43c12bce47dfef75101b22b76732303a196ac30b9d6ad3533dc",
+    "sdk/xlang3/abi/xmodule.h": "248b22fecb08af7367dae4cd151e343db46e6f90aba44b6c552e22c91858440c",
+    "src/builtins/builtins.cpp": "135c805d32dd03b8740b08c1833bee09fa5d91d88b2bc4ea4fe2704bd184cb19",
+    "src/builtins/functional_builtins.cpp": "db0d23b44327ea6ca09d55c6e9351fd75e99cc187b3e0a10a0c7df1b86bddfc3",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h": "e9ef84b3936ab301d33de6ab5236b486ad0ded16db62cba44d96f04980b3ab57",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": "599604510360af33cdc1ba9fcbf65dd6f1971e3540449680aec8b5320928e30a",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "a84f771ff95698f27c5536bb8ce81d5de6f5c21c80c705f3933b5c13a2c35069",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_fused.h": "b309a2ab1d0cae05e0798f6ae534955df8af546f4e75c830f34b6c3a4a586105",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_import_raw.h": "44e642d4887558699ae46e51df7ea249dfe7b142ef0b8f826cb134c8243d5671",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_variables.h": "76b3c926a5f8e4b1e76a5946e57c4f6eb78db81d8f03f7acc023c3baa124e22e",
+    "src/executor/xlang_vm/xlang_frame.h": "c144ecfa382778c73b9f4ad3a34a2644dae080afdcde307855cd961623400ff2",
+    "src/executor/xlang_vm/xlang_interpreter.cpp": "f309acf74a45f5d212d97f0f0b51b65ed7ff9b86a56bbbdf0ae5047125341ab8",
+    "src/executor/xlang_vm/xlang_vm_attr.cpp": "9633377725d293f8e206ec8bc1c554ef6333ce6c05c3ecfe92c8281cec89934c",
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "6f55ac1d215797d169e4760fd81ef0185c329a4f7f1a45cc0c878a8e0f226556",
+    "src/executor/xlang_vm/xlang_vm_inline_support.h": "e7443366a917f5ac98c6df3f83dbf695287c56ee0f2be89b34fbe2c73334d86f",
+    "src/executor/xlang_vm/xlang_vm_loop.cpp": "edf6c52d37cc85990a1cfd995b769786773e13bdf70bc8908bd52d3d803da30d",
+    "src/executor/xlang_vm/xlang_vm_op_rows.h": "76b4c9d8116088e5e6487a24307b7b9fb90ed97322337ffaf39030fae349f08f",
+    "src/import/native_package_loader.cpp": "eb34eb4d10a4c72e39cec20dab602cb54f1d6ea427c5af5702f6be226acc3d6b",
+    "src/internal/xlang3/builtin_methods.h": "b0663650474d8d117b10ed3e459e9137d0b3424cc9d76d872e53957cbb8e1477",
+    "src/internal/xlang3/builtins.h": "1d2f392d18d62c35635e39cbf887c9bcf0cc422f4bd163beeb3036083122402b",
+    "src/internal/xlang3/functional_iterators.h": "cb25729f3bbc39911f68c46892d8e903a63c6a925ec412c42779a57758921886",
+    "src/internal/xlang3/interpreter.h": "d16f9cdcca9fc26ba33d8e4a0889ffe00f338fe6be9fb218223a2c0d67ad9bef",
+    "src/internal/xlang3/ir.h": "b6417aea98ee8169aa551d849492fd2dfdfca6300a6b491fe7cce85c3242f064",
+    "src/internal/xlang3/module_object.h": "8b5da9ea5eea7cf55b1aec8f1d413866d1405ca5aad08257d50f071c23a29fd2",
+    "src/internal/xlang3/object_model.h": "c447bcb0e388b5de946cc293264187eabd2e2fcb58b5cd5283fc126141d44434",
+    "src/internal/xlang3/perf_counters.h": "5db542b24a9959e1513cbe1c80d6ae15148d8612c6edf0a88f74dc07464e4c22",
+    "src/internal/xlang3/pyc_magic.h": "2f45558470b77def716afce97a195f642b6064a63d445c56ae76e0ee80400cc5",
+    "src/internal/xlang3/runtime.h": "4fa330fcee0c6c3b89e51c19be729bda0d321352f12fc40cc828ee5448ee8940",
+    "src/internal/xlang3/sequence.h": "1e91d40281adc32966a130b35720288b8d0b29bd7196bb506f8f401b685783df",
+    "src/internal/xlang3/value.h": "b3b88f529eb86acc117ccf5fbf61ac44e6572a96189d60389d1c6728c9bf75b1",
+    "src/ir/codec.cpp": "6726f090de59651f7570007c130e2b7129fac3a2133f67905c374d841f9da384",
+    "src/ir/dump.cpp": "f21ba927c25f7c1d272b18840694635e1883849cb07f6d45653045659ba08039",
+    "src/runtime/exceptions.cpp": "d5c13f7126a415d7b297ddb9f27052ddd35feb6595976654ba6bf017410f5dde",
+    "src/runtime/functional_iterators.cpp": "4a038c4b5152b87f8fa4d8d83a0f4961b069b8731cd99a4245c74ee5eee21e2e",
+    "src/runtime/methods/dict_methods.cpp": "9241c105d298a226273a7fae2e66b1bd1cd816656f57bf478240050c25b56135",
+    "src/runtime/module_object.cpp": "ff2a6d0bff9d76f47a0d13c09c8927bcc554c9e1cb3ce5abc583f1aa67069da3",
+    "src/runtime/modules/system/bisect_module.cpp": "e8b6497918f6a4dc1675b7197fdc376ccffc0d3465a917108ac306a34ad73396",
+    "src/runtime/modules/system/heapq_module.cpp": "0f6cbf97cd5f0065f22206232bc01b09ae8cf65b5bc1d35f71196933c330771c",
+    "src/runtime/modules/thread/runtime_lock.h": "80a5cf02f658c6217ec6586a38f35b3163faea361b24d79f4d22cdfbe97e6fb2",
+    "src/runtime/object_model.cpp": "10806dd37498170b7172f469ca44d190698f85c0a6adb2bed104053df1c0fedc",
+    "src/runtime/runtime.cpp": "67b6383867234d092f479512feb80da9387b3a8c5280701ae87cca77947a9af9",
+    "src/runtime/sequence.cpp": "934c24e1afc3be755ce7bb01abc499fbec566460f406f361b660eb33c942c093",
+    "src/runtime/value_hash.cpp": "aeb9abb4697569a3b28485000337e31d21f2cd9227dbf2ea0e76e2e125d439ed",
+    "src/sema/lower.cpp": "12aae5ef15a98288aa359112ee8a6bd64f0213a228a3b11132849fad0f62fb04",
+    "tests/cpp/class_method_annotation_capture_cases.h": "ee63338ba3376b55caa7f1a0648b4e4017736cd7699b9d5b555acafe4dc49edf",
+    "tests/cpp/dict_get_exception_cases.h": "2a0f52867dd2c5f0bfae7dfa30e132fb2724611426522af26b9047c4a665365a",
+    "tests/cpp/exception_loop_owner_cases.h": "f623aee1a95b231dc1f36c7ed5d426c1baa4c1a8da97f753c0318c6054ee3cb0",
+    "tests/cpp/hash_exception_cases.h": "3eba7cbdb81eaed2893ab62f8ce94636c0441f2614d4ba145abd639fa4a0a06d",
+    "tests/cpp/heapq_native_cases.h": "6970f40e26ed0662dbc346f3758d086cd4e8769b33f3037a6beb4d0e93ad1aa7",
+    "tests/cpp/identity_last_use_cases.h": "d719e470cd684456945fd7dfc9ebd0954905227aff346ad2764185280143b28c",
+    "tests/cpp/inherited_call_ex_constructor_cases.h": "6cbddb58280a365625b28b744a9435a5b160635553b250abb1fa3a2b6a2256ce",
+    "tests/cpp/interpreter_tests.cpp": "59bdb1c2e85079d28ad7359ebdc3b0e76c0c56bf3880e79c8da6384418b2d172",
+    "tests/cpp/native_bound_zero_args_cases.h": "ef1c0aa7cfb9dcf67b498c619eadd99b2e8c383f0c82e4abb63f83faf3484e7c",
+    "tests/cpp/observable_builtin_method_cases.h": "dab30cb33fdb48c82e692d6c24d344a721f306d4a175bda0b08b5f9b46e879b0",
+    "tests/cpp/ordinary_canonical_slot_constructor_cases.h": "61ef47dd60f865f0d910f3aaa5f8514100e48f6fa7784d91ec6560623e846ae5",
+    "tests/cpp/scoped_sorted_key_cases.h": "08460b4fb51d8310290a28ecbc80de76c542d537fdc88f0a5d28bb81bc02f92a",
+    "tests/cpp/sqlite_aggregate_abi_cases.h": "424debac1951802dba2619736f4d935502ad261cc82bc13247beb27adac69f0a",
+    "tests/cpp/sqlite_aggregate_sdk_probe.py": "318c0a6e64b6c1cbb4f4a6cfa2b49b6186d271ae4bbfc09e04109d606649bc18",
+    "tests/cpp/sqlite_statement_cache_cases.h": "fa803233a0d696403caf72206e3881ee61bceca790d4c667b4bcf0f5219cc99c",
+    "tests/cpp/sqlite_statement_cache_sdk_probe.py": "d78547e5953db054226c234554d753bacc35d64ab6a95d0de7cd0de647567f78",
+    "tests/fixtures/core/call_ex_cross_activation_constructor.py": "d8452cf7a3e41224da778807a550fd34ccaf32978fe65e329fab31a10a9ba91d",
+    "tests/fixtures/core/call_method_dict_cache_touch.py": "28ee6d59dfcec67f582032c9316410dbcb904ecf9b4d30e26ed63c2cb1cf285e",
+    "tests/fixtures/core/class_method_annotation_capture.py": "68de96b73c5a6f3bb4e89110a840d1298533be05fd3f8d95452a6f72bfcc9bac",
+    "tests/fixtures/core/class_namespace_lifetime.py": "8c629e931a5da3aafc544a0e869d16ffc711b78cf4177f42e7ab90e4a539cecb",
+    "tests/fixtures/core/dict_get_exception_preservation.py": "8d623ccfd69a48c50911802cb12be5883860534de9a0ff9dcd61e41a4c9fe9d1",
+    "tests/fixtures/core/explicit_slot_descriptor_fallback.py": "96a4b1e491898e0e9e86ffcf737c2a3abc93fc30702aa56262d5e8f2242a6041",
+    "tests/fixtures/core/hash_exception_preservation.py": "f7378cf25ff91efe12773b7ad5aa5c45038a4d5ab7e7e957f90f6ec088aae150",
+    "tests/fixtures/core/identity_last_use.py": "59bf91eacb4d738d7a7ccfdf2590fa79670192bc6410a5775121345c77550cb4",
+    "tests/fixtures/core/inherited_call_ex_constructor.py": "9f428778c97b8e5f06d61f92f59992cc2af5f774f0084a09102ba4ae7028cd53",
+    "tests/fixtures/core/native_bound_zero_args.py": "b4441c1fa0d8708624f35c41051bb0d5f207c26bd87c812a78543e0a0032c0aa",
+    "tests/fixtures/core/nested_profile_setting.py": "9b2e6a38dc339115de0d0399f9fcf1fb8b22cd792bf270d480d42a7a8c8320bf",
+    "tests/fixtures/core/ordinary_canonical_slot_constructor.py": "66ccda4fb3380583d5a1dcae8757ebce278b59a066b7c2f80940af230b6d0acf",
+    "tests/fixtures/core/slot_descriptor_owner.py": "e060d66788862b0a7afc7112d5d41d128a78f54a053532f00a578d0fadeea916",
+    "tests/fixtures/core/sorted_key_iteration_owner.py": "420f8350b3a52f07a94dd7fc8fe8e6a62504a6fa993d19417f009b02106d93f1",
+    "tests/fixtures/core/sorted_key_nested_handled_context.py": "b07f57cd7d8017bd0c9e316aa61d2b53c417d5c7a21ebd32bd14c72e545d5766",
+    "tests/fixtures/core/sorted_key_scoped_entry.py": "ccf3922036d85af6f2c654c29046c924b993cb3c1be2b0d65e23fe5fe24f6f26",
+    "tests/fixtures/core/sqlite_cursor_completion.py": "3d3f6071911c60a54a3dbed4a6da8062a0fe76e92c83d6e7a92cb94fa84c80d6",
+    "tests/fixtures/core/sqlite_native_aggregate.py": "5e8b444a8f47eae17d597bbea7455f0b8301102ffe89c016b76fde1474a9a650",
+    "tests/fixtures/core/sqlite_statement_cache.py": "d2ec917ab11e9c4f1e672bd0eef60c2aaa7400160cd6b6fb76ca6e151d2b3701",
+    "tests/fixtures/core/synchronous_class_argument_lifetime.py": "03e9da6a612c5e4a254c5038a3e97fb84bd4337061e61eb8544b0f50e3962064",
+    "tests/fixtures/expected/call_ex_cross_activation_constructor.out": "a9ec0e8783675a5839540e4cbf487135bad454ee4ee401232d2b1b728b329ee4",
+    "tests/fixtures/expected/call_method_dict_cache_touch.out": "133d1022bee101d755b1d15a43bc9c8b50d6ac6662ffc02d2460cc8999c51579",
+    "tests/fixtures/expected/class_method_annotation_capture.out": "9972c9b1f2fdd09e7da86211ed0c751857535d88d5106902199e7980a2073ce1",
+    "tests/fixtures/expected/class_namespace_lifetime.out": "f35e2622dc23c9544ee4dc5c0777c54e4eca16e15fcc0edc822958afa6488f33",
+    "tests/fixtures/expected/dict_get_exception_preservation.out": "8f88f8a96b888d18937e8162af2601c9b51527b9166a251289f0588b35cfd16b",
+    "tests/fixtures/expected/explicit_slot_descriptor_fallback.out": "e483778822db8a0e110d63a34d1bbb64857637f248f0ea18adfcbd8c2b8be06b",
+    "tests/fixtures/expected/hash_exception_preservation.out": "d6b626f45bea180d87ae227099885d951f70f580a03bd5254a45c42b6379e859",
+    "tests/fixtures/expected/identity_last_use.out": "be5a71bfe8c5071242d0acf992e8fa4d63515d12c09c28c70d9cff3b0c043d6d",
+    "tests/fixtures/expected/inherited_call_ex_constructor.out": "eb2186fa5c6258c92fae1d4eeee7efa43492e4a1a5f7ab5e93bb889539bf011b",
+    "tests/fixtures/expected/native_bound_zero_args.out": "742ffaebccdfe0fce29673e9b31ad5885e3f592dcfe2c172c57498bbd2d18e84",
+    "tests/fixtures/expected/nested_profile_setting.out": "01ecf4bf1a5a75774e1c2fc10d7c7a969ad0d75af58304f5ee37e9b74bcae532",
+    "tests/fixtures/expected/ordinary_canonical_slot_constructor.out": "570277a5c4866c36f62677059de54e72132b6df9224b48cb60647e2e9e9e3399",
+    "tests/fixtures/expected/slot_descriptor_owner.out": "0b5d7a5e4ccd67dbf8f20901de7eba17406c1a2db074ede56c07c8c825e9fe99",
+    "tests/fixtures/expected/sorted_key_iteration_owner.out": "ec9d5bcd9dd1fa03ecab990d1e8e48a3d573e938328ba8cf13629219217f2a64",
+    "tests/fixtures/expected/sorted_key_nested_handled_context.out": "92ca4b59af1fa87ef558a34cc96baebbb62cdaaaaac5e97b3d52d4ab88e0967f",
+    "tests/fixtures/expected/sorted_key_scoped_entry.out": "ba8f18a40977207425881487b5ccde27f432cb5d75a1bde14fc14be9c8798d31",
+    "tests/fixtures/expected/sqlite_cursor_completion.out": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6",
+    "tests/fixtures/expected/sqlite_native_aggregate.out": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba",
+    "tests/fixtures/expected/sqlite_statement_cache.out": "9173c9f0a5076af30186351c98fd8c080903c31a9361c1b77823e3cbe492fd65",
+    "tests/fixtures/expected/synchronous_class_argument_lifetime.out": "401358caef97a64d7bc97fc415106d9deffd14266138f1d7aa1246cbe5d4bfcd",
+    "tests/run_fixtures.ps1": "7b01b301392eb50ddaff00ffbf5b6c4bee2bb2a38f034fb42b6c5a8e44cc123c",
+    "tests/run_fixtures.py": "4278b1ca027354cc6efb107d37cca4d0cf3e84008d34dd7f8701162c3a1ed884"
+  },
+  "runtime_execution": false,
+  "performance_validated": false,
+  "pre_edit_process_observations": [
+    {
+      "Name": "System Idle Process",
+      "ProcessId": 0,
+      "CommandLine": null
+    },
+    {
+      "Name": "System",
+      "ProcessId": 4,
+      "CommandLine": null
+    },
+    {
+      "Name": "Secure System",
+      "ProcessId": 284,
+      "CommandLine": null
+    },
+    {
+      "Name": "Registry",
+      "ProcessId": 328,
+      "CommandLine": null
+    },
+    {
+      "Name": "smss.exe",
+      "ProcessId": 968,
+      "CommandLine": null
+    },
+    {
+      "Name": "csrss.exe",
+      "ProcessId": 1576,
+      "CommandLine": null
+    },
+    {
+      "Name": "wininit.exe",
+      "ProcessId": 1684,
+      "CommandLine": null
+    },
+    {
+      "Name": "csrss.exe",
+      "ProcessId": 1692,
+      "CommandLine": null
+    },
+    {
+      "Name": "services.exe",
+      "ProcessId": 1760,
+      "CommandLine": null
+    },
+    {
+      "Name": "LsaIso.exe",
+      "ProcessId": 1780,
+      "CommandLine": null
+    },
+    {
+      "Name": "lsass.exe",
+      "ProcessId": 1788,
+      "CommandLine": null
+    },
+    {
+      "Name": "winlogon.exe",
+      "ProcessId": 1840,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2000,
+      "CommandLine": null
+    },
+    {
+      "Name": "fontdrvhost.exe",
+      "ProcessId": 2032,
+      "CommandLine": null
+    },
+    {
+      "Name": "fontdrvhost.exe",
+      "ProcessId": 2040,
+      "CommandLine": null
+    },
+    {
+      "Name": "WUDFHost.exe",
+      "ProcessId": 8,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 1556,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2056,
+      "CommandLine": null
+    },
+    {
+      "Name": "dwm.exe",
+      "ProcessId": 2148,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2220,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2236,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2288,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2344,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2352,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2492,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2520,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2636,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2648,
+      "CommandLine": null
+    },
+    {
+      "Name": "IntelCpHDCPSvc.exe",
+      "ProcessId": 2672,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2680,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2772,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2792,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2880,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2052,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 3236,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 3244,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 3320,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 3424,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 3528,
+      "CommandLine": null
+    },
+    {
+      "Name": "vmms.exe",
+      "ProcessId": 3556,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 3636,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 3676,
+      "CommandLine": null
+    },
+    {
+      "Name": "NVDisplay.Container.exe",
+      "ProcessId": 3744,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 3780,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 3836,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 3856,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 3908,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 3956,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 3964,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 3972,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 4068,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 4076,
+      "CommandLine": null
+    },
+    {
+      "Name": "Memory Compression",
+      "ProcessId": 4036,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 4240,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 4272,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 4324,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 4432,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 4472,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 4480,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 4708,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 4760,
+      "CommandLine": null
+    },
+    {
+      "Name": "spoolsv.exe",
+      "ProcessId": 4876,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 4988,
+      "CommandLine": null
+    },
+    {
+      "Name": "vmcompute.exe",
+      "ProcessId": 5016,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 5052,
+      "CommandLine": null
+    },
+    {
+      "Name": "NgcIso.exe",
+      "ProcessId": 5092,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 5148,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 5168,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 5200,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 5208,
+      "CommandLine": null
+    },
+    {
+      "Name": "OneApp.IGCC.WinService.exe",
+      "ProcessId": 5220,
+      "CommandLine": null
+    },
+    {
+      "Name": "ELANFPService.exe",
+      "ProcessId": 5240,
+      "CommandLine": null
+    },
+    {
+      "Name": "IntelAudioService.exe",
+      "ProcessId": 5276,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 5292,
+      "CommandLine": null
+    },
+    {
+      "Name": "nvcontainer.exe",
+      "ProcessId": 5308,
+      "CommandLine": null
+    },
+    {
+      "Name": "RtkAudUService64.exe",
+      "ProcessId": 5316,
+      "CommandLine": null
+    },
+    {
+      "Name": "RstMwService.exe",
+      "ProcessId": 5324,
+      "CommandLine": null
+    },
+    {
+      "Name": "jhi_service.exe",
+      "ProcessId": 5332,
+      "CommandLine": null
+    },
+    {
+      "Name": "WMIRegistrationService.exe",
+      "ProcessId": 5340,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 5348,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 5356,
+      "CommandLine": null
+    },
+    {
+      "Name": "sqlwriter.exe",
+      "ProcessId": 5368,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 5376,
+      "CommandLine": null
+    },
+    {
+      "Name": "sshd.exe",
+      "ProcessId": 5384,
+      "CommandLine": null
+    },
+    {
+      "Name": "OfficeClickToRun.exe",
+      "ProcessId": 5396,
+      "CommandLine": null
+    },
+    {
+      "Name": "KillerAnalyticsService.exe",
+      "ProcessId": 5404,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 5420,
+      "CommandLine": null
+    },
+    {
+      "Name": "MsMpEng.exe",
+      "ProcessId": 5428,
+      "CommandLine": null
+    },
+    {
+      "Name": "wslservice.exe",
+      "ProcessId": 5436,
+      "CommandLine": null
+    },
+    {
+      "Name": "ipfsvc.exe",
+      "ProcessId": 5444,
+      "CommandLine": null
+    },
+    {
+      "Name": "MpDefenderCoreService.exe",
+      "ProcessId": 5456,
+      "CommandLine": null
+    },
+    {
+      "Name": "zerotier-one_x64.exe",
+      "ProcessId": 5464,
+      "CommandLine": null
+    },
+    {
+      "Name": "ipf_uf.exe",
+      "ProcessId": 5872,
+      "CommandLine": null
+    },
+    {
+      "Name": "xTendUtilityService.exe",
+      "ProcessId": 6060,
+      "CommandLine": null
+    },
+    {
+      "Name": "KillerNetworkService.exe",
+      "ProcessId": 6232,
+      "CommandLine": null
+    },
+    {
+      "Name": "NVDisplay.Container.exe",
+      "ProcessId": 6960,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 6796,
+      "CommandLine": null
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 6572,
+      "CommandLine": null
+    },
+    {
+      "Name": "xTendUtility.exe",
+      "ProcessId": 7288,
+      "CommandLine": null
+    },
+    {
+      "Name": "AggregatorHost.exe",
+      "ProcessId": 7484,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 8084,
+      "CommandLine": null
+    },
+    {
+      "Name": "KNDBWMService.exe",
+      "ProcessId": 7820,
+      "CommandLine": null
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 8304,
+      "CommandLine": null
+    },
+    {
+      "Name": "KNDBWM.exe",
+      "ProcessId": 8348,
+      "CommandLine": null
+    },
+    {
+      "Name": "DefenderSessionHelper.exe",
+      "ProcessId": 8432,
+      "CommandLine": "\"C:\\ProgramData\\Microsoft\\Windows Defender\\Platform\\4.18.26080.4-0\\DefenderSessionHelper.exe\""
+    },
+    {
+      "Name": "KAPSService.exe",
+      "ProcessId": 8856,
+      "CommandLine": null
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 8924,
+      "CommandLine": null
+    },
+    {
+      "Name": "KAPS.exe",
+      "ProcessId": 9000,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 8748,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 8700,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 8688,
+      "CommandLine": null
+    },
+    {
+      "Name": "wlanext.exe",
+      "ProcessId": 9160,
+      "CommandLine": null
+    },
+    {
+      "Name": "sihost.exe",
+      "ProcessId": 9264,
+      "CommandLine": "sihost.exe"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 9316,
+      "CommandLine": "C:\\WINDOWS\\system32\\svchost.exe -k UnistackSvcGroup -s CDPUserSvc"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 9324,
+      "CommandLine": "C:\\WINDOWS\\system32\\svchost.exe -k BthAppGroup -p -s BluetoothUserService"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 9404,
+      "CommandLine": "C:\\WINDOWS\\system32\\svchost.exe -k LocalSystemNetworkRestricted -p -s webthreatdefusersvc"
+    },
+    {
+      "Name": "WUDFHost.exe",
+      "ProcessId": 9452,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 9516,
+      "CommandLine": "C:\\WINDOWS\\system32\\svchost.exe -k UnistackSvcGroup -s WpnUserService"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 9608,
+      "CommandLine": null
+    },
+    {
+      "Name": "taskhostw.exe",
+      "ProcessId": 9620,
+      "CommandLine": "taskhostw.exe {222A245B-E637-4AE9-A93F-A59CA119A75E}"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 9724,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 9500,
+      "CommandLine": null
+    },
+    {
+      "Name": "WUDFHost.exe",
+      "ProcessId": 7424,
+      "CommandLine": null
+    },
+    {
+      "Name": "explorer.exe",
+      "ProcessId": 10132,
+      "CommandLine": "C:\\WINDOWS\\Explorer.EXE"
+    },
+    {
+      "Name": "dasHost.exe",
+      "ProcessId": 9904,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 9968,
+      "CommandLine": null
+    },
+    {
+      "Name": "CrossDeviceResume.exe",
+      "ProcessId": 10388,
+      "CommandLine": "\"C:\\WINDOWS\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\CrossDeviceResume.exe\" /tileid MicrosoftWindows.Client.CBS_cw5n1h2txyewy!CrossDeviceResumeApp"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 10516,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 10824,
+      "CommandLine": null
+    },
+    {
+      "Name": "WUDFHost.exe",
+      "ProcessId": 10832,
+      "CommandLine": null
+    },
+    {
+      "Name": "CrossDeviceService.exe",
+      "ProcessId": 10904,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\MicrosoftWindows.CrossDevice_1.26072.116.0_x64__cw5n1h2txyewy\\CrossDeviceService.exe\" -RegisterProcessAsComServer -Embedding"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 11068,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 11124,
+      "CommandLine": null
+    },
+    {
+      "Name": "dasHost.exe",
+      "ProcessId": 11228,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 11244,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 10916,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 11956,
+      "CommandLine": "C:\\WINDOWS\\system32\\svchost.exe -k ClipboardSvcGroup -p -s cbdhsvc"
+    },
+    {
+      "Name": "WmiPrvSE.exe",
+      "ProcessId": 12060,
+      "CommandLine": null
+    },
+    {
+      "Name": "nvcontainer.exe",
+      "ProcessId": 12088,
+      "CommandLine": null
+    },
+    {
+      "Name": "nvcontainer.exe",
+      "ProcessId": 12152,
+      "CommandLine": "\"C:\\Program Files\\NVIDIA Corporation\\NvContainer\\nvcontainer.exe\" -f \"C:\\ProgramData\\NVIDIA Corporation\\NVIDIA App\\NvContainer\\NvContainerUser%dSPUser.log\" -d \"C:\\Program Files\\NVIDIA Corporation\\NvContainer\\plugins\\SPUser\" -r -l 3 -p 30000 -st \"C:\\Program Files\\NVIDIA Corporation\\NvContainer\\NvContainerTelemetryApi.dll\" -c"
+    },
+    {
+      "Name": "nvcontainer.exe",
+      "ProcessId": 12204,
+      "CommandLine": "\"C:\\Program Files\\NVIDIA Corporation\\NvContainer\\nvcontainer.exe\" -f \"C:\\ProgramData\\NVIDIA Corporation\\NVIDIA App\\NvContainer\\NvContainerUser%d.log\" -d \"C:\\Program Files\\NVIDIA Corporation\\NvContainer\\plugins\\User\" -r -l 3 -p 30000   -c"
+    },
+    {
+      "Name": "RtkAudUService64.exe",
+      "ProcessId": 6872,
+      "CommandLine": null
+    },
+    {
+      "Name": "unsecapp.exe",
+      "ProcessId": 12460,
+      "CommandLine": null
+    },
+    {
+      "Name": "StartMenuExperienceHost.exe",
+      "ProcessId": 12708,
+      "CommandLine": "\"C:\\WINDOWS\\SystemApps\\Microsoft.Windows.StartMenuExperienceHost_cw5n1h2txyewy\\StartMenuExperienceHost.exe\" -ServerName:FullTrustApp.AppXykjsye98af63ez2annt9djke8trg8stn.mca"
+    },
+    {
+      "Name": "WidgetBoard.exe",
+      "ProcessId": 13000,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\MicrosoftWindows.Client.WebExperience_526.21100.40.0_x64__cw5n1h2txyewy\\WidgetBoard.exe\" -RegisterProcessAsComServer -ServerName:Microsoft.Windows.WidgetBoardServer"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 13196,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 13204,
+      "CommandLine": null
+    },
+    {
+      "Name": "RuntimeBroker.exe",
+      "ProcessId": 12804,
+      "CommandLine": "C:\\Windows\\System32\\RuntimeBroker.exe -Embedding"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 13032,
+      "CommandLine": "C:\\WINDOWS\\system32\\svchost.exe -k UdkSvcGroup -s UdkUserSvc"
+    },
+    {
+      "Name": "RuntimeBroker.exe",
+      "ProcessId": 13452,
+      "CommandLine": "C:\\Windows\\System32\\RuntimeBroker.exe -Embedding"
+    },
+    {
+      "Name": "WidgetService.exe",
+      "ProcessId": 13696,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\Microsoft.WidgetsPlatformRuntime_1.6.19.0_x64__8wekyb3d8bbwe\\WidgetService\\WidgetService.exe\" -RegisterProcessAsComServer -Embedding"
+    },
+    {
+      "Name": "SearchIndexer.exe",
+      "ProcessId": 14460,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 15024,
+      "CommandLine": null
+    },
+    {
+      "Name": "MicrosoftStartFeedProvider.exe",
+      "ProcessId": 15172,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\Microsoft.StartExperiencesApp_1.380.2.0_x64__8wekyb3d8bbwe\\MicrosoftStartFeedProvider\\MicrosoftStartFeedProvider.exe\" -Embedding"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 15488,
+      "CommandLine": null
+    },
+    {
+      "Name": "NisSrv.exe",
+      "ProcessId": 15764,
+      "CommandLine": null
+    },
+    {
+      "Name": "nvsphelper64.exe",
+      "ProcessId": 13364,
+      "CommandLine": null
+    },
+    {
+      "Name": "ctfmon.exe",
+      "ProcessId": 16756,
+      "CommandLine": null
+    },
+    {
+      "Name": "ChsIME.exe",
+      "ProcessId": 16288,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 18196,
+      "CommandLine": null
+    },
+    {
+      "Name": "SecurityHealthSystray.exe",
+      "ProcessId": 10684,
+      "CommandLine": "\"C:\\Windows\\System32\\SecurityHealthSystray.exe\" "
+    },
+    {
+      "Name": "SecurityHealthService.exe",
+      "ProcessId": 17880,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 14216,
+      "CommandLine": null
+    },
+    {
+      "Name": "TextInputHost.exe",
+      "ProcessId": 7564,
+      "CommandLine": "\"C:\\WINDOWS\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\TextInputHost.exe\" -ServerName:InputApp.AppXk0k6mrh4r2q0ct33a9wgbez0x7v9cz5y.mca"
+    },
+    {
+      "Name": "RtkAudUService64.exe",
+      "ProcessId": 6560,
+      "CommandLine": "\"C:\\Windows\\System32\\DriverStore\\FileRepository\\realtekservice.inf_amd64_9b2689b4e3586127\\RtkAudUService64.exe\" -background"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 6952,
+      "CommandLine": "C:\\WINDOWS\\system32\\svchost.exe -k LocalService -p -s NPSMSvc"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 18480,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 18580,
+      "CommandLine": "C:\\WINDOWS\\system32\\svchost.exe -k DevicesFlow -s DevicesFlowUserSvc"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 18824,
+      "CommandLine": null
+    },
+    {
+      "Name": "OneDrive.exe",
+      "ProcessId": 19104,
+      "CommandLine": "\"C:\\Program Files\\Microsoft OneDrive\\OneDrive.exe\" /background"
+    },
+    {
+      "Name": "FileSyncHelper.exe",
+      "ProcessId": 15728,
+      "CommandLine": null
+    },
+    {
+      "Name": "SearchHost.exe",
+      "ProcessId": 18348,
+      "CommandLine": "\"C:\\WINDOWS\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\SearchHost.exe\" -ServerName:CortanaUI.AppXstmwaab17q5s3y22tp6apqz7a45vwv65.mca"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 15288,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --embedded-browser-webview=1 --webview-exe-name=SearchHost.exe --webview-exe-version=2607.28006.200.0 --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\" --noerrdialogs --disable-features=msSmartScreenProtection --edge-webview-enable-mojo-ipcz --enable-features=msEdgeFluentOverlayScrollbar --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; Cortana 1.18.9.23723; 10.0.0.0.26200.9457) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.26200 IsWebView2/True (WebView2Version 154.0.4258.53)\" --lang=en-US --mojo-named-platform-channel-pipe=18348.15132.8301218952469856578 /pfhostedapp:ea6471d41df512cede43b0ad6dc21a9af7af010e"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 8508,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=crashpad-handler --user-data-dir=C:\\Users\\shaw9\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView /prefetch:4 /pfhostedapp:ea6471d41df512cede43b0ad6dc21a9af7af010e --monitor-self-annotation=ptype=crashpad-handler --database=C:\\Users\\shaw9\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\\Crashpad --metrics-dir=C:\\Users\\shaw9\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView --annotation=IsOfficialBuild=1 --annotation=channel= --annotation=chromium-version=154.0.8037.93 \"--annotation=exe=C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --annotation=plat=Win64 \"--annotation=prod=Edge WebView2\" --annotation=ver=154.0.4258.53 --initial-client-data=0x170,0x174,0x178,0x14c,0x180,0x7ffcea2783e0,0x7ffcea2783f0,0x7ffcea278400"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 17484,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=en-US --service-sandbox-type=none --noerrdialogs --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; Cortana 1.18.9.23723; 10.0.0.0.26200.9457) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.26200 IsWebView2/True (WebView2Version 154.0.4258.53)\" --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\" --webview-exe-name=SearchHost.exe --webview-exe-version=2607.28006.200.0 --embedded-browser-webview=1 --always-read-main-dll --metrics-shmem-handle=1700,i,12317737978615932176,555677468320364307,524288 --field-trial-handle=2148,i,12367808066668464795,1764452720548096726,262144 --enable-features=msEdgeFluentOverlayScrollbar --disable-features=msSmartScreenProtection --variations-seed-version --pseudonymization-salt-handle=2144,i,142243267389742631,9229014958729396980,4 --trace-process-track-uuid=3190708989122997041 --mojo-platform-channel-handle=2284 /prefetch:11 /pfhostedapp:ea6471d41df512cede43b0ad6dc21a9af7af010e"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 12972,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=gpu-process --gpu-recent-crash-count=0 --noerrdialogs --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; Cortana 1.18.9.23723; 10.0.0.0.26200.9457) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.26200 IsWebView2/True (WebView2Version 154.0.4258.53)\" --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\" --webview-exe-name=SearchHost.exe --webview-exe-version=2607.28006.200.0 --embedded-browser-webview=1 --gpu-preferences=WAAAAAAAAADgAAAEAAAAAAAAAAAAAGAAQAAAAAAAAAADAAAAAAAAADgAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAKAAAAAAAAAAoAAAAAAAAAAgAAAAAAAAAEAAAAAIAAAABAAAAAAAAAAgAAAAAAAAACAAAAAAAAAA= --always-read-main-dll --metrics-shmem-handle=1936,i,18341630350297806614,5575947435947778391,262144 --field-trial-handle=2148,i,12367808066668464795,1764452720548096726,262144 --enable-features=msEdgeFluentOverlayScrollbar --disable-features=msSmartScreenProtection --variations-seed-version --pseudonymization-salt-handle=2144,i,142243267389742631,9229014958729396980,4 --trace-process-track-uuid=3190708988185955192 --mojo-platform-channel-handle=2132 /prefetch:2 /pfhostedapp:ea6471d41df512cede43b0ad6dc21a9af7af010e"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 13924,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=en-US --service-sandbox-type=service --noerrdialogs --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; Cortana 1.18.9.23723; 10.0.0.0.26200.9457) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.26200 IsWebView2/True (WebView2Version 154.0.4258.53)\" --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\" --webview-exe-name=SearchHost.exe --webview-exe-version=2607.28006.200.0 --embedded-browser-webview=1 --always-read-main-dll --metrics-shmem-handle=2632,i,4679860597221541697,8574985103757176030,524288 --field-trial-handle=2148,i,12367808066668464795,1764452720548096726,262144 --enable-features=msEdgeFluentOverlayScrollbar --disable-features=msSmartScreenProtection --variations-seed-version --pseudonymization-salt-handle=2144,i,142243267389742631,9229014958729396980,4 --trace-process-track-uuid=3190708990060038890 --mojo-platform-channel-handle=2644 /prefetch:13 /pfhostedapp:ea6471d41df512cede43b0ad6dc21a9af7af010e"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 15508,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-agent=\"Mozilla/5.0 (Windows NT 10.0; Win64; x64; Cortana 1.18.9.23723; 10.0.0.0.26200.9457) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/70.0.3538.102 Safari/537.36 Edge/18.26200 IsWebView2/True (WebView2Version 154.0.4258.53)\" --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\LocalState\\EBWebView\" --webview-exe-name=SearchHost.exe --webview-exe-version=2607.28006.200.0 --embedded-browser-webview=1 --video-capture-use-gpu-memory-buffer --lang=en-US --js-flags --device-scale-factor=2 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=5 --always-read-main-dll --launch-time-ticks=44362809 --metrics-shmem-handle=3704,i,4004409932859154227,1524659767208017246,1048576 --field-trial-handle=2148,i,12367808066668464795,1764452720548096726,262144 --enable-features=msEdgeFluentOverlayScrollbar --disable-features=msSmartScreenProtection --variations-seed-version --pseudonymization-salt-handle=2144,i,142243267389742631,9229014958729396980,4 --trace-process-track-uuid=3190708990997080739 --mojo-platform-channel-handle=4104 /pfhostedapp:ea6471d41df512cede43b0ad6dc21a9af7af010e /prefetch:1"
+    },
+    {
+      "Name": "OneDrive.Sync.Service.exe",
+      "ProcessId": 18572,
+      "CommandLine": "\"C:\\Program Files\\Microsoft OneDrive\\26.173.0906.0008\\OneDrive.Sync.Service.exe\" "
+    },
+    {
+      "Name": "ms-teams.exe",
+      "ProcessId": 20164,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\Microsoft\\WindowsApps\\MSTeams_8wekyb3d8bbwe\\ms-teams.exe\" msteams:system-initiated"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 19464,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --embedded-browser-webview=1 --webview-exe-name=ms-teams.exe --webview-exe-version=26246.1604.5133.838 --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\MSTeams_8wekyb3d8bbwe\\LocalCache\\Microsoft\\MSTeams\\EBWebView\" --noerrdialogs --embedded-browser-webview-dpi-awareness=2 --autoplay-policy=no-user-gesture-required --disable-background-timer-throttling --disable-features=msEnhancedTrackingPreventionEnabled,BreakoutBoxPreferCaptureTimestampInVideoFrames,UseTerminationStatusMemoryExhaustion,msWebOOUI,BlockCrossPartitionBlobUrlFetching --enable-blink-features=IndexedDbGetAllRecords --enable-features=msSingleSignOnOSForPrimaryAccountIsShared,SharedArrayBuffer,AutofillReplaceCachedWebElementsByRendererIds,msWebView2TerminateServiceWorkerWhenIdleIgnoringCdpSessions,msWebView2SetUserAgentOverrideOnIframes,PreferredAudioOutputDevices,DocumentPolicyIncludeJSCallStacksInCrashReports,RendererHangWatcher:delay/13s,msPageInteractionManagerWebview2,UnresponsiveMultipleStackCollection:delay/0.1s/count/5,PartitionedCookies,ThirdPartyStoragePartitioning,msWebView2TextureStream,msWebView2EnableDraggableRegions,msWebView2GranularProcessFailedReason,msAbydos,msAbydosHandwritingAttr,msAbydosGestureSupport --gpu-watchdog-timeout-seconds=15 --isolate-origins=https://[*.]microsoft.com,https://[*.]sharepoint.com,https://[*.]sharepointonline.com,https://mesh-hearts-teams.azurewebsites.net,https://[*.]meshxp.net,https://res-sdf.cdn.office.net,https://res.cdn.office.net,https://copilot.teams.cloud.microsoft,https://local.copilot.teams.office.com,https://m365copilotchat.svc.cloud.microsoft,https://m365copilotapp.svc.cloud.microsoft --js-flags=\"--scavenger_max_new_space_capacity_mb=8 --stack-trace-limit=50\" --lang=en-US --mojo-named-platform-channel-pipe=20164.19516.16576155326097687914 /pfhostedapp:f18c5dbcf7e8160a0c1121d0510fc37c7214ddc1"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 19492,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=crashpad-handler --user-data-dir=C:\\Users\\shaw9\\AppData\\Local\\Packages\\MSTeams_8wekyb3d8bbwe\\LocalCache\\Microsoft\\MSTeams\\EBWebView /prefetch:4 /pfhostedapp:f18c5dbcf7e8160a0c1121d0510fc37c7214ddc1 --monitor-self-annotation=ptype=crashpad-handler --database=C:\\Users\\shaw9\\AppData\\Local\\Packages\\MSTeams_8wekyb3d8bbwe\\LocalCache\\Microsoft\\MSTeams\\EBWebView\\Crashpad --metrics-dir=C:\\Users\\shaw9\\AppData\\Local\\Packages\\MSTeams_8wekyb3d8bbwe\\LocalCache\\Microsoft\\MSTeams\\EBWebView --annotation=IsOfficialBuild=1 --annotation=channel= --annotation=chromium-version=154.0.8037.93 \"--annotation=exe=C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --annotation=plat=Win64 \"--annotation=prod=Edge WebView2\" --annotation=ver=154.0.4258.53 --initial-client-data=0x174,0x178,0x17c,0x150,0x184,0x7ffcea2783e0,0x7ffcea2783f0,0x7ffcea278400"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 19812,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=gpu-process --gpu-recent-crash-count=0 --gpu-watchdog-timeout-seconds=15 --noerrdialogs --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\MSTeams_8wekyb3d8bbwe\\LocalCache\\Microsoft\\MSTeams\\EBWebView\" --webview-exe-name=ms-teams.exe --webview-exe-version=26246.1604.5133.838 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --gpu-preferences=WAAAAAAAAADgAAAEAAAAAAAAAAAAAGAAQAAAAAAAAAADAAAAAAAAADgAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAKAAAAAAAAAAoAAAAAAAAAAgAAAAAAAAAEAAAAAIAAAABAAAAAAAAAAgAAAAAAAAACAAAAAAAAAA= --startup-read-main-dll --metrics-shmem-handle=1860,i,2745990313920299560,10130859183185629282,262144 --field-trial-handle=1972,i,18171131457799471391,7174256276562605900,262144 --enable-features=AutofillReplaceCachedWebElementsByRendererIds,DocumentPolicyIncludeJSCallStacksInCrashReports,PartitionedCookies,PreferredAudioOutputDevices,SharedArrayBuffer,ThirdPartyStoragePartitioning,msAbydos,msAbydosGestureSupport,msAbydosHandwritingAttr,msPageInteractionManagerWebview2,msSingleSignOnOSForPrimaryAccountIsShared,msWebView2EnableDraggableRegions,msWebView2GranularProcessFailedReason,msWebView2SetUserAgentOverrideOnIframes,msWebView2TerminateServiceWorkerWhenIdleIgnoringCdpSessions,msWebView2TextureStream --disable-features=BlockCrossPartitionBlobUrlFetching,BreakoutBoxPreferCaptureTimestampInVideoFrames,UseTerminationStatusMemoryExhaustion,msEnhancedTrackingPreventionEnabled,msWebOOUI --variations-seed-version --pseudonymization-salt-handle=1976,i,7428011030976341140,12598351986065313382,4 --trace-process-track-uuid=3190708988185955192 --mojo-platform-channel-handle=1960 /prefetch:2 /pfhostedapp:f18c5dbcf7e8160a0c1121d0510fc37c7214ddc1"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 19844,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=en-US --service-sandbox-type=none --noerrdialogs --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\MSTeams_8wekyb3d8bbwe\\LocalCache\\Microsoft\\MSTeams\\EBWebView\" --webview-exe-name=ms-teams.exe --webview-exe-version=26246.1604.5133.838 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --startup-read-main-dll --metrics-shmem-handle=412,i,15729242939579277079,2152655040822021360,524288 --field-trial-handle=1972,i,18171131457799471391,7174256276562605900,262144 --enable-features=AutofillReplaceCachedWebElementsByRendererIds,DocumentPolicyIncludeJSCallStacksInCrashReports,PartitionedCookies,PreferredAudioOutputDevices,SharedArrayBuffer,ThirdPartyStoragePartitioning,msAbydos,msAbydosGestureSupport,msAbydosHandwritingAttr,msPageInteractionManagerWebview2,msSingleSignOnOSForPrimaryAccountIsShared,msWebView2EnableDraggableRegions,msWebView2GranularProcessFailedReason,msWebView2SetUserAgentOverrideOnIframes,msWebView2TerminateServiceWorkerWhenIdleIgnoringCdpSessions,msWebView2TextureStream --disable-features=BlockCrossPartitionBlobUrlFetching,BreakoutBoxPreferCaptureTimestampInVideoFrames,UseTerminationStatusMemoryExhaustion,msEnhancedTrackingPreventionEnabled,msWebOOUI --variations-seed-version --pseudonymization-salt-handle=1976,i,7428011030976341140,12598351986065313382,4 --trace-process-track-uuid=3190708989122997041 --mojo-platform-channel-handle=2208 /prefetch:11 /pfhostedapp:f18c5dbcf7e8160a0c1121d0510fc37c7214ddc1"
+    },
+    {
+      "Name": "RuntimeBroker.exe",
+      "ProcessId": 19868,
+      "CommandLine": "C:\\Windows\\System32\\RuntimeBroker.exe -Embedding"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 9956,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=en-US --service-sandbox-type=service --noerrdialogs --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\MSTeams_8wekyb3d8bbwe\\LocalCache\\Microsoft\\MSTeams\\EBWebView\" --webview-exe-name=ms-teams.exe --webview-exe-version=26246.1604.5133.838 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --startup-read-main-dll --metrics-shmem-handle=2596,i,15281088282943796411,1821328548650016473,524288 --field-trial-handle=1972,i,18171131457799471391,7174256276562605900,262144 --enable-features=AutofillReplaceCachedWebElementsByRendererIds,DocumentPolicyIncludeJSCallStacksInCrashReports,PartitionedCookies,PreferredAudioOutputDevices,SharedArrayBuffer,ThirdPartyStoragePartitioning,msAbydos,msAbydosGestureSupport,msAbydosHandwritingAttr,msPageInteractionManagerWebview2,msSingleSignOnOSForPrimaryAccountIsShared,msWebView2EnableDraggableRegions,msWebView2GranularProcessFailedReason,msWebView2SetUserAgentOverrideOnIframes,msWebView2TerminateServiceWorkerWhenIdleIgnoringCdpSessions,msWebView2TextureStream --disable-features=BlockCrossPartitionBlobUrlFetching,BreakoutBoxPreferCaptureTimestampInVideoFrames,UseTerminationStatusMemoryExhaustion,msEnhancedTrackingPreventionEnabled,msWebOOUI --variations-seed-version --pseudonymization-salt-handle=1976,i,7428011030976341140,12598351986065313382,4 --trace-process-track-uuid=3190708990060038890 --mojo-platform-channel-handle=2612 /prefetch:13 /pfhostedapp:f18c5dbcf7e8160a0c1121d0510fc37c7214ddc1"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 20576,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\MSTeams_8wekyb3d8bbwe\\LocalCache\\Microsoft\\MSTeams\\EBWebView\" --webview-exe-name=ms-teams.exe --webview-exe-version=26246.1604.5133.838 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --autoplay-policy=no-user-gesture-required --disable-background-timer-throttling --enable-blink-features=IndexedDbGetAllRecords --video-capture-use-gpu-memory-buffer --lang=en-US --device-scale-factor=2 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=6 --js-flags=\"--scavenger_max_new_space_capacity_mb=8 --stack-trace-limit=50 --ms-user-locale=en-US\" --skip-read-main-dll --launch-time-ticks=53570947 --metrics-shmem-handle=5108,i,14188704645826001483,11179726946520602592,1048576 --field-trial-handle=1972,i,18171131457799471391,7174256276562605900,262144 --enable-features=AutofillReplaceCachedWebElementsByRendererIds,DocumentPolicyIncludeJSCallStacksInCrashReports,PartitionedCookies,PreferredAudioOutputDevices,SharedArrayBuffer,ThirdPartyStoragePartitioning,msAbydos,msAbydosGestureSupport,msAbydosHandwritingAttr,msPageInteractionManagerWebview2,msSingleSignOnOSForPrimaryAccountIsShared,msWebView2EnableDraggableRegions,msWebView2GranularProcessFailedReason,msWebView2SetUserAgentOverrideOnIframes,msWebView2TerminateServiceWorkerWhenIdleIgnoringCdpSessions,msWebView2TextureStream --disable-features=BlockCrossPartitionBlobUrlFetching,BreakoutBoxPreferCaptureTimestampInVideoFrames,UseTerminationStatusMemoryExhaustion,msEnhancedTrackingPreventionEnabled,msWebOOUI --variations-seed-version --pseudonymization-salt-handle=1976,i,7428011030976341140,12598351986065313382,4 --trace-process-track-uuid=3190708991934122588 --mojo-platform-channel-handle=5084 /pfhostedapp:f18c5dbcf7e8160a0c1121d0510fc37c7214ddc1 /prefetch:1"
+    },
+    {
+      "Name": "ms-teams.exe",
+      "ProcessId": 20708,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\MSTeams_26246.1604.5133.838_x64__8wekyb3d8bbwe\\ms-teams.exe\" --process_type=native_module --cloud_type=tfw --module_name=SlimCore --native_msg_channel=366fdc73-9fb3-47d5-83f2-cb5455681498_nm_SlimCore_c --session_id=226cacea-436e-4bcd-a591-ff8cae61e0bd \"\" \"\" \"\" /prefetch:1"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 21292,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\MSTeams_8wekyb3d8bbwe\\LocalCache\\Microsoft\\MSTeams\\EBWebView\" --webview-exe-name=ms-teams.exe --webview-exe-version=26246.1604.5133.838 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --autoplay-policy=no-user-gesture-required --disable-background-timer-throttling --enable-blink-features=IndexedDbGetAllRecords --video-capture-use-gpu-memory-buffer --lang=en-US --device-scale-factor=2 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=7 --js-flags=\"--scavenger_max_new_space_capacity_mb=8 --stack-trace-limit=50 --ms-user-locale=en-US\" --skip-read-main-dll --launch-time-ticks=56164078 --metrics-shmem-handle=6472,i,13839474371988449465,7976349057387260010,1048576 --field-trial-handle=1972,i,18171131457799471391,7174256276562605900,262144 --enable-features=AutofillReplaceCachedWebElementsByRendererIds,DocumentPolicyIncludeJSCallStacksInCrashReports,PartitionedCookies,PreferredAudioOutputDevices,SharedArrayBuffer,ThirdPartyStoragePartitioning,msAbydos,msAbydosGestureSupport,msAbydosHandwritingAttr,msPageInteractionManagerWebview2,msSingleSignOnOSForPrimaryAccountIsShared,msWebView2EnableDraggableRegions,msWebView2GranularProcessFailedReason,msWebView2SetUserAgentOverrideOnIframes,msWebView2TerminateServiceWorkerWhenIdleIgnoringCdpSessions,msWebView2TextureStream --disable-features=BlockCrossPartitionBlobUrlFetching,BreakoutBoxPreferCaptureTimestampInVideoFrames,UseTerminationStatusMemoryExhaustion,msEnhancedTrackingPreventionEnabled,msWebOOUI --variations-seed-version --pseudonymization-salt-handle=1976,i,7428011030976341140,12598351986065313382,4 --trace-process-track-uuid=3190708992871164437 --mojo-platform-channel-handle=6384 /pfhostedapp:f18c5dbcf7e8160a0c1121d0510fc37c7214ddc1 /prefetch:1"
+    },
+    {
+      "Name": "ms-teams.exe",
+      "ProcessId": 21412,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\MSTeams_26246.1604.5133.838_x64__8wekyb3d8bbwe\\ms-teams.exe\" --process_type=native_module --cloud_type=tfl --module_name=SlimCore --native_msg_channel=16c2188c-da4f-430d-8c74-17bdb39445ac_nm_SlimCore_c --session_id=226cacea-436e-4bcd-a591-ff8cae61e0bd \"\" \"\" \"\" /prefetch:1"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 4220,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=utility --utility-sub-type=audio.mojom.AudioService --lang=en-US --service-sandbox-type=audio --video-capture-use-gpu-memory-buffer --noerrdialogs --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\MSTeams_8wekyb3d8bbwe\\LocalCache\\Microsoft\\MSTeams\\EBWebView\" --webview-exe-name=ms-teams.exe --webview-exe-version=26246.1604.5133.838 --embedded-browser-webview=1 --embedded-browser-webview-dpi-awareness=2 --skip-read-main-dll --metrics-shmem-handle=6820,i,4420033680742557997,15774530637783206161,524288 --field-trial-handle=1972,i,18171131457799471391,7174256276562605900,262144 --enable-features=AutofillReplaceCachedWebElementsByRendererIds,DocumentPolicyIncludeJSCallStacksInCrashReports,PartitionedCookies,PreferredAudioOutputDevices,SharedArrayBuffer,ThirdPartyStoragePartitioning,msAbydos,msAbydosGestureSupport,msAbydosHandwritingAttr,msPageInteractionManagerWebview2,msSingleSignOnOSForPrimaryAccountIsShared,msWebView2EnableDraggableRegions,msWebView2GranularProcessFailedReason,msWebView2SetUserAgentOverrideOnIframes,msWebView2TerminateServiceWorkerWhenIdleIgnoringCdpSessions,msWebView2TextureStream --disable-features=BlockCrossPartitionBlobUrlFetching,BreakoutBoxPreferCaptureTimestampInVideoFrames,UseTerminationStatusMemoryExhaustion,msEnhancedTrackingPreventionEnabled,msWebOOUI --variations-seed-version --pseudonymization-salt-handle=1976,i,7428011030976341140,12598351986065313382,4 --trace-process-track-uuid=3190708993808206286 --mojo-platform-channel-handle=6856 /prefetch:12 /pfhostedapp:f18c5dbcf7e8160a0c1121d0510fc37c7214ddc1"
+    },
+    {
+      "Name": "WebexHost.exe",
+      "ProcessId": 22124,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\WebEx\\WebexHost.exe\" /daemon /runFrom=autorun"
+    },
+    {
+      "Name": "LinkedIn.exe",
+      "ProcessId": 1136,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\7EE7776C.LinkedInforWindows_3.0.43.0_x64__w1wdnht996qgy\\LinkedIn.exe\" "
+    },
+    {
+      "Name": "RuntimeBroker.exe",
+      "ProcessId": 21972,
+      "CommandLine": "C:\\Windows\\System32\\RuntimeBroker.exe -Embedding"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 21020,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --embedded-browser-webview=1 --webview-exe-name=LinkedIn.exe --webview-exe-version=0.1.0-dule-release-v3-0-43.185+ab5f575e5fdaa2cf4987b1a474e49b54dc2d6b68 --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\7EE7776C.LinkedInforWindows_w1wdnht996qgy\\LocalState\\EBWebView\" --noerrdialogs --lang=en --mojo-named-platform-channel-pipe=1136.21008.10956463520873023727 /pfhostedapp:89cabdcb25ef0e1c79b6e8bef594a53c2beb1e02"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 19708,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=crashpad-handler --user-data-dir=C:\\Users\\shaw9\\AppData\\Local\\Packages\\7EE7776C.LinkedInforWindows_w1wdnht996qgy\\LocalState\\EBWebView /prefetch:4 /pfhostedapp:89cabdcb25ef0e1c79b6e8bef594a53c2beb1e02 --monitor-self-annotation=ptype=crashpad-handler --database=C:\\Users\\shaw9\\AppData\\Local\\Packages\\7EE7776C.LinkedInforWindows_w1wdnht996qgy\\LocalState\\EBWebView\\Crashpad --metrics-dir=C:\\Users\\shaw9\\AppData\\Local\\Packages\\7EE7776C.LinkedInforWindows_w1wdnht996qgy\\LocalState\\EBWebView --annotation=IsOfficialBuild=1 --annotation=channel= --annotation=chromium-version=154.0.8037.93 \"--annotation=exe=C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --annotation=plat=Win64 \"--annotation=prod=Edge WebView2\" --annotation=ver=154.0.4258.53 --initial-client-data=0x174,0x178,0x17c,0x150,0x184,0x7ffcea2783e0,0x7ffcea2783f0,0x7ffcea278400"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 22600,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=gpu-process --gpu-recent-crash-count=0 --noerrdialogs --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\7EE7776C.LinkedInforWindows_w1wdnht996qgy\\LocalState\\EBWebView\" --webview-exe-name=LinkedIn.exe --webview-exe-version=0.1.0-dule-release-v3-0-43.185+ab5f575e5fdaa2cf4987b1a474e49b54dc2d6b68 --embedded-browser-webview=1 --gpu-preferences=WAAAAAAAAADgAAAEAAAAAAAAAAAAAGAAQAAAAAAAAAADAAAAAAAAADgAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAKAAAAAAAAAAoAAAAAAAAAAgAAAAAAAAAEAAAAAIAAAABAAAAAAAAAAgAAAAAAAAACAAAAAAAAAA= --startup-read-main-dll --metrics-shmem-handle=1840,i,13268385853664566462,11936955270688557310,262144 --field-trial-handle=1968,i,15533402556586975784,9994698116603892587,262144 --variations-seed-version --pseudonymization-salt-handle=1980,i,16058571402521178836,10524133080291678104,4 --trace-process-track-uuid=3190708988185955192 --mojo-platform-channel-handle=1964 /prefetch:2 /pfhostedapp:89cabdcb25ef0e1c79b6e8bef594a53c2beb1e02"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 22608,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=en-US --service-sandbox-type=none --noerrdialogs --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\7EE7776C.LinkedInforWindows_w1wdnht996qgy\\LocalState\\EBWebView\" --webview-exe-name=LinkedIn.exe --webview-exe-version=0.1.0-dule-release-v3-0-43.185+ab5f575e5fdaa2cf4987b1a474e49b54dc2d6b68 --embedded-browser-webview=1 --startup-read-main-dll --metrics-shmem-handle=2192,i,7794524506057350926,1122959538920061486,524288 --field-trial-handle=1968,i,15533402556586975784,9994698116603892587,262144 --variations-seed-version --pseudonymization-salt-handle=1980,i,16058571402521178836,10524133080291678104,4 --trace-process-track-uuid=3190708989122997041 --mojo-platform-channel-handle=2080 /prefetch:11 /pfhostedapp:89cabdcb25ef0e1c79b6e8bef594a53c2beb1e02"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 22680,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=en-US --service-sandbox-type=service --noerrdialogs --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\7EE7776C.LinkedInforWindows_w1wdnht996qgy\\LocalState\\EBWebView\" --webview-exe-name=LinkedIn.exe --webview-exe-version=0.1.0-dule-release-v3-0-43.185+ab5f575e5fdaa2cf4987b1a474e49b54dc2d6b68 --embedded-browser-webview=1 --startup-read-main-dll --metrics-shmem-handle=2572,i,17068192561699028419,10468317186028053398,524288 --field-trial-handle=1968,i,15533402556586975784,9994698116603892587,262144 --variations-seed-version --pseudonymization-salt-handle=1980,i,16058571402521178836,10524133080291678104,4 --trace-process-track-uuid=3190708990060038890 --mojo-platform-channel-handle=2592 /prefetch:13 /pfhostedapp:89cabdcb25ef0e1c79b6e8bef594a53c2beb1e02"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 22848,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\7EE7776C.LinkedInforWindows_w1wdnht996qgy\\LocalState\\EBWebView\" --webview-exe-name=LinkedIn.exe --webview-exe-version=0.1.0-dule-release-v3-0-43.185+ab5f575e5fdaa2cf4987b1a474e49b54dc2d6b68 --embedded-browser-webview=1 --video-capture-use-gpu-memory-buffer --lang=en-US --js-flags --device-scale-factor=2 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=5 --ssd-no-pressure-read-main-dll --launch-time-ticks=66525791 --metrics-shmem-handle=4188,i,12600414800572525260,7190324380795770860,1048576 --field-trial-handle=1968,i,15533402556586975784,9994698116603892587,262144 --variations-seed-version --pseudonymization-salt-handle=1980,i,16058571402521178836,10524133080291678104,4 --trace-process-track-uuid=3190708990997080739 --mojo-platform-channel-handle=4156 /pfhostedapp:89cabdcb25ef0e1c79b6e8bef594a53c2beb1e02 /prefetch:1"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 23128,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=utility --utility-sub-type=audio.mojom.AudioService --lang=en-US --service-sandbox-type=audio --video-capture-use-gpu-memory-buffer --noerrdialogs --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\7EE7776C.LinkedInforWindows_w1wdnht996qgy\\LocalState\\EBWebView\" --webview-exe-name=LinkedIn.exe --webview-exe-version=0.1.0-dule-release-v3-0-43.185+ab5f575e5fdaa2cf4987b1a474e49b54dc2d6b68 --embedded-browser-webview=1 --skip-read-main-dll --metrics-shmem-handle=5532,i,1924895631854786911,14059781458515480645,524288 --field-trial-handle=1968,i,15533402556586975784,9994698116603892587,262144 --variations-seed-version --pseudonymization-salt-handle=1980,i,16058571402521178836,10524133080291678104,4 --trace-process-track-uuid=3190708991934122588 --mojo-platform-channel-handle=5508 /prefetch:12 /pfhostedapp:89cabdcb25ef0e1c79b6e8bef594a53c2beb1e02"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 23240,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\7EE7776C.LinkedInforWindows_w1wdnht996qgy\\LocalState\\EBWebView\" --webview-exe-name=LinkedIn.exe --webview-exe-version=0.1.0-dule-release-v3-0-43.185+ab5f575e5fdaa2cf4987b1a474e49b54dc2d6b68 --embedded-browser-webview=1 --video-capture-use-gpu-memory-buffer --lang=en-US --js-flags --device-scale-factor=2 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=9 --skip-read-main-dll --launch-time-ticks=67282946 --metrics-shmem-handle=5792,i,9442581383921053918,13053665906583031266,1048576 --field-trial-handle=1968,i,15533402556586975784,9994698116603892587,262144 --variations-seed-version --pseudonymization-salt-handle=1980,i,16058571402521178836,10524133080291678104,4 --trace-process-track-uuid=3190708994745248135 --mojo-platform-channel-handle=5684 /pfhostedapp:89cabdcb25ef0e1c79b6e8bef594a53c2beb1e02 /prefetch:1"
+    },
+    {
+      "Name": "msedgewebview2.exe",
+      "ProcessId": 23444,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\EdgeWebView\\Application\\154.0.4258.53\\msedgewebview2.exe\" --type=renderer --noerrdialogs --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\Packages\\7EE7776C.LinkedInforWindows_w1wdnht996qgy\\LocalState\\EBWebView\" --webview-exe-name=LinkedIn.exe --webview-exe-version=0.1.0-dule-release-v3-0-43.185+ab5f575e5fdaa2cf4987b1a474e49b54dc2d6b68 --embedded-browser-webview=1 --video-capture-use-gpu-memory-buffer --lang=en-US --js-flags --device-scale-factor=2 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=11 --skip-read-main-dll --launch-time-ticks=67670202 --metrics-shmem-handle=6152,i,11576143371377822019,11140303774041114895,1048576 --field-trial-handle=1968,i,15533402556586975784,9994698116603892587,262144 --variations-seed-version --pseudonymization-salt-handle=1980,i,16058571402521178836,10524133080291678104,4 --trace-process-track-uuid=3190708996619331833 --mojo-platform-channel-handle=6180 /pfhostedapp:89cabdcb25ef0e1c79b6e8bef594a53c2beb1e02 /prefetch:1"
+    },
+    {
+      "Name": "csrss.exe",
+      "ProcessId": 23236,
+      "CommandLine": null
+    },
+    {
+      "Name": "winlogon.exe",
+      "ProcessId": 18684,
+      "CommandLine": null
+    },
+    {
+      "Name": "fontdrvhost.exe",
+      "ProcessId": 19528,
+      "CommandLine": null
+    },
+    {
+      "Name": "LogonUI.exe",
+      "ProcessId": 7864,
+      "CommandLine": null
+    },
+    {
+      "Name": "dwm.exe",
+      "ProcessId": 11168,
+      "CommandLine": null
+    },
+    {
+      "Name": "NVDisplay.Container.exe",
+      "ProcessId": 14800,
+      "CommandLine": null
+    },
+    {
+      "Name": "nvcontainer.exe",
+      "ProcessId": 14416,
+      "CommandLine": null
+    },
+    {
+      "Name": "rdpclip.exe",
+      "ProcessId": 23652,
+      "CommandLine": "rdpclip"
+    },
+    {
+      "Name": "NVIDIA Overlay.exe",
+      "ProcessId": 24076,
+      "CommandLine": "\"C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\CEF\\NVIDIA Overlay.exe\""
+    },
+    {
+      "Name": "NVIDIA Overlay.exe",
+      "ProcessId": 10624,
+      "CommandLine": "\"C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\CEF\\NVIDIA Overlay.exe\" --type=gpu-process --no-sandbox --start-stack-profiler --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\NVIDIA Corporation\\NVIDIA Overlay\\CefCache\" --gpu-preferences=UAAAAAAAAADgAQAMAAAAAAAAAAAAAAAAAABgAAEAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABAAAAAAAAAAEAAAAAAAAAAIAAAAAAAAAAgAAAAAAAAA --field-trial-handle=2540,i,1476277534738231355,2157104215041764560,262144 --variations-seed-version --enable-logging=handle --log-file=2552 --mojo-platform-channel-handle=2536 /prefetch:2"
+    },
+    {
+      "Name": "NVIDIA Overlay.exe",
+      "ProcessId": 23064,
+      "CommandLine": "\"C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\CEF\\NVIDIA Overlay.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=en-US --service-sandbox-type=none --no-sandbox --start-stack-profiler --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\NVIDIA Corporation\\NVIDIA Overlay\\CefCache\" --field-trial-handle=2516,i,1476277534738231355,2157104215041764560,262144 --variations-seed-version --enable-logging=handle --log-file=2748 --mojo-platform-channel-handle=1992 /prefetch:11"
+    },
+    {
+      "Name": "NVIDIA Overlay.exe",
+      "ProcessId": 14788,
+      "CommandLine": "\"C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\CEF\\NVIDIA Overlay.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=en-US --service-sandbox-type=service --no-sandbox --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\NVIDIA Corporation\\NVIDIA Overlay\\CefCache\" --field-trial-handle=2824,i,1476277534738231355,2157104215041764560,262144 --variations-seed-version --enable-logging=handle --log-file=2840 --mojo-platform-channel-handle=2836 /prefetch:13"
+    },
+    {
+      "Name": "NVIDIA Overlay.exe",
+      "ProcessId": 23672,
+      "CommandLine": "\"C:\\Program Files\\NVIDIA Corporation\\NVIDIA App\\CEF\\NVIDIA Overlay.exe\" --type=renderer --enable-dinosaur-easter-egg-alt-images --user-data-dir=\"C:\\Users\\shaw9\\AppData\\Local\\NVIDIA Corporation\\NVIDIA Overlay\\CefCache\" --no-sandbox --video-capture-use-gpu-memory-buffer --lang=en-US --device-scale-factor=1.5 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=5 --time-ticks-at-unix-epoch=-1791220870853658 --launch-time-ticks=83613285 --field-trial-handle=4228,i,1476277534738231355,2157104215041764560,262144 --variations-seed-version --enable-logging=handle --log-file=4200 --mojo-platform-channel-handle=4196 /prefetch:1"
+    },
+    {
+      "Name": "AppActions.exe",
+      "ProcessId": 17264,
+      "CommandLine": "\"C:\\WINDOWS\\SystemApps\\MicrosoftWindows.Client.CBS_cw5n1h2txyewy\\AppActions.exe\" -Embedding"
+    },
+    {
+      "Name": "ChatGPT.exe",
+      "ProcessId": 18792,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.930.4958.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" "
+    },
+    {
+      "Name": "ChatGPT.exe",
+      "ProcessId": 17112,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.930.4958.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=crashpad-handler --user-data-dir=C:\\Users\\shaw9\\AppData\\Roaming\\Codex\\web\\Codex /prefetch:4 --monitor-self-annotation=ptype=crashpad-handler --database=C:\\Users\\shaw9\\AppData\\Roaming\\Codex\\web\\Codex\\Crashpad --annotation=plat=Win64 --annotation=prod=Codex --annotation=ver=154.0.8037.98 --initial-client-data=0x11c,0x120,0x124,0xf8,0x128,0x7ffcc06c9490,0x7ffcc06c94a0,0x7ffcc06c94b0"
+    },
+    {
+      "Name": "ChatGPT.exe",
+      "ProcessId": 1508,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.930.4958.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=gpu-process --gpu-recent-crash-count=0 --no-pre-read-main-dll --start-stack-profiler --gpu-preferences=WAAAAAAAAADgAAAEAAAAAAAAAAAAAGAAQAAAAAAAAAADAAAAAAAAADgAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAKAAAAAAAAAAoAAAAAAAAAAgAAAAAAAAAEAAAAAIAAAABAAAAAAAAAAgAAAAAAAAACAAAAAAAAAA= --metrics-shmem-handle=2148,i,8286028062126176880,14229112697866289502,262144 --field-trial-handle=2344,i,11196722011239701827,14184635829523821976,262144 --enable-features=DevToolsWebMCPSupport,DocumentPolicyIncludeJSCallStacksInCrashReports,ReportStuckThrottle --disable-features=DropInputEventsWhilePaintHolding,WebUIOmniboxAimPopup,WebUIOmniboxPopup --variations-seed-version --pseudonymization-salt-handle=2348,i,14767076066069056732,16350837676332617947,4 --trace-process-track-uuid=3190708988185955192 --mojo-platform-channel-handle=2336 /prefetch:2"
+    },
+    {
+      "Name": "ChatGPT.exe",
+      "ProcessId": 13672,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.930.4958.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=en-US --service-sandbox-type=none --owl-scoped-user-agent-additional-hosts=openai.com,chatgpt.com,chatgpt.site,chatgpt-team.site --owl-scoped-user-agent-prefix=CodexBrowser --standard-schemes=app,codex-sandbox --service-worker-schemes=codex-sandbox --secure-schemes=app,codex-sandbox --fetch-schemes=app,codex-sandbox --cors-schemes=codex-sandbox --streaming-schemes=app,codex-sandbox --no-pre-read-main-dll --start-stack-profiler --metrics-shmem-handle=2464,i,5018598386014131870,5431700463594613681,524288 --field-trial-handle=2344,i,11196722011239701827,14184635829523821976,262144 --enable-features=DevToolsWebMCPSupport,DocumentPolicyIncludeJSCallStacksInCrashReports,ReportStuckThrottle --disable-features=DropInputEventsWhilePaintHolding,WebUIOmniboxAimPopup,WebUIOmniboxPopup --variations-seed-version --pseudonymization-salt-handle=2348,i,14767076066069056732,16350837676332617947,4 --trace-process-track-uuid=3190708989122997041 --mojo-platform-channel-handle=2472 /prefetch:11"
+    },
+    {
+      "Name": "ChatGPT.exe",
+      "ProcessId": 15384,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.930.4958.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=en-US --service-sandbox-type=service --standard-schemes=app,codex-sandbox --service-worker-schemes=codex-sandbox --secure-schemes=app,codex-sandbox --fetch-schemes=app,codex-sandbox --cors-schemes=codex-sandbox --streaming-schemes=app,codex-sandbox --no-pre-read-main-dll --metrics-shmem-handle=2748,i,2685839808941383135,1545042049760211316,524288 --field-trial-handle=2344,i,11196722011239701827,14184635829523821976,262144 --enable-features=DevToolsWebMCPSupport,DocumentPolicyIncludeJSCallStacksInCrashReports,ReportStuckThrottle --disable-features=DropInputEventsWhilePaintHolding,WebUIOmniboxAimPopup,WebUIOmniboxPopup --variations-seed-version --pseudonymization-salt-handle=2348,i,14767076066069056732,16350837676332617947,4 --trace-process-track-uuid=3190708990060038890 --mojo-platform-channel-handle=2760 /prefetch:13"
+    },
+    {
+      "Name": "ChatGPT.exe",
+      "ProcessId": 14004,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.930.4958.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=renderer --standard-schemes=app,codex-sandbox --service-worker-schemes=codex-sandbox --secure-schemes=app,codex-sandbox --fetch-schemes=app,codex-sandbox --cors-schemes=codex-sandbox --streaming-schemes=app,codex-sandbox --owl-scoped-user-agent-additional-hosts=openai.com,chatgpt.com,chatgpt.site,chatgpt-team.site --owl-scoped-user-agent-prefix=CodexBrowser --no-pre-read-main-dll --enable-blink-features=WebMCP --disable-blink-features=ReplacedNormalFlowStackingInlinePaint --video-capture-use-gpu-memory-buffer --lang=en-US --device-scale-factor=1.5 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=7 --launch-time-ticks=126252646 --metrics-shmem-handle=5888,i,3129619936990595857,9836510122930930647,1572864 --field-trial-handle=2344,i,11196722011239701827,14184635829523821976,262144 --enable-features=DevToolsWebMCPSupport,DocumentPolicyIncludeJSCallStacksInCrashReports,ReportStuckThrottle --disable-features=DropInputEventsWhilePaintHolding,WebUIOmniboxAimPopup,WebUIOmniboxPopup --variations-seed-version --pseudonymization-salt-handle=2348,i,14767076066069056732,16350837676332617947,4 --trace-process-track-uuid=3190708992871164437 --mojo-platform-channel-handle=5900 /prefetch:1"
+    },
+    {
+      "Name": "ChatGPT.exe",
+      "ProcessId": 12896,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.930.4958.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=renderer --standard-schemes=app,codex-sandbox --service-worker-schemes=codex-sandbox --secure-schemes=app,codex-sandbox --fetch-schemes=app,codex-sandbox --cors-schemes=codex-sandbox --streaming-schemes=app,codex-sandbox --owl-scoped-user-agent-additional-hosts=openai.com,chatgpt.com,chatgpt.site,chatgpt-team.site --owl-scoped-user-agent-prefix=CodexBrowser --no-pre-read-main-dll --enable-blink-features=WebMCP --disable-blink-features=ReplacedNormalFlowStackingInlinePaint --video-capture-use-gpu-memory-buffer --lang=en-US --device-scale-factor=1.5 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=6 --launch-time-ticks=126253085 --metrics-shmem-handle=5916,i,4468606568187789268,7842628541830976324,1572864 --field-trial-handle=2344,i,11196722011239701827,14184635829523821976,262144 --enable-features=DevToolsWebMCPSupport,DocumentPolicyIncludeJSCallStacksInCrashReports,ReportStuckThrottle --disable-features=DropInputEventsWhilePaintHolding,WebUIOmniboxAimPopup,WebUIOmniboxPopup --variations-seed-version --pseudonymization-salt-handle=2348,i,14767076066069056732,16350837676332617947,4 --trace-process-track-uuid=3190708991934122588 --mojo-platform-channel-handle=5940 /prefetch:1"
+    },
+    {
+      "Name": "codex.exe",
+      "ProcessId": 15444,
+      "CommandLine": "C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\bin\\f544b3844e0f14e9\\codex.exe -c features.code_mode_host=true app-server --analytics-default-enabled -c plugins.codex-app-tools@openai-bundled.mcp_servers.codex_app.enabled=true -c plugins.code-review@openai-bundled.mcp_servers.code-review.enabled=true"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 23172,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "codex-computer-use-swift.exe",
+      "ProcessId": 19120,
+      "CommandLine": "C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_modules\\@oai\\sky\\bin\\windows\\swift\\x64\\codex-computer-use-swift.exe --parent-pid 18792"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 10648,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 14884,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 24360,
+      "CommandLine": null
+    },
+    {
+      "Name": "ChatGPT.exe",
+      "ProcessId": 3304,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.930.4958.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=renderer --standard-schemes=app,codex-sandbox --service-worker-schemes=codex-sandbox --secure-schemes=app,codex-sandbox --fetch-schemes=app,codex-sandbox --cors-schemes=codex-sandbox --streaming-schemes=app,codex-sandbox --owl-scoped-user-agent-additional-hosts=openai.com,chatgpt.com,chatgpt.site,chatgpt-team.site --owl-scoped-user-agent-prefix=CodexBrowser --no-pre-read-main-dll --enable-blink-features=WebMCP --disable-blink-features=ReplacedNormalFlowStackingInlinePaint --video-capture-use-gpu-memory-buffer --lang=en-US --device-scale-factor=1.5 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=8 --launch-time-ticks=131854264 --metrics-shmem-handle=7232,i,13973613749117663986,7116528782140574398,1572864 --field-trial-handle=2344,i,11196722011239701827,14184635829523821976,262144 --enable-features=DevToolsWebMCPSupport,DocumentPolicyIncludeJSCallStacksInCrashReports,ReportStuckThrottle --disable-features=DropInputEventsWhilePaintHolding,WebUIOmniboxAimPopup,WebUIOmniboxPopup --variations-seed-version --pseudonymization-salt-handle=2348,i,14767076066069056732,16350837676332617947,4 --trace-process-track-uuid=3190708993808206286 --mojo-platform-channel-handle=8996 /prefetch:1"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 25332,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\" C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_modules\\@oai\\cua-repl\\bin\\cua-repl.mjs"
+    },
+    {
+      "Name": "node_repl.exe",
+      "ProcessId": 25348,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_repl.exe\""
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 25364,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "cmd.exe",
+      "ProcessId": 25372,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\cmd.exe\" /d /s /c call ./scripts/launch_codex_app_tools_mcp.cmd ./server.mjs"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 25388,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "cmd.exe",
+      "ProcessId": 25396,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\cmd.exe\" /d /c scripts\\launch_code_review_mcp.cmd"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 25412,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 25448,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 25284,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\"  ./server.mjs"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 25132,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\"  ./server.mjs "
+    },
+    {
+      "Name": "node_repl.exe",
+      "ProcessId": 25452,
+      "CommandLine": "C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_repl.exe"
+    },
+    {
+      "Name": "FileCoAuth.exe",
+      "ProcessId": 25868,
+      "CommandLine": "\"C:\\Program Files\\Microsoft OneDrive\\26.173.0906.0008\\FileCoAuth.exe\" -Embedding"
+    },
+    {
+      "Name": "ChatGPT.exe",
+      "ProcessId": 25188,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.930.4958.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=renderer --standard-schemes=app,codex-sandbox --service-worker-schemes=codex-sandbox --secure-schemes=app,codex-sandbox --fetch-schemes=app,codex-sandbox --cors-schemes=codex-sandbox --streaming-schemes=app,codex-sandbox --owl-scoped-user-agent-additional-hosts=openai.com,chatgpt.com,chatgpt.site,chatgpt-team.site --owl-scoped-user-agent-prefix=CodexBrowser --no-pre-read-main-dll --enable-blink-features=WebMCP --disable-blink-features=ReplacedNormalFlowStackingInlinePaint --video-capture-use-gpu-memory-buffer --lang=en-US --device-scale-factor=1.5 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=11 --launch-time-ticks=137325640 --metrics-shmem-handle=10032,i,11669118419108699336,14936366700652121212,1572864 --field-trial-handle=2344,i,11196722011239701827,14184635829523821976,262144 --enable-features=DevToolsWebMCPSupport,DocumentPolicyIncludeJSCallStacksInCrashReports,ReportStuckThrottle --disable-features=DropInputEventsWhilePaintHolding,WebUIOmniboxAimPopup,WebUIOmniboxPopup --variations-seed-version --pseudonymization-salt-handle=2348,i,14767076066069056732,16350837676332617947,4 --trace-process-track-uuid=3190708996619331833 --mojo-platform-channel-handle=9196 /prefetch:1"
+    },
+    {
+      "Name": "ChatGPT.exe",
+      "ProcessId": 25288,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.930.4958.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=renderer --standard-schemes=app,codex-sandbox --service-worker-schemes=codex-sandbox --secure-schemes=app,codex-sandbox --fetch-schemes=app,codex-sandbox --cors-schemes=codex-sandbox --streaming-schemes=app,codex-sandbox --owl-scoped-user-agent-additional-hosts=openai.com,chatgpt.com,chatgpt.site,chatgpt-team.site --owl-scoped-user-agent-prefix=CodexBrowser --no-pre-read-main-dll --enable-blink-features=WebMCP --disable-blink-features=ReplacedNormalFlowStackingInlinePaint --video-capture-use-gpu-memory-buffer --lang=en-US --device-scale-factor=1.5 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=13 --launch-time-ticks=138117326 --metrics-shmem-handle=7564,i,13670685466712103415,9834160445664760804,1572864 --field-trial-handle=2344,i,11196722011239701827,14184635829523821976,262144 --enable-features=DevToolsWebMCPSupport,DocumentPolicyIncludeJSCallStacksInCrashReports,ReportStuckThrottle --disable-features=DropInputEventsWhilePaintHolding,WebUIOmniboxAimPopup,WebUIOmniboxPopup --variations-seed-version --pseudonymization-salt-handle=2348,i,14767076066069056732,16350837676332617947,4 --trace-process-track-uuid=3190708998493415531 --mojo-platform-channel-handle=8616 /prefetch:1"
+    },
+    {
+      "Name": "codex-code-mode-host.exe",
+      "ProcessId": 26452,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\bin\\f544b3844e0f14e9\\codex-code-mode-host.exe\""
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 26388,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 24900,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 14576,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 25696,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 26156,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 25236,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 2232,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 26520,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 23168,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 26072,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 8344,
+      "CommandLine": null
+    },
+    {
+      "Name": "ChatGPT.exe",
+      "ProcessId": 6016,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.930.4958.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=utility --utility-sub-type=on_device_model.mojom.OnDeviceModelService --lang=en-US --service-sandbox-type=on_device_model_execution --video-capture-use-gpu-memory-buffer --standard-schemes=app,codex-sandbox --service-worker-schemes=codex-sandbox --secure-schemes=app,codex-sandbox --fetch-schemes=app,codex-sandbox --cors-schemes=codex-sandbox --streaming-schemes=app,codex-sandbox --no-pre-read-main-dll --metrics-shmem-handle=7608,i,4154015573139097719,2662603752546466154,524288 --field-trial-handle=2344,i,11196722011239701827,14184635829523821976,262144 --enable-features=DevToolsWebMCPSupport,DocumentPolicyIncludeJSCallStacksInCrashReports,ReportStuckThrottle --disable-features=DropInputEventsWhilePaintHolding,WebUIOmniboxAimPopup,WebUIOmniboxPopup --variations-seed-version --pseudonymization-salt-handle=2348,i,14767076066069056732,16350837676332617947,4 --trace-process-track-uuid=3190709005052708474 --mojo-platform-channel-handle=5088 /prefetch:14"
+    },
+    {
+      "Name": "ShellHost.exe",
+      "ProcessId": 2312,
+      "CommandLine": "\"C:\\Windows\\System32\\ShellHost.exe\""
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 8768,
+      "CommandLine": null
+    },
+    {
+      "Name": "ShellExperienceHost.exe",
+      "ProcessId": 2108,
+      "CommandLine": "\"C:\\WINDOWS\\SystemApps\\ShellExperienceHost_cw5n1h2txyewy\\ShellExperienceHost.exe\" -ServerName:App.AppXtk181tbxbce2qsex02s8tw7hfxa9xb3t.mca"
+    },
+    {
+      "Name": "RuntimeBroker.exe",
+      "ProcessId": 9748,
+      "CommandLine": "C:\\Windows\\System32\\RuntimeBroker.exe -Embedding"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 18776,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 7592,
+      "CommandLine": null
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 8524,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\" --eval \"// Windows may deny ancestor metadata even when the configured folder is readable.\nconst fs = require(\\\"node:fs\\\");\nconst pathApi = require(\\\"node:path\\\");\nconst { fileURLToPath } = require(\\\"node:url\\\");\n\nconst originalRealpathSync = fs.realpathSync;\nconst key = (path) =>\n  pathApi.toNamespacedPath(pathApi.resolve(path)).toLowerCase();\nconst roots = new Set(\n  [\n    pathApi.dirname(process.argv[1]),\n    ...(process.env.NODE_REPL_NODE_MODULE_DIRS ?? \\\"\\\")\n      .split(pathApi.delimiter)\n      .map((entry) => entry.trim()),\n    ...(process.env.NODE_REPL_TRUSTED_CODE_PATHS ?? \\\"\\\")\n      .split(pathApi.delimiter)\n      .filter(pathApi.isAbsolute),\n  ]\n    .filter(Boolean)\n    .map(key),\n);\n\nfs.realpathSync = function realpathSync(path, options) {\n  try {\n    // Preserve Node's canonical paths (including short names and links) when possible.\n    return originalRealpathSync.native(path, options);\n  } catch (error) {\n    if (error.code !== \\\"EPERM\\\" && error.code !== \\\"EACCES\\\") {\n      throw error;\n    }\n    if (path instanceof URL) {\n      path = fileURLToPath(path);\n    }\n    if (Buffer.isBuffer(path)) {\n      path = path.toString();\n    }\n\n    const filename = pathApi.resolve(path);\n    // Only accept paths below a configured root. A junction or symlink could\n    // point outside that root, so it must not receive the lexical fallback.\n    for (let current = filename; ; current = pathApi.dirname(current)) {\n      if (fs.lstatSync(current).isSymbolicLink()) {\n        throw error;\n      }\n      if (roots.has(key(current))) {\n        const encoding =\n          typeof options === \\\"string\\\" ? options : options?.encoding;\n        const buffer = Buffer.from(filename);\n        return encoding === \\\"buffer\\\"\n          ? buffer\n          : buffer.toString(encoding ?? \\\"utf8\\\");\n      }\n      if (pathApi.dirname(current) === current) {\n        throw error;\n      }\n    }\n  }\n};\nfs.realpathSync.native = fs.realpathSync;\n\n// --eval leaves the script at argv[1]. Use Node's ordinary main-module loader\n// so argv, require.main, and relative imports keep their normal meaning.\nrequire(\\\"node:module\\\").runMain();\n\" --experimental-vm-modules C:\\Users\\shaw9\\AppData\\Local\\Temp\\.tmpwd5b0x\\kernel.js --session-id 6e1eca692ff94f4fb9630947890c9cb5 --working-dir D:\\CantorAI"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 18556,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\" --eval \"// Windows may deny ancestor metadata even when the configured folder is readable.\nconst fs = require(\\\"node:fs\\\");\nconst pathApi = require(\\\"node:path\\\");\nconst { fileURLToPath } = require(\\\"node:url\\\");\n\nconst originalRealpathSync = fs.realpathSync;\nconst key = (path) =>\n  pathApi.toNamespacedPath(pathApi.resolve(path)).toLowerCase();\nconst roots = new Set(\n  [\n    pathApi.dirname(process.argv[1]),\n    ...(process.env.NODE_REPL_NODE_MODULE_DIRS ?? \\\"\\\")\n      .split(pathApi.delimiter)\n      .map((entry) => entry.trim()),\n    ...(process.env.NODE_REPL_TRUSTED_CODE_PATHS ?? \\\"\\\")\n      .split(pathApi.delimiter)\n      .filter(pathApi.isAbsolute),\n  ]\n    .filter(Boolean)\n    .map(key),\n);\n\nfs.realpathSync = function realpathSync(path, options) {\n  try {\n    // Preserve Node's canonical paths (including short names and links) when possible.\n    return originalRealpathSync.native(path, options);\n  } catch (error) {\n    if (error.code !== \\\"EPERM\\\" && error.code !== \\\"EACCES\\\") {\n      throw error;\n    }\n    if (path instanceof URL) {\n      path = fileURLToPath(path);\n    }\n    if (Buffer.isBuffer(path)) {\n      path = path.toString();\n    }\n\n    const filename = pathApi.resolve(path);\n    // Only accept paths below a configured root. A junction or symlink could\n    // point outside that root, so it must not receive the lexical fallback.\n    for (let current = filename; ; current = pathApi.dirname(current)) {\n      if (fs.lstatSync(current).isSymbolicLink()) {\n        throw error;\n      }\n      if (roots.has(key(current))) {\n        const encoding =\n          typeof options === \\\"string\\\" ? options : options?.encoding;\n        const buffer = Buffer.from(filename);\n        return encoding === \\\"buffer\\\"\n          ? buffer\n          : buffer.toString(encoding ?? \\\"utf8\\\");\n      }\n      if (pathApi.dirname(current) === current) {\n        throw error;\n      }\n    }\n  }\n};\nfs.realpathSync.native = fs.realpathSync;\n\n// --eval leaves the script at argv[1]. Use Node's ordinary main-module loader\n// so argv, require.main, and relative imports keep their normal meaning.\nrequire(\\\"node:module\\\").runMain();\n\" C:\\Users\\shaw9\\AppData\\Local\\Temp\\.tmpwd5b0x\\trusted-worker.js D:\\CantorAI"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 26132,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\" --eval \"// Windows may deny ancestor metadata even when the configured folder is readable.\nconst fs = require(\\\"node:fs\\\");\nconst pathApi = require(\\\"node:path\\\");\nconst { fileURLToPath } = require(\\\"node:url\\\");\n\nconst originalRealpathSync = fs.realpathSync;\nconst key = (path) =>\n  pathApi.toNamespacedPath(pathApi.resolve(path)).toLowerCase();\nconst roots = new Set(\n  [\n    pathApi.dirname(process.argv[1]),\n    ...(process.env.NODE_REPL_NODE_MODULE_DIRS ?? \\\"\\\")\n      .split(pathApi.delimiter)\n      .map((entry) => entry.trim()),\n    ...(process.env.NODE_REPL_TRUSTED_CODE_PATHS ?? \\\"\\\")\n      .split(pathApi.delimiter)\n      .filter(pathApi.isAbsolute),\n  ]\n    .filter(Boolean)\n    .map(key),\n);\n\nfs.realpathSync = function realpathSync(path, options) {\n  try {\n    // Preserve Node's canonical paths (including short names and links) when possible.\n    return originalRealpathSync.native(path, options);\n  } catch (error) {\n    if (error.code !== \\\"EPERM\\\" && error.code !== \\\"EACCES\\\") {\n      throw error;\n    }\n    if (path instanceof URL) {\n      path = fileURLToPath(path);\n    }\n    if (Buffer.isBuffer(path)) {\n      path = path.toString();\n    }\n\n    const filename = pathApi.resolve(path);\n    // Only accept paths below a configured root. A junction or symlink could\n    // point outside that root, so it must not receive the lexical fallback.\n    for (let current = filename; ; current = pathApi.dirname(current)) {\n      if (fs.lstatSync(current).isSymbolicLink()) {\n        throw error;\n      }\n      if (roots.has(key(current))) {\n        const encoding =\n          typeof options === \\\"string\\\" ? options : options?.encoding;\n        const buffer = Buffer.from(filename);\n        return encoding === \\\"buffer\\\"\n          ? buffer\n          : buffer.toString(encoding ?? \\\"utf8\\\");\n      }\n      if (pathApi.dirname(current) === current) {\n        throw error;\n      }\n    }\n  }\n};\nfs.realpathSync.native = fs.realpathSync;\n\n// --eval leaves the script at argv[1]. Use Node's ordinary main-module loader\n// so argv, require.main, and relative imports keep their normal meaning.\nrequire(\\\"node:module\\\").runMain();\n\" --experimental-vm-modules C:\\Users\\shaw9\\AppData\\Local\\Temp\\.tmp4dcqzG\\kernel.js --session-id 7d3ace166eef45bb954850c6d3645eb9 --working-dir D:\\CantorAI"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 8972,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\" --eval \"// Windows may deny ancestor metadata even when the configured folder is readable.\nconst fs = require(\\\"node:fs\\\");\nconst pathApi = require(\\\"node:path\\\");\nconst { fileURLToPath } = require(\\\"node:url\\\");\n\nconst originalRealpathSync = fs.realpathSync;\nconst key = (path) =>\n  pathApi.toNamespacedPath(pathApi.resolve(path)).toLowerCase();\nconst roots = new Set(\n  [\n    pathApi.dirname(process.argv[1]),\n    ...(process.env.NODE_REPL_NODE_MODULE_DIRS ?? \\\"\\\")\n      .split(pathApi.delimiter)\n      .map((entry) => entry.trim()),\n    ...(process.env.NODE_REPL_TRUSTED_CODE_PATHS ?? \\\"\\\")\n      .split(pathApi.delimiter)\n      .filter(pathApi.isAbsolute),\n  ]\n    .filter(Boolean)\n    .map(key),\n);\n\nfs.realpathSync = function realpathSync(path, options) {\n  try {\n    // Preserve Node's canonical paths (including short names and links) when possible.\n    return originalRealpathSync.native(path, options);\n  } catch (error) {\n    if (error.code !== \\\"EPERM\\\" && error.code !== \\\"EACCES\\\") {\n      throw error;\n    }\n    if (path instanceof URL) {\n      path = fileURLToPath(path);\n    }\n    if (Buffer.isBuffer(path)) {\n      path = path.toString();\n    }\n\n    const filename = pathApi.resolve(path);\n    // Only accept paths below a configured root. A junction or symlink could\n    // point outside that root, so it must not receive the lexical fallback.\n    for (let current = filename; ; current = pathApi.dirname(current)) {\n      if (fs.lstatSync(current).isSymbolicLink()) {\n        throw error;\n      }\n      if (roots.has(key(current))) {\n        const encoding =\n          typeof options === \\\"string\\\" ? options : options?.encoding;\n        const buffer = Buffer.from(filename);\n        return encoding === \\\"buffer\\\"\n          ? buffer\n          : buffer.toString(encoding ?? \\\"utf8\\\");\n      }\n      if (pathApi.dirname(current) === current) {\n        throw error;\n      }\n    }\n  }\n};\nfs.realpathSync.native = fs.realpathSync;\n\n// --eval leaves the script at argv[1]. Use Node's ordinary main-module loader\n// so argv, require.main, and relative imports keep their normal meaning.\nrequire(\\\"node:module\\\").runMain();\n\" C:\\Users\\shaw9\\AppData\\Local\\Temp\\.tmp4dcqzG\\trusted-worker.js D:\\CantorAI"
+    },
+    {
+      "Name": "codex.exe",
+      "ProcessId": 6620,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\bin\\f544b3844e0f14e9\\codex.exe\" app-server --listen stdio://"
+    },
+    {
+      "Name": "codex.exe",
+      "ProcessId": 6320,
+      "CommandLine": "C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\bin\\f544b3844e0f14e9\\codex.exe exec-server --remote https://codex-cloud-environments.chatgpt.com/api --environment-id ccarenv_b64_Y2NhcmVudl82YWJjYmIxMTc0ZDQ4MTkxYWE4OTdkYzljMDkxZDY1OA"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 22076,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "dllhost.exe",
+      "ProcessId": 5452,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\DllHost.exe\" /Processid:{B41DB860-64E4-11D2-9906-E49FADC173CA}"
+    },
+    {
+      "Name": "mscopilot_proxy.exe",
+      "ProcessId": 24152,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\Copilot\\Application\\mscopilot_proxy.exe\" -Embedding"
+    },
+    {
+      "Name": "dllhost.exe",
+      "ProcessId": 21680,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\DllHost.exe\" /Processid:{5250E46F-BB09-D602-5891-F476DC89B700}"
+    },
+    {
+      "Name": "dllhost.exe",
+      "ProcessId": 14296,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\DllHost.exe\" /Processid:{CA6CC9F1-867A-481E-951E-A28C5E4F01EA}"
+    },
+    {
+      "Name": "TGitCache.exe",
+      "ProcessId": 11696,
+      "CommandLine": "\"C:\\Program Files\\TortoiseGit\\bin\\TGitCache.exe\""
+    },
+    {
+      "Name": "node_repl.exe",
+      "ProcessId": 15892,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_repl.exe\""
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 21716,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\" C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_modules\\@oai\\cua-repl\\bin\\cua-repl.mjs"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 21684,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "cmd.exe",
+      "ProcessId": 25832,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\cmd.exe\" /d /s /c call ./scripts/launch_codex_app_tools_mcp.cmd ./server.mjs"
+    },
+    {
+      "Name": "cmd.exe",
+      "ProcessId": 26568,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\cmd.exe\" /d /c scripts\\launch_code_review_mcp.cmd"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 6876,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 26500,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 9384,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 8680,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\"  ./server.mjs"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 24332,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\"  ./server.mjs "
+    },
+    {
+      "Name": "node_repl.exe",
+      "ProcessId": 21676,
+      "CommandLine": "C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_repl.exe"
+    },
+    {
+      "Name": "UserOOBEBroker.exe",
+      "ProcessId": 8772,
+      "CommandLine": "C:\\Windows\\System32\\oobe\\UserOOBEBroker.exe -Embedding"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 23640,
+      "CommandLine": null
+    },
+    {
+      "Name": "backgroundTaskHost.exe",
+      "ProcessId": 10188,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\backgroundTaskHost.exe\" -ServerName:App.AppXe9cvj1thv1hmcw0cs98xm3r97tyzy2xs.mca"
+    },
+    {
+      "Name": "RuntimeBroker.exe",
+      "ProcessId": 26336,
+      "CommandLine": "C:\\Windows\\System32\\RuntimeBroker.exe -Embedding"
+    },
+    {
+      "Name": "WUDFHost.exe",
+      "ProcessId": 27888,
+      "CommandLine": null
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 26800,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "xmind_server.exe",
+      "ProcessId": 28288,
+      "CommandLine": "\"D:\\CantorAI2026\\xMind\\.agentflow\\ci\\extracted\\saved-key-runtime-b80cbb79cae64b118e361b4c17e51291\\xmind_server.exe\" --db \"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\sessions.sqlite\" --modules \"D:\\CantorAI2026\\xMind\\.agentflow\\ci\\extracted\\saved-key-runtime-b80cbb79cae64b118e361b4c17e51291\\modules\" --stdlib \"C:\\Python\\Python314\\Lib\" --port 0 --workspace \"D:\\CantorAI2026\\xMind\" --workspace-edits approved --model-tools supported"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 13068,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "Code.exe",
+      "ProcessId": 21788,
+      "CommandLine": "\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\vscode\\Code.exe\" --new-window --disable-workspace-trust --skip-welcome --remote-debugging-port=57217 --user-data-dir \"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\profile\" --extensions-dir \"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\extensions\" --extensionDevelopmentPath=\"D:\\CantorAI2026\\xMind\\extensions\\vscode\" \"D:\\CantorAI2026\\xMind\""
+    },
+    {
+      "Name": "Code.exe",
+      "ProcessId": 15656,
+      "CommandLine": "D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\vscode\\Code.exe --type=crashpad-handler --user-data-dir=D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\profile /prefetch:4 --no-rate-limit --monitor-self-annotation=ptype=crashpad-handler --database=D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\profile\\Crashpad --url=appcenter://code?aid=a4e3233c-699c-46ec-b4f4-9c2a77254662&uid=a5c28ae2-f45c-4a6a-ae76-315739af9a32&iid=a5c28ae2-f45c-4a6a-ae76-315739af9a32&sid=a5c28ae2-f45c-4a6a-ae76-315739af9a32 --annotation=_companyName=Microsoft --annotation=_productName=VSCode --annotation=_version=1.140.0 --annotation=plat=Win64 --annotation=prod=Electron --annotation=ver=43.7.3 --initial-client-data=0x570,0x574,0x578,0x56c,0x57c,0x7ff6eb834648,0x7ff6eb834658,0x7ff6eb834668"
+    },
+    {
+      "Name": "Code.exe",
+      "ProcessId": 2736,
+      "CommandLine": "\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\vscode\\Code.exe\" --type=gpu-process --user-data-dir=\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\profile\" --gpu-preferences=UAAAAAAAAADgAAAEAAAAAAAAAAAAAGAAOAAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAABgAAAAAAAAAGAAAAAAAAAAIAAAAAAAAAAgAAAAAAAAACAAAAAAAAAA= --field-trial-handle=1860,i,14349969568723690556,4037363995736161698,262144 --enable-features=DocumentPolicyIncludeJSCallStacksInCrashReports,EarlyEstablishGpuChannel,EstablishGpuChannelAsync,PdfUseShowSaveFilePicker --disable-features=CalculateNativeWinOcclusion,DropInputEventsWhilePaintHolding,HideCursorWhileTyping,LocalNetworkAccessChecks,NetworkServiceSandbox,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --pseudonymization-salt-handle=1872,i,14387092134795832208,1166493877932141446,4 --trace-process-track-uuid=3190708988185955192 --mojo-platform-channel-handle=1764 /prefetch:2"
+    },
+    {
+      "Name": "Code.exe",
+      "ProcessId": 28244,
+      "CommandLine": "\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\vscode\\Code.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=en-US --service-sandbox-type=none --user-data-dir=\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\profile\" --standard-schemes=vscode-webview,vscode-file --enable-sandbox --secure-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --cors-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --fetch-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --service-worker-schemes=vscode-webview --code-cache-schemes=vscode-webview,vscode-file --field-trial-handle=1860,i,14349969568723690556,4037363995736161698,262144 --enable-features=DocumentPolicyIncludeJSCallStacksInCrashReports,EarlyEstablishGpuChannel,EstablishGpuChannelAsync,PdfUseShowSaveFilePicker --disable-features=CalculateNativeWinOcclusion,DropInputEventsWhilePaintHolding,HideCursorWhileTyping,LocalNetworkAccessChecks,NetworkServiceSandbox,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --pseudonymization-salt-handle=1872,i,14387092134795832208,1166493877932141446,4 --trace-process-track-uuid=3190708989122997041 --mojo-platform-channel-handle=2060 /prefetch:11"
+    },
+    {
+      "Name": "Code.exe",
+      "ProcessId": 12036,
+      "CommandLine": "\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\vscode\\Code.exe\" --type=renderer --user-data-dir=\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\profile\" --standard-schemes=vscode-webview,vscode-file --enable-sandbox --secure-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --cors-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --fetch-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --service-worker-schemes=vscode-webview --code-cache-schemes=vscode-webview,vscode-file --app-user-model-id=Microsoft.VisualStudioCode --app-path=\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\vscode\\07f806f999\\resources\\app\" --enable-sandbox --enable-blink-features=HighlightAPI --max-active-webgl-contexts=32 --remote-debugging-port=57217 --disable-blink-features=FontMatchingCTMigration,StandardizedBrowserZoom, --video-capture-use-gpu-memory-buffer --lang=en-US --device-scale-factor=1.5 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=4 --time-ticks-at-unix-epoch=-1791220869699746 --launch-time-ticks=177385600464 --field-trial-handle=1860,i,14349969568723690556,4037363995736161698,262144 --enable-features=DocumentPolicyIncludeJSCallStacksInCrashReports,EarlyEstablishGpuChannel,EstablishGpuChannelAsync,PdfUseShowSaveFilePicker --disable-features=CalculateNativeWinOcclusion,DropInputEventsWhilePaintHolding,HideCursorWhileTyping,LocalNetworkAccessChecks,NetworkServiceSandbox,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --pseudonymization-salt-handle=1872,i,14387092134795832208,1166493877932141446,4 --trace-process-track-uuid=3190708990060038890 --mojo-platform-channel-handle=3392 --vscode-window-config=vscode:6dd45a4e-77dd-48dd-acc2-34e4fd00ce6f /prefetch:1"
+    },
+    {
+      "Name": "Code.exe",
+      "ProcessId": 5144,
+      "CommandLine": "\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\vscode\\Code.exe\" --type=utility --utility-sub-type=node.mojom.NodeService --lang=en-US --service-sandbox-type=none --video-capture-use-gpu-memory-buffer --user-data-dir=\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\profile\" --standard-schemes=vscode-webview,vscode-file --enable-sandbox --secure-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --cors-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --fetch-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --service-worker-schemes=vscode-webview --code-cache-schemes=vscode-webview,vscode-file --field-trial-handle=1860,i,14349969568723690556,4037363995736161698,262144 --enable-features=DocumentPolicyIncludeJSCallStacksInCrashReports,EarlyEstablishGpuChannel,EstablishGpuChannelAsync,PdfUseShowSaveFilePicker --disable-features=CalculateNativeWinOcclusion,DropInputEventsWhilePaintHolding,HideCursorWhileTyping,LocalNetworkAccessChecks,NetworkServiceSandbox,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --pseudonymization-salt-handle=1872,i,14387092134795832208,1166493877932141446,4 --trace-process-track-uuid=3190708990997080739 --mojo-platform-channel-handle=3932 /prefetch:14"
+    },
+    {
+      "Name": "Code.exe",
+      "ProcessId": 27560,
+      "CommandLine": "\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\vscode\\Code.exe\" --type=renderer --user-data-dir=\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\profile\" --standard-schemes=vscode-webview,vscode-file --enable-sandbox --secure-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --cors-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --fetch-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --service-worker-schemes=vscode-webview --code-cache-schemes=vscode-webview,vscode-file --app-user-model-id=Microsoft.VisualStudioCode --app-path=\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\vscode\\07f806f999\\resources\\app\" --enable-sandbox --enable-blink-features=HighlightAPI --max-active-webgl-contexts=32 --remote-debugging-port=57217 --disable-blink-features=FontMatchingCTMigration,StandardizedBrowserZoom, --video-capture-use-gpu-memory-buffer --lang=en-US --device-scale-factor=1.5 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=7 --time-ticks-at-unix-epoch=-1791220869699746 --launch-time-ticks=177386477121 --field-trial-handle=1860,i,14349969568723690556,4037363995736161698,262144 --enable-features=DocumentPolicyIncludeJSCallStacksInCrashReports,EarlyEstablishGpuChannel,EstablishGpuChannelAsync,PdfUseShowSaveFilePicker --disable-features=CalculateNativeWinOcclusion,DropInputEventsWhilePaintHolding,HideCursorWhileTyping,LocalNetworkAccessChecks,NetworkServiceSandbox,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --pseudonymization-salt-handle=1872,i,14387092134795832208,1166493877932141446,4 --trace-process-track-uuid=3190708992871164437 --mojo-platform-channel-handle=4040 --vscode-window-config=vscode:6dd45a4e-77dd-48dd-acc2-34e4fd00ce6f /prefetch:1"
+    },
+    {
+      "Name": "Code.exe",
+      "ProcessId": 26040,
+      "CommandLine": "\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\vscode\\Code.exe\" --type=utility --utility-sub-type=node.mojom.NodeService --lang=en-US --service-sandbox-type=none --video-capture-use-gpu-memory-buffer --user-data-dir=\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\profile\" --standard-schemes=vscode-webview,vscode-file --enable-sandbox --secure-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --cors-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --fetch-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --service-worker-schemes=vscode-webview --code-cache-schemes=vscode-webview,vscode-file --field-trial-handle=1860,i,14349969568723690556,4037363995736161698,262144 --enable-features=DocumentPolicyIncludeJSCallStacksInCrashReports,EarlyEstablishGpuChannel,EstablishGpuChannelAsync,PdfUseShowSaveFilePicker --disable-features=CalculateNativeWinOcclusion,DropInputEventsWhilePaintHolding,HideCursorWhileTyping,LocalNetworkAccessChecks,NetworkServiceSandbox,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --pseudonymization-salt-handle=1872,i,14387092134795832208,1166493877932141446,4 --trace-process-track-uuid=3190708993808206286 --mojo-platform-channel-handle=3764 /prefetch:14"
+    },
+    {
+      "Name": "Code.exe",
+      "ProcessId": 27024,
+      "CommandLine": "\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\vscode\\Code.exe\" --type=utility --utility-sub-type=node.mojom.NodeService --lang=en-US --service-sandbox-type=none --video-capture-use-gpu-memory-buffer --user-data-dir=\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\profile\" --standard-schemes=vscode-webview,vscode-file --enable-sandbox --secure-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --cors-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --fetch-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --service-worker-schemes=vscode-webview --code-cache-schemes=vscode-webview,vscode-file --field-trial-handle=1860,i,14349969568723690556,4037363995736161698,262144 --enable-features=DocumentPolicyIncludeJSCallStacksInCrashReports,EarlyEstablishGpuChannel,EstablishGpuChannelAsync,PdfUseShowSaveFilePicker --disable-features=CalculateNativeWinOcclusion,DropInputEventsWhilePaintHolding,HideCursorWhileTyping,LocalNetworkAccessChecks,NetworkServiceSandbox,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --pseudonymization-salt-handle=1872,i,14387092134795832208,1166493877932141446,4 --trace-process-track-uuid=3190708997556373682 --mojo-platform-channel-handle=5136 /prefetch:14"
+    },
+    {
+      "Name": "Code.exe",
+      "ProcessId": 28164,
+      "CommandLine": "\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\vscode\\Code.exe\" --type=utility --utility-sub-type=node.mojom.NodeService --lang=en-US --service-sandbox-type=none --dns-result-order=ipv4first --experimental-network-inspection --inspect-port=0 --video-capture-use-gpu-memory-buffer --user-data-dir=\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\profile\" --standard-schemes=vscode-webview,vscode-file --enable-sandbox --secure-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --cors-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --fetch-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --service-worker-schemes=vscode-webview --code-cache-schemes=vscode-webview,vscode-file --field-trial-handle=1860,i,14349969568723690556,4037363995736161698,262144 --enable-features=DocumentPolicyIncludeJSCallStacksInCrashReports,EarlyEstablishGpuChannel,EstablishGpuChannelAsync,PdfUseShowSaveFilePicker --disable-features=CalculateNativeWinOcclusion,DropInputEventsWhilePaintHolding,HideCursorWhileTyping,LocalNetworkAccessChecks,NetworkServiceSandbox,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --pseudonymization-salt-handle=1872,i,14387092134795832208,1166493877932141446,4 --trace-process-track-uuid=3190709003178624776 --mojo-platform-channel-handle=4880 /prefetch:14"
+    },
+    {
+      "Name": "Code.exe",
+      "ProcessId": 27788,
+      "CommandLine": "\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\vscode\\Code.exe\" --type=utility --utility-sub-type=node.mojom.NodeService --lang=en-US --service-sandbox-type=none --video-capture-use-gpu-memory-buffer --user-data-dir=\"D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\profile\" --standard-schemes=vscode-webview,vscode-file --enable-sandbox --secure-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --cors-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --fetch-schemes=vscode-webview,vscode-file,vscode-remote-resource,vscode-managed-remote-resource --service-worker-schemes=vscode-webview --code-cache-schemes=vscode-webview,vscode-file --field-trial-handle=1860,i,14349969568723690556,4037363995736161698,262144 --enable-features=DocumentPolicyIncludeJSCallStacksInCrashReports,EarlyEstablishGpuChannel,EstablishGpuChannelAsync,PdfUseShowSaveFilePicker --disable-features=CalculateNativeWinOcclusion,DropInputEventsWhilePaintHolding,HideCursorWhileTyping,LocalNetworkAccessChecks,NetworkServiceSandbox,ScreenAIOCREnabled,SpareRendererForSitePerProcess,TraceSiteInstanceGetProcessCreation --variations-seed-version --pseudonymization-salt-handle=1872,i,14387092134795832208,1166493877932141446,4 --trace-process-track-uuid=3190709004115666625 --mojo-platform-channel-handle=5656 /prefetch:14"
+    },
+    {
+      "Name": "Code.exe",
+      "ProcessId": 20448,
+      "CommandLine": "D:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\vscode\\Code.exe d:\\CantorAI2026\\xMind\\.agentflow\\ui-host\\vscode\\07f806f999\\resources\\app\\extensions\\json-language-features\\server\\dist\\node\\jsonServerMain --node-ipc --clientProcessId=28164"
+    },
+    {
+      "Name": "xmind_server.exe",
+      "ProcessId": 9592,
+      "CommandLine": "\"D:\\CantorAI2026\\xMind\\build\\native\\Release\\xmind_server.exe\" --db \"D:\\CantorAI2026\\xMind\\.agentflow\\graph-ui\\sessions.sqlite\" --modules \"D:\\CantorAI2026\\xlang3\\build\\Release\\modules\" --stdlib \"C:\\Python\\Python314\\Lib\" --port 0 --workspace \"D:\\CantorAI2026\\xMind\" --graphs-config \"D:\\CantorAI2026\\xMind\\doc\\examples\\read-repository-file.graphs.json\" --model-tools supported"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 15908,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 28176,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\" --eval \"// Windows may deny ancestor metadata even when the configured folder is readable.\nconst fs = require(\\\"node:fs\\\");\nconst pathApi = require(\\\"node:path\\\");\nconst { fileURLToPath } = require(\\\"node:url\\\");\n\nconst originalRealpathSync = fs.realpathSync;\nconst key = (path) =>\n  pathApi.toNamespacedPath(pathApi.resolve(path)).toLowerCase();\nconst roots = new Set(\n  [\n    pathApi.dirname(process.argv[1]),\n    ...(process.env.NODE_REPL_NODE_MODULE_DIRS ?? \\\"\\\")\n      .split(pathApi.delimiter)\n      .map((entry) => entry.trim()),\n    ...(process.env.NODE_REPL_TRUSTED_CODE_PATHS ?? \\\"\\\")\n      .split(pathApi.delimiter)\n      .filter(pathApi.isAbsolute),\n  ]\n    .filter(Boolean)\n    .map(key),\n);\n\nfs.realpathSync = function realpathSync(path, options) {\n  try {\n    // Preserve Node's canonical paths (including short names and links) when possible.\n    return originalRealpathSync.native(path, options);\n  } catch (error) {\n    if (error.code !== \\\"EPERM\\\" && error.code !== \\\"EACCES\\\") {\n      throw error;\n    }\n    if (path instanceof URL) {\n      path = fileURLToPath(path);\n    }\n    if (Buffer.isBuffer(path)) {\n      path = path.toString();\n    }\n\n    const filename = pathApi.resolve(path);\n    // Only accept paths below a configured root. A junction or symlink could\n    // point outside that root, so it must not receive the lexical fallback.\n    for (let current = filename; ; current = pathApi.dirname(current)) {\n      if (fs.lstatSync(current).isSymbolicLink()) {\n        throw error;\n      }\n      if (roots.has(key(current))) {\n        const encoding =\n          typeof options === \\\"string\\\" ? options : options?.encoding;\n        const buffer = Buffer.from(filename);\n        return encoding === \\\"buffer\\\"\n          ? buffer\n          : buffer.toString(encoding ?? \\\"utf8\\\");\n      }\n      if (pathApi.dirname(current) === current) {\n        throw error;\n      }\n    }\n  }\n};\nfs.realpathSync.native = fs.realpathSync;\n\n// --eval leaves the script at argv[1]. Use Node's ordinary main-module loader\n// so argv, require.main, and relative imports keep their normal meaning.\nrequire(\\\"node:module\\\").runMain();\n\" --experimental-vm-modules C:\\Users\\shaw9\\AppData\\Local\\Temp\\.tmp6SlHKp\\kernel.js --session-id 0d428f24013d4ba3bb7d8b8cc9525407 --working-dir D:\\CantorAI2026"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 2708,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\" --eval \"// Windows may deny ancestor metadata even when the configured folder is readable.\nconst fs = require(\\\"node:fs\\\");\nconst pathApi = require(\\\"node:path\\\");\nconst { fileURLToPath } = require(\\\"node:url\\\");\n\nconst originalRealpathSync = fs.realpathSync;\nconst key = (path) =>\n  pathApi.toNamespacedPath(pathApi.resolve(path)).toLowerCase();\nconst roots = new Set(\n  [\n    pathApi.dirname(process.argv[1]),\n    ...(process.env.NODE_REPL_NODE_MODULE_DIRS ?? \\\"\\\")\n      .split(pathApi.delimiter)\n      .map((entry) => entry.trim()),\n    ...(process.env.NODE_REPL_TRUSTED_CODE_PATHS ?? \\\"\\\")\n      .split(pathApi.delimiter)\n      .filter(pathApi.isAbsolute),\n  ]\n    .filter(Boolean)\n    .map(key),\n);\n\nfs.realpathSync = function realpathSync(path, options) {\n  try {\n    // Preserve Node's canonical paths (including short names and links) when possible.\n    return originalRealpathSync.native(path, options);\n  } catch (error) {\n    if (error.code !== \\\"EPERM\\\" && error.code !== \\\"EACCES\\\") {\n      throw error;\n    }\n    if (path instanceof URL) {\n      path = fileURLToPath(path);\n    }\n    if (Buffer.isBuffer(path)) {\n      path = path.toString();\n    }\n\n    const filename = pathApi.resolve(path);\n    // Only accept paths below a configured root. A junction or symlink could\n    // point outside that root, so it must not receive the lexical fallback.\n    for (let current = filename; ; current = pathApi.dirname(current)) {\n      if (fs.lstatSync(current).isSymbolicLink()) {\n        throw error;\n      }\n      if (roots.has(key(current))) {\n        const encoding =\n          typeof options === \\\"string\\\" ? options : options?.encoding;\n        const buffer = Buffer.from(filename);\n        return encoding === \\\"buffer\\\"\n          ? buffer\n          : buffer.toString(encoding ?? \\\"utf8\\\");\n      }\n      if (pathApi.dirname(current) === current) {\n        throw error;\n      }\n    }\n  }\n};\nfs.realpathSync.native = fs.realpathSync;\n\n// --eval leaves the script at argv[1]. Use Node's ordinary main-module loader\n// so argv, require.main, and relative imports keep their normal meaning.\nrequire(\\\"node:module\\\").runMain();\n\" C:\\Users\\shaw9\\AppData\\Local\\Temp\\.tmp6SlHKp\\trusted-worker.js D:\\CantorAI2026"
+    },
+    {
+      "Name": "codex.exe",
+      "ProcessId": 17732,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\bin\\f544b3844e0f14e9\\codex.exe\" app-server --listen stdio://"
+    },
+    {
+      "Name": "msedge.exe",
+      "ProcessId": 14068,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --no-startup-window /prefetch:5"
+    },
+    {
+      "Name": "msedge.exe",
+      "ProcessId": 27540,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --type=crashpad-handler \"--user-data-dir=C:\\Users\\shaw9\\AppData\\Local\\Microsoft\\Edge\\User Data\" /prefetch:4 --monitor-self-annotation=ptype=crashpad-handler \"--database=C:\\Users\\shaw9\\AppData\\Local\\Microsoft\\Edge\\User Data\\Crashpad\" \"--metrics-dir=C:\\Users\\shaw9\\AppData\\Local\\Microsoft\\Edge\\User Data\" --annotation=IsOfficialBuild=1 --annotation=channel= --annotation=chromium-version=154.0.8037.98 \"--annotation=exe=C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --annotation=plat=Win64 --annotation=prod=Edge --annotation=ver=154.0.4258.62 --initial-client-data=0x294,0x298,0x29c,0x290,0x2a4,0x7ffc5f0983e0,0x7ffc5f0983f0,0x7ffc5f098400"
+    },
+    {
+      "Name": "msedge.exe",
+      "ProcessId": 9948,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --type=gpu-process --gpu-recent-crash-count=0 --gpu-preferences=WAAAAAAAAADgAAAEAAAAAAAAAAAAAGAAQAAAAAAAAAADAAAAAAAAADgAAAAAAAAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAAAAKAAAAAAAAAAoAAAAAAAAAAgAAAAAAAAAEAAAAAIAAAABAAAAAAAAAAgAAAAAAAAACAAAAAAAAAA= --startup-read-main-dll --metrics-shmem-handle=2108,i,6349049358525942454,7268813924162510007,262144 --field-trial-handle=2224,i,15134903551622718630,14940960198930464573,262144 --variations-seed-version --pseudonymization-salt-handle=2244,i,14422048610771716068,15440141664871790272,4 --trace-process-track-uuid=3190708988185955192 --mojo-platform-channel-handle=2200 /prefetch:2"
+    },
+    {
+      "Name": "msedge.exe",
+      "ProcessId": 5716,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --type=utility --utility-sub-type=network.mojom.NetworkService --lang=en-US --service-sandbox-type=none --unsafely-treat-insecure-origin-as-secure=http://192.168.1.207:13909 --startup-read-main-dll --metrics-shmem-handle=2440,i,5887064933120681409,6094657753655759421,524288 --field-trial-handle=2224,i,15134903551622718630,14940960198930464573,262144 --variations-seed-version --pseudonymization-salt-handle=2244,i,14422048610771716068,15440141664871790272,4 --trace-process-track-uuid=3190708989122997041 --mojo-platform-channel-handle=2520 /prefetch:11"
+    },
+    {
+      "Name": "msedge.exe",
+      "ProcessId": 26384,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --type=utility --utility-sub-type=storage.mojom.StorageService --lang=en-US --service-sandbox-type=service --unsafely-treat-insecure-origin-as-secure=http://192.168.1.207:13909 --startup-read-main-dll --metrics-shmem-handle=2860,i,16212281719637327107,528522549040922244,524288 --field-trial-handle=2224,i,15134903551622718630,14940960198930464573,262144 --variations-seed-version --pseudonymization-salt-handle=2244,i,14422048610771716068,15440141664871790272,4 --trace-process-track-uuid=3190708990060038890 --mojo-platform-channel-handle=2880 /prefetch:13"
+    },
+    {
+      "Name": "msedge.exe",
+      "ProcessId": 8592,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --type=renderer --pdf-upsell-enabled --unsafely-treat-insecure-origin-as-secure=http://192.168.1.207:13909 --video-capture-use-gpu-memory-buffer --lang=en-US --js-flags --device-scale-factor=1.5 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=9 --skip-read-main-dll --launch-time-ticks=192661015131 --metrics-shmem-handle=6540,i,9373609207919925617,16398757437094313687,1048576 --field-trial-handle=2224,i,15134903551622718630,14940960198930464573,262144 --variations-seed-version --pseudonymization-salt-handle=2244,i,14422048610771716068,15440141664871790272,4 --trace-process-track-uuid=3190708994745248135 --mojo-platform-channel-handle=6560 /prefetch:1"
+    },
+    {
+      "Name": "msedge.exe",
+      "ProcessId": 22368,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --type=renderer --pdf-upsell-enabled --unsafely-treat-insecure-origin-as-secure=http://192.168.1.207:13909 --video-capture-use-gpu-memory-buffer --lang=en-US --js-flags --device-scale-factor=1.5 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=8 --skip-read-main-dll --launch-time-ticks=192661016839 --metrics-shmem-handle=6716,i,2385857481629516553,10368719311712454279,1048576 --field-trial-handle=2224,i,15134903551622718630,14940960198930464573,262144 --variations-seed-version --pseudonymization-salt-handle=2244,i,14422048610771716068,15440141664871790272,4 --trace-process-track-uuid=3190708993808206286 --mojo-platform-channel-handle=6760 /prefetch:1"
+    },
+    {
+      "Name": "msedge.exe",
+      "ProcessId": 3620,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --type=utility --utility-sub-type=edge_search_indexer.mojom.SearchIndexerInterfaceBroker --lang=en-US --service-sandbox-type=search_indexer --message-loop-type-ui --video-capture-use-gpu-memory-buffer --unsafely-treat-insecure-origin-as-secure=http://192.168.1.207:13909 --skip-read-main-dll --metrics-shmem-handle=7792,i,13918737364337115799,6705020339216699185,524288 --field-trial-handle=2224,i,15134903551622718630,14940960198930464573,262144 --variations-seed-version --pseudonymization-salt-handle=2244,i,14422048610771716068,15440141664871790272,4 --trace-process-track-uuid=3190708999430457380 --mojo-platform-channel-handle=3988 /prefetch:14"
+    },
+    {
+      "Name": "RuntimeBroker.exe",
+      "ProcessId": 10772,
+      "CommandLine": "C:\\Windows\\System32\\RuntimeBroker.exe -Embedding"
+    },
+    {
+      "Name": "msedge.exe",
+      "ProcessId": 12416,
+      "CommandLine": "\"C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe\" --type=renderer --pdf-upsell-enabled --unsafely-treat-insecure-origin-as-secure=http://192.168.1.207:13909 --video-capture-use-gpu-memory-buffer --lang=en-US --js-flags --device-scale-factor=1.5 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=20 --skip-read-main-dll --launch-time-ticks=205245894300 --metrics-shmem-handle=9192,i,7479700995221082880,13067762791754307784,1048576 --field-trial-handle=2224,i,15134903551622718630,14940960198930464573,262144 --variations-seed-version --pseudonymization-salt-handle=2244,i,14422048610771716068,15440141664871790272,4 --trace-process-track-uuid=3190709005052708474 --mojo-platform-channel-handle=7240 /prefetch:1"
+    },
+    {
+      "Name": "ChatGPT.exe",
+      "ProcessId": 16012,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.930.4958.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=renderer --standard-schemes=app,codex-sandbox --service-worker-schemes=codex-sandbox --secure-schemes=app,codex-sandbox --fetch-schemes=app,codex-sandbox --cors-schemes=codex-sandbox --streaming-schemes=app,codex-sandbox --owl-scoped-user-agent-additional-hosts=openai.com,chatgpt.com,chatgpt.site,chatgpt-team.site --owl-scoped-user-agent-prefix=CodexBrowser --no-pre-read-main-dll --start-stack-profiler --enable-blink-features=WebMCP --disable-blink-features=ReplacedNormalFlowStackingInlinePaint --video-capture-use-gpu-memory-buffer --lang=en-US --device-scale-factor=1.5 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=47 --launch-time-ticks=205420841742 --metrics-shmem-handle=11016,i,431044041604099710,14530978550269840222,1572864 --field-trial-handle=2344,i,11196722011239701827,14184635829523821976,262144 --enable-features=DevToolsWebMCPSupport,DocumentPolicyIncludeJSCallStacksInCrashReports,ReportStuckThrottle --disable-features=DropInputEventsWhilePaintHolding,WebUIOmniboxAimPopup,WebUIOmniboxPopup --variations-seed-version --pseudonymization-salt-handle=2348,i,14767076066069056732,16350837676332617947,4 --trace-process-track-uuid=3190709030352838397 --mojo-platform-channel-handle=4092 /prefetch:1"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 9076,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\" C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_modules\\@oai\\cua-repl\\bin\\cua-repl.mjs"
+    },
+    {
+      "Name": "node_repl.exe",
+      "ProcessId": 8888,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_repl.exe\""
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 28568,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 22340,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "node_repl.exe",
+      "ProcessId": 29268,
+      "CommandLine": "C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_repl.exe"
+    },
+    {
+      "Name": "node_repl.exe",
+      "ProcessId": 30556,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_repl.exe\""
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 22220,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\" C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_modules\\@oai\\cua-repl\\bin\\cua-repl.mjs"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 5680,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 29388,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "node_repl.exe",
+      "ProcessId": 8288,
+      "CommandLine": "C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_repl.exe"
+    },
+    {
+      "Name": "cmd.exe",
+      "ProcessId": 21608,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\cmd.exe\" /d /s /c call ./scripts/launch_codex_app_tools_mcp.cmd ./server.mjs"
+    },
+    {
+      "Name": "cmd.exe",
+      "ProcessId": 20128,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\cmd.exe\" /d /c scripts\\launch_code_review_mcp.cmd"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 9348,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 29336,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 23072,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\"  ./server.mjs "
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 3516,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\"  ./server.mjs"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 1124,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\" C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_modules\\@oai\\cua-repl\\bin\\cua-repl.mjs"
+    },
+    {
+      "Name": "node_repl.exe",
+      "ProcessId": 1128,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_repl.exe\""
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 29720,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 28728,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "node_repl.exe",
+      "ProcessId": 6648,
+      "CommandLine": "C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_repl.exe"
+    },
+    {
+      "Name": "cmd.exe",
+      "ProcessId": 9176,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\cmd.exe\" /d /c scripts\\launch_code_review_mcp.cmd"
+    },
+    {
+      "Name": "cmd.exe",
+      "ProcessId": 9772,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\cmd.exe\" /d /s /c call ./scripts/launch_codex_app_tools_mcp.cmd ./server.mjs"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 27128,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 26684,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 12412,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\"  ./server.mjs "
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 3760,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\"  ./server.mjs"
+    },
+    {
+      "Name": "cmd.exe",
+      "ProcessId": 22244,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\cmd.exe\" /d /c scripts\\launch_code_review_mcp.cmd"
+    },
+    {
+      "Name": "cmd.exe",
+      "ProcessId": 4668,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\cmd.exe\" /d /s /c call ./scripts/launch_codex_app_tools_mcp.cmd ./server.mjs"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 14736,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 9148,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 29584,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\"  ./server.mjs "
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 28796,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\"  ./server.mjs"
+    },
+    {
+      "Name": "node_repl.exe",
+      "ProcessId": 28448,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_repl.exe\""
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 2744,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\" C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_modules\\@oai\\cua-repl\\bin\\cua-repl.mjs"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 28124,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 5596,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "node_repl.exe",
+      "ProcessId": 28152,
+      "CommandLine": "C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_repl.exe"
+    },
+    {
+      "Name": "cmd.exe",
+      "ProcessId": 13080,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\cmd.exe\" /d /c scripts\\launch_code_review_mcp.cmd"
+    },
+    {
+      "Name": "cmd.exe",
+      "ProcessId": 20700,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\cmd.exe\" /d /s /c call ./scripts/launch_codex_app_tools_mcp.cmd ./server.mjs"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 28712,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 29056,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 14900,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\"  ./server.mjs "
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 27168,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\"  ./server.mjs"
+    },
+    {
+      "Name": "WmiPrvSE.exe",
+      "ProcessId": 23624,
+      "CommandLine": null
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 26880,
+      "CommandLine": null
+    },
+    {
+      "Name": "codex-windows-sandbox-service.exe",
+      "ProcessId": 13864,
+      "CommandLine": null
+    },
+    {
+      "Name": "xmind_server.exe",
+      "ProcessId": 3136,
+      "CommandLine": "D:\\CantorAI2026\\xMind\\.agentflow\\browser-ui\\runtime-responses-reasoning-ace24609-cb75f7fa-12c5-4497-b5c6-3c088b57e1cb\\xmind_server.exe --db D:\\CantorAI2026\\xMind\\.agentflow\\browser-ui\\state.sqlite --modules D:\\CantorAI2026\\xMind\\.agentflow\\browser-ui\\runtime-responses-reasoning-ace24609-cb75f7fa-12c5-4497-b5c6-3c088b57e1cb\\modules --stdlib C:/Python/Python314/Lib --port 57447 --workspace D:\\CantorAI2026\\xMind\\ --workspace-edits approved --model-tools supported"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 2320,
+      "CommandLine": "\"C:\\Program Files\\nodejs\\node.exe\" D:\\CantorAI2026\\xMind\\.agentflow\\browser-ui\\view-source-global-fix-e326ad37-b64e-48f9-a092-d1a6a2679395\\server.mjs --backend http://127.0.0.1:57447 --assets D:\\CantorAI2026\\xMind\\.agentflow\\browser-ui\\view-source-global-fix-e326ad37-b64e-48f9-a092-d1a6a2679395\\assets --port 60405"
+    },
+    {
+      "Name": "PhoneExperienceHost.exe",
+      "ProcessId": 27872,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\Microsoft.YourPhone_1.26072.257.0_x64__8wekyb3d8bbwe\\PhoneExperienceHost.exe\" -ComServer:Background -Embedding"
+    },
+    {
+      "Name": "ChatGPT.exe",
+      "ProcessId": 29016,
+      "CommandLine": "\"C:\\Program Files\\WindowsApps\\OpenAI.Codex_26.930.4958.0_x64__2p2nqsd0c76g0\\app\\ChatGPT.exe\" --type=renderer --standard-schemes=app,codex-sandbox --service-worker-schemes=codex-sandbox --secure-schemes=app,codex-sandbox --fetch-schemes=app,codex-sandbox --cors-schemes=codex-sandbox --streaming-schemes=app,codex-sandbox --owl-scoped-user-agent-additional-hosts=openai.com,chatgpt.com,chatgpt.site,chatgpt-team.site --owl-scoped-user-agent-prefix=CodexBrowser --no-pre-read-main-dll --enable-blink-features=WebMCP --disable-blink-features=ReplacedNormalFlowStackingInlinePaint --video-capture-use-gpu-memory-buffer --lang=en-US --device-scale-factor=1.5 --num-raster-threads=4 --enable-main-frame-before-activation --renderer-client-id=57 --launch-time-ticks=261310698661 --metrics-shmem-handle=8140,i,13764915427403302556,3448813598106553244,1572864 --field-trial-handle=2344,i,11196722011239701827,14184635829523821976,262144 --enable-features=DevToolsWebMCPSupport,DocumentPolicyIncludeJSCallStacksInCrashReports,ReportStuckThrottle --disable-features=DropInputEventsWhilePaintHolding,WebUIOmniboxAimPopup,WebUIOmniboxPopup --variations-seed-version --pseudonymization-salt-handle=2348,i,14767076066069056732,16350837676332617947,4 --trace-process-track-uuid=3190709039723256887 --mojo-platform-channel-handle=11160 /prefetch:1"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 12956,
+      "CommandLine": null
+    },
+    {
+      "Name": "MoNotificationUx.exe",
+      "ProcessId": 10436,
+      "CommandLine": "C:\\WINDOWS\\uus\\AMD64\\MoNotificationUx.exe /NotificationType Scan_Seeker_Available /FormFactor Passive /Branding Os /CV N6Lf9kC0rEW8gw4h.1.0.0"
+    },
+    {
+      "Name": "vctip.exe",
+      "ProcessId": 18028,
+      "CommandLine": "\"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.51.36231\\bin\\HostX64\\x64\\VCTIP.EXE\""
+    },
+    {
+      "Name": "node_repl.exe",
+      "ProcessId": 10184,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_repl.exe\""
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 6284,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\" C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_modules\\@oai\\cua-repl\\bin\\cua-repl.mjs"
+    },
+    {
+      "Name": "cmd.exe",
+      "ProcessId": 4852,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\cmd.exe\" /d /s /c call ./scripts/launch_codex_app_tools_mcp.cmd ./server.mjs"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 30440,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "cmd.exe",
+      "ProcessId": 17928,
+      "CommandLine": "\"C:\\WINDOWS\\system32\\cmd.exe\" /d /c scripts\\launch_code_review_mcp.cmd"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 31172,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 14632,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 29884,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 28036,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\"  ./server.mjs "
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 29940,
+      "CommandLine": "\"C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node.exe\"  ./server.mjs"
+    },
+    {
+      "Name": "node_repl.exe",
+      "ProcessId": 5268,
+      "CommandLine": "C:\\Users\\shaw9\\AppData\\Local\\OpenAI\\Codex\\runtimes\\cua_node\\7d8d3ac5ca9f6767\\bin\\node_repl.exe"
+    },
+    {
+      "Name": "pwsh.exe",
+      "ProcessId": 28532,
+      "CommandLine": "\"C:\\Users\\shaw9\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe\" -Command \"try { [Console]::OutputEncoding=[System.Text.Encoding]::UTF8 } catch {}\nnode --input-type=module -e 'import{readFile,writeFile}from\\\"node:fs/promises\\\";import assert from\\\"node:assert/strict\\\";let helper=await readFile(\\\".agentflow/ci/context-transport-gate-source.mjs\\\",\\\"utf8\\\");assert.equal(helper.split(\\\"context-transport-first-gate\\\").length,2);helper=helper.replace(\\\"context-transport-first-gate\\\",\\\"context-transport-second-gate\\\");await writeFile(\\\".agentflow/ci/context-transport-second-gate-source.mjs\\\",helper,{flag:\\\"wx\\\"});let runner=await readFile(\\\".agentflow/ci/run-context-transport-full-gate.ps1\\\",\\\"utf8\\\");assert.equal(runner.split(\\\"context-transport-first-gate\\\").length,2);assert.equal(runner.split(\\\"context-transport-gate-source.mjs\\\").length,3);runner=runner.replace(\\\"context-transport-first-gate\\\",\\\"context-transport-second-gate\\\").replaceAll(\\\"context-transport-gate-source.mjs\\\",\\\"context-transport-second-gate-source.mjs\\\");await writeFile(\\\".agentflow/ci/run-context-transport-second-full-gate.ps1\\\",runner,{flag:\\\"wx\\\"});console.log(\\\"Fresh second attempt prepared; original benchmark deferral retained; only owned evidence/helper paths changed.\\\");'; & '.\\.agentflow\\ci\\run-context-transport-second-full-gate.ps1'\""
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 9436,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 30008,
+      "CommandLine": null
+    },
+    {
+      "Name": "WmiPrvSE.exe",
+      "ProcessId": 31140,
+      "CommandLine": null
+    },
+    {
+      "Name": "ctest.exe",
+      "ProcessId": 30852,
+      "CommandLine": "\"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe\" --test-dir D:\\CantorAI2026\\xMind\\build\\native-dynamic-plan -C Release --output-on-failure"
+    },
+    {
+      "Name": "svchost.exe",
+      "ProcessId": 24884,
+      "CommandLine": null
+    },
+    {
+      "Name": "pwsh.exe",
+      "ProcessId": 31396,
+      "CommandLine": "\"C:\\Users\\shaw9\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe\" -Command \"try { [Console]::OutputEncoding=[System.Text.Encoding]::UTF8 } catch {}\n& 'C:\\Python\\Python314\\python.exe' -I scratch/performance/apply-class-constructor-plan-c4-20261008.py\""
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 22216,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "python.exe",
+      "ProcessId": 31324,
+      "CommandLine": "\"C:\\Python\\Python314\\python.exe\" -I scratch/performance/apply-class-constructor-plan-c4-20261008.py"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 29576,
+      "CommandLine": "powershell -NoProfile -Command \"Get-CimInstance Win32_Process | Select-Object Name,ProcessId,CommandLine | ConvertTo-Json -Compress\""
+    },
+    {
+      "Name": "node.exe",
+      "ProcessId": 19300,
+      "CommandLine": "\"C:/Program Files/nodejs/node.exe\" D:/CantorAI2026/xMind/Native/tests/a2a_v1_http_contract.mjs D:/CantorAI2026/xMind/build/native-dynamic-plan/Release/xmind_server.exe D:/CantorAI2026/.worktrees/xlang3-nexus-buffer/build/Release/modules C:/Python/Python314/Lib"
+    },
+    {
+      "Name": "xmind_server.exe",
+      "ProcessId": 7844,
+      "CommandLine": "D:/CantorAI2026/xMind/build/native-dynamic-plan/Release/xmind_server.exe --db C:\\Users\\shaw9\\AppData\\Local\\Temp\\xmind-a2a-v1-EBzXf2\\state.sqlite --modules D:/CantorAI2026/.worktrees/xlang3-nexus-buffer/build/Release/modules --stdlib C:/Python/Python314/Lib --port 0 --model synthetic-native-v1-model --model-endpoint http://127.0.0.1:60012/chat"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 8952,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    },
+    {
+      "Name": "pwsh.exe",
+      "ProcessId": 12136,
+      "CommandLine": "\"C:\\Users\\shaw9\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\native\\powershell\\pwsh.exe\" -Command \"try { [Console]::OutputEncoding=[System.Text.Encoding]::UTF8 } catch {}\nrg -n '\\b(import pickle|from pickle)\\b' C:/Python/Python314/Lib/site-packages/pyperf D:/CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages/pyperf; Get-FileHash -Algorithm SHA256 -LiteralPath scratch/performance/sample-pprint-native-cpu-20261008.exe,scratch/performance/sample-pprint-native-cpu-build-20261008.log; $r = Get-Content -Raw -LiteralPath doc/performance/data/ordinary-canonical-slot-constructor-c3-focused-20261008.json | ConvertFrom-Json; @($r.PSObject.Properties.Name) -join ', '\""
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 22412,
+      "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4"
+    }
+  ]
+}

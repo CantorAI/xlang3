@@ -1,0 +1,57 @@
+{
+  "src/internal/xlang3/object_model.h": {
+    "compiled_working_sha256": "7a7e767de9ac93bc83992cb2367cc0cf15353f8da54326e867297bbcef1eec03",
+    "staged_sha256": "e8642394a719f68c9666517c3a24d7487e30d088fa3ea4f9961d86bd36fd4023",
+    "only_line_ending_normalization_allowed": true
+  },
+  "src/runtime/object_model.cpp": {
+    "compiled_working_sha256": "835996e3db255ec24112fe93d9438df4c05d281befd502c306a3df2c1ffd1556",
+    "staged_sha256": "038a27578a9f907c3987c0470a89663a7feee7d4bf0838afb9fd46f0c6c63e18",
+    "only_line_ending_normalization_allowed": true
+  },
+  "src/builtins/object_type_builtins.cpp": {
+    "compiled_working_sha256": "171aafd05b11396b5522a2a45d490b37dbce0924c00b661b4f2e1ba41fa7a3d3",
+    "staged_sha256": "58d6eb52e7fd0a92e290bbf1bd28da659cdc5b612747797ffe22cfa7f5477b6c",
+    "only_line_ending_normalization_allowed": true
+  },
+  "src/executor/xlang_vm/ops/xlang_vm_ops_construct.h": {
+    "compiled_working_sha256": "a5e192e82b37a6545b7988395dc5324b9e0381d280ad5ee7d2c4dcca8b592c42",
+    "staged_sha256": "16b01e2eaf7889fd9d23e7b5d247b251671393e19bf745f489aac865838c8ef8",
+    "only_line_ending_normalization_allowed": true
+  },
+  "src/executor/xlang_vm/xlang_vm_inline_support.h": {
+    "compiled_working_sha256": "63eb38f507193ccabd852b261eb84299d2a05dacb8cd1999760e8c7121a4d4b0",
+    "staged_sha256": "d321762ea5e78dfe5a0dcd37f8969beb63fe37fc3f852c898b94ecaad74fc538",
+    "only_line_ending_normalization_allowed": true
+  },
+  "src/executor/xlang_vm/xlang_vm_attr.cpp": {
+    "compiled_working_sha256": "264a0d6c78dc4b946fe4b1f00dd7dd6d52581589a6950d4ecaf394d312994c7a",
+    "staged_sha256": "a65817da76f797cfaf3a35b3fbf9eddf30ae0aefa8514aea22b9fd031914e7a8",
+    "only_line_ending_normalization_allowed": true
+  },
+  "src/serialize/value_graph_reader.cpp": {
+    "compiled_working_sha256": "33e783e7508adaca6372383fc9b5b593509a7dc66669168ee3116a58ef90d662",
+    "staged_sha256": "02b48bde31a254cb3e95eacc0e6215dc495c829fcf9f83a84071b245e8e0ec56",
+    "only_line_ending_normalization_allowed": true
+  },
+  "src/runtime/modules/system/weakref_module.cpp": {
+    "compiled_working_sha256": "a4d0a52d7ffa14f48c9c0226c71c80b635720f4b7153658b2e6da25be269cb73",
+    "staged_sha256": "bc28da2f808fb50597e6e05f8704f2f0e0091142afd9f1890505ee5249e7b05b",
+    "only_line_ending_normalization_allowed": true
+  },
+  "tests/cpp/canonical_slot_read_cases.h": {
+    "compiled_working_sha256": "6b6e18371c686021f1626293f7afd7733039bd216fae7878e42363bc410f63de",
+    "staged_sha256": "69ea4cad0d2a500ef863ecd0122665286f8a0490be9e5fceec41805e19d4e2a1",
+    "only_line_ending_normalization_allowed": true
+  },
+  "tests/fixtures/core/canonical_slot_reads.py": {
+    "compiled_working_sha256": "7efadaea716e73e987a0ee35a2110f44ab91dec1e0d75ddb40ad627b582f918b",
+    "staged_sha256": "7efadaea716e73e987a0ee35a2110f44ab91dec1e0d75ddb40ad627b582f918b",
+    "only_line_ending_normalization_allowed": true
+  },
+  "tests/fixtures/expected/canonical_slot_reads.out": {
+    "compiled_working_sha256": "5fb63eb109aee4d367d06c636db3d30bea771a8c13a8819a985c43fc43bd24a2",
+    "staged_sha256": "5fb63eb109aee4d367d06c636db3d30bea771a8c13a8819a985c43fc43bd24a2",
+    "only_line_ending_normalization_allowed": true
+  }
+}

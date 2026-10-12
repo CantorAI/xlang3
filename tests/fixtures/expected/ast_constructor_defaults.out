@@ -1,3 +1,5 @@
-None
-{'value': 1}
-value['key']
+native field metadata and defaults True
+constructor unparse and compile True
+duplicate and excess arguments True
+required and unknown field warnings True
+subclass metadata and attribute hooks True

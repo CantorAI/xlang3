@@ -1,0 +1,14 @@
+Command:
+& 'C:\Python\Python314\python.exe' benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py `
+  --runtime build-repro\main-verify-20261006\Release\xlang3.exe `
+  --benchmarks async_tree_io --mode fast --case-timeout 300 `
+  --output doc\performance\data\async-tree-io-rich-proof-cache-candidate-20261011.pyperf.json `
+  --dependency-site 'C:\Python\Python314\Lib\site-packages'
+
+Result:
+Full-case timeout: async_tree_io exceeded 300 seconds
+ERROR: Benchmark async_tree_io timed out
+ERROR: No benchmark was run
+
+No pyperf score JSON was produced. This text records the attempted run and its
+timeout; it is not a timing artifact.

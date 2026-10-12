@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="565" viewBox="0 0 900 565" role="img" aria-labelledby="title desc">
+<title id="title">GC repair experiments through R7b: elapsed milliseconds, lower is faster</title>
+<desc id="desc">Separate original fast runs; CPython reference is fresh R7b. R7b passes the fixed gate; preceding candidates fail or are inconclusive. Full97 pending.</desc>
+<rect width="900" height="565" fill="white"/>
+<g font-family="Arial,sans-serif" font-size="14" fill="#182b43">
+<text x="24" y="28" font-size="19" font-weight="bold">GC repair experiments — elapsed time (lower is faster)</text>
+<text x="24" y="51">Unpaired fast runs. R7b checkpoint passes the unchanged gate; full97 pending.</text>
+<text x="24" y="89" font-weight="bold">create_gc_cycles</text>
+<text x="24" y="119">CPython 3.14.7 (R7b)</text>
+<rect x="230" y="104" width="103.0337" height="19" fill="#64748b"/>
+<text x="341.0337" y="119">1.585 ms</text>
+<text x="24" y="146">XLang3 R2</text>
+<rect x="230" y="131" width="216.8570" height="19" fill="#d97706"/>
+<text x="454.8570" y="146">3.336 ms</text>
+<text x="24" y="173">XLang3 R3</text>
+<rect x="230" y="158" width="214.5719" height="19" fill="#2563eb"/>
+<text x="452.5719" y="173">3.301 ms</text>
+<text x="24" y="200">XLang3 R4</text>
+<rect x="230" y="185" width="198.2914" height="19" fill="#0d9488"/>
+<text x="436.2914" y="200">3.051 ms</text>
+<text x="24" y="227">XLang3 R5b</text>
+<rect x="230" y="212" width="212.9885" height="19" fill="#7c3aed"/>
+<text x="450.9885" y="227">3.277 ms</text>
+<text x="24" y="254">XLang3 R6</text>
+<rect x="230" y="239" width="177.8534" height="19" fill="#059669"/>
+<text x="415.8534" y="254">2.736 ms</text>
+<text x="24" y="281">XLang3 R7b</text>
+<rect x="230" y="266" width="137.6533" height="19" fill="#db2777"/>
+<text x="375.6533" y="281">2.118 ms</text>
+<text x="24" y="314" font-weight="bold">gc_traversal</text>
+<text x="24" y="344">CPython 3.14.7 (R7b)</text>
+<rect x="230" y="329" width="152.6458" height="19" fill="#64748b"/>
+<text x="390.6458" y="344">2.348 ms</text>
+<text x="24" y="371">XLang3 R2</text>
+<rect x="230" y="356" width="461.4380" height="19" fill="#d97706"/>
+<text x="699.4380" y="371">7.099 ms</text>
+<text x="24" y="398">XLang3 R3</text>
+<rect x="230" y="383" width="269.2665" height="19" fill="#2563eb"/>
+<text x="507.2665" y="398">4.143 ms</text>
+<text x="24" y="425">XLang3 R4</text>
+<rect x="230" y="410" width="203.1336" height="19" fill="#0d9488"/>
+<text x="441.1336" y="425">3.125 ms</text>
+<text x="24" y="452">XLang3 R5b</text>
+<rect x="230" y="437" width="184.3418" height="19" fill="#7c3aed"/>
+<text x="422.3418" y="452">2.836 ms</text>
+<text x="24" y="479">XLang3 R6</text>
+<rect x="230" y="464" width="163.9727" height="19" fill="#059669"/>
+<text x="401.9727" y="479">2.523 ms</text>
+<text x="24" y="506">XLang3 R7b</text>
+<rect x="230" y="491" width="128.0448" height="19" fill="#db2777"/>
+<text x="366.0448" y="506">1.970 ms</text>
+<text x="24" y="543">GC traversal: nominal 1.192× CPython speed. Cycle creation remains slower.</text>
+</g></svg>

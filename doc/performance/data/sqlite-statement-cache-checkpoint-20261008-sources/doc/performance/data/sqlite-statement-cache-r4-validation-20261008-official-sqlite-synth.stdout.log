@@ -1,0 +1,26 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (sqlite_synth)
+
+(trying common venv first)
+
+[1/1] sqlite_synth...
+...........
+WARNING: the benchmark result may be unstable
+* the standard deviation (682 ns) is 11% of the mean (6.31 us)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+sqlite_synth: Mean +- std dev: 6.31 us +- 0.68 us
+
+Performance version: 1.14.0
+
+### sqlite_synth ###
+Mean +- std dev: 6.31 us +- 0.68 us
+

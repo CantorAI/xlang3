@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1080" height="241" viewBox="0 0 1080 241">
+<rect width="100%" height="100%" fill="#ffffff"/>
+<g font-family="Arial, sans-serif" fill="#172b4d">
+<text x="20" y="28" font-size="20" font-weight="bold">Original official SQLGlot parse: throughput versus CPython 3.14.7</text>
+<text x="20" y="51" font-size="13">Saved CPython = 1x; both fresh XLang3 series remain much slower. Twenty values per series; unpaired comparison.</text>
+<line x1="330.0" x2="330.0" y1="71" y2="209" stroke="#e0e6ed"/>
+<text x="330.0" y="229" text-anchor="middle" font-size="12">0x</text>
+<line x1="600.0" x2="600.0" y1="71" y2="209" stroke="#e0e6ed"/>
+<text x="600.0" y="229" text-anchor="middle" font-size="12">0.5x</text>
+<line x1="870.0" x2="870.0" y1="71" y2="209" stroke="#e0e6ed"/>
+<text x="870.0" y="229" text-anchor="middle" font-size="12">1x</text>
+<line x1="870.0" x2="870.0" y1="71" y2="209" stroke="#44566c" stroke-dasharray="5 4"/>
+<text x="20" y="98" font-size="13">CPython 3.14.7 (saved)</text>
+<rect x="330" y="79" width="540.000" height="27" rx="3" fill="#2474a6"/>
+<text x="880.000" y="98" font-size="13">1.000x</text>
+<text x="20" y="141" font-size="13">Accepted XLang3 (fresh)</text>
+<rect x="330" y="122" width="29.061" height="27" rx="3" fill="#b65151"/>
+<text x="369.061" y="141" font-size="13">0.054x</text>
+<text x="20" y="184" font-size="13">String-dispatch candidate (fresh)</text>
+<rect x="330" y="165" width="29.523" height="27" rx="3" fill="#b65151"/>
+<text x="369.523" y="184" font-size="13">0.055x (18.29x slower)</text>
+</g></svg>

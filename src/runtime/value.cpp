@@ -62,7 +62,61 @@ limitations under the License.
 
 namespace xlang3 {
 
+struct StringUnicodeIndex {
+  static constexpr size_t stride = 128;
+  uint32_t characters = 0;
+  bool sparse = true;
+  std::vector<std::pair<uint32_t, uint32_t>> corrections;
+  std::vector<uint32_t> checkpoints;
+};
+static_assert(alignof(StringUnicodeIndex) >= 4);
+
 namespace {
+
+const StringUnicodeIndex& unicode_index(const StringObject& string) {
+  uintptr_t observed = string.unicode_metadata.load(std::memory_order_acquire);
+  if (const auto* cached = reinterpret_cast<const StringUnicodeIndex*>(observed & ~kStringMetadataFlags)) {
+    return *cached;
+  }
+  auto fresh = std::make_unique<StringUnicodeIndex>();
+  const auto text = string_object_view(string);
+  fresh->checkpoints.reserve(text.size() / StringUnicodeIndex::stride + 1);
+  uint32_t extra_bytes = 0;
+  for (size_t offset = 0; offset < text.size();) {
+    if (fresh->characters % StringUnicodeIndex::stride == 0) {
+      fresh->checkpoints.push_back(static_cast<uint32_t>(offset));
+    }
+    size_t width = utf8_codepoint_width(static_cast<unsigned char>(text[offset]));
+    if (width > text.size() - offset) width = 1;
+    offset += width;
+    ++fresh->characters;
+    if (width > 1) {
+      extra_bytes += static_cast<uint32_t>(width - 1);
+      if (fresh->sparse) {
+        if (fresh->corrections.size() < 128) {
+          fresh->corrections.emplace_back(fresh->characters, extra_bytes);
+        } else {
+          fresh->sparse = false;
+          std::vector<std::pair<uint32_t, uint32_t>>().swap(fresh->corrections);
+        }
+      }
+    }
+  }
+  if (fresh->sparse) std::vector<uint32_t>().swap(fresh->checkpoints);
+  // Rare multibyte characters should not force a table for every ASCII byte.
+  // Dense text uses bounded checkpoints; all later reads walk at most 127
+  // characters. Publish the completed immutable index to concurrent readers.
+  for (;;) {
+    if (const auto* cached = reinterpret_cast<const StringUnicodeIndex*>(observed & ~kStringMetadataFlags)) {
+      return *cached;
+    }
+    const uintptr_t desired = reinterpret_cast<uintptr_t>(fresh.get()) | (observed & kStringMetadataFlags);
+    if (string.unicode_metadata.compare_exchange_weak(
+            observed, desired, std::memory_order_acq_rel, std::memory_order_acquire)) {
+      return *fresh.release();
+    }
+  }
+}
 
 std::mutex g_file_resource_warning_mutex;
 std::vector<std::string> g_file_resource_warnings;
@@ -178,6 +232,8 @@ void recycle_slice_object(SliceObject* obj) {
 void release_string_block(StringObject* object) {
   const size_t alloc_size = object->alloc_size;
   auto* allocator = object->allocator != nullptr ? object->allocator : &memory::x3_thread_buckets();
+  delete reinterpret_cast<StringUnicodeIndex*>(
+      object->unicode_metadata.load(std::memory_order_relaxed) & ~kStringMetadataFlags);
   object->~StringObject();
   allocator->release(object, alloc_size);
 }
@@ -233,8 +289,7 @@ Value ascii_character_value(unsigned char character) {
     for (size_t i = 0; i < cache->size(); ++i) {
       const char byte = static_cast<char>(i);
       (*cache)[i] = make_plain_string(std::string_view(&byte, 1));
-      reinterpret_cast<StringObject*>((*cache)[i].as.obj)->immortal.store(
-          true, std::memory_order_relaxed);
+      string_object_set_immortal(*reinterpret_cast<StringObject*>((*cache)[i].as.obj), true);
     }
     return cache;
   }();
@@ -378,14 +433,14 @@ Value intern_string_view(std::string_view value, bool immortal = true) {
   if (auto found = find_interned_string(table, value); found != table.end()) {
     if (immortal) {
       if (auto* string = value_as_string(found->second)) {
-        string->immortal.store(true, std::memory_order_release);
+        string_object_set_immortal(*string, true);
       }
     }
     return found->second;
   }
   Value interned = make_plain_string(value);
   if (auto* string = value_as_string(interned)) {
-    string->immortal.store(immortal, std::memory_order_relaxed);
+    if (immortal) string_object_set_immortal(*string, true);
   }
   table.emplace(string_object_hash(*value_as_string(interned)), interned);
   return interned;
@@ -462,6 +517,9 @@ TupleObject* allocate_tuple_object(size_t capacity) {
       list.pop_back();
       obj->header.kind = ObjectKind::Tuple;
       obj->header.refcnt = 1;
+      // Freelist reuse bypasses the constructor: a previous key's hash must
+      // not survive, and reserved builders must remain uncached until complete.
+      tuple_object_begin_construction(*obj);
       xlang_perf_count_object_alloc(ObjectKind::Tuple);
       if (capacity != 0) gc_track_object(&obj->header);
       return obj;
@@ -498,13 +556,14 @@ void recycle_tuple_object(TupleObject* object) {
 }
 
 void string_object_set_bytes(StringObject* object, const char* source, size_t size) {
-  object->ascii = true;
+  bool ascii = true;
   for (size_t i = 0; i < size; ++i) {
     if ((static_cast<unsigned char>(source[i]) & 0x80u) != 0) {
-      object->ascii = false;
+      ascii = false;
       break;
     }
   }
+  string_object_set_ascii(*object, ascii);
   if (object->size != 0) {
     std::memcpy(string_object_mutable_data(*object), source, object->size);
   }
@@ -600,7 +659,7 @@ struct BinaryCompareView {
   size_t size = 0;
 };
 
-BinaryCompareView binary_compare_view(const Value& value) {
+BinaryCompareView binary_compare_view(const Value& value, std::string& scratch) {
   if (auto* bytes = value_as_bytes(value)) {
     const auto view = bytes_object_view(*bytes);
     return {view.data(), view.size()};
@@ -611,6 +670,11 @@ BinaryCompareView binary_compare_view(const Value& value) {
   if (auto* memoryview = value_as_memoryview(value)) {
     if (memoryview->released) {
       return {};
+    }
+    if (!memoryview->contiguous) {
+      std::string error;
+      if (!memoryview_copy_bytes(*memoryview, scratch, error)) return {};
+      return {scratch.data(), scratch.size()};
     }
     const auto view = memoryview_object_view(*memoryview);
     return {view.data(), view.size()};
@@ -984,6 +1048,42 @@ std::string format_f64(double value) {
 
 } // namespace
 
+size_t string_object_unicode_length(const StringObject& value) {
+  return unicode_index(value).characters;
+}
+
+size_t string_object_unicode_index(const StringObject& value, size_t byte_offset) {
+  const auto& cached = unicode_index(value);
+  if (byte_offset >= value.size) return cached.characters;
+  if (cached.sparse) {
+    auto found = std::upper_bound(cached.corrections.begin(), cached.corrections.end(), byte_offset,
+        [](size_t position, const std::pair<uint32_t, uint32_t>& entry) {
+          return position < static_cast<size_t>(entry.first) + entry.second;
+        });
+    return byte_offset - (found == cached.corrections.begin() ? 0 : (--found)->second);
+  }
+  auto found = std::upper_bound(cached.checkpoints.begin(), cached.checkpoints.end(), byte_offset);
+  --found; // Every nonempty dense string has a checkpoint at byte zero.
+  const size_t offset = *found;
+  const size_t index = static_cast<size_t>(found - cached.checkpoints.begin()) * StringUnicodeIndex::stride;
+  return index + utf8_codepoint_count(string_object_view(value).substr(offset, byte_offset - offset));
+}
+
+size_t string_object_unicode_offset(const StringObject& value, size_t index) {
+  const auto& cached = unicode_index(value);
+  if (index >= cached.characters) return value.size;
+  if (cached.sparse) {
+    auto found = std::upper_bound(cached.corrections.begin(), cached.corrections.end(), index,
+        [](size_t position, const std::pair<uint32_t, uint32_t>& entry) {
+          return position < entry.first;
+        });
+    return index + (found == cached.corrections.begin() ? 0 : (--found)->second);
+  }
+  const size_t offset = cached.checkpoints[index / StringUnicodeIndex::stride];
+  return offset + utf8_byte_offset(string_object_view(value).substr(offset),
+                                  index % StringUnicodeIndex::stride);
+}
+
 Value Value::complex(double real, double imag) {
   Value value;
   value.tag = ValueTag::Object;
@@ -1032,7 +1132,7 @@ Value intern_string_value(const Value& value) {
   std::lock_guard<std::mutex> lock(interned_string_mutex());
   auto& table = interned_string_table();
   if (auto found = find_interned_string(table, text); found != table.end()) return found->second;
-  string->immortal.store(false, std::memory_order_relaxed);
+  string_object_set_immortal(*string, false);
   table.emplace(string_object_hash(*string), value);
   return value;
 }
@@ -1051,7 +1151,7 @@ bool string_value_is_interned(const Value& value) {
 
 bool string_value_is_immortal_interned(const Value& value) {
   auto* string = value_as_string(value);
-  if (!string || !string->immortal.load(std::memory_order_acquire)) return false;
+  if (!string || !string_object_is_immortal(*string)) return false;
   const auto text = string_object_view(*string);
   if (text.size() == 1 && static_cast<unsigned char>(text[0]) < 128) {
     return value_is(ascii_character_value(static_cast<unsigned char>(text[0])), value);
@@ -1071,7 +1171,7 @@ int64_t immortal_interned_string_count() {
   int64_t count = 0;
   for (const auto& item : interned_string_table()) {
     auto* string = value_as_string(item.second);
-    if (string != nullptr && string->immortal.load(std::memory_order_relaxed)) {
+    if (string != nullptr && string_object_is_immortal(*string)) {
       ++count;
     }
   }
@@ -1136,7 +1236,7 @@ Value Value::memoryview(Value owner, size_t offset, size_t size, bool readonly) 
   return v;
 }
 
-std::string_view memoryview_object_view(const MemoryViewObject& view) {
+std::string_view memoryview_owner_view(const MemoryViewObject& view) {
   if (view.released) return {};
   std::string_view storage;
   if (view.external) {
@@ -1156,11 +1256,58 @@ std::string_view memoryview_object_view(const MemoryViewObject& view) {
     else if (auto* parent = value_as_memoryview(payload)) storage = memoryview_object_view(*parent);
     else return {};
   } else return {};
+  return storage;
+}
+
+std::string_view memoryview_object_view(const MemoryViewObject& view) {
+  if (!view.contiguous) return {};
+  const auto storage = memoryview_owner_view(view);
   if (!storage.data() || view.offset > storage.size() || view.size > storage.size() - view.offset) return {};
   return storage.substr(view.offset, view.size);
 }
 
-char* memoryview_object_writable_data(const MemoryViewObject& view) {
+bool memoryview_copy_bytes(const MemoryViewObject& view, std::string& out, std::string& error) {
+  if (view.released) { error = "operation forbidden on released memoryview object"; return false; }
+  if (view.contiguous) {
+    const auto bytes = memoryview_object_view(view);
+    if (bytes.data() == nullptr && view.size != 0) { error = "invalid memoryview storage"; return false; }
+    out.assign(bytes.data() == nullptr ? "" : bytes.data(), bytes.size());
+    return true;
+  }
+  const auto storage = memoryview_owner_view(view);
+  const size_t itemsize = memoryview_format_itemsize(view.format);
+  if (itemsize == 0 || view.size % itemsize != 0) { error = "unsupported memoryview format"; return false; }
+  out.clear();
+  out.reserve(view.size);
+  const size_t count = view.size / itemsize;
+  for (size_t logical = 0; logical < count; ++logical) {
+    size_t remaining = logical;
+    size_t offset = view.offset;
+    if (view.shape.empty()) {
+      const int64_t stride = view.strides.empty() ? static_cast<int64_t>(itemsize) : view.strides[0];
+      offset += logical * static_cast<size_t>(stride);
+    } else {
+      for (size_t dimension = view.shape.size(); dimension != 0; --dimension) {
+        const size_t extent = static_cast<size_t>(view.shape[dimension - 1]);
+        if (extent == 0) { error = "invalid memoryview shape"; return false; }
+        const size_t coordinate = remaining % extent;
+        remaining /= extent;
+        const int64_t stride = view.strides.empty() ? static_cast<int64_t>(itemsize)
+                                                    : view.strides[dimension - 1];
+        // Unsigned arithmetic expresses signed displacement without signed
+        // overflow; final owner bounds validate every selected physical item.
+        offset += coordinate * static_cast<size_t>(stride);
+      }
+    }
+    if (offset > storage.size() || itemsize > storage.size() - offset) {
+      error = "memoryview index out of range"; return false;
+    }
+    out.append(storage.data() + offset, itemsize);
+  }
+  return true;
+}
+
+char* memoryview_owner_writable_data(const MemoryViewObject& view) {
   if (view.readonly || view.released) return nullptr;
   if (!view.external && !value_as_bytearray(view.owner)) {
     if (auto* parent = value_as_memoryview(view.owner)) {
@@ -1175,7 +1322,14 @@ char* memoryview_object_writable_data(const MemoryViewObject& view) {
       }
     } else return nullptr;
   }
-  return const_cast<char*>(memoryview_object_view(view).data());
+  return const_cast<char*>(memoryview_owner_view(view).data());
+}
+
+char* memoryview_object_writable_data(const MemoryViewObject& view) {
+  if (!view.contiguous) return nullptr;
+  char* data = memoryview_owner_writable_data(view);
+  const auto span = memoryview_object_view(view);
+  return data != nullptr && span.data() != nullptr ? data + view.offset : nullptr;
 }
 
 Value Value::slice(Value start, Value stop, Value step) {
@@ -1196,6 +1350,7 @@ Value Value::tuple(std::vector<Value> items) {
   for (auto& item : items) {
     obj->items.push_back_unchecked(std::move(item));
   }
+  tuple_object_complete_construction(*obj);
   v.as.obj = &obj->header;
   return v;
 }
@@ -1331,9 +1486,16 @@ void frame_materialize_locals(FrameObject& frame) {
       }
     }
   }
-  frame.locals = Value::dict(std::move(entries));
-  frame.local_snapshot.clear();
+  // Publish the complete mapping and lazy-state transition before dropping any
+  // old local owners. Their finalizers can re-enter and inspect this frame.
+  Value materialized = Value::dict(std::move(entries));
+  Value retired_locals;
+  value_move_assign_fast(retired_locals, frame.locals);
+  value_move_assign_fast(frame.locals, materialized);
+  std::vector<Value> retired_snapshot;
+  retired_snapshot.swap(frame.local_snapshot);
   frame.has_lazy_locals = false;
+  frame.trace_locals_materialized = true;
 }
 
 Value Value::native_function(
@@ -2312,24 +2474,13 @@ bool string_percent_format(
         break;
       case 'r':
       case 'a':
-        if (runtime != nullptr && value_as_instance(arg) != nullptr) {
-          Value repr_method;
+        if (runtime != nullptr) {
+          // A container can contain Python objects even when its own tag is
+          // native. Runtime-free rendering loses nested __repr__ dispatch and
+          // string-subclass quoting; use the shared intrinsic instead.
           Value repr_result;
-          std::string attr_error;
-          if (!attribute_get(arg, "__repr__", repr_method, attr_error)) {
-            formatted = value_to_repr(arg);
-            break;
-          }
-          if (!runtime_call_callable(*runtime, repr_method, nullptr, 0, repr_result, error)) {
-            return false;
-          }
-          auto* repr_string = value_as_string(repr_result);
-          if (repr_string == nullptr) {
-            error = "__repr__ returned non-string";
-            runtime->raise_class_error("TypeError", error);
-            return false;
-          }
-          formatted = string_object_to_string(*repr_string);
+          if (!runtime_repr(*runtime, arg, repr_result, error, format[i] == 'a')) return false;
+          formatted = string_object_to_string(*value_as_string(repr_result));
         } else {
           formatted = value_to_repr(arg);
         }
@@ -2441,7 +2592,7 @@ bool string_percent_format(
   return true;
 }
 
-bool percent_bytes_view(const Value& value, std::string_view& out) {
+bool percent_bytes_view(const Value& value, std::string_view& out, std::string& packed) {
   if (auto* bytes = value_as_bytes(value)) {
     out = bytes_object_view(*bytes);
     return true;
@@ -2451,6 +2602,12 @@ bool percent_bytes_view(const Value& value, std::string_view& out) {
     return true;
   }
   if (auto* view = value_as_memoryview(value); view != nullptr && !view->released) {
+    if (!view->contiguous) {
+      std::string error;
+      if (!memoryview_copy_bytes(*view, packed, error)) return false;
+      out = packed;
+      return true;
+    }
     out = memoryview_object_view(*view);
     return true;
   }
@@ -2467,7 +2624,7 @@ bool percent_bytes_view(const Value& value, std::string_view& out) {
   return false;
 }
 
-bool bytes_percent_format(const Value& lhs, const Value& rhs, Value& out, std::string& error) {
+bool bytes_percent_format(Runtime* runtime, const Value& lhs, const Value& rhs, Value& out, std::string& error) {
   auto* format_object = value_as_bytes(lhs);
   if (format_object == nullptr) return false;
   const auto format = bytes_object_view(*format_object);
@@ -2561,7 +2718,8 @@ bool bytes_percent_format(const Value& lhs, const Value& rhs, Value& out, std::s
       case 'b':
       case 's': {
         std::string_view bytes;
-        if (!percent_bytes_view(argument, bytes)) {
+        std::string packed;
+        if (!percent_bytes_view(argument, bytes, packed)) {
           error = "%b requires a bytes-like object";
           return false;
         }
@@ -2576,7 +2734,8 @@ bool bytes_percent_format(const Value& lhs, const Value& rhs, Value& out, std::s
           break;
         }
         std::string_view bytes;
-        if (!percent_bytes_view(argument, bytes) || bytes.size() != 1) {
+        std::string packed;
+        if (!percent_bytes_view(argument, bytes, packed) || bytes.size() != 1) {
           error = "%c requires an integer in range(256) or a single byte";
           return false;
         }
@@ -2626,7 +2785,14 @@ bool bytes_percent_format(const Value& lhs, const Value& rhs, Value& out, std::s
       }
       case 'r':
       case 'a':
-        formatted = value_to_repr(argument);
+        if (runtime != nullptr) {
+          Value repr_result;
+          // Bytes %r and %a both use ASCII-escaped repr, before precision.
+          if (!runtime_repr(*runtime, argument, repr_result, error, true)) return false;
+          formatted = string_object_to_string(*value_as_string(repr_result));
+        } else {
+          formatted = value_to_repr(argument);
+        }
         if (has_precision && precision < static_cast<int64_t>(formatted.size()))
           formatted.resize(static_cast<size_t>(precision));
         break;
@@ -2942,8 +3108,8 @@ bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     if (!right.empty()) {
       std::memcpy(target + left.size(), right.data(), right.size());
     }
-    string->ascii = string_object_is_ascii(*as_string(lhs.as.obj)) &&
-                    string_object_is_ascii(*as_string(rhs.as.obj));
+    string_object_set_ascii(*string, string_object_is_ascii(*as_string(lhs.as.obj)) &&
+                    string_object_is_ascii(*as_string(rhs.as.obj)));
     return true;
   }
   if (lhs.tag == ValueTag::Object && rhs.tag == ValueTag::Object &&
@@ -3318,6 +3484,12 @@ bool value_floor_div(const Value& lhs, const Value& rhs, Value& out, std::string
       error = "integer division by zero";
       return false;
     }
+    // Signed hardware division traps for INT64_MIN / -1. Python promotes the
+    // quotient to bigint; check before either division or remainder instruction.
+    if (lhs.as.i64 == std::numeric_limits<int64_t>::min() && rhs.as.i64 == -1) {
+      out = value_bigint_from_u64(uint64_t{1} << 63u);
+      return true;
+    }
     int64_t q = lhs.as.i64 / rhs.as.i64;
     const int64_t r = lhs.as.i64 % rhs.as.i64;
     if (r != 0 && ((r < 0) != (rhs.as.i64 < 0))) {
@@ -3345,7 +3517,7 @@ bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     if (!error.empty()) return false;
   }
   if (value_as_bytes(lhs) != nullptr) {
-    return bytes_percent_format(lhs, rhs, out, error);
+    return bytes_percent_format(nullptr, lhs, rhs, out, error);
   }
   if (value_as_bigint(lhs) != nullptr || value_as_bigint(rhs) != nullptr) {
     Value quotient;
@@ -3355,6 +3527,10 @@ bool value_mod(const Value& lhs, const Value& rhs, Value& out, std::string& erro
     if (rhs.as.i64 == 0) {
       error = "integer modulo by zero";
       return false;
+    }
+    if (lhs.as.i64 == std::numeric_limits<int64_t>::min() && rhs.as.i64 == -1) {
+      value_set_int64(out, 0);
+      return true;
     }
     int64_t result = lhs.as.i64 % rhs.as.i64;
     if (result != 0 && ((result < 0) != (rhs.as.i64 < 0))) {
@@ -3385,6 +3561,7 @@ bool value_mod_runtime(Runtime& runtime, const Value& lhs, const Value& rhs, Val
     if (string_percent_format(&runtime, lhs, rhs, out, error)) return true;
     if (!error.empty()) return false;
   }
+  if (value_as_bytes(lhs) != nullptr) return bytes_percent_format(&runtime, lhs, rhs, out, error);
   return value_mod(lhs, rhs, out, error);
 }
 
@@ -4082,8 +4259,9 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
       return true;
     }
   }
-  const auto left_binary_order = binary_compare_view(lhs);
-  const auto right_binary_order = binary_compare_view(rhs);
+  std::string left_binary_scratch, right_binary_scratch;
+  const auto left_binary_order = binary_compare_view(lhs, left_binary_scratch);
+  const auto right_binary_order = binary_compare_view(rhs, right_binary_scratch);
   if (left_binary_order.data != nullptr && right_binary_order.data != nullptr) {
     const int cmp = std::memcmp(
         left_binary_order.data,
@@ -4106,8 +4284,8 @@ bool value_compare(const std::string& op, const Value& lhs, const Value& rhs, Va
     return true;
   }
   if (op == "==" || op == "!=") {
-    const auto left_binary = binary_compare_view(lhs);
-    const auto right_binary = binary_compare_view(rhs);
+    const auto left_binary = binary_compare_view(lhs, left_binary_scratch);
+    const auto right_binary = binary_compare_view(rhs, right_binary_scratch);
     if (left_binary.data != nullptr && right_binary.data != nullptr) {
       result = left_binary.size == right_binary.size &&
                (left_binary.size == 0 || std::memcmp(left_binary.data, right_binary.data, left_binary.size) == 0);

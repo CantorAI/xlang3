@@ -1,0 +1,13 @@
+{
+  "status": "verified_preflight_refusal_no_benchmark_children",
+  "original_receipt_sha256": "375fbc553c8f54d7c71213cbadca4d1f96d87d1233dce3bf479fed962c1c36b5",
+  "original_receipt_unmodified": true,
+  "benchmark_children": 0,
+  "independent_identity_checks": {
+    "recorded_source111_unchanged": true,
+    "release178_unchanged": true,
+    "fixed_baseline177_unchanged": true
+  },
+  "original_status_limitation": "Finally compared current Release178 against the uninitialized empty release map after the first idle guard refused. Its invalid_hash_drift label is not evidence of source or binary mutation.",
+  "next_action": "Preserve original receipt; a fresh prefix may run only after the same strict guard admits an idle machine."
+}

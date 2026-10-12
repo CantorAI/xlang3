@@ -1,0 +1,44 @@
+{
+  "status": "correctness_and_fixed_gate_passed",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "source_base_commit": "30e9b0eafd9416d7b5dace9bd6e9e7c81e335506",
+  "source_files": {
+    "src/builtins/object_type_builtins.cpp": "6c9c022a4b7eba99ac41b01197950f2dd2860dfee7d8901675fd62986e466b99",
+    "src/builtins/builtin_modules.cpp": "05709d2af467b5778795114f47ff63132a041cc6da6fd9f1daf0e98dcbdde173",
+    "src/runtime/modules/system/ast_module.cpp": "0cd5e2ed9c9db84a6870ac2b1e4c65e421a7a1c1b052e8bed96003b9eabd1a1d",
+    "tests/run_fixtures.py": "c1b9159914ca2051cb83e20c74628042f955bb786e766ecc8dd320032ddc68b9",
+    "tests/fixtures/core/builtin_literal_namespace.py": "15a90565505f2de42849fa56c2a5dc84f9e5ef8861cf0b9a49363f6f8c92ae58",
+    "tests/fixtures/expected/builtin_literal_namespace.out": "5769377bc2efbcd42bfd624905cfc3852a0d40aabb7e946d87ed1418dd714db5"
+  },
+  "binary_sha256": {
+    "xlang3.exe": "b1e8973ae266243f545920a83a5ac7e1686f56baaf443193514be59f43dd4afb",
+    "xlang3_runtime.dll": "d4e32e597b41b1876a171d5d65222d74bf8cec0dfdb02b327d7bea6ea26f846f"
+  },
+  "full_fixtures": {
+    "exit_code": 0,
+    "verified_exec_session": 33182,
+    "core_cases": 359,
+    "section_cases": 11,
+    "expected_failure_cases": 3
+  },
+  "cpp_sdk": {
+    "exit_code": 0,
+    "tests_passed": 8,
+    "log": "builtin-constants-cpp-sdk-final-20261007.log"
+  },
+  "fixed_gate": {
+    "report": "release-builtin-constants-fixed-gate-20261007.json",
+    "status": "pass",
+    "exit_code": 0,
+    "cases": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1
+  },
+  "official_chameleon": {
+    "status": "finished",
+    "exit_code": 0,
+    "report": "pyperformance-xlang3-builtin-constants-chameleon-fast-20261007.json",
+    "provenance": "pyperformance-xlang3-builtin-constants-chameleon-fast-20261007-provenance.json"
+  }
+}

@@ -849,6 +849,55 @@ bool body_contains_yield(const std::vector<ast::StmtPtr>& body) {
   return false;
 }
 
+bool class_stmt_contains_for(const ast::Stmt& stmt);
+
+bool class_body_contains_for(const std::vector<ast::StmtPtr>& body) {
+  for (const auto& stmt : body) {
+    if (class_stmt_contains_for(*stmt)) return true;
+  }
+  return false;
+}
+
+bool class_stmt_contains_for(const ast::Stmt& stmt) {
+  if (dynamic_cast<const ast::ForStmt*>(&stmt) != nullptr) return true;
+  if (auto* branch = dynamic_cast<const ast::IfStmt*>(&stmt)) {
+    return class_body_contains_for(branch->then_body) ||
+        class_body_contains_for(branch->else_body);
+  }
+  if (auto* block = dynamic_cast<const ast::WithStmt*>(&stmt))
+    return class_body_contains_for(block->body);
+  // A loop inside a method or nested class belongs to that inner scope and
+  // must not force the enclosing class to use an executed namespace. Other
+  // compound class statements are not lowered by this class-body dispatcher.
+  return false;
+}
+
+bool class_stmt_contains_annotation(const ast::Stmt& stmt);
+
+bool class_body_contains_annotation(const std::vector<ast::StmtPtr>& body) {
+  for (const auto& stmt : body) {
+    if (class_stmt_contains_annotation(*stmt)) return true;
+  }
+  return false;
+}
+
+bool class_stmt_contains_annotation(const ast::Stmt& stmt) {
+  if (dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt) != nullptr)
+    return true;
+  if (auto* branch = dynamic_cast<const ast::IfStmt*>(&stmt)) {
+    return class_body_contains_annotation(branch->then_body) ||
+        class_body_contains_annotation(branch->else_body);
+  }
+  if (auto* loop = dynamic_cast<const ast::ForStmt*>(&stmt)) {
+    return class_body_contains_annotation(loop->body) ||
+        class_body_contains_annotation(loop->else_body);
+  }
+  if (auto* block = dynamic_cast<const ast::WithStmt*>(&stmt))
+    return class_body_contains_annotation(block->body);
+  // Method and nested-class annotations are stored in their own namespaces.
+  return false;
+}
+
 bool stmt_contains_yield(const ast::Stmt& stmt) {
   if (auto* expr = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
     return expr_contains_yield(*expr->expr);
@@ -2089,6 +2138,41 @@ private:
     }
   }
 
+  template <typename Comprehension>
+  std::unordered_set<std::string> collect_eager_comprehension_captures(
+      const Comprehension& comp,
+      const std::unordered_set<std::string>& local_targets,
+      std::vector<std::string>& names,
+      std::unordered_set<std::string>& seen,
+      bool capture_names) const {
+    // Discover enclosing cells before their assignments are lowered. The
+    // first iterable is outside the comprehension's target scope, even when
+    // its name matches a target. Later iterables and filters see the targets
+    // bound by preceding clauses; nested lambdas must keep those exclusions.
+    collect_expression_captures(*comp.iterable, local_targets, names, seen,
+                                capture_names);
+    auto targets = local_targets;
+    for (const auto& name : assignment_names(*comp.target_expr)) {
+      targets.insert(resolve_name(name));
+    }
+    if (comp.filter != nullptr) {
+      collect_expression_captures(*comp.filter, targets, names, seen,
+                                  capture_names);
+    }
+    for (const auto& clause : comp.extra_clauses) {
+      collect_expression_captures(*clause.iterable, targets, names, seen,
+                                  capture_names);
+      for (const auto& name : assignment_names(*clause.target_expr)) {
+        targets.insert(resolve_name(name));
+      }
+      if (clause.filter != nullptr) {
+        collect_expression_captures(*clause.filter, targets, names, seen,
+                                    capture_names);
+      }
+    }
+    return targets;
+  }
+
   void collect_expression_captures(
       const ast::Expr& expr,
       const std::unordered_set<std::string>& local_targets,
@@ -2212,6 +2296,29 @@ private:
       }
       return;
     }
+    if (auto* comp = dynamic_cast<const ast::ListCompExpr*>(&expr)) {
+      const auto targets = collect_eager_comprehension_captures(
+          *comp, local_targets, names, seen, capture_names);
+      collect_expression_captures(*comp->result, targets, names, seen,
+                                  capture_names);
+      return;
+    }
+    if (auto* comp = dynamic_cast<const ast::SetCompExpr*>(&expr)) {
+      const auto targets = collect_eager_comprehension_captures(
+          *comp, local_targets, names, seen, capture_names);
+      collect_expression_captures(*comp->result, targets, names, seen,
+                                  capture_names);
+      return;
+    }
+    if (auto* comp = dynamic_cast<const ast::DictCompExpr*>(&expr)) {
+      const auto targets = collect_eager_comprehension_captures(
+          *comp, local_targets, names, seen, capture_names);
+      collect_expression_captures(*comp->key, targets, names, seen,
+                                  capture_names);
+      collect_expression_captures(*comp->value, targets, names, seen,
+                                  capture_names);
+      return;
+    }
     if (auto* generator = dynamic_cast<const ast::GeneratorExpr*>(&expr)) {
       // The first iterable is evaluated in the enclosing scope.  It can
       // itself create closures (for example a lambda passed to groupby), so
@@ -2226,13 +2333,15 @@ private:
       return;
     }
     if (auto* lambda = dynamic_cast<const ast::LambdaExpr*>(&expr)) {
-      std::unordered_set<std::string> lambda_targets;
+      // A lambda inside a comprehension can close over its target, rather
+      // than the same-named local of this enclosing FunctionLowerer.
+      auto lambda_targets = local_targets;
       for (const auto& param : lambda->signature) {
         if (!param.name.empty()) {
           lambda_targets.insert(resolve_name(param.name));
         }
       }
-      if (lambda_targets.empty()) {
+      if (lambda->signature.empty()) {
         for (const auto& param : lambda->params) {
           lambda_targets.insert(resolve_name(param));
         }
@@ -2844,6 +2953,37 @@ private:
   size_t emit_jump(ir::Op op, uint32_t cond = 0) {
     const bool starts_basic_block =
         control_flow_entries_.find(static_cast<uint32_t>(fn_.code.size())) != control_flow_entries_.end();
+    // CPython combines RHS-literal-None conditions across parenthesized source
+    // lines and direct `not` chains. Keep the comparison's source position.
+    // Ordinary same-line local-constant conditions retain the fast fusion
+    // below; named stores and other intervening instructions remain ordinary.
+    if (!starts_basic_block && op == ir::Op::JumpIfFalse && !fn_.code.empty() && !fn_.source_lines.empty()) {
+        size_t comparison_ip = fn_.code.size() - 1;
+        uint32_t source = cond;
+        bool negate = false;
+        while (comparison_ip != 0 && fn_.code[comparison_ip].op == ir::Op::Not &&
+               fn_.code[comparison_ip].dst == source &&
+               control_flow_entries_.find(static_cast<uint32_t>(comparison_ip)) == control_flow_entries_.end()) {
+          source = fn_.code[comparison_ip].a;
+          negate = !negate;
+          --comparison_ip;
+        }
+        const auto& comparison = fn_.code[comparison_ip];
+        if (comparison.op == ir::Op::Is && comparison.dst == source &&
+            (comparison_ip + 1 != fn_.code.size() || fn_.source_lines.back() != current_source_line_) &&
+            std::find(literal_none_identity_results_.begin(), literal_none_identity_results_.end(), source) !=
+                literal_none_identity_results_.end()) {
+          ir::Instr fused = comparison;
+          fused.op = ir::Op::IsNoneJumpIfFalse;
+          fused.dst = 0;
+          fused.c = static_cast<uint32_t>((fused.c != 0) != negate);
+          fn_.code.resize(comparison_ip + 1);
+          fn_.source_lines.resize(comparison_ip + 1);
+          fn_.source_positions.resize(comparison_ip + 1);
+          fn_.code.back() = fused;
+          return comparison_ip;
+        }
+    }
     if (!starts_basic_block && op == ir::Op::JumpIfFalse && !fn_.code.empty() && !fn_.source_lines.empty() &&
         fn_.source_lines.back() == current_source_line_) {
       auto& previous = fn_.code.back();
@@ -2937,9 +3077,12 @@ private:
       }
       if ((previous.op == ir::Op::Compare || previous.op == ir::Op::Is) &&
           previous.dst == cond && !guarded_list_compare_fallback) {
+        const bool literal_none_rhs = previous.op == ir::Op::Is &&
+            std::find(literal_none_identity_results_.begin(), literal_none_identity_results_.end(), previous.dst) !=
+                literal_none_identity_results_.end();
         previous.op = previous.op == ir::Op::Compare
             ? ir::Op::CompareJumpIfFalse
-            : ir::Op::IsJumpIfFalse;
+            : literal_none_rhs ? ir::Op::IsNoneJumpIfFalse : ir::Op::IsJumpIfFalse;
         previous.dst = 0;
         return fn_.code.size() - 1;
       }
@@ -2997,9 +3140,10 @@ private:
     fn_.code[at].b = target;
   }
 
-  bool emit_compare_op(const std::string& op, uint32_t dst, uint32_t lhs, uint32_t rhs) {
+  bool emit_compare_op(const std::string& op, uint32_t dst, uint32_t lhs, uint32_t rhs, bool literal_none_rhs = false) {
     if (op == "is" || op == "is not") {
       emit(ir::Op::Is, dst, lhs, rhs, op == "is not" ? 1u : 0u);
+      if (literal_none_rhs) literal_none_identity_results_.push_back(dst);
       return true;
     }
     if (op == "in" || op == "not in") {
@@ -3126,7 +3270,7 @@ private:
       } else {
         emit(ir::Op::StoreGlobal, add_name(resolved), reg);
       }
-    } else if (auto free_it = free_indices_.find(name); free_it != free_indices_.end()) {
+    } else if (auto free_it = free_indices_.find(resolved); free_it != free_indices_.end()) {
       emit(ir::Op::StoreFree, free_it->second, reg);
     } else if (is_cell_local(resolved)) {
       emit(ir::Op::StoreCell, cell_indices_[resolved], reg);
@@ -3145,7 +3289,7 @@ private:
       } else {
         emit(ir::Op::DeleteGlobal, add_name(resolved));
       }
-    } else if (auto free_it = free_indices_.find(name); free_it != free_indices_.end()) {
+    } else if (auto free_it = free_indices_.find(resolved); free_it != free_indices_.end()) {
       const auto invalid = new_reg();
       emit(ir::Op::LoadConst, invalid, add_const(Value::invalid()));
       emit(ir::Op::StoreFree, free_it->second, invalid);
@@ -4363,8 +4507,11 @@ private:
       annotate.body.push_back(std::make_unique<ast::ReturnStmt>(
           std::make_unique<ast::DictExpr>(std::move(annotation_entries))));
 
+      // Annotation expressions execute in the definition's surrounding scope.
+      // A method body deliberately excludes ordinary class aliases; its lazy
+      // annotation helper must still capture them, without widening that body.
       const auto annotate_reg = lower_function_value(
-          annotate, {}, {}, {}, child_name_aliases);
+          annotate, {}, {}, {}, &name_aliases_);
       emit(ir::Op::StoreAttr, reg, add_name("__annotate__"), annotate_reg);
     }
     if (!kwdefault_regs.empty()) {
@@ -4509,6 +4656,12 @@ private:
         use_dynamic_namespace = true;
         break;
       }
+    }
+    if (class_body_contains_for(klass.body)) {
+      // A class-body for-loop writes names repeatedly at runtime. Keep one
+      // live namespace so each iteration's target and body assignments remain
+      // visible to later class statements and to the final type constructor.
+      use_dynamic_namespace = true;
     }
     {
       const auto module_reg = new_reg();
@@ -4742,6 +4895,21 @@ private:
           for (const auto& name : sema::free_candidates_for(annotation_scope)) {
             annotation_capture_names.insert(mangle_private_identifier(name));
           }
+        } else if (auto* method = dynamic_cast<const ast::FunctionDef*>(&stmt)) {
+          // A class name used only in a lazy method annotation still needs a
+          // cell. Method bodies retain their separate enclosing-scope rules.
+          auto collect_method_annotation = [&](const ast::Expr& expression) {
+            ast::FunctionDef annotation_scope;
+            annotation_scope.body.push_back(std::make_unique<ast::ReturnStmt>(
+                clone_expr(expression)));
+            for (const auto& name : sema::free_candidates_for(annotation_scope))
+              annotation_capture_names.insert(mangle_private_identifier(name));
+          };
+          for (const auto& parameter : method->signature)
+            if (parameter.annotation != nullptr)
+              collect_method_annotation(*parameter.annotation);
+          if (method->return_annotation != nullptr)
+            collect_method_annotation(*method->return_annotation);
         } else if (auto* alias = dynamic_cast<const ast::TypeAliasStmt*>(&stmt)) {
           ast::FunctionDef annotation_scope;
           annotation_scope.body.push_back(std::make_unique<ast::ReturnStmt>(
@@ -4868,6 +5036,20 @@ private:
     const auto annotation_active_reg = new_reg();
     emit(ir::Op::MakeDict, annotation_active_reg, add_dict_items({}));
     store_named_value(annotation_active_name, annotation_active_reg);
+    uint32_t future_class_annotations_reg = UINT32_MAX;
+    if (future_annotations_ && class_body_contains_annotation(klass.body)) {
+      // Under future annotations CPython exposes the live class annotation
+      // dict to later class-body statements (for example
+      // `__slots__ = tuple(__annotations__)`). Build it before executing the
+      // body and update it at each annotation statement, rather than
+      // synthesizing it only after the body has finished.
+      future_class_annotations_reg = new_reg();
+      emit(ir::Op::MakeDict, future_class_annotations_reg, add_dict_items({}));
+      attrs.push_back(std::make_pair("__annotations__",
+                                     future_class_annotations_reg));
+      bind_class_attr_alias("__annotations__",
+                            future_class_annotations_reg);
+    }
     std::string class_cell_name;
     std::unordered_map<std::string, std::string> class_method_aliases;
 
@@ -5038,6 +5220,14 @@ private:
                add_const(Value::int64(static_cast<int64_t>(occurrence))));
           emit(ir::Op::DictSet, annotation_active_reg, annotation_key,
                annotation_occurrence);
+          if (future_class_annotations_reg != UINT32_MAX) {
+            const auto annotation_value = new_reg();
+            emit(ir::Op::LoadConst, annotation_value,
+                 add_const(Value::string(
+                     annotation_expr_to_string(*assign->annotation))));
+            emit(ir::Op::DictSet, future_class_annotations_reg,
+                 annotation_key, annotation_value);
+          }
         }
         if (assign->value != nullptr) {
           if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
@@ -5103,6 +5293,44 @@ private:
           self(self, *child);
         }
         patch_jump(jend, static_cast<uint32_t>(fn_.code.size()));
+      } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(&stmt)) {
+        // Unlike function locals, a class-loop target is part of the class
+        // mapping. Assign through the same alias/namespace path as a direct
+        // class assignment on every iteration, then lower the loop body in
+        // class scope so reads observe the current target.
+        if (loop->is_async) {
+          lower_async_for_loop(*loop);
+          return;
+        }
+        const auto iterable_reg = lower_expr(*loop->iterable);
+        const auto iterator_reg = new_reg();
+        emit(ir::Op::GetIter, iterator_reg, iterable_reg);
+        const auto start = static_cast<uint32_t>(fn_.code.size());
+        const auto item_reg = new_reg();
+        emit(ir::Op::IterNext, item_reg, iterator_reg, 0);
+        const auto iter_next = fn_.code.size() - 1;
+        if (loop->target_expr != nullptr) {
+          assign_class_target(assign_class_target, *loop->target_expr,
+                              item_reg);
+        } else {
+          const auto name = mangle_private_identifier(loop->target);
+          attrs.push_back(std::make_pair(name, item_reg));
+          bind_class_attr_alias(loop->target, item_reg);
+        }
+        push_loop_control(start);
+        for (const auto& child : loop->body) self(self, *child);
+        auto break_jumps = pop_loop_control();
+        emit(ir::Op::Jump, start);
+        patch_iter_done(iter_next, static_cast<uint32_t>(fn_.code.size()));
+        for (const auto& child : loop->else_body) self(self, *child);
+        for (const auto jump : break_jumps) {
+          patch_jump(jump, static_cast<uint32_t>(fn_.code.size()));
+        }
+      } else if (dynamic_cast<const ast::BreakStmt*>(&stmt) != nullptr ||
+                 dynamic_cast<const ast::ContinueStmt*>(&stmt) != nullptr) {
+        // Class-body loop control uses the same loop stack and jump patching
+        // as function-body control flow.
+        lower_stmt(stmt);
       } else if (auto* with = dynamic_cast<const ast::WithStmt*>(&stmt)) {
         lower_with_custom(
             *with,
@@ -5162,29 +5390,7 @@ private:
 
     if (!class_annotations.empty()) {
       if (future_annotations_) {
-        const auto annotations_reg = new_reg();
-        emit(ir::Op::MakeDict, annotations_reg, add_dict_items({}));
-        for (const auto& item : class_annotations) {
-          const auto key_reg = new_reg();
-          emit(ir::Op::LoadConst, key_reg, add_const(Value::string(item.name)));
-          const auto get_method = new_reg();
-          emit(ir::Op::LoadAttr, get_method, annotation_active_reg,
-               add_name("get"));
-          const auto missing_reg = new_reg();
-          emit(ir::Op::LoadConst, missing_reg, add_const(Value::int64(-1)));
-          const auto active_reg = emit_call_value(
-              get_method, {key_reg, missing_reg});
-          const auto occurrence_reg = new_reg();
-          emit(ir::Op::LoadConst, occurrence_reg,
-               add_const(Value::int64(static_cast<int64_t>(item.occurrence))));
-          const auto matches_reg = new_reg();
-          emit_compare_op("==", matches_reg, active_reg, occurrence_reg);
-          const auto skip = emit_jump(ir::Op::JumpIfFalse, matches_reg);
-          const auto value_reg = new_reg();
-          emit(ir::Op::LoadConst, value_reg, add_const(Value::string(item.source)));
-          emit(ir::Op::DictSet, annotations_reg, key_reg, value_reg);
-          patch_jump(skip, static_cast<uint32_t>(fn_.code.size()));
-        }
+        const auto annotations_reg = future_class_annotations_reg;
         attrs.push_back(std::make_pair("__annotations__", annotations_reg));
         bind_class_attr_alias("__annotations__", annotations_reg);
       } else {
@@ -5355,6 +5561,13 @@ private:
     if (!class_cell_name.empty()) {
       store_named_value(class_cell_name, reg);
     }
+    // The synthetic logical class frame is finished before decorators run.
+    // Its namespace must not keep methods alive until the enclosing function
+    // returns. Escaped locals/frames and annotation closures own their values.
+    // Clear our register explicitly: Pop is a stack-model no-op, and a loop's
+    // conservative liveness may otherwise retain this compiler-only alias.
+    emit(ir::Op::LoadConst, class_frame_namespace_reg, add_const(Value::none()));
+    emit(ir::Op::DeleteLocal, class_frame_locals_slot);
     const auto decorated_reg = apply_decorators(reg, klass.decorators);
     if (store_name) {
       store_named_value(klass.name, decorated_reg);
@@ -6141,14 +6354,15 @@ private:
     return dst;
   }
 
-  template <typename Body>
+  template <typename Body, typename PrepareTargets>
   uint32_t lower_comprehension_loop(
       const ast::Expr& target_expr,
       const ast::Expr& iterable,
       const ast::Expr* filter,
       bool is_async,
       uint32_t dst,
-      Body body) {
+      Body body,
+      PrepareTargets prepare_targets) {
     const auto* target_name = dynamic_cast<const ast::NameExpr*>(&target_expr);
     const bool has_single_name_target = target_name != nullptr;
     int64_t range_start = 0;
@@ -6180,6 +6394,12 @@ private:
           old_alias == name_aliases_.end() ? std::string{} : old_alias->second});
       name_aliases_[name] = hidden_name;
     }
+
+    // Decide captured target storage before emitting stores or filters. A
+    // later dict-key load can otherwise fuse a plain target store before a
+    // value lambda discovers the cell. Noncapturing targets keep their
+    // existing local-store and body-fusion eligibility.
+    prepare_targets();
 
     uint32_t single_hidden_slot = 0;
     if (has_single_name_target) {
@@ -6341,12 +6561,53 @@ private:
     bool is_async = false;
   };
 
-  template <typename Body>
+  void prepare_comprehension_target_cells(
+      const std::vector<LowerCompClause>& clauses,
+      size_t index,
+      const ast::Expr& result,
+      const ast::Expr* value = nullptr) {
+    std::vector<std::string> names;
+    std::unordered_set<std::string> seen;
+    std::unordered_set<std::string> later_targets;
+    // The current iterable was already lowered in its enclosing scope.
+    // Only closure-producing expressions require target cells; ordinary
+    // target reads remain local reads and can still fuse with local stores.
+    if (clauses[index].filter != nullptr) {
+      collect_expression_captures(*clauses[index].filter, later_targets,
+                                  names, seen, false);
+    }
+    for (size_t next = index + 1; next < clauses.size(); ++next) {
+      const auto& clause = clauses[next];
+      collect_expression_captures(*clause.iterable, later_targets,
+                                  names, seen, false);
+      for (const auto& name : assignment_names(*clause.target_expr)) {
+        later_targets.insert(resolve_name(name));
+      }
+      if (clause.filter != nullptr) {
+        collect_expression_captures(*clause.filter, later_targets,
+                                    names, seen, false);
+      }
+    }
+    collect_expression_captures(result, later_targets, names, seen, false);
+    if (value != nullptr) {
+      collect_expression_captures(*value, later_targets, names, seen, false);
+    }
+    for (const auto& name : names) {
+      if (name.rfind("#comp.", 0) == 0 &&
+          hidden_locals_.find(name) != hidden_locals_.end() &&
+          locals_.find(name) != locals_.end()) {
+        ensure_cell_for_local(name);
+      }
+    }
+  }
+
+  template <typename Body, typename PrepareTargets>
   uint32_t lower_comprehension_clauses(
       const std::vector<LowerCompClause>& clauses,
       size_t index,
       uint32_t dst,
-      Body body) {
+      Body body,
+      PrepareTargets prepare_targets) {
     if (index >= clauses.size()) {
       body();
       return dst;
@@ -6358,7 +6619,9 @@ private:
         clause.filter,
         clause.is_async,
         dst,
-        [&]() { lower_comprehension_clauses(clauses, index + 1, dst, body); });
+        [&]() { lower_comprehension_clauses(clauses, index + 1, dst,
+                                          body, prepare_targets); },
+        [&]() { prepare_targets(index); });
   }
 
   std::vector<LowerCompClause> list_comp_clauses(const ast::ListCompExpr& comp) {
@@ -6423,6 +6686,10 @@ private:
         clauses, 0, 0, [&]() {
           const auto value = child_lowerer.lower_expr(*comp.result);
           child_lowerer.emit(ir::Op::Yield, 0, value);
+        },
+        [&](size_t index) {
+          child_lowerer.prepare_comprehension_target_cells(
+              clauses, index, *comp.result);
         });
     module_.functions.push_back(child_lowerer.finish());
     const uint32_t function_id = static_cast<uint32_t>(module_.functions.size() - 1);
@@ -6625,7 +6892,11 @@ private:
       else if (bin->op == ">>") emit(ir::Op::Shr, reg, lhs, rhs);
       else if (bin->op == "and") emit(ir::Op::BoolAnd, reg, lhs, rhs);
       else if (bin->op == "or") emit(ir::Op::BoolOr, reg, lhs, rhs);
-      else emit_compare_op(bin->op, reg, lhs, rhs);
+      else {
+        const auto* literal = dynamic_cast<const ast::LiteralExpr*>(bin->rhs.get());
+        emit_compare_op(bin->op, reg, lhs, rhs,
+            literal != nullptr && literal->kind == ast::LiteralExpr::Kind::None);
+      }
       return reg;
     }
     if (auto* conditional = dynamic_cast<const ast::ConditionalExpr*>(&expr)) {
@@ -6711,7 +6982,8 @@ private:
         return dst;
       }
       if (auto* name = dynamic_cast<const ast::NameExpr*>(call->callee.get())) {
-        if (resolve_name(name->name) == PythonNames::builtin_len && call->args.size() == 1) {
+        if (!module_.dynamic_namespace_lowering &&
+            resolve_name(name->name) == PythonNames::builtin_len && call->args.size() == 1) {
           const auto value = lower_expr(*call->args[0]);
           const auto dst = new_reg();
           emit(ir::Op::Len, dst, value);
@@ -6889,6 +7161,9 @@ private:
       return lower_comprehension_clauses(
           clauses, 0, dst, [&]() {
             emit(ir::Op::ListAppend, dst, lower_expr(*comp->result));
+          },
+          [&](size_t index) {
+            prepare_comprehension_target_cells(clauses, index, *comp->result);
           });
     }
     if (auto* comp = dynamic_cast<const ast::DictCompExpr*>(&expr)) {
@@ -6900,6 +7175,10 @@ private:
             const auto key = lower_expr(*comp->key);
             const auto value = lower_expr(*comp->value);
             emit(ir::Op::DictSet, dst, key, value);
+          },
+          [&](size_t index) {
+            prepare_comprehension_target_cells(
+                clauses, index, *comp->key, comp->value.get());
           });
     }
     if (auto* comp = dynamic_cast<const ast::SetCompExpr*>(&expr)) {
@@ -6909,6 +7188,9 @@ private:
       return lower_comprehension_clauses(
           clauses, 0, dst, [&]() {
             emit(ir::Op::SetAdd, dst, lower_expr(*comp->result));
+          },
+          [&](size_t index) {
+            prepare_comprehension_target_cells(clauses, index, *comp->result);
           });
     }
     if (auto* comp = dynamic_cast<const ast::GeneratorExpr*>(&expr)) {
@@ -7022,6 +7304,8 @@ private:
   std::vector<uint32_t> loop_continue_targets_;
   std::vector<size_t> loop_finalizer_base_counts_;
   std::unordered_set<uint32_t> control_flow_entries_;
+  // Keep provenance in the compiler until conditional fusion; ordinary Is retains its ABI.
+  std::vector<uint32_t> literal_none_identity_results_;
   uint32_t next_hidden_local_ = 0;
   bool defer_comprehension_target_store_fusion_ = false;
 };
@@ -7029,7 +7313,12 @@ private:
 } // namespace
 
 LowerResult lower_to_ir(const ast::Module& module_ast) {
+  return lower_to_ir(module_ast, false);
+}
+
+LowerResult lower_to_ir(const ast::Module& module_ast, bool dynamic_namespace) {
   LowerResult result;
+  result.module.dynamic_namespace_lowering = dynamic_namespace;
   auto global_slots = collect_module_global_slots(module_ast);
   result.module.global_slots = global_slots.names;
   FunctionLowerer lowerer(
@@ -7054,6 +7343,7 @@ LowerResult lower_to_ir(const ast::Module& module_ast) {
   lowerer.lower_body(module_ast.body, !docstring_from_body(module_ast.body).empty());
   result.module.functions.push_back(lowerer.finish());
   result.module.entry = static_cast<uint32_t>(result.module.functions.size() - 1);
+  result.module.dynamic_namespace_lowering = false; // Policy is fully reflected in emitted IR.
   return result;
 }
 

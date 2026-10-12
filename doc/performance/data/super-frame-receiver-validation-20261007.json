@@ -1,0 +1,46 @@
+{
+  "status": "correctness_and_fixed_gate_passed",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "source_base_commit": "90f1c2928b71a863b6e629d12c4c51aa1d6895b2",
+  "source_files": {
+    "src/builtins/functional_builtins.cpp": "1225ad7e1cacc18b17dd8ffdd45fb8ffc861fb2eab9822ed800dcd86e8fde13d",
+    "src/executor/xlang_vm/xlang_vm_loop.cpp": "fef26f9ebe532f9a15d54446e364c4c495ba5a04ac020006389eb0e6cd14f811",
+    "src/executor/xlang_vm/xlang_vm_inline_support.h": "d642d3faf503302ba670b1d322f3d9ac2ac5f4a9fe098b02fa97cd0a97ba647c",
+    "src/internal/xlang3/runtime.h": "dca079787569f7c21db9b4b1de148e0a8e0b03f892a64ce187d764f0520afecf",
+    "src/runtime/runtime.cpp": "e66213c46a1ca277a340838b636baeb55d29243e990d632a9c6a0ea2eb9141b9",
+    "tests/run_fixtures.py": "7cf24ce6b154ef935c82d022a6ccef82d5ce8a5457485add86610338399cf02e",
+    "tests/fixtures/core/super_live_receiver.py": "4d76f591f3a1c735b0c1f19758501500a4c34af614a7d7ec6ff9f5ce2f0e9277",
+    "tests/fixtures/expected/super_live_receiver.out": "f6ef437b5bd53379ba7ac1c7eee87413a9eace609df46283e9f0ce5b9da5745e"
+  },
+  "binary_sha256": {
+    "xlang3.exe": "75c4e9f37e1a3425883e11dc1c08172329eaa2c75f2eaa52585b9bfcd33f1aae",
+    "xlang3_runtime.dll": "1cfb1e587622e2c1d86ed73caa296149dfad06af25c03706faab8b2dcbf2dd3f"
+  },
+  "full_fixtures": {
+    "exit_code": 0,
+    "verified_exec_session": 20930,
+    "core_cases": 360,
+    "section_cases": 11,
+    "expected_failure_cases": 3
+  },
+  "cpp_sdk": {
+    "exit_code": 0,
+    "tests_passed": 8,
+    "log": "super-frame-receiver-cpp-sdk-final-20261007.log"
+  },
+  "fixed_gate": {
+    "report": "release-super-frame-receiver-fixed-gate-20261007.json",
+    "status": "pass",
+    "exit_code": 0,
+    "cases": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1
+  },
+  "official_chameleon": {
+    "status": "finished",
+    "exit_code": 0,
+    "report": "pyperformance-xlang3-super-frame-receiver-chameleon-fast-20261007.json",
+    "provenance": "pyperformance-xlang3-super-frame-receiver-chameleon-fast-20261007-provenance.json"
+  }
+}

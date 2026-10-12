@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\scratch\performance\property-callable-getter-reproducer-proposed-20261009.py", line 52, in <module>
+    assert ordinary_read(receiver) == expected
+           ~~~~~~~~~~~~~^^^^^^^^^^
+  File "D:\CantorAI\xlang3\scratch\performance\property-callable-getter-reproducer-proposed-20261009.py", line 38, in ordinary_read
+    return receiver.c
+           ^^^^^^^^^^
+RuntimeError: property getter is not callable

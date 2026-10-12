@@ -1,0 +1,40 @@
+{
+  "schema": "two-argument-double-ir-plan-r2-validation-controller-r4-fresh",
+  "status": "scratch_frozen_template_pending_actual_application_build_semantic_pins_and_root_AST",
+  "controller": "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r4-proposed-20261010.py",
+  "controller_sha256": "cb4ab8ceba90b041b50d75326fc9af31e4a029672ec6a723b17d1c4cc5652de0",
+  "input_sha256": {
+    "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r3-proposed-20261010.py": "f55f7b665a760ac6ccfca68b25b00dbf2ee8bad229bb0127c5b669103fdf32cb",
+    "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r3-proposed-20261010-provenance.json": "4c89b02add9aa3f3981dc02fa7539b2497ec1d46fbd152d80869b1f6d9eb75c9",
+    "scratch/performance/gc-phase-dormant-msbuild-activity-watch-20261009.py": "6dea8abf4f66ff0d2a95830e4c560202359c57502f0f635ecf9e1dda5494bd48",
+    "benchmarks/check_regression.py": "579934598caddc37409fed03181b0cd42408853a34bde65dff48b777e4e8ffef",
+    "doc/performance/data/two-argument-double-ir-plan-r3-reference-20261010.json": "982014bca87d3712a170c0fcc455701555746864cb614ecd08afd27dd092fe58",
+    "build-repro/controls/gc-generic-cycles-r7b-accepted-20261009/provenance.json": "aa2d9f715ad11e78ffa58024c10631c37e7d83d816c4a8cb0523f6469287547f"
+  },
+  "execution_by_author": false,
+  "ast_or_compile_by_author": false,
+  "live_source_mutations_by_author": false,
+  "scope": "Fresh full candidate correctness after conservative lifetime admission correction. No old full-Python inheritance, no timing claim, no engine edits or automatic retry.",
+  "required_root_inputs": [
+    "Application path/SHA: terminal,passed,status applied,head,source_sha256145,source_count145,before_source_sha256143,harness_overlay_sha256,protected_test_input_sha256,fixed_baseline_sha256177,unowned_tracked_dirty_sha256,accepted_control_manifest_path+SHA,allowed_changed_source_paths5,added_source_paths2,proposal_path+SHA,trial_patch_path+SHA,controller_sha256.",
+    "Build path/SHA: terminal,passed,status build_passed,exit_code0,sources_unchanged,owned_child_cleanup_completed,application_path+SHA,source_sha256145,release_sha256178,controller_sha256,command4items,build_command_source_sha256,log+log_sha256.",
+    "Application-controller path and build-controller path: actual byte hashes must equal the corresponding authenticated receipt controller_sha256 fields.",
+    "Merged proposal at app.proposal_path/SHA: owned_engine_paths3,input_sha2563 against accepted parent,candidate_sha2563,patch+SHA,fixture+SHA,proposed_expected_output+SHA.",
+    "New eight-group candidate semantic receipt path/SHA: terminal/ passed/inputs_unchanged/exit0,application_sha256/build_sha256,command exact fixed X +installed fixture, pins, stdout/stderr paths+hashes; unchanged CP reference982014 remains separately pinned.",
+    "For later gate mode only: actual same-controller/same-candidate successful R4 correctness receipt path/SHA."
+  ],
+  "source_population": "Accepted source143 plus the exact PS harness overlay, five owned modifications (three engine headers/two runners), and only two new fixture/output files yields source145. Fixed Release178/baseline177 and protected debugpy inputs remain exact.",
+  "fresh_correctness": "Fresh CP3.14.7 -I tests/run_fixtures.py(candidate) for407core/11compat/3errors, all55 CTest JSON inventory and sequential verbose CTest, both native SQLite APIs proven by covered raw labels or fresh standalone probes.",
+  "process_policy": "Unchanged R3 policy: untimed external CPU activity retained without semantic invalidation; actual outputs/hash stability/scanner health/owned cleanup mandatory. Timed pre/during/post policy remains strict with no dormant allowance. Known console-only cleanup wait remains bounded10s before final guard.",
+  "gate": "Separate mode authenticates only fresh passed R4 correctness rows, never inherited_semantics. Exact default11/21repeats/5warmup/.10 threshold fixed baseline; canonical gate-confirmation algorithm unchanged. An affected official benchmark/eligibility remains root-owned and separate.",
+  "bounded_delta": [
+    "Remove the R3 failed-fixture semantic inheritance branch and restore a fresh full-Python phase.",
+    "Remove all inherited semantic exceptions from later gate authentication.",
+    "Take application/build producer paths and fresh semantic receipt via CLI; derive merged proposal path/SHA from authenticated app rather than fixed old literals.",
+    "Add merged engine parent-subset and application patch equality checks.",
+    "Activity watcher, console cleanup, process-group termination, raw output handling, all55/API2 and gate workload/settings remain unchanged."
+  ],
+  "commands": [
+    "C:/Python/Python314/python.exe -I scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r4-proposed-20261010.py --mode correctness --application ROOT_ACTUAL_APP_PATH --application-sha256 ROOT_ACTUAL_APP_SHA --build ROOT_ACTUAL_BUILD_PATH --build-sha256 ROOT_ACTUAL_BUILD_SHA --application-controller ROOT_ACTUAL_APP_PRODUCER_PATH --build-controller ROOT_ACTUAL_BUILD_PRODUCER_PATH --semantic-receipt ROOT_ACTUAL_SEMANTIC_PATH --semantic-sha256 ROOT_ACTUAL_SEMANTIC_SHA --prefix two-argument-double-ir-plan-r4-correctness-fresh-20261010 C:/Python/Python314/python.exe -I scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r4-proposed-20261010.py --mode gate --application ROOT_ACTUAL_APP_PATH --application-sha256 ROOT_ACTUAL_APP_SHA --build ROOT_ACTUAL_BUILD_PATH --build-sha256 ROOT_ACTUAL_BUILD_SHA --application-controller ROOT_ACTUAL_APP_PRODUCER_PATH --build-controller ROOT_ACTUAL_BUILD_PRODUCER_PATH --semantic-receipt ROOT_ACTUAL_SEMANTIC_PATH --semantic-sha256 ROOT_ACTUAL_SEMANTIC_SHA --correctness-receipt doc/performance/data/two-argument-double-ir-plan-r4-correctness-fresh-20261010.json --correctness-sha256 ROOT_ACTUAL_CORRECTNESS_SHA --prefix two-argument-double-ir-plan-r4-fixed-gate-20261010"
+  ]
+}

@@ -1,0 +1,6 @@
+indexed ref reuse and target enumeration True
+Traceback (most recent call last):
+  File "tests/fixtures/core/weakref_registry_index.py", line 29, in <module>
+    assert basic() is None and all(ref() is None for ref in refs)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

@@ -1,0 +1,69 @@
+{
+  "created_utc": "2026-10-07T20:08:42.879239+00:00",
+  "scope": "All 97 definitions; failed definitions and demonstrated incorrect XML output excluded from speed scores",
+  "original_xlang3_provenance": "pyperformance-xlang3-super-method-call-full-fast-20261007-provenance.json",
+  "fresh_cpython_provenance": "pyperformance-cpython3147-super-method-full-fast-20261007-provenance.json",
+  "original_xlang3_planned_reference": "pyperformance-cpython314-clean-release-full-fast-20261002.json",
+  "comparison_cpython_reference": "pyperformance-cpython3147-super-method-full-fast-20261007.json",
+  "input_sha256": {
+    "xlang3": {
+      "pyperformance-xlang3-super-method-call-full-fast-20261007.json": "09db99bfc93ac0f06e1fcf9a492e5f3c1655ade8fcfb177a01d264f37df01b0d",
+      "pyperformance-xlang3-super-method-call-full-fast-20261007.log": "ff42f0a3199c901832381ecb7c06253f676aa89849576ad9a33329262034bde6",
+      "pyperformance-xlang3-super-method-call-full-fast-20261007-provenance.json": "3d7cc95d59da3b87ec756ef34199f04aacaf683d051719213580b9b110dbbfbe",
+      "partial_evidence_sha256": {
+        "pyperformance-xlang3-super-method-call-full-fast-20261007-partial\\base64-8689f88305102dd7.json": "8689f88305102dd7c656f9fe788582479a9de6e8a2956cce3745cff42b557911",
+        "pyperformance-xlang3-super-method-call-full-fast-20261007-partial\\base64-8689f88305102dd7.provenance.json": "0ade5129c64d8ceaa514422a9aa59a99884fa60faacea6b51d0e6587ef0c7fc6"
+      }
+    },
+    "cpython": {
+      "pyperformance-cpython3147-super-method-full-fast-20261007.json": "2b2434d235fb1ca717d0f4fd376b242551e50cd0baf80c802b75c096dbc46129",
+      "pyperformance-cpython3147-super-method-full-fast-20261007.log": "936399b6306f7477e0e9228c027f4f93284fc96c3ee5fb98637aadd04386960a",
+      "pyperformance-cpython3147-super-method-full-fast-20261007-provenance.json": "8f3aba3b88a8e61d3a1c27a6bc88ca20ee670c48500be9eb5a58f39802e2ff9d"
+    },
+    "correctness": {
+      "genshi-render-correctness-20261007.json": "9f12d4b6e1112be28558f33774af7875eb392f4a9bf02804837ab6c1a036e893"
+    }
+  },
+  "generator_sha256": "19ed733eb30bee176d77a9e2fbf8f104c724984f013b1b79b2c8fff702fa26e4",
+  "generator_worktree_modified": true,
+  "report_source_commit": "df94080bc8ac7730dd7cbaf8cc6e455fe1fe1f44",
+  "generator_command": [
+    "C:\\Python\\Python314\\python.exe",
+    "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\summarize_pyperformance_comparison.py",
+    "--xlang-json",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-xlang3-super-method-call-full-fast-20261007.json",
+    "--cpython-json",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-cpython3147-super-method-full-fast-20261007.json",
+    "--xlang-log",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-xlang3-super-method-call-full-fast-20261007.log",
+    "--cpython-log",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-cpython3147-super-method-full-fast-20261007.log",
+    "--canonical-status",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-xlang3-subscription-dispatch-full-fast-20261007-all-97-status.csv",
+    "--output-dir",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data",
+    "--prefix",
+    "pyperformance-xlang3-super-method-call-vs-cpython3147-full-fast-20261007",
+    "--release-exe-sha256",
+    "46a04e33a02022374347f98dcfb4d3ef73e158f5717b92b31d1fee360a8cccef",
+    "--release-dll-sha256",
+    "560c7059523174fe73a45513ca1ff617be609f45e4f80b5b4254999512e58cf8",
+    "--case-timeout",
+    "300",
+    "--case-timeout-override",
+    "networkx*=600s",
+    "--xlang-stdlib",
+    "C:\\Python\\Python314\\Lib",
+    "--invalid-subtest",
+    "genshi_xml=XML output had zero rows and cells instead of 1000 rows and 10000 cells",
+    "--correctness-evidence",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\genshi-render-correctness-20261007.json"
+  ],
+  "provenance_limit": "XLang3 recorded its engine/binary/hook hashes but not benchmark Python-source hashes at suite start; CPython recorded benchmark-source hashes and checked them after its run.",
+  "output_sha256": {
+    "pyperformance-xlang3-super-method-call-vs-cpython3147-full-fast-20261007-all-97-status.csv": "2f840bbb7083f0c46f5a936f4d1e877292af04cb8207812d9e2aeb1310f78eba",
+    "pyperformance-xlang3-super-method-call-vs-cpython3147-full-fast-20261007-subtests.csv": "c419598660eca2eb61b26556f2792d27dbcf80b5646749a4ceb2bc567ae25b51",
+    "pyperformance-xlang3-super-method-call-vs-cpython3147-full-fast-20261007.md": "8b08625743acead7419b35c3c9bdb1b29fc28e02f3b9102b5e90b2d6b415f4d5",
+    "pyperformance-xlang3-super-method-call-vs-cpython3147-full-fast-20261007.svg": "9ec188e46058245c9c3ee50624103df4ee599af0d3c9c7e1dc0fb5c7d4dafc81"
+  }
+}

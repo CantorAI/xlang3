@@ -1,0 +1,57 @@
+diff --git a/tests/cpp/inherited_call_ex_constructor_cases.h b/tests/cpp/inherited_call_ex_constructor_cases.h
+index 9a266165..d63000ab 100644
+--- a/tests/cpp/inherited_call_ex_constructor_cases.h
++++ b/tests/cpp/inherited_call_ex_constructor_cases.h
+@@ -109,20 +109,44 @@ def outer_driver(cls, count, install=False):
+   expect_true(result, lowered.errors.empty(), "cross-activation constructor proof lowers");
+   if (!lowered.errors.empty()) return;
+   uint32_t wrapper_id = UINT32_MAX;
+-  size_t expanded_calls = 0, returns = 0;
++  bool wrapper_shape = false;
+   for (uint32_t id = 0; id < lowered.module.functions.size(); ++id) {
+     const auto& function = lowered.module.functions[id];
+     if (function.name != "construct_once") continue;
+     wrapper_id = id;
+-    for (const auto& instruction : function.code) {
+-      expanded_calls += instruction.op == ir::Op::CallEx;
+-      returns += instruction.op == ir::Op::Return || instruction.op == ir::Op::ReturnLocal ||
+-          instruction.op == ir::Op::ReturnConst;
++    size_t call = function.code.size();
++    bool straight_line = true;
++    for (size_t ip = 0; ip < function.code.size(); ++ip) {
++      const auto& instruction = function.code[ip];
++      if (instruction.op == ir::Op::CallEx) { call = ip; break; }
++      // Admit only the wrapper's ordinary argument materialization prefix;
++      // there is no branch or incoming edge that can bypass this CallEx.
++      switch (instruction.op) {
++        case ir::Op::LoadConst:
++        case ir::Op::LoadLocal:
++        case ir::Op::LoadLocalConst:
++        case ir::Op::MakeTuple:
++        case ir::Op::MakeDict: break;
++        default: straight_line = false; break;
++      }
++    }
++    if (straight_line && call + 2 < function.code.size()) {
++      const auto& explicit_return = function.code[call + 1];
++      const auto& implicit_return = function.code[call + 2];
++      // FunctionLowerer::finish always appends an implicit None return. It is
++      // unreachable after this direct result return, not a second activation.
++      // Prove that exact tail instead of counting every return opcode as live.
++      wrapper_shape = explicit_return.op == ir::Op::Return &&
++          explicit_return.a == function.code[call].dst &&
++          implicit_return.op == ir::Op::ReturnConst &&
++          implicit_return.a < function.constants.size() &&
++          function.constants[implicit_return.a].tag == ValueTag::None &&
++          call + 3 == function.code.size();
+     }
+   }
+-  expect_true(result, wrapper_id != UINT32_MAX && expanded_calls == 1 && returns == 1,
+-      "one CallEx then Return must occur in each completed inner wrapper activation");
+-  if (wrapper_id == UINT32_MAX || expanded_calls != 1 || returns != 1) return;
++  expect_true(result, wrapper_id != UINT32_MAX && wrapper_shape,
++      "wrapper has one reachable CallEx/result Return and only the unreachable implicit None tail");
++  if (wrapper_id == UINT32_MAX || !wrapper_shape) return;
+   std::ostringstream output;
+   // Module owners outlive Runtime, and native profile state holds no raw
+   // Runtime/Interpreter pointer. Failure/unwind cannot leave stale cleanup.

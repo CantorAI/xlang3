@@ -1,0 +1,24 @@
+{
+  "source_parent_commit": "e4417566ce6f5db0b2c74cd18f8c8370a56c0d39",
+  "uncommitted": true,
+  "files": {
+    "src/executor/xlang_vm/ops/xlang_vm_ops_containers.h": "138e4a6b98a04e06970387419646e75dc8f72c9bca2f5faaa4ad6aa1c9c8bd7a",
+    "src/executor/xlang_vm/xlang_frame.h": "482daf98271360cd4808ef192511ce1470c39fa452d4bfb0b718e683ef427f88",
+    "src/executor/xlang_vm/xlang_vm_loop.cpp": "a04607ad16fd506c53f40a6a5b5192674b0691759aa9922c05772319fab8fa5c",
+    "src/executor/xlang_vm/xlang_vm_op_rows.h": "23f58226905fcf90b595b0f3af26e68113596d5495915b2084d1ebd18d4c5212",
+    "src/runtime/object_model.cpp": "024409c51cdc5ac940d0b6f6bc5e84c2346baa2ff14cffb358e54b9a85784f5f",
+    "tests/cpp/interpreter_tests.cpp": "b63716cbe0e08c7d2002d180e48a8edfe64a2e31a62acd6d4d5f374b21890012",
+    "tests/fixtures/core/subscription_dispatch.py": "44fcd4b1c4a282bda0150d9db807cca055de6d5a84cea8d52b85da1228c1238c",
+    "tests/fixtures/expected/subscription_dispatch.out": "5c241daf5f49d2e63de3bee86c57c3e3b0c900f77d848709507dbcfe1201d9c9",
+    "tests/run_fixtures.py": "43a79474749022f2170bed125994672b725ccb23ba5988192ebcf3607052378d",
+    "benchmarks/diagnostics/native_subscription_dispatch_probe.py": "8d76b08a6822b42766853b68a879f8b7286e3536f97d02d2d41c7bf88ff982c8",
+    "benchmarks/diagnostics/compare_subscription_dispatch.py": "346f31a2a035d9945904705e2db95a91cd8822b688c1125fd5330525576b5286"
+  },
+  "candidate_exe_sha256": "DC18F94D37AA662BB4F1BEF4284C79373E784781D74FFFE22205937CC5CB82CF",
+  "candidate_dll_sha256": "990237AD095D6865F54A0A5974AD94E55B95A5D29E06E3EF59AB80DFE9474FFF",
+  "preserved_control": "build-repro/controls/native-array-checkpoint-20261007",
+  "control_dll_sha256": "B3A5CF5A93AFAFBD2B462F9EDF71DB5C5AE258B2D626A8964D772B4487A23553",
+  "validation": "subscription-dispatch-lazy-validation-20261007.json",
+  "paired_diagnostic": "subscription-dispatch-lazy-paired-20261007.json",
+  "official_prefix": "pyperformance-xlang3-subscription-dispatch-scimark-fast-20261007"
+}

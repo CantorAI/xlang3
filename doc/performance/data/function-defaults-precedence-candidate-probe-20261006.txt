@@ -1,0 +1,7 @@
+CPython 3.14.7
+metadata beats dictionary shadow: True
+mutation reaches actual binding: True
+
+XLang3 defaults-precedence candidate
+metadata beats dictionary shadow: True
+mutation reaches actual binding: True

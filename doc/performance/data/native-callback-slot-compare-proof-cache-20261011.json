@@ -1,0 +1,18 @@
+{
+  "diagnostic_only": true,
+  "benchmark": "native_callback_slot_double_compare",
+  "executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "loops_per_sample": 300000,
+  "repeat": 5,
+  "calls": 1500000,
+  "checksum": 150000,
+  "samples_seconds": [
+    0.26972149999346584,
+    0.2740070999134332,
+    0.2704556999960914,
+    0.27356060000602156,
+    0.2708322999533266
+  ],
+  "median_seconds": 0.2708322999533266,
+  "candidate_sha256": "7D9FB86BB78EA8357107C92E39253E16C9BAE60BBB2235AE358E83C35580DF39"
+}

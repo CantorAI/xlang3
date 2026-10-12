@@ -15,3 +15,6 @@ monitoring-disable-first 3 3
 monitoring-code-identity True
 monitoring-disable-cached 3 True
 monitoring-disable-restarted 3 True
+monitoring-mid-frame-tool True
+monitoring-mid-frame-callback True
+monitoring-mid-frame-result 3 3

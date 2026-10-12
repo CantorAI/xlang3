@@ -47,6 +47,11 @@ struct DictObject {
   mutable std::vector<size_t> integer_index;
   mutable std::unordered_map<int64_t, std::vector<size_t>> runtime_hash_index;
   mutable size_t runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
+  // Native writes may share these buckets only when the entire key set has
+  // callback-free hashes/equality. Cache rejected eligibility as well, so a
+  // mixed dictionary does not rescan all keys before every fallback write.
+  mutable size_t intrinsic_hash_checked_entry_count = static_cast<size_t>(-1);
+  mutable bool intrinsic_hash_keys_only = false;
   // Flat open-addressed slots store entry index + 1 (zero means empty). The
   // authoritative strings and cached hashes remain in entries.
   mutable std::vector<size_t> string_index;
@@ -54,6 +59,12 @@ struct DictObject {
   mutable bool index_has_other_keys = false;
   mutable bool index_has_non_string_keys = false;
 };
+
+// Includes Python dict subclasses while excluding other mapping protocols.
+bool mapping_is_dict(const Value& value);
+// Return the built-in storage for a dict or dict subclass. Keyword expansion
+// follows dict storage semantics and intentionally bypasses subclass overrides.
+DictObject* mapping_dict_storage(const Value& value);
 
 struct MappingProxyObject {
   Object header;
@@ -136,6 +147,14 @@ bool mapping_get_string_item(
 bool mapping_get_item_runtime(Runtime& runtime, const Value& object, const Value& key,
                               Value& out, std::string& error,
                               bool dispatch_override = true);
+// Type-based dict-subclass __missing__ dispatch. An absent method returns
+// false with "key not found"; descriptor/call failures retain their exception.
+bool mapping_call_missing(Runtime& runtime, const Value& object, const Value& key,
+                          Value& out, std::string& error);
+// Speculative native IR shortcut: only a proven intrinsic dict hit succeeds.
+// Failure leaves output unchanged and executes no Python callback or miss hook.
+bool mapping_get_intrinsic_item_if_present(const Value& object, const Value& key,
+                                           Value& out);
 bool mapping_set_item(Value& object, const Value& key, const Value& item, std::string& error);
 // Update or erase an existing exact object-identity key without repeating the
 // generic hash/equality path. Missing keys retain ordinary dict behavior.

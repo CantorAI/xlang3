@@ -1,0 +1,18 @@
+{
+  "status": "build_completed",
+  "terminal": true,
+  "exit_code": 0,
+  "command": [
+    "cmd.exe",
+    "/d",
+    "/c",
+    "scratch\\performance\\build-dict-scalar-append-runtime-index-r3-root-20261008.cmd"
+  ],
+  "source_inventory_sha256": "dc1b869fe0475e3bdd017aa3b667f755cb7a4dd7ad881494f8afb34af387f45e",
+  "build_log": "doc/performance/data/dict-scalar-append-runtime-index-r3-build-20261008.log",
+  "build_log_sha256": "447d2f4a8055dfb7744b7fd0cf4f4ef258b6bd7b164964da1456390098c14cf9",
+  "wrapper": "scratch/performance/build-dict-scalar-append-runtime-index-r3-root-20261008.cmd",
+  "wrapper_sha256": "d343fcd9f11cdc70907c9c98073353fef6210f13327d44c12e57e70dcc03ebbe",
+  "completed_utc": "2026-10-09T00:31:54.6421530Z",
+  "runtime_unchanged_from_r2": true
+}

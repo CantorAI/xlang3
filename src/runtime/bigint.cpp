@@ -38,6 +38,19 @@ struct BigIntPayload {
   size_t limb_bytes = 0;
 };
 
+// Operand views never own, resize, normalize or release their limbs. Keeping
+// them distinct from BigIntPayload prevents borrowed input storage from being
+// passed accidentally to an owned-payload cleanup or compaction operation.
+struct BigIntOperandView {
+  int8_t sign = 0;
+  uint32_t limb_count = 0;
+  const uint32_t* limbs = nullptr;
+};
+
+BigIntOperandView operand_view(const BigIntPayload& value) {
+  return {value.sign, value.limb_count, value.limbs};
+}
+
 BigIntPayload* payload(BigIntObject* object) {
   return object == nullptr ? nullptr : static_cast<BigIntPayload*>(object->impl);
 }
@@ -109,7 +122,12 @@ BigIntPayload make_payload_from_u64(uint64_t magnitude, int8_t sign) {
   return out;
 }
 
-BigIntPayload clone_payload(const BigIntPayload& value) {
+// These private read-only kernels accept either an owned payload or an
+// immutable operand view by reference. Owned-buffer callers (division, shifts,
+// parsing) must not construct/copy views just to invoke the original kernel.
+// Every arithmetic result remains an independent owned BigIntPayload.
+template <typename IntegerOperand>
+BigIntPayload clone_payload(const IntegerOperand& value) {
   BigIntPayload out;
   out.sign = value.sign;
   if (value.limb_count != 0) {
@@ -202,7 +220,31 @@ bool value_to_payload(const Value& value, BigIntPayload& out) {
   return false;
 }
 
-int compare_abs(const BigIntPayload& lhs, const BigIntPayload& rhs) {
+bool intrinsic_integer_operand_view(const Value& value, uint32_t (&scalar_limbs)[2],
+                                    BigIntOperandView& out) {
+  uint64_t magnitude = 0;
+  bool negative = false;
+  if (value.tag == ValueTag::Int64) {
+    negative = value.as.i64 < 0;
+    magnitude = negative ? static_cast<uint64_t>(-(value.as.i64 + 1)) + 1u
+                         : static_cast<uint64_t>(value.as.i64);
+  } else if (value.tag == ValueTag::Bool) {
+    magnitude = value.as.b ? 1u : 0u;
+  } else if (const auto* bigint = value_as_bigint(value)) {
+    out = operand_view(*payload(bigint));
+    return true;
+  } else {
+    return false;
+  }
+  scalar_limbs[0] = static_cast<uint32_t>(magnitude);
+  scalar_limbs[1] = static_cast<uint32_t>(magnitude >> 32u);
+  out = {static_cast<int8_t>(magnitude == 0 ? 0 : negative ? -1 : 1),
+         magnitude == 0 ? 0u : scalar_limbs[1] == 0 ? 1u : 2u, scalar_limbs};
+  return true;
+}
+
+template <typename IntegerOperand>
+int compare_abs(const IntegerOperand& lhs, const IntegerOperand& rhs) {
   if (lhs.limb_count != rhs.limb_count) {
     return lhs.limb_count < rhs.limb_count ? -1 : 1;
   }
@@ -214,7 +256,8 @@ int compare_abs(const BigIntPayload& lhs, const BigIntPayload& rhs) {
   return 0;
 }
 
-int compare_payload(const BigIntPayload& lhs, const BigIntPayload& rhs) {
+template <typename IntegerOperand>
+int compare_payload(const IntegerOperand& lhs, const IntegerOperand& rhs) {
   if (lhs.sign != rhs.sign) {
     return lhs.sign < rhs.sign ? -1 : 1;
   }
@@ -225,7 +268,8 @@ int compare_payload(const BigIntPayload& lhs, const BigIntPayload& rhs) {
   return lhs.sign > 0 ? abs_cmp : -abs_cmp;
 }
 
-BigIntPayload add_abs(const BigIntPayload& lhs, const BigIntPayload& rhs, int8_t sign) {
+template <typename IntegerOperand>
+BigIntPayload add_abs(const IntegerOperand& lhs, const IntegerOperand& rhs, int8_t sign) {
   BigIntPayload out;
   out.sign = sign;
   const uint32_t count = std::max(lhs.limb_count, rhs.limb_count);
@@ -246,7 +290,8 @@ BigIntPayload add_abs(const BigIntPayload& lhs, const BigIntPayload& rhs, int8_t
   return out;
 }
 
-BigIntPayload sub_abs(const BigIntPayload& larger, const BigIntPayload& smaller, int8_t sign) {
+template <typename IntegerOperand>
+BigIntPayload sub_abs(const IntegerOperand& larger, const IntegerOperand& smaller, int8_t sign) {
   BigIntPayload out;
   out.sign = sign;
   ensure_capacity(out, larger.limb_count);
@@ -267,7 +312,35 @@ BigIntPayload sub_abs(const BigIntPayload& larger, const BigIntPayload& smaller,
   return out;
 }
 
-BigIntPayload add_payload(const BigIntPayload& lhs, const BigIntPayload& rhs) {
+// Division owns both working buffers and has already proved larger >= smaller.
+// Reuse the remainder storage rather than allocating/copying every subtraction.
+// Never call this on a borrowed operand view or a caller's immutable integer.
+void subtract_division_remainder(BigIntPayload& larger, const BigIntPayload& smaller) {
+  uint64_t borrow = 0;
+  for (uint32_t i = 0; i < larger.limb_count; ++i) {
+    const uint64_t a = larger.limbs[i];
+    const uint64_t b = (i < smaller.limb_count ? smaller.limbs[i] : 0) + borrow;
+    larger.limbs[i] = static_cast<uint32_t>(a - b);
+    borrow = a < b ? 1u : 0u;
+  }
+  normalize(larger);
+}
+
+// The shifted divisor is private positive scratch storage. Carry bits from high
+// to low in place; allocating another buffer for each quotient bit made large
+// integer division pay allocator and copy costs inside its arithmetic loop.
+void shift_division_divisor_right_one(BigIntPayload& value) {
+  uint32_t carry = 0;
+  for (uint32_t i = value.limb_count; i-- > 0;) {
+    const uint32_t limb = value.limbs[i];
+    value.limbs[i] = (limb >> 1u) | (carry << 31u);
+    carry = limb & 1u;
+  }
+  normalize(value);
+}
+
+template <typename IntegerOperand>
+BigIntPayload add_payload(const IntegerOperand& lhs, const IntegerOperand& rhs) {
   if (lhs.sign == 0) return clone_payload(rhs);
   if (rhs.sign == 0) return clone_payload(lhs);
   if (lhs.sign == rhs.sign) {
@@ -286,10 +359,16 @@ BigIntPayload negate_payload(const BigIntPayload& value) {
   return out;
 }
 
-BigIntPayload mul_payload(const BigIntPayload& lhs, const BigIntPayload& rhs) {
+BigIntPayload mul_payload(BigIntOperandView lhs, BigIntOperandView rhs) {
   if (lhs.sign == 0 || rhs.sign == 0) {
     return make_zero_payload();
   }
+  // Put the shorter operand in the outer loop, as CPython's integer multiply
+  // does. A bigint times a single-limb scalar then uses one contiguous inner
+  // pass and one final carry, rather than restarting carry propagation for
+  // every bigint limb. Only immutable views are swapped; wrapper conversion
+  // order and Python callbacks have already been handled by the caller.
+  if (lhs.limb_count > rhs.limb_count) std::swap(lhs, rhs);
   BigIntPayload out;
   out.sign = lhs.sign == rhs.sign ? 1 : -1;
   ensure_capacity(out, lhs.limb_count + rhs.limb_count);
@@ -313,6 +392,10 @@ BigIntPayload mul_payload(const BigIntPayload& lhs, const BigIntPayload& rhs) {
   }
   normalize(out);
   return out;
+}
+
+BigIntPayload mul_payload(const BigIntPayload& lhs, const BigIntPayload& rhs) {
+  return mul_payload(operand_view(lhs), operand_view(rhs));
 }
 
 void mul_small_inplace(BigIntPayload& value, uint32_t factor) {
@@ -635,6 +718,28 @@ bool value_bigint_from_bytes(
     bool signed_value,
     Value& out,
     std::string& error) {
+  // The common fixed-width conversions used by Python codecs fit in a machine
+  // word. Decode them directly so int.from_bytes does not allocate BigInt
+  // limbs only to compact the result back into Value::Int64. Preserve the
+  // limb path for wider values and unsigned 64-bit values above INT64_MAX.
+  if (size <= sizeof(uint64_t)) {
+    uint64_t bits = 0;
+    for (size_t i = 0; i < size; ++i) {
+      const size_t index = is_big ? size - 1u - i : i;
+      bits |= static_cast<uint64_t>(bytes[index]) << (8u * i);
+    }
+    if (signed_value && size != 0 && size < sizeof(uint64_t) &&
+        (bits & (uint64_t{1} << (size * 8u - 1u))) != 0) {
+      bits |= (~uint64_t{0}) << (size * 8u);
+    }
+    if (signed_value || bits <= static_cast<uint64_t>((std::numeric_limits<int64_t>::max)())) {
+      int64_t decoded = 0;
+      std::memcpy(&decoded, &bits, sizeof(decoded));
+      out = Value::int64(decoded);
+      return true;
+    }
+  }
+
   const size_t limb_count = size / 4u + (size % 4u != 0);
   if (limb_count > std::numeric_limits<uint32_t>::max()) {
     error = "int.from_bytes input is too large";
@@ -873,16 +978,31 @@ bool value_int_like_hash(const Value& value, size_t& out) {
 }
 
 bool value_int_like_compare(const std::string& op, const Value& lhs, const Value& rhs, Value& out) {
-  BigIntPayload left;
-  BigIntPayload right;
-  if (!value_to_payload(lhs, left) || !value_to_payload(rhs, right)) {
+  uint32_t left_scalar_limbs[2];
+  uint32_t right_scalar_limbs[2];
+  BigIntOperandView left_view;
+  BigIntOperandView right_view;
+  int cmp;
+  if (intrinsic_integer_operand_view(lhs, left_scalar_limbs, left_view) &&
+      intrinsic_integer_operand_view(rhs, right_scalar_limbs, right_view)) {
+    // Comparison only reads limbs. Cloning both intrinsic inputs made even a
+    // sign/length comparison pay two allocations and copies. Read everything
+    // before publishing a bool that may replace either input's sole owner.
+    cmp = compare_payload(left_view, right_view);
+  } else {
+    // Conversion hooks may destroy the earlier input. Preserve its owned
+    // snapshot and the original callback order whenever either hook can run.
+    BigIntPayload left;
+    BigIntPayload right;
+    if (!value_to_payload(lhs, left) || !value_to_payload(rhs, right)) {
+      release_limbs(left);
+      release_limbs(right);
+      return false;
+    }
+    cmp = compare_payload(left, right);
     release_limbs(left);
     release_limbs(right);
-    return false;
   }
-  const int cmp = compare_payload(left, right);
-  release_limbs(left);
-  release_limbs(right);
   bool result = false;
   if (op == "==") result = cmp == 0;
   else if (op == "!=") result = cmp != 0;
@@ -896,6 +1016,18 @@ bool value_int_like_compare(const std::string& op, const Value& lhs, const Value
 }
 
 bool value_int_like_add(const Value& lhs, const Value& rhs, Value& out) {
+  uint32_t left_scalar_limbs[2];
+  uint32_t right_scalar_limbs[2];
+  BigIntOperandView left_view;
+  BigIntOperandView right_view;
+  if (intrinsic_integer_operand_view(lhs, left_scalar_limbs, left_view) &&
+      intrinsic_integer_operand_view(rhs, right_scalar_limbs, right_view)) {
+    // Read immutable inputs and allocate only the result. Even addition by
+    // zero must create independent storage before output can replace an input.
+    BigIntPayload result = add_payload(left_view, right_view);
+    out = compact_payload(result);
+    return true;
+  }
   BigIntPayload left;
   BigIntPayload right;
   if (!value_to_payload(lhs, left) || !value_to_payload(rhs, right)) {
@@ -911,6 +1043,19 @@ bool value_int_like_add(const Value& lhs, const Value& rhs, Value& out) {
 }
 
 bool value_int_like_sub(const Value& lhs, const Value& rhs, Value& out) {
+  uint32_t left_scalar_limbs[2];
+  uint32_t right_scalar_limbs[2];
+  BigIntOperandView left_view;
+  BigIntOperandView right_view;
+  if (intrinsic_integer_operand_view(lhs, left_scalar_limbs, left_view) &&
+      intrinsic_integer_operand_view(rhs, right_scalar_limbs, right_view)) {
+    // Negate only the local view's sign, never the caller's payload. Avoid
+    // allocating another operand copy just to express subtraction as addition.
+    right_view.sign = static_cast<int8_t>(-right_view.sign);
+    BigIntPayload result = add_payload(left_view, right_view);
+    out = compact_payload(result);
+    return true;
+  }
   BigIntPayload left;
   BigIntPayload right;
   if (!value_to_payload(lhs, left) || !value_to_payload(rhs, right)) {
@@ -928,6 +1073,23 @@ bool value_int_like_sub(const Value& lhs, const Value& rhs, Value& out) {
 }
 
 bool value_int_like_mul(const Value& lhs, const Value& rhs, Value& out) {
+  uint32_t left_scalar_limbs[2];
+  uint32_t right_scalar_limbs[2];
+  BigIntOperandView left_view;
+  BigIntOperandView right_view;
+  if (intrinsic_integer_operand_view(lhs, left_scalar_limbs, left_view) &&
+      intrinsic_integer_operand_view(rhs, right_scalar_limbs, right_view)) {
+    // Exact integer operands cannot execute Python callbacks during conversion
+    // or multiplication, so their immutable limbs can be read without clones.
+    // Finish the independent result before assigning out: out may alias lhs,
+    // rhs, or both, and assignment can release the last input owner.
+    BigIntPayload result = mul_payload(left_view, right_view);
+    out = compact_payload(result);
+    return true;
+  }
+  // Wrapper/subclass conversion may invoke attribute hooks that replace an
+  // earlier operand. Keep the original owned conversion, in operand order,
+  // so no borrowed storage survives such reentry.
   BigIntPayload left;
   BigIntPayload right;
   if (!value_to_payload(lhs, left) || !value_to_payload(rhs, right)) {
@@ -962,7 +1124,12 @@ bool value_int_like_divmod(const Value& lhs, const Value& rhs, Value& quotient, 
   dividend.sign = dividend.sign == 0 ? 0 : 1;
   divisor.sign = 1;
   BigIntPayload q;
-  BigIntPayload r = clone_payload(dividend);
+  // Conversion has already copied each operand, in Python callback order.
+  // Transfer that owned dividend into the remainder instead of copying again.
+  // Results are published only after arithmetic, so output/input aliases and
+  // reentrant wrapper conversion cannot expose these mutable working limbs.
+  BigIntPayload r;
+  move_assign_payload(r, dividend);
   if (compare_abs(r, divisor) >= 0) {
     const uint32_t shift = bit_length_abs(r) - bit_length_abs(divisor);
     BigIntPayload shifted_divisor = shift_left_payload(divisor, shift);
@@ -972,13 +1139,11 @@ bool value_int_like_divmod(const Value& lhs, const Value& rhs, Value& quotient, 
     q.sign = 1;
     for (int64_t bit = static_cast<int64_t>(shift); bit >= 0; --bit) {
       if (compare_abs(r, shifted_divisor) >= 0) {
-        BigIntPayload next = sub_abs(r, shifted_divisor, 1);
-        move_assign_payload(r, next);
+        subtract_division_remainder(r, shifted_divisor);
         q.limbs[static_cast<uint32_t>(bit) / 32u] |=
             uint32_t{1} << (static_cast<uint32_t>(bit) % 32u);
       }
-      BigIntPayload next_divisor = shift_right_positive(shifted_divisor, 1);
-      move_assign_payload(shifted_divisor, next_divisor);
+      shift_division_divisor_right_one(shifted_divisor);
     }
     release_limbs(shifted_divisor);
     normalize(q);

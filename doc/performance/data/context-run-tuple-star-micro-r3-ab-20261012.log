@@ -1,0 +1,11 @@
+iterations=100000; same Context.run(callback, *exact_tuple) script; XLang baseline/candidate alternate at unchanged fixed executable path; CPython 3.14.7 reference is in micro-ab log.
+xlang_pair=1 baseline context_run_tuple_star_seconds=0.169089200 iterations=100000
+xlang_pair=1 candidate context_run_tuple_star_seconds=0.135448500 iterations=100000
+xlang_pair=2 baseline context_run_tuple_star_seconds=0.171281200 iterations=100000
+xlang_pair=2 candidate context_run_tuple_star_seconds=0.133803800 iterations=100000
+xlang_pair=3 baseline context_run_tuple_star_seconds=0.169541900 iterations=100000
+xlang_pair=3 candidate context_run_tuple_star_seconds=0.136831400 iterations=100000
+xlang_pair=4 baseline context_run_tuple_star_seconds=0.169511500 iterations=100000
+xlang_pair=4 candidate context_run_tuple_star_seconds=0.132929600 iterations=100000
+xlang_pair=5 baseline context_run_tuple_star_seconds=0.169977400 iterations=100000
+xlang_pair=5 candidate context_run_tuple_star_seconds=0.138870000 iterations=100000

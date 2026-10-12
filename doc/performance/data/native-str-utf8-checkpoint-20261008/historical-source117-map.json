@@ -1,0 +1,475 @@
+{
+  "source_count": 117,
+  "source": {
+    "CMakeLists.txt": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/CMakeLists.txt",
+      "sha256": "29126ab0246dd89f091b61c33bfa9edd463f4b5b8d81fa5b0129a1c1f890b855"
+    },
+    "modules/sqlite/sqlite_handles.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/modules/sqlite/sqlite_handles.cpp",
+      "sha256": "a644d98065c47395df4cc81600edfbb2ddf5e9c6820521e2a2eb402c979f484f"
+    },
+    "modules/sqlite/sqlite_handles.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/modules/sqlite/sqlite_handles.h",
+      "sha256": "50d4ece32eb3d0aa2a6a5e73ab903a9c8d09e390fcba5b049d2351d2eac64b0b"
+    },
+    "modules/sqlite/sqlite_package.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/modules/sqlite/sqlite_package.cpp",
+      "sha256": "034e5d03cd2b911a893126d8909e6c9605608701d05baba3e2cd0c8bd2e62c3d"
+    },
+    "modules/sqlite/sqlite_values.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/modules/sqlite/sqlite_values.cpp",
+      "sha256": "c691c90ba6b7a43c12bce47dfef75101b22b76732303a196ac30b9d6ad3533dc"
+    },
+    "sdk/xlang3/abi/xmodule.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/sdk/xlang3/abi/xmodule.h",
+      "sha256": "248b22fecb08af7367dae4cd151e343db46e6f90aba44b6c552e22c91858440c"
+    },
+    "src/builtins/builtins.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/builtins/builtins.cpp",
+      "sha256": "135c805d32dd03b8740b08c1833bee09fa5d91d88b2bc4ea4fe2704bd184cb19"
+    },
+    "src/builtins/functional_builtins.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/builtins/functional_builtins.cpp",
+      "sha256": "ca8094ecce251bf2e473141399d67541a9abda7d4f39321c7a0968d3db6c58e0"
+    },
+    "src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h",
+      "sha256": "e9ef84b3936ab301d33de6ab5236b486ad0ded16db62cba44d96f04980b3ab57"
+    },
+    "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/executor/xlang_vm/ops/xlang_vm_ops_attr.h",
+      "sha256": "599604510360af33cdc1ba9fcbf65dd6f1971e3540449680aec8b5320928e30a"
+    },
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "sha256": "271ca4bff6ce954c262d8c7fa3d22fdf769de3ab3ffa77cdf6369bd1fce8210c"
+    },
+    "src/executor/xlang_vm/ops/xlang_vm_ops_fused.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/executor/xlang_vm/ops/xlang_vm_ops_fused.h",
+      "sha256": "b309a2ab1d0cae05e0798f6ae534955df8af546f4e75c830f34b6c3a4a586105"
+    },
+    "src/executor/xlang_vm/ops/xlang_vm_ops_import_raw.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/executor/xlang_vm/ops/xlang_vm_ops_import_raw.h",
+      "sha256": "44e642d4887558699ae46e51df7ea249dfe7b142ef0b8f826cb134c8243d5671"
+    },
+    "src/executor/xlang_vm/ops/xlang_vm_ops_variables.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/executor/xlang_vm/ops/xlang_vm_ops_variables.h",
+      "sha256": "76b3c926a5f8e4b1e76a5946e57c4f6eb78db81d8f03f7acc023c3baa124e22e"
+    },
+    "src/executor/xlang_vm/xlang_frame.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/executor/xlang_vm/xlang_frame.h",
+      "sha256": "c144ecfa382778c73b9f4ad3a34a2644dae080afdcde307855cd961623400ff2"
+    },
+    "src/executor/xlang_vm/xlang_interpreter.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/executor/xlang_vm/xlang_interpreter.cpp",
+      "sha256": "f309acf74a45f5d212d97f0f0b51b65ed7ff9b86a56bbbdf0ae5047125341ab8"
+    },
+    "src/executor/xlang_vm/xlang_vm_attr.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "sha256": "9633377725d293f8e206ec8bc1c554ef6333ce6c05c3ecfe92c8281cec89934c"
+    },
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/executor/xlang_vm/xlang_vm_inline_call.h",
+      "sha256": "f6038df4eecca5e26c4eb8eef40b165e5bb082adf39735d6d7808bfdb36f13bf"
+    },
+    "src/executor/xlang_vm/xlang_vm_inline_support.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/executor/xlang_vm/xlang_vm_inline_support.h",
+      "sha256": "e7443366a917f5ac98c6df3f83dbf695287c56ee0f2be89b34fbe2c73334d86f"
+    },
+    "src/executor/xlang_vm/xlang_vm_loop.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "sha256": "edf6c52d37cc85990a1cfd995b769786773e13bdf70bc8908bd52d3d803da30d"
+    },
+    "src/executor/xlang_vm/xlang_vm_op_rows.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/executor/xlang_vm/xlang_vm_op_rows.h",
+      "sha256": "76b4c9d8116088e5e6487a24307b7b9fb90ed97322337ffaf39030fae349f08f"
+    },
+    "src/import/native_package_loader.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/import/native_package_loader.cpp",
+      "sha256": "eb34eb4d10a4c72e39cec20dab602cb54f1d6ea427c5af5702f6be226acc3d6b"
+    },
+    "src/internal/xlang3/builtin_methods.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/internal/xlang3/builtin_methods.h",
+      "sha256": "b0663650474d8d117b10ed3e459e9137d0b3424cc9d76d872e53957cbb8e1477"
+    },
+    "src/internal/xlang3/builtins.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source117-delta/src/internal/xlang3/builtins.h",
+      "sha256": "1d2f392d18d62c35635e39cbf887c9bcf0cc422f4bd163beeb3036083122402b"
+    },
+    "src/internal/xlang3/functional_iterators.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/internal/xlang3/functional_iterators.h",
+      "sha256": "cb25729f3bbc39911f68c46892d8e903a63c6a925ec412c42779a57758921886"
+    },
+    "src/internal/xlang3/interpreter.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/internal/xlang3/interpreter.h",
+      "sha256": "d16f9cdcca9fc26ba33d8e4a0889ffe00f338fe6be9fb218223a2c0d67ad9bef"
+    },
+    "src/internal/xlang3/ir.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/internal/xlang3/ir.h",
+      "sha256": "b6417aea98ee8169aa551d849492fd2dfdfca6300a6b491fe7cce85c3242f064"
+    },
+    "src/internal/xlang3/module_object.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/internal/xlang3/module_object.h",
+      "sha256": "8b5da9ea5eea7cf55b1aec8f1d413866d1405ca5aad08257d50f071c23a29fd2"
+    },
+    "src/internal/xlang3/object_model.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/internal/xlang3/object_model.h",
+      "sha256": "c447bcb0e388b5de946cc293264187eabd2e2fcb58b5cd5283fc126141d44434"
+    },
+    "src/internal/xlang3/perf_counters.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/internal/xlang3/perf_counters.h",
+      "sha256": "5db542b24a9959e1513cbe1c80d6ae15148d8612c6edf0a88f74dc07464e4c22"
+    },
+    "src/internal/xlang3/pyc_magic.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/internal/xlang3/pyc_magic.h",
+      "sha256": "2f45558470b77def716afce97a195f642b6064a63d445c56ae76e0ee80400cc5"
+    },
+    "src/internal/xlang3/runtime.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/internal/xlang3/runtime.h",
+      "sha256": "4fa330fcee0c6c3b89e51c19be729bda0d321352f12fc40cc828ee5448ee8940"
+    },
+    "src/internal/xlang3/sequence.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/internal/xlang3/sequence.h",
+      "sha256": "1e91d40281adc32966a130b35720288b8d0b29bd7196bb506f8f401b685783df"
+    },
+    "src/internal/xlang3/value.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/internal/xlang3/value.h",
+      "sha256": "b3b88f529eb86acc117ccf5fbf61ac44e6572a96189d60389d1c6728c9bf75b1"
+    },
+    "src/ir/codec.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/ir/codec.cpp",
+      "sha256": "6726f090de59651f7570007c130e2b7129fac3a2133f67905c374d841f9da384"
+    },
+    "src/ir/dump.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/ir/dump.cpp",
+      "sha256": "f21ba927c25f7c1d272b18840694635e1883849cb07f6d45653045659ba08039"
+    },
+    "src/runtime/exceptions.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/runtime/exceptions.cpp",
+      "sha256": "d5c13f7126a415d7b297ddb9f27052ddd35feb6595976654ba6bf017410f5dde"
+    },
+    "src/runtime/functional_iterators.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/runtime/functional_iterators.cpp",
+      "sha256": "4a038c4b5152b87f8fa4d8d83a0f4961b069b8731cd99a4245c74ee5eee21e2e"
+    },
+    "src/runtime/methods/dict_methods.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/runtime/methods/dict_methods.cpp",
+      "sha256": "9241c105d298a226273a7fae2e66b1bd1cd816656f57bf478240050c25b56135"
+    },
+    "src/runtime/module_object.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/runtime/module_object.cpp",
+      "sha256": "ff2a6d0bff9d76f47a0d13c09c8927bcc554c9e1cb3ce5abc583f1aa67069da3"
+    },
+    "src/runtime/modules/system/bisect_module.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/runtime/modules/system/bisect_module.cpp",
+      "sha256": "e8b6497918f6a4dc1675b7197fdc376ccffc0d3465a917108ac306a34ad73396"
+    },
+    "src/runtime/modules/system/heapq_module.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/runtime/modules/system/heapq_module.cpp",
+      "sha256": "0f6cbf97cd5f0065f22206232bc01b09ae8cf65b5bc1d35f71196933c330771c"
+    },
+    "src/runtime/modules/thread/runtime_lock.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/runtime/modules/thread/runtime_lock.h",
+      "sha256": "80a5cf02f658c6217ec6586a38f35b3163faea361b24d79f4d22cdfbe97e6fb2"
+    },
+    "src/runtime/object_model.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/runtime/object_model.cpp",
+      "sha256": "10806dd37498170b7172f469ca44d190698f85c0a6adb2bed104053df1c0fedc"
+    },
+    "src/runtime/runtime.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/runtime/runtime.cpp",
+      "sha256": "2d7a0836eea66c376f652276d35edaa412edf792ab74c220711cd4bd3a14ca98"
+    },
+    "src/runtime/sequence.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/runtime/sequence.cpp",
+      "sha256": "934c24e1afc3be755ce7bb01abc499fbec566460f406f361b660eb33c942c093"
+    },
+    "src/runtime/value_hash.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/runtime/value_hash.cpp",
+      "sha256": "aeb9abb4697569a3b28485000337e31d21f2cd9227dbf2ea0e76e2e125d439ed"
+    },
+    "src/sema/lower.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/sema/lower.cpp",
+      "sha256": "12aae5ef15a98288aa359112ee8a6bd64f0213a228a3b11132849fad0f62fb04"
+    },
+    "tests/cpp/class_method_annotation_capture_cases.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/class_method_annotation_capture_cases.h",
+      "sha256": "ee63338ba3376b55caa7f1a0648b4e4017736cd7699b9d5b555acafe4dc49edf"
+    },
+    "tests/cpp/dict_get_exception_cases.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/dict_get_exception_cases.h",
+      "sha256": "2a0f52867dd2c5f0bfae7dfa30e132fb2724611426522af26b9047c4a665365a"
+    },
+    "tests/cpp/exception_loop_owner_cases.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/exception_loop_owner_cases.h",
+      "sha256": "f623aee1a95b231dc1f36c7ed5d426c1baa4c1a8da97f753c0318c6054ee3cb0"
+    },
+    "tests/cpp/frame_locals_retirement_cases.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/frame_locals_retirement_cases.h",
+      "sha256": "1449d30c46298ed0d63d555ca5c5b826f39ec02586a9cbba11800c762e946eda"
+    },
+    "tests/cpp/hash_exception_cases.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/hash_exception_cases.h",
+      "sha256": "3eba7cbdb81eaed2893ab62f8ce94636c0441f2614d4ba145abd639fa4a0a06d"
+    },
+    "tests/cpp/heapq_native_cases.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/heapq_native_cases.h",
+      "sha256": "6970f40e26ed0662dbc346f3758d086cd4e8769b33f3037a6beb4d0e93ad1aa7"
+    },
+    "tests/cpp/identity_last_use_cases.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/identity_last_use_cases.h",
+      "sha256": "d719e470cd684456945fd7dfc9ebd0954905227aff346ad2764185280143b28c"
+    },
+    "tests/cpp/inherited_call_ex_constructor_cases.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/inherited_call_ex_constructor_cases.h",
+      "sha256": "6cbddb58280a365625b28b744a9435a5b160635553b250abb1fa3a2b6a2256ce"
+    },
+    "tests/cpp/interpreter_tests.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/interpreter_tests.cpp",
+      "sha256": "ca8550d8b694eff64d2a809831ee048eadc955b1b74e7dd809fa27ba01b849ca"
+    },
+    "tests/cpp/native_bound_zero_args_cases.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/native_bound_zero_args_cases.h",
+      "sha256": "ef1c0aa7cfb9dcf67b498c619eadd99b2e8c383f0c82e4abb63f83faf3484e7c"
+    },
+    "tests/cpp/observable_builtin_method_cases.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/observable_builtin_method_cases.h",
+      "sha256": "dab30cb33fdb48c82e692d6c24d344a721f306d4a175bda0b08b5f9b46e879b0"
+    },
+    "tests/cpp/ordinary_canonical_slot_constructor_cases.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/ordinary_canonical_slot_constructor_cases.h",
+      "sha256": "61ef47dd60f865f0d910f3aaa5f8514100e48f6fa7784d91ec6560623e846ae5"
+    },
+    "tests/cpp/scoped_sorted_key_cases.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/scoped_sorted_key_cases.h",
+      "sha256": "08460b4fb51d8310290a28ecbc80de76c542d537fdc88f0a5d28bb81bc02f92a"
+    },
+    "tests/cpp/sqlite_aggregate_abi_cases.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/sqlite_aggregate_abi_cases.h",
+      "sha256": "424debac1951802dba2619736f4d935502ad261cc82bc13247beb27adac69f0a"
+    },
+    "tests/cpp/sqlite_aggregate_sdk_probe.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/sqlite_aggregate_sdk_probe.py",
+      "sha256": "318c0a6e64b6c1cbb4f4a6cfa2b49b6186d271ae4bbfc09e04109d606649bc18"
+    },
+    "tests/cpp/sqlite_statement_cache_cases.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/sqlite_statement_cache_cases.h",
+      "sha256": "fa803233a0d696403caf72206e3881ee61bceca790d4c667b4bcf0f5219cc99c"
+    },
+    "tests/cpp/sqlite_statement_cache_sdk_probe.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/sqlite_statement_cache_sdk_probe.py",
+      "sha256": "d78547e5953db054226c234554d753bacc35d64ab6a95d0de7cd0de647567f78"
+    },
+    "tests/fixtures/core/call_ex_cross_activation_constructor.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/call_ex_cross_activation_constructor.py",
+      "sha256": "d8452cf7a3e41224da778807a550fd34ccaf32978fe65e329fab31a10a9ba91d"
+    },
+    "tests/fixtures/core/call_method_dict_cache_touch.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/call_method_dict_cache_touch.py",
+      "sha256": "28ee6d59dfcec67f582032c9316410dbcb904ecf9b4d30e26ed63c2cb1cf285e"
+    },
+    "tests/fixtures/core/call_module_global_binding.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/call_module_global_binding.py",
+      "sha256": "5558bd421e9d28746176287c25ee2259fb2a4040f32058309a44259c9addbc8d"
+    },
+    "tests/fixtures/core/class_method_annotation_capture.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/class_method_annotation_capture.py",
+      "sha256": "68de96b73c5a6f3bb4e89110a840d1298533be05fd3f8d95452a6f72bfcc9bac"
+    },
+    "tests/fixtures/core/class_namespace_lifetime.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/class_namespace_lifetime.py",
+      "sha256": "8c629e931a5da3aafc544a0e869d16ffc711b78cf4177f42e7ab90e4a539cecb"
+    },
+    "tests/fixtures/core/dict_get_exception_preservation.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/dict_get_exception_preservation.py",
+      "sha256": "8d623ccfd69a48c50911802cb12be5883860534de9a0ff9dcd61e41a4c9fe9d1"
+    },
+    "tests/fixtures/core/explicit_slot_descriptor_fallback.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/explicit_slot_descriptor_fallback.py",
+      "sha256": "96a4b1e491898e0e9e86ffcf737c2a3abc93fc30702aa56262d5e8f2242a6041"
+    },
+    "tests/fixtures/core/hash_exception_preservation.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/hash_exception_preservation.py",
+      "sha256": "f7378cf25ff91efe12773b7ad5aa5c45038a4d5ab7e7e957f90f6ec088aae150"
+    },
+    "tests/fixtures/core/identity_last_use.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/identity_last_use.py",
+      "sha256": "59bf91eacb4d738d7a7ccfdf2590fa79670192bc6410a5775121345c77550cb4"
+    },
+    "tests/fixtures/core/inherited_call_ex_constructor.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/inherited_call_ex_constructor.py",
+      "sha256": "9f428778c97b8e5f06d61f92f59992cc2af5f774f0084a09102ba4ae7028cd53"
+    },
+    "tests/fixtures/core/native_bound_zero_args.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/native_bound_zero_args.py",
+      "sha256": "b4441c1fa0d8708624f35c41051bb0d5f207c26bd87c812a78543e0a0032c0aa"
+    },
+    "tests/fixtures/core/nested_profile_setting.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/nested_profile_setting.py",
+      "sha256": "9b2e6a38dc339115de0d0399f9fcf1fb8b22cd792bf270d480d42a7a8c8320bf"
+    },
+    "tests/fixtures/core/ordinary_canonical_slot_constructor.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/ordinary_canonical_slot_constructor.py",
+      "sha256": "66ccda4fb3380583d5a1dcae8757ebce278b59a066b7c2f80940af230b6d0acf"
+    },
+    "tests/fixtures/core/slot_descriptor_owner.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/slot_descriptor_owner.py",
+      "sha256": "e060d66788862b0a7afc7112d5d41d128a78f54a053532f00a578d0fadeea916"
+    },
+    "tests/fixtures/core/sorted_exact_integer_keys.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/sorted_exact_integer_keys.py",
+      "sha256": "2132af02bf00bdf2d9a7e132a2f7937a19fe607e78485a86f0dba22f73799d58"
+    },
+    "tests/fixtures/core/sorted_key_iteration_owner.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/sorted_key_iteration_owner.py",
+      "sha256": "420f8350b3a52f07a94dd7fc8fe8e6a62504a6fa993d19417f009b02106d93f1"
+    },
+    "tests/fixtures/core/sorted_key_nested_handled_context.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/sorted_key_nested_handled_context.py",
+      "sha256": "b07f57cd7d8017bd0c9e316aa61d2b53c417d5c7a21ebd32bd14c72e545d5766"
+    },
+    "tests/fixtures/core/sorted_key_scoped_entry.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/sorted_key_scoped_entry.py",
+      "sha256": "ccf3922036d85af6f2c654c29046c924b993cb3c1be2b0d65e23fe5fe24f6f26"
+    },
+    "tests/fixtures/core/sqlite_cursor_completion.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/sqlite_cursor_completion.py",
+      "sha256": "3d3f6071911c60a54a3dbed4a6da8062a0fe76e92c83d6e7a92cb94fa84c80d6"
+    },
+    "tests/fixtures/core/sqlite_native_aggregate.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/sqlite_native_aggregate.py",
+      "sha256": "5e8b444a8f47eae17d597bbea7455f0b8301102ffe89c016b76fde1474a9a650"
+    },
+    "tests/fixtures/core/sqlite_statement_cache.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/sqlite_statement_cache.py",
+      "sha256": "d2ec917ab11e9c4f1e672bd0eef60c2aaa7400160cd6b6fb76ca6e151d2b3701"
+    },
+    "tests/fixtures/core/synchronous_class_argument_lifetime.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/core/synchronous_class_argument_lifetime.py",
+      "sha256": "03e9da6a612c5e4a254c5038a3e97fb84bd4337061e61eb8544b0f50e3962064"
+    },
+    "tests/fixtures/expected/call_ex_cross_activation_constructor.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/call_ex_cross_activation_constructor.out",
+      "sha256": "a9ec0e8783675a5839540e4cbf487135bad454ee4ee401232d2b1b728b329ee4"
+    },
+    "tests/fixtures/expected/call_method_dict_cache_touch.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/call_method_dict_cache_touch.out",
+      "sha256": "133d1022bee101d755b1d15a43bc9c8b50d6ac6662ffc02d2460cc8999c51579"
+    },
+    "tests/fixtures/expected/call_module_global_binding.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/call_module_global_binding.out",
+      "sha256": "17d12e90f532d48699853e3e9a8983d398e690f51c5028982529533158594c12"
+    },
+    "tests/fixtures/expected/class_method_annotation_capture.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/class_method_annotation_capture.out",
+      "sha256": "9972c9b1f2fdd09e7da86211ed0c751857535d88d5106902199e7980a2073ce1"
+    },
+    "tests/fixtures/expected/class_namespace_lifetime.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/class_namespace_lifetime.out",
+      "sha256": "f35e2622dc23c9544ee4dc5c0777c54e4eca16e15fcc0edc822958afa6488f33"
+    },
+    "tests/fixtures/expected/dict_get_exception_preservation.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/dict_get_exception_preservation.out",
+      "sha256": "8f88f8a96b888d18937e8162af2601c9b51527b9166a251289f0588b35cfd16b"
+    },
+    "tests/fixtures/expected/explicit_slot_descriptor_fallback.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/explicit_slot_descriptor_fallback.out",
+      "sha256": "e483778822db8a0e110d63a34d1bbb64857637f248f0ea18adfcbd8c2b8be06b"
+    },
+    "tests/fixtures/expected/hash_exception_preservation.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/hash_exception_preservation.out",
+      "sha256": "d6b626f45bea180d87ae227099885d951f70f580a03bd5254a45c42b6379e859"
+    },
+    "tests/fixtures/expected/identity_last_use.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/identity_last_use.out",
+      "sha256": "be5a71bfe8c5071242d0acf992e8fa4d63515d12c09c28c70d9cff3b0c043d6d"
+    },
+    "tests/fixtures/expected/inherited_call_ex_constructor.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/inherited_call_ex_constructor.out",
+      "sha256": "eb2186fa5c6258c92fae1d4eeee7efa43492e4a1a5f7ab5e93bb889539bf011b"
+    },
+    "tests/fixtures/expected/native_bound_zero_args.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/native_bound_zero_args.out",
+      "sha256": "742ffaebccdfe0fce29673e9b31ad5885e3f592dcfe2c172c57498bbd2d18e84"
+    },
+    "tests/fixtures/expected/nested_profile_setting.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/nested_profile_setting.out",
+      "sha256": "01ecf4bf1a5a75774e1c2fc10d7c7a969ad0d75af58304f5ee37e9b74bcae532"
+    },
+    "tests/fixtures/expected/ordinary_canonical_slot_constructor.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/ordinary_canonical_slot_constructor.out",
+      "sha256": "570277a5c4866c36f62677059de54e72132b6df9224b48cb60647e2e9e9e3399"
+    },
+    "tests/fixtures/expected/slot_descriptor_owner.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/slot_descriptor_owner.out",
+      "sha256": "0b5d7a5e4ccd67dbf8f20901de7eba17406c1a2db074ede56c07c8c825e9fe99"
+    },
+    "tests/fixtures/expected/sorted_exact_integer_keys.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/sorted_exact_integer_keys.out",
+      "sha256": "7890d6581a7a61661e2d795d6e16c5dda7fe0779f0b35546505b7c755c9c3208"
+    },
+    "tests/fixtures/expected/sorted_key_iteration_owner.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/sorted_key_iteration_owner.out",
+      "sha256": "ec9d5bcd9dd1fa03ecab990d1e8e48a3d573e938328ba8cf13629219217f2a64"
+    },
+    "tests/fixtures/expected/sorted_key_nested_handled_context.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/sorted_key_nested_handled_context.out",
+      "sha256": "92ca4b59af1fa87ef558a34cc96baebbb62cdaaaaac5e97b3d52d4ab88e0967f"
+    },
+    "tests/fixtures/expected/sorted_key_scoped_entry.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/sorted_key_scoped_entry.out",
+      "sha256": "ba8f18a40977207425881487b5ccde27f432cb5d75a1bde14fc14be9c8798d31"
+    },
+    "tests/fixtures/expected/sqlite_cursor_completion.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/sqlite_cursor_completion.out",
+      "sha256": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6"
+    },
+    "tests/fixtures/expected/sqlite_native_aggregate.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/sqlite_native_aggregate.out",
+      "sha256": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba"
+    },
+    "tests/fixtures/expected/sqlite_statement_cache.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/sqlite_statement_cache.out",
+      "sha256": "9173c9f0a5076af30186351c98fd8c080903c31a9361c1b77823e3cbe492fd65"
+    },
+    "tests/fixtures/expected/synchronous_class_argument_lifetime.out": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/fixtures/expected/synchronous_class_argument_lifetime.out",
+      "sha256": "401358caef97a64d7bc97fc415106d9deffd14266138f1d7aa1246cbe5d4bfcd"
+    },
+    "tests/run_fixtures.ps1": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source117-delta/tests/run_fixtures.ps1",
+      "sha256": "de8e1661a532ca5856320281d5702aa47b09ac9eb6caf425ed520250ffbbcc0f"
+    },
+    "tests/run_fixtures.py": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source117-delta/tests/run_fixtures.py",
+      "sha256": "e68ee3cbe6ce3849c22538d6748da75a2952ecf4f9e32505dee3f16edea765bb"
+    },
+    "src/runtime/mapping.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/runtime/mapping.cpp",
+      "sha256": "c06a143e985a8f67703e11d58aad3a12fa6d3cb964e77a68a7fbf3193d290fbf"
+    },
+    "src/internal/xlang3/mapping.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/internal/xlang3/mapping.h",
+      "sha256": "43f8bbc91e2f224dde767d4f785a64e2c3429b269113ba85dd613eac297c3857"
+    },
+    "src/runtime/value.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/src/runtime/value.cpp",
+      "sha256": "18be33a526dbcc6627490a12a68aefc9e168d42afbf238ce38fa240e74bba0e0"
+    },
+    "tests/cpp/dict_scalar_append_index_cases.h": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source119/tests/cpp/dict_scalar_append_index_cases.h",
+      "sha256": "d075c93a35b99faa42834ef6c3fcc270f6ee7b2b69dcc60a6a5514a0c59100c8"
+    },
+    "src/runtime/methods/string_methods.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source117-delta/src/runtime/methods/string_methods.cpp",
+      "sha256": "52860b33aaf0dcdc7fbe4f991725f31e21ba722bfce7dcceccbffa5fcc0ec4ae"
+    },
+    "src/runtime/modules/system/codecs_module.cpp": {
+      "archive": "doc/performance/data/native-str-utf8-checkpoint-20261008/source117-delta/src/runtime/modules/system/codecs_module.cpp",
+      "sha256": "6a0184a50ac0026fc0c54a3bff5da3f26961aaa1e76e2b7cc2a8d6cd1848c7f1"
+    }
+  },
+  "parent_manifest_sha256": "cd5035f531a513104f2948286e81d4996bb01a9b6dc4c84353303f370de4bd97",
+  "scope": "Partial recorded source coverage; unchanged bytes share source119 archive"
+}

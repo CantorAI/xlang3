@@ -1,0 +1,306 @@
+{
+  "status": "correctness_fixed_gate_and_official_benchmark_passed",
+  "source_base_commit": "c1d462b224a93e110f78abc5775cb214b8e614a1",
+  "official_pidigits_seconds": {
+    "before": 0.23323895999783417,
+    "after": 0.2207553599975654,
+    "cpython3147": 0.16317538499861256
+  },
+  "binary_sha256": {
+    "before": {
+      "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+      "dll": "1a6375124e5e6957e9add1b80da546583bc9d9c254132d5a5bd464b0decd7c31"
+    },
+    "after": {
+      "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+      "dll": "d425ba688e3a09896eb35f3bc3164af9f8d09fbf785484dab9bf5f357eee0d3a"
+    },
+    "cpython3147": {
+      "exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "dll": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700"
+    }
+  },
+  "official_before_over_after": 1.0565494763090075,
+  "official_time_reduction_fraction": 0.05352279053372855,
+  "cpython_over_after": 0.7391683943729028,
+  "diagnostics": [
+    {
+      "case": "add-small-128",
+      "before_seconds": 3.9941399998497216e-07,
+      "after_seconds": 3.152260003844276e-07,
+      "cpython3147_seconds": 2.5074000004678964e-08,
+      "before_over_after": 1.2670718769957896,
+      "cpython_over_after": 0.07954293102123704
+    },
+    {
+      "case": "add-big-128",
+      "before_seconds": 4.4970399991143494e-07,
+      "after_seconds": 3.832340001827106e-07,
+      "cpython3147_seconds": 2.4932000087574125e-08,
+      "before_over_after": 1.173444944073423,
+      "cpython_over_after": 0.06505685840945101
+    },
+    {
+      "case": "add-opposite-128",
+      "before_seconds": 3.833599999779835e-07,
+      "after_seconds": 3.150639997329563e-07,
+      "cpython3147_seconds": 2.3525999858975412e-08,
+      "before_over_after": 1.216768657488364,
+      "cpython_over_after": 0.07467054274342898
+    },
+    {
+      "case": "subtract-small-128",
+      "before_seconds": 3.997199999867007e-07,
+      "after_seconds": 2.949559997068718e-07,
+      "cpython3147_seconds": 2.2621999960392712e-08,
+      "before_over_after": 1.3551851814641631,
+      "cpython_over_after": 0.0766961851356627
+    },
+    {
+      "case": "subtract-big-128",
+      "before_seconds": 3.9910799998324365e-07,
+      "after_seconds": 2.766680001514033e-07,
+      "cpython3147_seconds": 2.0901999669149517e-08,
+      "before_over_after": 1.4425520832363576,
+      "cpython_over_after": 0.07554903226145109
+    },
+    {
+      "case": "subtract-opposite-128",
+      "before_seconds": 4.7093199973460287e-07,
+      "after_seconds": 3.583499998785555e-07,
+      "cpython3147_seconds": 2.5277999811805786e-08,
+      "before_over_after": 1.3141677128343834,
+      "cpython_over_after": 0.07053997438362627
+    },
+    {
+      "case": "compare-small-128",
+      "before_seconds": 1.9687199965119362e-07,
+      "after_seconds": 1.1188399977982044e-07,
+      "cpython3147_seconds": 1.6457999590784312e-08,
+      "before_over_after": 1.759608165945295,
+      "cpython_over_after": 0.1470987775121774
+    },
+    {
+      "case": "compare-big-128",
+      "before_seconds": 2.0349200000055135e-07,
+      "after_seconds": 1.1596199998166412e-07,
+      "cpython3147_seconds": 1.96460000006482e-08,
+      "before_over_after": 1.754816233186108,
+      "cpython_over_after": 0.16941756785632034
+    },
+    {
+      "case": "compare-equal-128",
+      "before_seconds": 2.1577399980742485e-07,
+      "after_seconds": 1.3237399980425835e-07,
+      "cpython3147_seconds": 1.8122000037692488e-08,
+      "before_over_after": 1.6300330890242059,
+      "cpython_over_after": 0.13689999595456448
+    },
+    {
+      "case": "add-small-1024",
+      "before_seconds": 4.4790799962356685e-07,
+      "after_seconds": 3.547379997326061e-07,
+      "cpython3147_seconds": 3.5521999816410246e-08,
+      "before_over_after": 1.2626445431873392,
+      "cpython_over_after": 0.10013587448535528
+    },
+    {
+      "case": "add-big-1024",
+      "before_seconds": 5.39872000226751e-07,
+      "after_seconds": 4.186920000938699e-07,
+      "cpython3147_seconds": 3.526600019540638e-08,
+      "before_over_after": 1.2894251624241992,
+      "cpython_over_after": 0.08422898022293193
+    },
+    {
+      "case": "add-opposite-1024",
+      "before_seconds": 4.749840003205463e-07,
+      "after_seconds": 3.6281000007875263e-07,
+      "cpython3147_seconds": 2.868399955332279e-08,
+      "before_over_after": 1.3091811146810861,
+      "cpython_over_after": 0.07906066411371394
+    },
+    {
+      "case": "subtract-small-1024",
+      "before_seconds": 4.687800002284348e-07,
+      "after_seconds": 3.271380002843216e-07,
+      "cpython3147_seconds": 3.752199991140515e-08,
+      "before_over_after": 1.432973240103594,
+      "cpython_over_after": 0.11469777243485652
+    },
+    {
+      "case": "subtract-big-1024",
+      "before_seconds": 5.008539999835193e-07,
+      "after_seconds": 3.4283599990885704e-07,
+      "cpython3147_seconds": 2.937600016593933e-08,
+      "before_over_after": 1.4609142567194557,
+      "cpython_over_after": 0.08568528443264109
+    },
+    {
+      "case": "subtract-opposite-1024",
+      "before_seconds": 5.596699996385723e-07,
+      "after_seconds": 3.87586000142619e-07,
+      "cpython3147_seconds": 3.7306000012904405e-08,
+      "before_over_after": 1.4439892035125934,
+      "cpython_over_after": 0.09625218660936415
+    },
+    {
+      "case": "compare-small-1024",
+      "before_seconds": 2.052760001970455e-07,
+      "after_seconds": 1.1158799985423685e-07,
+      "cpython3147_seconds": 1.776200020685792e-08,
+      "before_over_after": 1.839588490385971,
+      "cpython_over_after": 0.15917482372710098
+    },
+    {
+      "case": "compare-big-1024",
+      "before_seconds": 2.3367999994661658e-07,
+      "after_seconds": 1.241000002482906e-07,
+      "cpython3147_seconds": 2.6825999957509338e-08,
+      "before_over_after": 1.8829975783971473,
+      "cpython_over_after": 0.21616438278676675
+    },
+    {
+      "case": "compare-equal-1024",
+      "before_seconds": 2.47788000269793e-07,
+      "after_seconds": 1.4216799987480044e-07,
+      "cpython3147_seconds": 2.6037999778054655e-08,
+      "before_over_after": 1.7429238681560286,
+      "cpython_over_after": 0.18314951185206862
+    },
+    {
+      "case": "add-small-4096",
+      "before_seconds": 5.363080004462973e-07,
+      "after_seconds": 4.158980003558099e-07,
+      "cpython3147_seconds": 1.1226399976294488e-07,
+      "before_over_after": 1.2895181029662894,
+      "cpython_over_after": 0.26993156895897685
+    },
+    {
+      "case": "add-big-4096",
+      "before_seconds": 6.3821799994912e-07,
+      "after_seconds": 4.850879998411984e-07,
+      "cpython3147_seconds": 1.1026599968317896e-07,
+      "before_over_after": 1.3156746820330565,
+      "cpython_over_after": 0.22731133262269193
+    },
+    {
+      "case": "add-opposite-4096",
+      "before_seconds": 6.272760004503653e-07,
+      "after_seconds": 5.022319999989122e-07,
+      "cpython3147_seconds": 6.430600013118237e-08,
+      "before_over_after": 1.2489765694972121,
+      "cpython_over_after": 0.12804042779297548
+    },
+    {
+      "case": "subtract-small-4096",
+      "before_seconds": 5.496619996847585e-07,
+      "after_seconds": 3.9627799997106196e-07,
+      "cpython3147_seconds": 1.3612199982162564e-07,
+      "before_over_after": 1.3870616075706885,
+      "cpython_over_after": 0.343501278979822
+    },
+    {
+      "case": "subtract-big-4096",
+      "before_seconds": 6.407739996211604e-07,
+      "after_seconds": 4.805639997357502e-07,
+      "cpython3147_seconds": 6.249400030355901e-08,
+      "before_over_after": 1.333379112820572,
+      "cpython_over_after": 0.13004303347300847
+    },
+    {
+      "case": "subtract-opposite-4096",
+      "before_seconds": 6.518159998813644e-07,
+      "after_seconds": 4.541620000964031e-07,
+      "cpython3147_seconds": 1.0952599986921996e-07,
+      "before_over_after": 1.435205939164893,
+      "cpython_over_after": 0.24116064277938562
+    },
+    {
+      "case": "compare-small-4096",
+      "before_seconds": 2.2120799985714258e-07,
+      "after_seconds": 1.1209000018425286e-07,
+      "cpython3147_seconds": 1.7033999902196228e-08,
+      "before_over_after": 1.97348558741656,
+      "cpython_over_after": 0.15196716811665487
+    },
+    {
+      "case": "compare-big-4096",
+      "before_seconds": 2.7758200012613086e-07,
+      "after_seconds": 1.518619997659698e-07,
+      "cpython3147_seconds": 6.168399995658547e-08,
+      "before_over_after": 1.827856873700495,
+      "cpython_over_after": 0.4061845626400608
+    },
+    {
+      "case": "compare-equal-4096",
+      "before_seconds": 2.8816799982450903e-07,
+      "after_seconds": 1.6747199988458306e-07,
+      "cpython3147_seconds": 6.273399980273097e-08,
+      "before_over_after": 1.720693608621777,
+      "cpython_over_after": 0.37459396105597037
+    }
+  ],
+  "source_sha256_raw": {
+    "src/runtime/bigint.cpp": "b7e927d36a926f63f540190a6b3ebcaab4975f60d55bc406fd10d2ddf012e26a",
+    "tests/cpp/bigint_add_compare_operand_view_cases.h": "ecece86d886dbaad5ecc2edf0fbc7fdfd7cfadfa18c0afc56ca92741f423a9e6",
+    "tests/fixtures/core/bigint_add_compare_operand_views.py": "e34068f4a33b302068c1140d4b7f9e3dc5e8780e56fc021a5c7bfa04f65f80b7",
+    "benchmarks/diagnostics/generic_bigint_add_compare.py": "148849930d6c2e1140c0901fa1ea798cb3c3a737af4d7bfba4414e2ca183a656",
+    "benchmarks/diagnostics/pidigits_body_timing.py": "6cc2390358a37e89feee39047d423eed4ddb30e5686ea155c33972ce5ab25159"
+  },
+  "source_sha256_canonical_lf": {
+    "src/runtime/bigint.cpp": "7e0bd6c281dbff7e1dae2b427f6593486f912e2e432f4ff88e83998354c8003f",
+    "tests/cpp/bigint_add_compare_operand_view_cases.h": "a0f8e95f170550696ee861cc054f1347323f8ddd3c4d1ffc71617ace9039c16f",
+    "tests/fixtures/core/bigint_add_compare_operand_views.py": "e34068f4a33b302068c1140d4b7f9e3dc5e8780e56fc021a5c7bfa04f65f80b7",
+    "benchmarks/diagnostics/generic_bigint_add_compare.py": "148849930d6c2e1140c0901fa1ea798cb3c3a737af4d7bfba4414e2ca183a656",
+    "benchmarks/diagnostics/pidigits_body_timing.py": "6cc2390358a37e89feee39047d423eed4ddb30e5686ea155c33972ce5ab25159"
+  },
+  "input_sha256": {
+    "pyperformance-bigint-add-compare-reference-helper-pidigits-before-fast-20261007.json": "89f5b1389a90af30e51f001f46622f253a69825dc9ff13cd7dce5282fa602e8c",
+    "pyperformance-bigint-add-compare-reference-helper-pidigits-before-fast-20261007.log": "8500349f26b33de58861b7064ea3e0856f3206135b558b96014fb9b30cd228cd",
+    "pyperformance-bigint-add-compare-reference-helper-pidigits-before-fast-20261007-provenance.json": "f0e478710b6e320eb3a6d6f9b26beb4db2ba5d717140db0a588b6755715601c6",
+    "pyperformance-bigint-add-compare-reference-helper-pidigits-after-fast-20261007.json": "42daa0bc29e92dcf59a5b2ff9ee21763fe7302afc118862c5e04da8fe1c4dcd2",
+    "pyperformance-bigint-add-compare-reference-helper-pidigits-after-fast-20261007.log": "5c13aca7b5651228851d6c1968c39117865d3e41d0e49c53290c9a6af0bb593f",
+    "pyperformance-bigint-add-compare-reference-helper-pidigits-after-fast-20261007-provenance.json": "482f373a9653944290d41c0a6457e668cceb50acf39b165ebc52e1f0d8fc8e63",
+    "pyperformance-bigint-add-compare-reference-helper-pidigits-cpython3147-fast-20261007.json": "435aad868045a7aed750e7b4e57df1a9d340b6e47e911117ba037f63a33d48b8",
+    "pyperformance-bigint-add-compare-reference-helper-pidigits-cpython3147-fast-20261007.log": "51c7ba820411ed6d19e37477db4fb768d443a260d71ee1d3d03422004df4ad08",
+    "pyperformance-bigint-add-compare-reference-helper-pidigits-cpython3147-fast-20261007-provenance.json": "a34f4265a9f73e29c59537a2c461996b59e410a92411e5a1325678ba1935329e",
+    "bigint-add-compare-diagnostic-before-idle-r2-20261007.json": "e8c4f6db636adf7874dfead0e738aa4f21c1cb44aff533dca48d65cce407a2d8",
+    "bigint-add-compare-diagnostic-after-r2-20261007.json": "b4cc73914f4c4864772715b9446f10a06c5f086d8f627d784740e505a0829140",
+    "bigint-add-compare-diagnostic-before-20261007.json": "4cf344310d4956e17ff52debcf36dc121b43f5eaa0f726e99351b91c5c8bdd3d",
+    "bigint-add-compare-reference-helper-validation-20261007.json": "7f8d433b14aefbd14ed94766307ce95dd009f2ac4269fec02c5cb8a4ea3060f7",
+    "bigint-add-compare-reference-helper-validation-20261007-fixtures.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bigint-add-compare-reference-helper-validation-20261007-cpp.log": "8a9e86f2ad604d4bced811f139b0c4e60cd7d3ef9161ee1b3854540be3a786f3",
+    "release-bigint-add-compare-reference-helper-fixed-gate-20261007.json": "d28ce3918008fba293728ca40b667586ea6ffecf8dba70b62a7a4cebd9d6c507",
+    "release-bigint-add-compare-reference-helper-fixed-gate-20261007.log": "0a4592c0d2dc6a3d7b5de8c03670c11df1347ed4c2b1862bef05cf7ae657f7ff",
+    "pidigits-add-compare-reference-helper-body-correctness-20261007.json": "6c981d07ed40a83f168fe9156c9e64307be4f40ef8e8be001701769bfc9859b4",
+    "bigint-add-compare-operand-view-checkpoint-20261007.json": "c83d44302f92e3b575005df1c48388cd8ac3a2908b1deeb0f9571fdc9a9f9094",
+    "bigint-add-compare-paired-body-followup-20261007.json": "e81658f8098a8ffafd49b1fc69ad2734f1f6a6bbd0d05f09006594c170cf47db",
+    "bigint-add-compare-other-kernel-followup-20261007.json": "389dad33b0f3491533e9c79b554845d0cdca01d107790409c0891f32a19a623d",
+    "bigint-add-compare-initial-trial-source-20261007.patch": "a33f622e56adffd102a44730d73a0fb0003177c6251452e511830a9a53e527a0",
+    "bigint-add-compare-paired-body-reference-helper-followup-20261007.json": "fd3483c23bde35100692bc3bf24d5e1311eab76ff2b6d53a3e88f486cf73d8bc"
+  },
+  "limitations": [
+    "Independent sequential fast-mode official runs, not a paired significance result",
+    "Initial diagnostic possibly overlapped an unrelated xMind build; retained but excluded in favor of idle-r2",
+    "Only affected official pidigits rerun; full 97-case report remains unchanged"
+  ],
+  "paired_body_confirmation": {
+    "pairs": 7,
+    "before_over_after": [
+      1.0658399666606246,
+      1.0836047654435035,
+      1.066160571377174,
+      1.072785376448856,
+      1.05610832709236,
+      1.0985120795031007,
+      1.0558383472170187
+    ],
+    "median_gain": 1.066160571377174,
+    "cpu_affinity": [
+      0
+    ],
+    "purpose": "diagnostic confirmation, not official suite score"
+  },
+  "decision": "Accept revised const-reference kernels; first by-value-adapter trial remains rejected"
+}

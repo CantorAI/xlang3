@@ -1,0 +1,2 @@
+dictionary yield must acquire ownership when output already borrows that object
+dictionary yield must acquire ownership when output already borrows that object

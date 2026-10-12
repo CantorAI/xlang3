@@ -1,0 +1,37 @@
+[
+  {
+    "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\capture-dict-numeric-isolated-cpython3147-s8-reference-proposed-20261008.py",
+    "destination": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\dict-numeric-isolation-inspection-20261008\\capture-dict-numeric-isolated-cpython3147-s8-reference-proposed-20261008.py",
+    "sha256": "bae94d263bcfdc9a5930fd2451496c62213e59ee7a178b00450fa54a612f3bda"
+  },
+  {
+    "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-numeric-isolated-reference-manager-provenance-proposed-20261008.json",
+    "destination": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\dict-numeric-isolation-inspection-20261008\\dict-numeric-isolated-reference-manager-provenance-proposed-20261008.json",
+    "sha256": "054436c53060875a371d89fcb61f946646f31c0de85129e0bcf4d3adf19e690e"
+  },
+  {
+    "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-numeric-prerequisites-isolation-provenance-proposed-20261008.json",
+    "destination": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\dict-numeric-isolation-inspection-20261008\\dict-numeric-prerequisites-isolation-provenance-proposed-20261008.json",
+    "sha256": "344c42dc2987161eab830b2a41077a17b59c36d05b844034047c82995dc96769"
+  },
+  {
+    "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-equivalent-numeric-keys-isolated-proposed-20261008.py",
+    "destination": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\dict-numeric-isolation-inspection-20261008\\dict-equivalent-numeric-keys-isolated-proposed-20261008.py",
+    "sha256": "68b60af33ad30dd54cd50030444d40fcd135e7cb48bef582a10acbedf8690a3f"
+  },
+  {
+    "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-equivalent-numeric-keys-isolated-expected-proposed-20261008.out",
+    "destination": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\dict-numeric-isolation-inspection-20261008\\dict-equivalent-numeric-keys-isolated-expected-proposed-20261008.out",
+    "sha256": "8212a05ac357300f8f56a74e9757e09886db23c4d5f2e404487dce337835e0fc"
+  },
+  {
+    "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-numeric-subclass-equality-isolated-proposed-20261008.py",
+    "destination": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\dict-numeric-isolation-inspection-20261008\\dict-numeric-subclass-equality-isolated-proposed-20261008.py",
+    "sha256": "862049741c3e5191368b91c7ca0761d7ae1d862fc2d555450d1180eebecb5aea"
+  },
+  {
+    "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\dict-numeric-subclass-equality-isolated-expected-proposed-20261008.out",
+    "destination": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\dict-numeric-isolation-inspection-20261008\\dict-numeric-subclass-equality-isolated-expected-proposed-20261008.out",
+    "sha256": "20f1cfc11e25e59188e0c3103676dfe6cd267dc08706cf3a34c16acc0ba9acb1"
+  }
+]

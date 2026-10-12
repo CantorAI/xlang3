@@ -1,0 +1,109 @@
+{
+  "scope": "Official BPE descriptive comparison; references reused, not alternating paired official runs",
+  "candidate_exit_code": 0,
+  "sources": {
+    "cpython3147": {
+      "json": "pyperformance-cpython3147-live-eval-full-fast-20261007.json",
+      "sha256": "ac474df5576ac85f6f5350363affecc439d4f658b4dfa3dbe291b46964276eb0"
+    },
+    "previous_xlang3": {
+      "json": "pyperformance-inherited-subscript-cache-bpe-fast-20261007.json",
+      "sha256": "10d6683dd8677565b5475a92f9969cfa956354ae385f288045816e6d271ed340"
+    }
+  },
+  "candidate_binary_sha256": {
+    "exe": "475d2ff8d72c19eebaeff4ea6e943c6969cd8c2af3e15df4512de6e62f1c2397",
+    "dll": "fa9fac1f45195e040b5628386a3db73e4beafaa96a6912b78afb86523dae532a"
+  },
+  "status": "completed",
+  "cpython3147": {
+    "json": "pyperformance-cpython3147-live-eval-full-fast-20261007.json",
+    "sha256": "ac474df5576ac85f6f5350363affecc439d4f658b4dfa3dbe291b46964276eb0",
+    "values_seconds": [
+      3.578314499987755,
+      3.612936899997294,
+      3.5679693999991287,
+      3.5640276999911293,
+      3.5583781999885105,
+      3.574381299986271,
+      3.600639999989653,
+      3.6048579000052996,
+      3.595690000016475,
+      3.61182820002432,
+      3.5969562999962363,
+      3.6043862999940757,
+      3.5866313999868,
+      3.6057578999898396,
+      3.6098004000086803,
+      3.5948808999964967,
+      3.588763400010066,
+      3.5518881999887526,
+      3.5393397999869194,
+      3.5710232999990694
+    ],
+    "mean_seconds": 3.5859225999971387,
+    "sample_standard_deviation_seconds": 0.02162875102110377
+  },
+  "previous_xlang3": {
+    "json": "pyperformance-inherited-subscript-cache-bpe-fast-20261007.json",
+    "sha256": "10d6683dd8677565b5475a92f9969cfa956354ae385f288045816e6d271ed340",
+    "values_seconds": [
+      48.12916129999212,
+      34.98647269999492,
+      33.49632730000303,
+      34.71048599999631,
+      33.960664200014435,
+      33.107783999992535,
+      33.15022880001925,
+      33.100470900011715,
+      33.265486899996176,
+      33.4807161000208,
+      33.65224080000189,
+      33.293764500005636,
+      32.876980900007766,
+      32.91576269999496,
+      32.904735800024355,
+      32.90720970000257,
+      33.21495359999244,
+      33.26292179999291,
+      33.03627599999891,
+      32.781973800010746
+    ],
+    "mean_seconds": 34.11173089000367,
+    "sample_standard_deviation_seconds": 3.350375701304973
+  },
+  "candidate": {
+    "json": "pyperformance-minmax-streaming-bpe-fast-20261007.json",
+    "sha256": "0e372c746f8c1ce7fc3f94dd5871cb5aa3110922117c569c2a8eb2872084ded0",
+    "values_seconds": [
+      33.82869299998856,
+      34.20162840001285,
+      33.667396999982884,
+      33.77103740000166,
+      33.86123129999032,
+      33.87810400000308,
+      33.54151810001349,
+      33.64829169999575,
+      33.65413800001261,
+      33.77415429998655,
+      33.64080449999892,
+      33.78188170000794,
+      34.000605200009886,
+      34.05133320001187,
+      33.787949699995806,
+      33.61300250000204,
+      33.75207630000659,
+      33.8086367000069,
+      33.53930760000367,
+      33.869189899996854
+    ],
+    "mean_seconds": 33.78354902500141,
+    "sample_standard_deviation_seconds": 0.16797156855288725
+  },
+  "cpython_time_over_candidate_time_speed": 0.10614404654003011,
+  "candidate_time_over_cpython_time": 9.42115957132716,
+  "previous_xlang3_time_over_candidate_time_speedup": 1.0097142507070345,
+  "candidate_pyperf_instability_warning": false,
+  "previous_pyperf_instability_warning": true,
+  "interpretation": "Approximately 1% nominal official speedup over preceding XLang3, with much greater preceding-run variation; no material or statistically significant speed gain established. Counter native callback diagnostic is roughly 3% slower."
+}

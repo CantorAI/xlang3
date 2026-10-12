@@ -1,0 +1,105 @@
+{
+  "diagnostic_only": true,
+  "benchmark": "native_callback_slot_double_compare",
+  "loops_per_sample": 300000,
+  "repeat": 9,
+  "protocol": "sequential runs; identical script, loop count and repeat count; no concurrent benchmark worker",
+  "source": "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\native_callback_slot_compare_bench.py",
+  "runtimes": {
+    "xlang3_candidate_fixed_release": {
+      "result": {
+        "diagnostic_only": true,
+        "benchmark": "native_callback_slot_double_compare",
+        "executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "loops_per_sample": 300000,
+        "repeat": 9,
+        "calls": 2700000,
+        "checksum": 150000,
+        "samples_seconds": [
+          0.2622077000560239,
+          0.2689548999769613,
+          0.2699974999995902,
+          0.26900169998407364,
+          0.2831902999896556,
+          0.27145260001998395,
+          0.2760986000066623,
+          0.276329500018619,
+          0.2641567001119256
+        ],
+        "median_seconds": 0.2699974999995902
+      },
+      "hashes": {
+        "executable": {
+          "path": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+          "sha256": "500e5cabfebbaad6ac797cf7244e417cb85f9d687e7369c1af3c9be57d256ac4"
+        },
+        "runtime_dll": {
+          "path": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll",
+          "sha256": "b4e16b0ee173972e2a97b14cb190e7daa3e47bcbbdca26d56e9c8575f668b43f"
+        }
+      }
+    },
+    "xlang3_pre_cache_control": {
+      "result": {
+        "diagnostic_only": true,
+        "benchmark": "native_callback_slot_double_compare",
+        "executable": "D:\\CantorAI\\xlang3\\build-repro\\baseline-postfix-candidate-full-fast-20261011\\Release\\xlang3.exe",
+        "loops_per_sample": 300000,
+        "repeat": 9,
+        "calls": 2700000,
+        "checksum": 150000,
+        "samples_seconds": [
+          0.33013180003035814,
+          0.3166240000864491,
+          0.30714540008921176,
+          0.3083910000277683,
+          0.31415540003217757,
+          0.3138483000220731,
+          0.31485079997219145,
+          0.32058699999470264,
+          0.6126072000479326
+        ],
+        "median_seconds": 0.31485079997219145
+      },
+      "hashes": {
+        "executable": {
+          "path": "D:\\CantorAI\\xlang3\\build-repro\\baseline-postfix-candidate-full-fast-20261011\\Release\\xlang3.exe",
+          "sha256": "be0e00d5875d5887b1c7b9345066b82e9dda450c75fd62aff8614823a1b7f97b"
+        },
+        "runtime_dll": {
+          "path": "D:\\CantorAI\\xlang3\\build-repro\\baseline-postfix-candidate-full-fast-20261011\\Release\\xlang3_runtime.dll",
+          "sha256": "e4c8ace7413dc3782ac62513733ee664d3394bd942e666a126e9201711758249"
+        }
+      }
+    },
+    "cpython_3_14_7": {
+      "result": {
+        "diagnostic_only": true,
+        "benchmark": "native_callback_slot_double_compare",
+        "executable": "C:\\Python\\Python314\\python.exe",
+        "loops_per_sample": 300000,
+        "repeat": 9,
+        "calls": 2700000,
+        "checksum": 150000,
+        "samples_seconds": [
+          0.04856540006585419,
+          0.04968330007977784,
+          0.05026809999253601,
+          0.049962400109507143,
+          0.05047709995415062,
+          0.04758180002681911,
+          0.04738760006148368,
+          0.04835189995355904,
+          0.04955330002121627
+        ],
+        "median_seconds": 0.04955330002121627
+      },
+      "hashes": {
+        "executable": {
+          "path": "C:\\Python\\Python314\\python.exe",
+          "sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9"
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,10 @@
+& 'C:\Python\Python314\python.exe' -m pyperf compare_to doc\performance\data\scimark-fixed-baseline-status-20261011.pyperf.json doc\performance\data\scimark-current-candidate-status-20261011.pyperf.json
+
+scimark_fft: Mean +- std dev: [scimark-fixed-baseline-status-20261011.pyperf] 1.17 sec +- 0.28 sec -> [scimark-current-candidate-status-20261011.pyperf] 972 ms +- 8 ms: 1.20x faster
+scimark_lu: Mean +- std dev: [scimark-fixed-baseline-status-20261011.pyperf] 1.18 sec +- 0.07 sec -> [scimark-current-candidate-status-20261011.pyperf] 1.02 sec +- 0.04 sec: 1.16x faster
+scimark_monte_carlo: Mean +- std dev: [scimark-fixed-baseline-status-20261011.pyperf] 576 ms +- 21 ms -> [scimark-current-candidate-status-20261011.pyperf] 555 ms +- 9 ms: 1.04x faster
+scimark_sor: Mean +- std dev: [scimark-fixed-baseline-status-20261011.pyperf] 926 ms +- 64 ms -> [scimark-current-candidate-status-20261011.pyperf] 863 ms +- 13 ms: 1.07x faster
+
+Benchmark hidden because not significant (1): scimark_sparse_mat_mult
+
+Geometric mean: 1.04x faster

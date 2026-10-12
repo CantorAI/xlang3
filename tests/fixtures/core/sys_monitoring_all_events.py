@@ -116,3 +116,25 @@ print("monitoring-disable-cached", disabled_line_target(), len(disabled_lines) =
 monitoring.restart_events()
 print("monitoring-disable-restarted", disabled_line_target(), len(disabled_lines) > disabled_line_count)
 monitoring.free_tool_id(3)
+
+
+mid_frame_lines = []
+
+
+def mid_frame_line_callback(code, line):
+    if code.co_name == "mid_frame_line_target":
+        mid_frame_lines.append(line)
+
+
+def mid_frame_line_target():
+    monitoring.set_events(3, events.LINE)
+    first = 1
+    second = 2
+    return first + second
+
+
+print("monitoring-mid-frame-tool", monitoring.use_tool_id(3, "mid-frame-lines") is None)
+print("monitoring-mid-frame-callback", monitoring.register_callback(3, events.LINE, mid_frame_line_callback) is None)
+print("monitoring-mid-frame-result", mid_frame_line_target(), len(mid_frame_lines))
+monitoring.set_events(3, 0)
+monitoring.free_tool_id(3)

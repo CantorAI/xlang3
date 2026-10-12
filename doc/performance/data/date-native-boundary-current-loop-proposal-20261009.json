@@ -1,0 +1,61 @@
+{
+  "status": "frozen_artificial_date_loop_diagnostic_proposal",
+  "source": "scratch/performance/date-native-boundary-loop-cost-proposed-20261009.py",
+  "source_sha256": "348590de539ceb46d3fb557c00169da7ad252fefea9bbbe96b1ed05df738039f",
+  "preparation_head": "3fec9047ddd7c12e3dbcdd511167e972ecc314a5",
+  "prior_untimed_source": "scratch/performance/date-native-boundary-untimed-diagnostic-proposed-20261009.py",
+  "prior_untimed_source_sha256": "7fdda0ebbaa1851cb1e0dff4ca39b7cff56a0fa672675d74d504ac02693c2617",
+  "prior_untimed_receipt": "doc/performance/data/date-native-boundary-untimed-diagnostic-20261009.json",
+  "prior_untimed_receipt_sha256": "c3fe5e89d75bef3cdf92d86601227c2a3f7ac42b6841f48094c42a09c1bdae09",
+  "selections": ["cpython-native", "cpython-python", "xlang3-public"],
+  "selection_contract": {
+    "cpython-native": "CPython3.14.7 public datetime.date is _datetime.date; native reducer and constructor",
+    "cpython-python": "CPython3.14.7 explicitly selects _pydatetime.date, without changing public datetime.date or any source file",
+    "xlang3-public": "XLang3 public datetime.date is its existing _pydatetime.date fallback; native _datetime import remains absent"
+  },
+  "operations_per_child": {
+    "setup_date_count": 1,
+    "untimed_reducer_validation_calls": 1,
+    "untimed_bytes_state_validation_calls": 1,
+    "timed_reducer_calls": 10000,
+    "timed_bytes_state_restoration_calls": 10000,
+    "fixed_state_hex": "07bc0507",
+    "fixed_fields": [1980, 5, 7],
+    "loop_order": "reduction then restoration",
+    "timer": "time.perf_counter"
+  },
+  "original_sources": {
+    "C:/Python/Python314/Lib/datetime.py": "8262c677654011417ae08751ae9c38edc8ca802d21c65232452529248a17aae9",
+    "C:/Python/Python314/Lib/_pydatetime.py": "63249ee7bac11a6c1cee7fae0355f1432d17c60bd3d503346cf9eab2cb875ec9"
+  },
+  "history_checked": [
+    "doc/performance/pickle-unpickle-datetime-global-fastpath-20261002.md",
+    "doc/performance/pickle-date-opcode-fastpath-trial-20261002.md",
+    "prior frozen untimed date child and its actual CP/X receipt"
+  ],
+  "history_distinction": "Retained native _pickle global/opcode admissions and rejected per-load date-class caching are different mechanisms. This child changes no engine behavior and measures direct artificial operation loops only.",
+  "root_execution_requirements": [
+    "Wait for checkpoint publication and other file writes to settle; root alone executes and supplies actual executable/DLL hashes.",
+    "Require strict idle and the unchanged whole-child timing watcher for every selection, retaining observations/raw stdout/stderr on any refusal/failure/timeout.",
+    "Use the same frozen child and fixed10000 operations for all selections, record runtime order, and balance runtime order across diagnostic repetitions; no retry or adaptive counts.",
+    "Record current source/Release identity before and after externally; this child pins the actual runtime files and both unchanged Python source files itself.",
+    "Use a120-second child cap, exact one terminal JSON row, empty stderr, successful strict semantic/hash checks. A failed child supplies no passing timing result.",
+    "Do not rerun the original pickle body or replace its date class as part of this diagnostic. These loops produce no official score, workload fraction, additive cost share, or inferred suite gain."
+  ],
+  "limits": [
+    "Loop dispatch, result allocation/destruction, and replacement of the previous result are included; timers do not isolate a native kernel.",
+    "Imports/setup/one validation call per operation/source hashing/metadata and correctness assertions are outside timers.",
+    "Each child completes two artificial loops; successful fixed range completion establishes operation counts, not an original workload frequency observation.",
+    "CP native versus CP Python identifies the native-boundary contrast on this input; CP Python versus X public compares these same Python method bodies. Neither comparison proves whole-Python performance."
+  ],
+  "commands_at_preparation_identity": [
+    ["C:/Python/Python314/python.exe", "-I", "scratch/performance/date-native-boundary-loop-cost-proposed-20261009.py", "--selection", "cpython-native", "--exe-sha256", "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9", "--dll-sha256", "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700"],
+    ["C:/Python/Python314/python.exe", "-I", "scratch/performance/date-native-boundary-loop-cost-proposed-20261009.py", "--selection", "cpython-python", "--exe-sha256", "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9", "--dll-sha256", "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700"],
+    ["build-repro/main-verify-20261006/Release/xlang3.exe", "scratch/performance/date-native-boundary-loop-cost-proposed-20261009.py", "--selection", "xlang3-public", "--exe-sha256", "c6358221bd7836f877c566557269b4bf9a011a9a2ca33060eeb2e00b4e6de5b4", "--dll-sha256", "3b11484d85689c7d93ec8a8550b85757b0ef684005f777e2b04f72dd14ffd2f5"]
+  ],
+  "command_pin_policy": "If current binary identity changes, root must supply and record the actual new hashes; never silently treat a new build as the preparation identity.",
+  "author_execution": false,
+  "author_ast": false,
+  "engine_or_test_edits": false,
+  "staging": false
+}

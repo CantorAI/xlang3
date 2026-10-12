@@ -1,0 +1,12 @@
+local_slots              pass         0.985x
+scalar_arithmetic        pass         1.000x
+range_for                pass         1.026x
+function_calls           pass         0.984x
+class_construct          pass         1.013x
+list_append              pass         0.986x
+property_access          pass         0.960x
+deepcopy_memo            pass         0.934x
+json_dumps               pass         1.014x
+gc_traversal             pass         0.759x
+subparsers               pass         0.928x
+Performance check: pass. Report: doc\performance\data\release-native-ast-call-fixed-gate-20261007.json

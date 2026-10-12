@@ -1,0 +1,12 @@
+local_slots              pass         1.008x
+scalar_arithmetic        pass         1.001x
+range_for                pass         1.009x
+function_calls           pass         1.028x
+class_construct          pass         1.002x
+list_append              pass         1.031x
+property_access          pass         0.965x
+deepcopy_memo            pass         0.934x
+json_dumps               pass         0.998x
+gc_traversal             pass         0.751x
+subparsers               pass         0.948x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\dict-scalar-append-runtime-index-r3-validation-20261008-fixed-gate.json

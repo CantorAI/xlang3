@@ -30,6 +30,7 @@ extern "C" X3Status x3_buffer_acquire(X3Runtime* runtime, X3Value value,
     std::string_view storage;
     if (auto* view = xlang3::value_as_memoryview(source)) {
       if (view->released) throw std::runtime_error("memoryview is released");
+      if (!view->contiguous) throw std::runtime_error("value does not export contiguous buffer storage");
       storage = xlang3::memoryview_object_view(*view);
       readonly = view->readonly;
       handle->format = view->format;

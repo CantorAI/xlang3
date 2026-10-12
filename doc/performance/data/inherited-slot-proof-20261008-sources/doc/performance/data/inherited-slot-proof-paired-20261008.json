@@ -1,0 +1,2743 @@
+{
+  "status": "terminal",
+  "scope": "Diagnostic including unchanged original SQLGlot body; not official scores",
+  "owned_controller_pids": [
+    2940,
+    9140
+  ],
+  "phases": [
+    {
+      "name": "idle-start",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4594498000224121,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-start-stdout.log",
+      "stdout_sha256": "32424dc7cb820dec1c7ba11a6978a027f7a9dc0a6f223b4e71c77e2ef10313ad",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-start-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-before-reference",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4103831000102218,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-slot-before-reference-stdout.log",
+      "stdout_sha256": "6cb2939f48179926af171ae7dafcf0a38d551230c7204e9dc2132fe6fe106521",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-slot-before-reference-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-cpython3147",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.16747010001563467,
+      "stdout_log": "inherited-slot-proof-paired-20261008-slot-cpython3147-stdout.log",
+      "stdout_sha256": "4ab1489afe5f0212acb4d5e3314fc4ad59d6ac4abece197916a20609c154f2ae",
+      "stderr_log": "inherited-slot-proof-paired-20261008-slot-cpython3147-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-before-pair-1",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4299693999928422,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-slot-before-pair-1-stdout.log",
+      "stdout_sha256": "12c358b5a528f8ce298b60c0365fde1364d85b2770894f2ab76d509d2d4085ec",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-slot-before-pair-1-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-1-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\canonical-slot-checkpoint-20261008\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.0856983000121545,
+      "stdout_log": "inherited-slot-proof-paired-20261008-slot-pair-1-control-stdout.log",
+      "stdout_sha256": "2790280f95f5f308d002abeb11d4632c9a3ff0a5d634f2d740d28d8df5b606c4",
+      "stderr_log": "inherited-slot-proof-paired-20261008-slot-pair-1-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-1-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.07666829999652691,
+      "stdout_log": "inherited-slot-proof-paired-20261008-slot-pair-1-candidate-stdout.log",
+      "stdout_sha256": "49c9f9f6eef8e59aa36c8d4b7902eb60278f58b3f0f5bcbafb031eea8580da86",
+      "stderr_log": "inherited-slot-proof-paired-20261008-slot-pair-1-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-after-pair-1",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.419749699998647,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-slot-after-pair-1-stdout.log",
+      "stdout_sha256": "77ea8f1a86aa0743cc7fca1fa14a464fc884d28af4cafdaf78eee50beb6f9881",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-slot-after-pair-1-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-before-pair-2",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4723089000035543,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-slot-before-pair-2-stdout.log",
+      "stdout_sha256": "1239d0eca8bacfe3aec9cba59473622d96e3d9b29fe5768ffde0be2cdc8bb75b",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-slot-before-pair-2-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-2-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.07764020000468008,
+      "stdout_log": "inherited-slot-proof-paired-20261008-slot-pair-2-candidate-stdout.log",
+      "stdout_sha256": "1595ec46b61e8bf994ca94991ccdac5ae3bcd87f8e96107bf7a3bf93422dc0fa",
+      "stderr_log": "inherited-slot-proof-paired-20261008-slot-pair-2-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-2-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\canonical-slot-checkpoint-20261008\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.08371690000058152,
+      "stdout_log": "inherited-slot-proof-paired-20261008-slot-pair-2-control-stdout.log",
+      "stdout_sha256": "2a965167fbac3697d5d5318aa8355426587e12be92e3e926a88d6599e9b837db",
+      "stderr_log": "inherited-slot-proof-paired-20261008-slot-pair-2-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-after-pair-2",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4152757000119891,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-slot-after-pair-2-stdout.log",
+      "stdout_sha256": "905e692aa4dc922b7a30ac613a43b2236c3afb10b7398840e4a6a872e390e006",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-slot-after-pair-2-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-before-pair-3",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4588082999980543,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-slot-before-pair-3-stdout.log",
+      "stdout_sha256": "894ee50dc9d5d417cff0e1bfe542c849437d1ecd4b4135493ee07394824fb996",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-slot-before-pair-3-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-3-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\canonical-slot-checkpoint-20261008\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.08459149999544024,
+      "stdout_log": "inherited-slot-proof-paired-20261008-slot-pair-3-control-stdout.log",
+      "stdout_sha256": "b2c175a5a44745a1e50c5875f4c2cfb61fa07d42346f56935d3a8393a3ffecf2",
+      "stderr_log": "inherited-slot-proof-paired-20261008-slot-pair-3-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-3-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.07620020001195371,
+      "stdout_log": "inherited-slot-proof-paired-20261008-slot-pair-3-candidate-stdout.log",
+      "stdout_sha256": "bdabe102d0d1c4026c9507c3cb19d987dbe5e0b6c8695343048e9ab70c812098",
+      "stderr_log": "inherited-slot-proof-paired-20261008-slot-pair-3-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-after-pair-3",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.43931489999522455,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-slot-after-pair-3-stdout.log",
+      "stdout_sha256": "9a849f81b4f4a6784d25fd0ef5ea428c94660b9ca6ee58779fc92a4641a668ca",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-slot-after-pair-3-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-before-pair-4",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.5145199999969918,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-slot-before-pair-4-stdout.log",
+      "stdout_sha256": "1d94e2c75fc9fb88ddd06192ecef78bacad9a1e475bc6d1fde16c31942fcc56d",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-slot-before-pair-4-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-4-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.07914379998692311,
+      "stdout_log": "inherited-slot-proof-paired-20261008-slot-pair-4-candidate-stdout.log",
+      "stdout_sha256": "dc2cb213e7c4ce1bf9682f7012870182382efce4e997f650c7d38fdd2cf79cee",
+      "stderr_log": "inherited-slot-proof-paired-20261008-slot-pair-4-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-4-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\canonical-slot-checkpoint-20261008\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.08672319998731837,
+      "stdout_log": "inherited-slot-proof-paired-20261008-slot-pair-4-control-stdout.log",
+      "stdout_sha256": "c3679ba5d12c76ab1807b19be3676734edc4ea45c6c10dd8e508b4f6bb4bf10c",
+      "stderr_log": "inherited-slot-proof-paired-20261008-slot-pair-4-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-after-pair-4",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4321265000035055,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-slot-after-pair-4-stdout.log",
+      "stdout_sha256": "01d18692ff7dc245ad374751509cda6275737c418441a9c8824ea965709a449a",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-slot-after-pair-4-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-before-pair-5",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.49964880000334233,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-slot-before-pair-5-stdout.log",
+      "stdout_sha256": "e268ad353d4075ff18aa3d9cd6b0e027bc38cad7dbde684f0acd0e4f85c146bc",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-slot-before-pair-5-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-5-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\canonical-slot-checkpoint-20261008\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.09385060000931844,
+      "stdout_log": "inherited-slot-proof-paired-20261008-slot-pair-5-control-stdout.log",
+      "stdout_sha256": "8c49e4f9e0eabe1471f71f84c0a7c363061a6b87f7257f474a5dac0fd7bef1cd",
+      "stderr_log": "inherited-slot-proof-paired-20261008-slot-pair-5-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-5-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.07863300002645701,
+      "stdout_log": "inherited-slot-proof-paired-20261008-slot-pair-5-candidate-stdout.log",
+      "stdout_sha256": "ff0b336045fff4c3ae37454d5c80d3cc1303fe08a8f25e47c87de81ac2fa8c2e",
+      "stderr_log": "inherited-slot-proof-paired-20261008-slot-pair-5-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-after-pair-5",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.45957890001591295,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-slot-after-pair-5-stdout.log",
+      "stdout_sha256": "cc0464012ff814a86491bfffa7224afff7343a07bc29bd9f303ef8618af00140",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-slot-after-pair-5-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-before-pair-6",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.40024359998642467,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-slot-before-pair-6-stdout.log",
+      "stdout_sha256": "4a3bcb83c07200ff24c982a9704879b89d639958c0b0ca7399a745146f208dad",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-slot-before-pair-6-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-6-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.07752789999358356,
+      "stdout_log": "inherited-slot-proof-paired-20261008-slot-pair-6-candidate-stdout.log",
+      "stdout_sha256": "2a4b4a501ae497dacc52c8074af852cb3d3e878673eb879d1bd9aeb316458f9f",
+      "stderr_log": "inherited-slot-proof-paired-20261008-slot-pair-6-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-6-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\canonical-slot-checkpoint-20261008\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.08482050002203323,
+      "stdout_log": "inherited-slot-proof-paired-20261008-slot-pair-6-control-stdout.log",
+      "stdout_sha256": "e9d28d33f6c9571cdac30b3a4677cbbd9aa0ecd59b41dd8052ee0b9d98c1bfbe",
+      "stderr_log": "inherited-slot-proof-paired-20261008-slot-pair-6-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-after-pair-6",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.47152570000616834,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-slot-after-pair-6-stdout.log",
+      "stdout_sha256": "595a6b914bc6d53bc4d5d4e83ed7c518a5de37a444fabd9772807efa0e4f0241",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-slot-after-pair-6-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-before-pair-7",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4294223999895621,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-slot-before-pair-7-stdout.log",
+      "stdout_sha256": "12d21ea283f8bbbc29a5f49e12ca42778245344d8143de354c282750e19a9880",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-slot-before-pair-7-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-7-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\canonical-slot-checkpoint-20261008\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.08601250001811422,
+      "stdout_log": "inherited-slot-proof-paired-20261008-slot-pair-7-control-stdout.log",
+      "stdout_sha256": "76eff2944b2c15e2c3b4bf16bdd27233ddd4f843917bd8e4079a07fae623439a",
+      "stderr_log": "inherited-slot-proof-paired-20261008-slot-pair-7-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "slot-pair-7-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.07970489998115227,
+      "stdout_log": "inherited-slot-proof-paired-20261008-slot-pair-7-candidate-stdout.log",
+      "stdout_sha256": "f6d3353f826652a3f7b5be7a2c5af024ed65cc0c65fcace79bc803087d5297f2",
+      "stderr_log": "inherited-slot-proof-paired-20261008-slot-pair-7-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-slot-after-pair-7",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.49177429999690503,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-slot-after-pair-7-stdout.log",
+      "stdout_sha256": "5ec90e1698dc8986be2d92c4d8516264e7b1642ed85bfae5a5562901e3141274",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-slot-after-pair-7-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-before-reference",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4165744000056293,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-reference-stdout.log",
+      "stdout_sha256": "16b986f2ac2bdce9f8cecb5439ca7498d1792515be2ef119c39c43210b58c0d7",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-reference-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-cpython3147",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.23916590001317672,
+      "stdout_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-cpython3147-stdout.log",
+      "stdout_sha256": "f4527fc5d705a378704598512ba9f52471e6eedeca62852cbb7bfa11e904155f",
+      "stderr_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-cpython3147-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-before-pair-1",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4912287000042852,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-1-stdout.log",
+      "stdout_sha256": "f5127be09f1cd3e2bb969f6e9dcd6aa74718f16696263f04138771f9893838a8",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-1-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-1-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\canonical-slot-checkpoint-20261008\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.568215599982068,
+      "stdout_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-1-control-stdout.log",
+      "stdout_sha256": "b285831dd8989b1c2f693ffe7b1d4587a6fa41f9bc09fe5e67d791ab0b734a37",
+      "stderr_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-1-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-1-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.5066918000229634,
+      "stdout_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-1-candidate-stdout.log",
+      "stdout_sha256": "7f6e5dca9fe476913b501786829974896b37f7a47d3416a92341ef7a018490f2",
+      "stderr_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-1-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-after-pair-1",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4167776000103913,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-1-stdout.log",
+      "stdout_sha256": "594894b922fcc39a87cbc3a9a5fa959cd7437a60f32c1aef1f4537522fa3412b",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-1-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-before-pair-2",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.413617099984549,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-2-stdout.log",
+      "stdout_sha256": "f69a13aa9abe4c06da1db91712f744ffc6d6fab204709acf318c8888f59dbf48",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-2-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-2-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.5716672000125982,
+      "stdout_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-2-candidate-stdout.log",
+      "stdout_sha256": "736c8baa4494c670443001ad6456c9d9be5acdbeb04d6b538ef228867d92b264",
+      "stderr_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-2-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-2-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\canonical-slot-checkpoint-20261008\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.518116099992767,
+      "stdout_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-2-control-stdout.log",
+      "stdout_sha256": "caf2f5bd4ab23fce0c94e95e3b15d76fe67afc8b0b55dee24107181f4566e9c8",
+      "stderr_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-2-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-after-pair-2",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.5280147999874316,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-2-stdout.log",
+      "stdout_sha256": "0805b70976721b1112019e04cdf16d00ed1c8507f66d6f541c3282e95a5b2471",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-2-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-before-pair-3",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.41927410001517273,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-3-stdout.log",
+      "stdout_sha256": "d9022138dc24897468e3bcbc229e064196248e43778d1bc6958a49f2a90da934",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-3-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-3-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\canonical-slot-checkpoint-20261008\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.5958040000114124,
+      "stdout_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-3-control-stdout.log",
+      "stdout_sha256": "ac4998dea45a0fbebd2365d96f43b4bb2cbabd9599a3cbd3253056899eb68a49",
+      "stderr_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-3-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-3-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.4828756999922916,
+      "stdout_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-3-candidate-stdout.log",
+      "stdout_sha256": "95a9cccfb50dbdea797684196ce1f4195a4fecf4ac3d38574c3db0fc04d12e7d",
+      "stderr_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-3-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-after-pair-3",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4654106999805663,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-3-stdout.log",
+      "stdout_sha256": "231976ad7fd66b7f8370eca0ce44308f79405dda852676bd4c0fe67675b1f568",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-3-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-before-pair-4",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4073903000098653,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-4-stdout.log",
+      "stdout_sha256": "58c8cbdc5c189b9b8fbc67772d817744b74693bd86a8ff6130ead95cb67aed21",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-4-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-4-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.6273859000066295,
+      "stdout_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-4-candidate-stdout.log",
+      "stdout_sha256": "0c99eb0eed9ac6907822f51a6fdee4b1fc88a0648da93c9167f75f2bd6da18f9",
+      "stderr_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-4-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-4-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\canonical-slot-checkpoint-20261008\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.533162200008519,
+      "stdout_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-4-control-stdout.log",
+      "stdout_sha256": "d5f699a3248738760ad006692973035f1b58e9ce45990b0a68e5879a4d8d0af4",
+      "stderr_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-4-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-after-pair-4",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4563798000162933,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-4-stdout.log",
+      "stdout_sha256": "e1c69b55e8900b2cec1a6fbc201f42ceb8091d04388b936039c590cac0da6063",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-4-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-before-pair-5",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.46930599998449907,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-5-stdout.log",
+      "stdout_sha256": "43a92019a037eacb92ede2ff109b7150e134b0f856857336bdafc63b2c2730ee",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-5-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-5-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\canonical-slot-checkpoint-20261008\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.6131140000070445,
+      "stdout_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-5-control-stdout.log",
+      "stdout_sha256": "5924e9f35a1b609a79cc5f3ce541d02533b6b6312476480bd3c5c7d97d2d1d26",
+      "stderr_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-5-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-5-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.4965211000235286,
+      "stdout_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-5-candidate-stdout.log",
+      "stdout_sha256": "7be373565a34dca3a3effbecd08bf346b76eebd8052b09451e7346739ba74da3",
+      "stderr_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-5-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-after-pair-5",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.505100999987917,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-5-stdout.log",
+      "stdout_sha256": "df415dd158954b13f2ec1ca024c2b55a8c82a6f01179b7a24857b79bcab2b9c0",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-5-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-before-pair-6",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.474312899983488,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-6-stdout.log",
+      "stdout_sha256": "2092accbf7a7f04644f31a5da7c5f51a1b2f526fbd35aa941129949f8c65f431",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-6-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-6-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.5922499999869615,
+      "stdout_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-6-candidate-stdout.log",
+      "stdout_sha256": "fb65bf3f1d99f6f62f5d96fc45a9a1a52f679eff5587b7374b5124371994c080",
+      "stderr_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-6-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-6-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\canonical-slot-checkpoint-20261008\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.576204000011785,
+      "stdout_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-6-control-stdout.log",
+      "stdout_sha256": "26f7eee56e6f1768dade5ce732a39c342683502196638d5f12382def96c8b273",
+      "stderr_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-6-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-after-pair-6",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.43728070001816377,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-6-stdout.log",
+      "stdout_sha256": "0d9560c315789bf2a8ab290378462bb3ec99c6e76f2b78f71d1a5118e966ae0e",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-6-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-before-pair-7",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.4534707000129856,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-7-stdout.log",
+      "stdout_sha256": "595a6b914bc6d53bc4d5d4e83ed7c518a5de37a444fabd9772807efa0e4f0241",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-before-pair-7-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-7-control",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\controls\\canonical-slot-checkpoint-20261008\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.607341200025985,
+      "stdout_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-7-control-stdout.log",
+      "stdout_sha256": "0a78915afbf6a713ce4a40b1dc571615a6df5bd6c15d170b49eb4c2e710a7961",
+      "stderr_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-7-control-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "sqlglot_parse-pair-7-candidate",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\canonical-slot-sqlglot-probe-20261008.py"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 1.5506100000056904,
+      "stdout_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-7-candidate-stdout.log",
+      "stdout_sha256": "6cdebf44e45d5f899a0bb7820d45b710bb24f0956e5588ff601e44c63a609a19",
+      "stderr_log": "inherited-slot-proof-paired-20261008-sqlglot_parse-pair-7-candidate-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-sqlglot_parse-after-pair-7",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.43980890000239015,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-7-stdout.log",
+      "stdout_sha256": "e27ae1b7d07093f2059b060e8cd0e003cb96f42f3d2ffa3d17988909199f401e",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-sqlglot_parse-after-pair-7-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "idle-terminal",
+      "command": [
+        "powershell.exe",
+        "-NoProfile",
+        "-NonInteractive",
+        "-Command",
+        "Get-CimInstance Win32_Process | Select-Object Name,ProcessId,ParentProcessId | ConvertTo-Json -Compress"
+      ],
+      "status": "passed",
+      "exit_code": 0,
+      "elapsed_seconds": 0.41167120001045987,
+      "stdout_log": "inherited-slot-proof-paired-20261008-idle-terminal-stdout.log",
+      "stdout_sha256": "21b0323628d629e4c8c721156f47cf8354864d07364ca877636a5e4db1c7ec50",
+      "stderr_log": "inherited-slot-proof-paired-20261008-idle-terminal-stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "idle_guards": [
+    {
+      "name": "start",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-before-reference",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-before-pair-1",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-after-pair-1",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-before-pair-2",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-after-pair-2",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-before-pair-3",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-after-pair-3",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-before-pair-4",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-after-pair-4",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-before-pair-5",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-after-pair-5",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-before-pair-6",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-after-pair-6",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-before-pair-7",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "slot-after-pair-7",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-before-reference",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-before-pair-1",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-after-pair-1",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-before-pair-2",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-after-pair-2",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-before-pair-3",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-after-pair-3",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-before-pair-4",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-after-pair-4",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-before-pair-5",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-after-pair-5",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-before-pair-6",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-after-pair-6",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-before-pair-7",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "sqlglot_parse-after-pair-7",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "terminal",
+      "allowed_controller_pids": [
+        2940,
+        9140
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    }
+  ],
+  "hashes_before": {
+    "binaries_sha256": {
+      "control": {
+        "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+        "dll": "ffd2ea4ef32dac1c00512f5ecd9c5d5b9c8770e6917fc90f8cb0cce442851f6b"
+      },
+      "candidate": {
+        "exe": "31f9a848f78c7dfae4c59dc6cd0016815549d6d67409276fcaecadae504d5958",
+        "dll": "162712ce27bc1e57325e0bc15fbe69f11341542c202ad6c5e5f0b16be7e78dfd"
+      }
+    },
+    "cpp_test_binary_sha256": "fd480471d37c27a8f151dff7450518c878b5b2eeb3ff12f195fb2fd6ea2034be",
+    "cpython3147_binary_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "source_sha256": {
+      "src/internal/xlang3/object_model.h": "7a7e767de9ac93bc83992cb2367cc0cf15353f8da54326e867297bbcef1eec03",
+      "src/runtime/object_model.cpp": "835996e3db255ec24112fe93d9438df4c05d281befd502c306a3df2c1ffd1556",
+      "src/builtins/object_type_builtins.cpp": "171aafd05b11396b5522a2a45d490b37dbce0924c00b661b4f2e1ba41fa7a3d3",
+      "src/executor/xlang_vm/ops/xlang_vm_ops_construct.h": "a5e192e82b37a6545b7988395dc5324b9e0381d280ad5ee7d2c4dcca8b592c42",
+      "src/executor/xlang_vm/xlang_vm_inline_support.h": "63eb38f507193ccabd852b261eb84299d2a05dacb8cd1999760e8c7121a4d4b0",
+      "src/executor/xlang_vm/xlang_vm_attr.cpp": "264a0d6c78dc4b946fe4b1f00dd7dd6d52581589a6950d4ecaf394d312994c7a",
+      "src/serialize/value_graph_reader.cpp": "33e783e7508adaca6372383fc9b5b593509a7dc66669168ee3116a58ef90d662",
+      "src/runtime/modules/system/weakref_module.cpp": "a4d0a52d7ffa14f48c9c0226c71c80b635720f4b7153658b2e6da25be269cb73",
+      "tests/cpp/canonical_slot_read_cases.h": "6b6e18371c686021f1626293f7afd7733039bd216fae7878e42363bc410f63de",
+      "tests/fixtures/core/canonical_slot_reads.py": "7efadaea716e73e987a0ee35a2110f44ab91dec1e0d75ddb40ad627b582f918b",
+      "tests/fixtures/expected/canonical_slot_reads.out": "5fb63eb109aee4d367d06c636db3d30bea771a8c13a8819a985c43fc43bd24a2",
+      "tests/cpp/interpreter_tests.cpp": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+      "tests/run_fixtures.py": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+      "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+      "scratch/performance/canonical-slot-probe-20261008.py": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+      "scratch/performance/canonical-slot-sqlglot-probe-20261008.py": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+      "scratch/performance/check-inherited-slot-proof-20261008.py": "41c4edb898761603479b8aadae19afa4bfe38e5c793a1079a60015b72fbc285d",
+      "scratch/performance/compare-inherited-slot-proof-20261008.py": "6c6ece259c4e3e498831d8f5aebe1e4c3f6d806ad09b6c31165f1a985946d089",
+      "scratch/performance/inherited_slot_proof_support_20261008.py": "ccdd2cd93ba4ed77395c7f33df9efe3fceeadef89adc78bf877c57f64e09975e"
+    },
+    "benchmark_source_sha256": "d97aaba24f8c49f2afe5c5c740c568be6e89dde3364d5a964a4b72e5a4768a9b",
+    "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+    "preserved_control_release": {
+      "manifest_sha256": "833d8c1208d54a63d63ff56edd34fd67e3dc0aabe34c86b79c5f460f429426da",
+      "files_sha256": {
+        "modules\\_argon2_cffi_bindings._ffi.x3pkg.dll": "5e63a3ddf31187bbb0309d241cfa5e13491de37509c7a87a9789fceed2c85c0f",
+        "modules\\_argon2_cffi_bindings._ffi.x3pkg.exp": "41b0866334dca94711d70a905eb9bf92c475ee614f2ff91187610fd21411c430",
+        "modules\\_argon2_cffi_bindings._ffi.x3pkg.lib": "47a27dda119fbc35ce6e9e3dcda6afed25047753b7053d7b83e87fd9535080b3",
+        "modules\\_brotli.x3pkg.dll": "b12a085bb360c8ae989a054547f7c709da73856d90bdd41cd3a8912523344ad8",
+        "modules\\_brotli.x3pkg.exp": "0ffe3499d00e7c45ad00b97fe7cea82f1205b8823224c32c7b24d86cb969ac52",
+        "modules\\_brotli.x3pkg.lib": "124856396b1cba95cba684d37bf4090f3745a8a9507e680744a6138eed566125",
+        "modules\\_cffi_backend.x3pkg.dll": "c4b106a1d9d73611e4cbacb0e6cbff2201834152dbc132610791e833a9a4092f",
+        "modules\\_cffi_backend.x3pkg.exp": "4890736a4a860f7eff1aa2328cfe8e2f5687cdaf9f6101a426ad7aac16cd8a32",
+        "modules\\_cffi_backend.x3pkg.lib": "f71f856ea8f229f72785801b91860275874ec80dd165939bd52f2c2134131ed3",
+        "modules\\_zstd.x3pkg.dll": "a6a488ee1a24c18f4d2b23f7e42e46e174f4a5fc76d7152802a0554d83f45772",
+        "modules\\_zstd.x3pkg.exp": "85b1087c7e0f9e44517f3299f480fff2ff1eee1b2f2193445c48b50e100ef01b",
+        "modules\\_zstd.x3pkg.lib": "5cbc60d5f45700337ec0d77c1a5c449dc59e0c7c3dfb77afefeb3074553864da",
+        "modules\\cryptography.hazmat.bindings._rust.x3pkg.dll": "41dc824b8d534d8bba293036b6910f470629dbf630ff30c2adbeaa0acb941951",
+        "modules\\cryptography.hazmat.bindings._rust.x3pkg.exp": "f2192c21455beea943beb2a99fd0fc905af343fdcbec75824e22f07e3a1d2a54",
+        "modules\\cryptography.hazmat.bindings._rust.x3pkg.lib": "c9a9111702c8cfe6d65bee7fe22497aa5ccb64f3eaa7c4b65e9cd3540a35ea42",
+        "modules\\httptools.parser.parser.x3pkg.dll": "9f8d0d7adbd17d29b1dded060a464abc1a8569d97c78e8d7a9cecb77acf3073d",
+        "modules\\httptools.parser.parser.x3pkg.exp": "f473706e0ca19977c0b0250f40d3f4ed673a0fc7fa1b8f549fbf53b33d80c522",
+        "modules\\httptools.parser.parser.x3pkg.lib": "319446b8bf7e74b4036397ce3cc454a352acc28ea1e2ebdeb07b12d91b9792fb",
+        "modules\\httptools.parser.url_parser.x3pkg.dll": "edbda48a9d23f47fff9d734bf404bc665fb4d82d37a8b20f642338adf87c7254",
+        "modules\\httptools.parser.url_parser.x3pkg.exp": "eab714fbacf4c457d7cdb1b9c78a4c34e62bfaf05a5f2d1276bbfd118edc5c2f",
+        "modules\\httptools.parser.url_parser.x3pkg.lib": "c0064f505c599f678f5470b0dbc9600240330eda6417c94a07f69ca451f2f0f7",
+        "modules\\mmap.x3pkg.dll": "f503d4f7796022a2b954618f02514508b1f573abc9604990478119087fb035f5",
+        "modules\\mmap.x3pkg.exp": "d43f659c4cdebe35b364c0de94a660540fbe9b695a7bae69b9c158b5d490a969",
+        "modules\\mmap.x3pkg.lib": "60c0eb6b8342a38dcb61f0942b34246d521baad1799ea9e6e79224dbbc32134e",
+        "modules\\modules\\_argon2_cffi_bindings._ffi.x3pkg.dll": "9a3e5cde168f60c533d7fa1e5e41f05a1e96a608803eda47bddd0af0b92f0667",
+        "modules\\modules\\_argon2_cffi_bindings._ffi.x3pkg.exp": "0717674aa6b3eba29017e4504315fcdf9198ed5190a82e978bb8a3ea08a1f235",
+        "modules\\modules\\_argon2_cffi_bindings._ffi.x3pkg.lib": "47a27dda119fbc35ce6e9e3dcda6afed25047753b7053d7b83e87fd9535080b3",
+        "modules\\modules\\_brotli.x3pkg.dll": "a43835ffd2bea6a091df27e6e1e3971331a7eeb96fdbd5b147c1fbbe3c2f3311",
+        "modules\\modules\\_brotli.x3pkg.exp": "aea498236b1a83f1196f091cfd585786edea72f83a333eae542484dde71b2aad",
+        "modules\\modules\\_brotli.x3pkg.lib": "124856396b1cba95cba684d37bf4090f3745a8a9507e680744a6138eed566125",
+        "modules\\modules\\_cffi_backend.x3pkg.dll": "e971c46c1b87b19d019d5d44f843034308c4c415435cf21b5ad76a823090682e",
+        "modules\\modules\\_cffi_backend.x3pkg.exp": "614b93e03fa920552c83747bc7a17d84ad3b2139f59c09b3df7643baea37a040",
+        "modules\\modules\\_cffi_backend.x3pkg.lib": "f71f856ea8f229f72785801b91860275874ec80dd165939bd52f2c2134131ed3",
+        "modules\\modules\\_zstd.x3pkg.dll": "591fa88334d437472babb705bbd0769873506c8780533fccdf63d265f9c69c33",
+        "modules\\modules\\_zstd.x3pkg.exp": "c5f848f0d105ad0114375706047970ed24aff36004b4b821d7faf676dd5be5b4",
+        "modules\\modules\\_zstd.x3pkg.lib": "5cbc60d5f45700337ec0d77c1a5c449dc59e0c7c3dfb77afefeb3074553864da",
+        "modules\\modules\\cryptography.hazmat.bindings._rust.x3pkg.dll": "479a267e442707a34a67743dbdf84d0badc25fc82f9ce8d17c2bf6a7adbaafc8",
+        "modules\\modules\\cryptography.hazmat.bindings._rust.x3pkg.exp": "618e4371d941c1a06991788dadfdce0002dcdbe0b65fc5ba0c18617a47e393cb",
+        "modules\\modules\\cryptography.hazmat.bindings._rust.x3pkg.lib": "c9a9111702c8cfe6d65bee7fe22497aa5ccb64f3eaa7c4b65e9cd3540a35ea42",
+        "modules\\modules\\httptools.parser.parser.x3pkg.dll": "1baca62c77d276801f35f62ea7db6d1f05d3ae43553c79858d79494cdfd67815",
+        "modules\\modules\\httptools.parser.parser.x3pkg.exp": "aac8c4d5ae2d96568ed173b63e7c7e14d24e40018f5a8b4935ff66cbe242230e",
+        "modules\\modules\\httptools.parser.parser.x3pkg.lib": "319446b8bf7e74b4036397ce3cc454a352acc28ea1e2ebdeb07b12d91b9792fb",
+        "modules\\modules\\httptools.parser.url_parser.x3pkg.dll": "a3cb43df0e71d0a79d8a9b16ff88fb9824b96b1b1119f233ed8d438b415eaf24",
+        "modules\\modules\\httptools.parser.url_parser.x3pkg.exp": "b1c9bfbc1df4e4d4881cdd83376f3a928f860c4bc4522fae347f638350c81678",
+        "modules\\modules\\httptools.parser.url_parser.x3pkg.lib": "c0064f505c599f678f5470b0dbc9600240330eda6417c94a07f69ca451f2f0f7",
+        "modules\\modules\\mmap.x3pkg.dll": "538e181e244ab2d55502834a55d297a529fb73c4d736aa626ad37795e399265c",
+        "modules\\modules\\mmap.x3pkg.exp": "7dfac75245a8da27d580fc83ae7330cdef6aaa37e5c75abae144def69bf643d8",
+        "modules\\modules\\mmap.x3pkg.lib": "60c0eb6b8342a38dcb61f0942b34246d521baad1799ea9e6e79224dbbc32134e",
+        "modules\\modules\\psutil._psutil_windows.x3pkg.dll": "32f0250b27b8b45b8a6dbf03e9c317d4f1f6417aea0205739bc32a40aa5432b3",
+        "modules\\modules\\psutil._psutil_windows.x3pkg.exp": "a7d2e54338918a8f5f9caeccc0a3c452a98e6ed99fd56a2c610b5df9a1737b3f",
+        "modules\\modules\\psutil._psutil_windows.x3pkg.lib": "e94897e81e0e18da300fc218ab19f6a303b0770098e04aeeb0fe795551fc045a",
+        "modules\\modules\\pydantic_core._pydantic_core.x3pkg.dll": "243f29df3c4d8f4b312919b19df24b2f27f7a602a654332d563b8e7b3355e15f",
+        "modules\\modules\\pydantic_core._pydantic_core.x3pkg.exp": "da51d32d6c6fa2d6d2a79fcb8bca7f3261eca41bfb71afb1500713a2f5bf62ef",
+        "modules\\modules\\pydantic_core._pydantic_core.x3pkg.lib": "7111bcfefacafb932f3d16f4c13a726e8822046d2777a2fbe77bfd154c153e63",
+        "modules\\modules\\rpds.rpds.x3pkg.dll": "856ba50ad598d23432085a8f1db266821142be96898ab9a3d3ef1bec3b3b2134",
+        "modules\\modules\\rpds.rpds.x3pkg.exp": "d91fe18bbf8d61ea2adf85faae8c2f3e15ea92076ccb90f6fd7622db0bf95f99",
+        "modules\\modules\\rpds.rpds.x3pkg.lib": "5c7177cc9eb61d40b25d280f621fd71caf91c22f97853ab7ff4ca8a42f603152",
+        "modules\\modules\\xlang1_compat_sample.x3pkg.dll": "9468633701f943a31ee9126fb24023bd72fb8cea92d3b853baa7e2dcfca76489",
+        "modules\\modules\\xlang1_compat_sample.x3pkg.exp": "ce3aed41fd3481c06ab1b703bf886c4daa7390820b18ee475c39d97110fcc7ee",
+        "modules\\modules\\xlang1_compat_sample.x3pkg.lib": "c3a44ec097385c8123e42b403ec3f599ac7ad7b61fe9b8075078f075f2a69318",
+        "modules\\modules\\xlang__blake2.x3pkg.dll": "d1dc8469d59900b85783e4a5a9f3f899748fa27115709868a532fd068e3c9c3c",
+        "modules\\modules\\xlang__blake2.x3pkg.exp": "c789b787549e59c6879dc349484d410860ac4a67a4fc30f8fb89f2bcdfabafc1",
+        "modules\\modules\\xlang__blake2.x3pkg.lib": "82401a997ab29e527ca2eb2ae5a332df925ab1c1a7cd0f4db7cde819b5590339",
+        "modules\\modules\\xlang__hashlib.x3pkg.dll": "6e26d3dd819f751950558c8e7695ac6b3fd29fd9d1b54f88f30f7b00d885d384",
+        "modules\\modules\\xlang__hashlib.x3pkg.exp": "71dbffab4903c376dab6fb73f4d1d0903c9a2a7a3f773adbf98f95864a38ad9f",
+        "modules\\modules\\xlang__hashlib.x3pkg.lib": "6d0de7eb0a23691de7ea5e275541b1d79b01c3c150e1bf60fe0a8371dee97142",
+        "modules\\modules\\xlang__ssl.x3pkg.dll": "aeac669c50f2c78b3a281119728aca01d01871fa29cab2feab1351496e8dfb96",
+        "modules\\modules\\xlang__ssl.x3pkg.exp": "d7bdcd1efbee080db5e6623c4b335382c87f86b2647ef5656af7aed2b06ef77c",
+        "modules\\modules\\xlang__ssl.x3pkg.lib": "ffed29e487c9e2d94203d8720dc0b097a433635743a3136d599cfa0ae3580c25",
+        "modules\\modules\\xlang_curmodule_probe.x3pkg.dll": "4057f59f8268d3d94551a5bd096d431d1727cc09433f85fd5bc8835900768f99",
+        "modules\\modules\\xlang_curmodule_probe.x3pkg.exp": "77f0b093ed384ad2c0fa2691a6fb67e4b88eaa260ce54f8862dbd1aec98351d3",
+        "modules\\modules\\xlang_curmodule_probe.x3pkg.lib": "c889e1bc29ef5eff6e32e30a8d574a8ced356d383ad3d2debc02efb479abf1d5",
+        "modules\\modules\\xlang_device.x3pkg.dll": "9c2d0b7d9d6c5de3cfc405ade9a3408952372f2467e7349ccd7640a96225a5e8",
+        "modules\\modules\\xlang_device.x3pkg.exp": "0dab1c9cab7887fd21401a0fe749d102f61055f1e5faf1c6bb08239e23ce5747",
+        "modules\\modules\\xlang_device.x3pkg.lib": "04b30a9f85d720220fe7a7cc79cc34d84d7d05160a7be0850a6a224f7ea66ff3",
+        "modules\\modules\\xlang_graph_native.x3pkg.dll": "a17c49b0810c9894f2e67313ddbf9b38d6a96030b99a44b025434de9bd90910f",
+        "modules\\modules\\xlang_graph_native.x3pkg.exp": "7f74c36173c260002a3536d5aa48db87c88f1ce2816025f1bad13c983cee775f",
+        "modules\\modules\\xlang_graph_native.x3pkg.lib": "3489ec90a49e8bb4a6c73876598cfb54ef2d6c3dc709e0a003190e30803e904c",
+        "modules\\modules\\xlang_json.x3pkg.dll": "eade9bb4b73ee83748e21a16f64f37249056cfbf5aadc6d6f64776dc3265ab28",
+        "modules\\modules\\xlang_json.x3pkg.exp": "d6c6091f989faedf88d090ab7adfdafd39acf676a64ba6b3d5818d55c9085dca",
+        "modules\\modules\\xlang_json.x3pkg.lib": "5a4ef2abf772b813094ce73ffe7ac00069c4c2b617f347684e0185a43cf5cab6",
+        "modules\\modules\\xlang_net.x3pkg.dll": "af1e501a0a0d00d710a3cda4c1e1b008462caa06505aa280a42d281af58187cd",
+        "modules\\modules\\xlang_net.x3pkg.exp": "551ecc521ab2f4dc5986ba71c93e4e9b4fd4e5550a185e54b9257179da01c7a1",
+        "modules\\modules\\xlang_net.x3pkg.lib": "3cdcf5d0e1a8a8e519c37c0f7408f150ac4e8008c32d95f7dfdb8dcde2000cd1",
+        "modules\\modules\\xlang_sqlite3.x3pkg.dll": "dac3fdda223d5d91367ad7bfbf839bf061c6d9287dfab7298038004c7626936d",
+        "modules\\modules\\xlang_sqlite3.x3pkg.exp": "28eefa90e3e4e7ad1e46f1899689333f6be4e42ff00ec79c78a40f7aeb175a5b",
+        "modules\\modules\\xlang_sqlite3.x3pkg.lib": "af055f28566bc3f6602bd8ff2fac1e8f3b0d29861985fd8a12ab562a49c3ae29",
+        "modules\\modules\\xlang_yaml.x3pkg.dll": "42ada58589b1cc302029e3c2a414c46431cc7fdd069286237f6f354fe8c6a783",
+        "modules\\modules\\xlang_yaml.x3pkg.exp": "98ab4fd8483f2e8ea139bd8b75616ee8aacf21b5a9c3317bb7edd3fdb849c3c4",
+        "modules\\modules\\xlang_yaml.x3pkg.lib": "fda25f4e7024f6c0dcd76641567b6f731e3d899f325ee4af8675985a89a58c3c",
+        "modules\\modules\\zstandard.backend_c.x3pkg.dll": "3a4ae5d3c73ed8088d94040a0ae038df7232decbdd5351609a7de6e19c852022",
+        "modules\\modules\\zstandard.backend_c.x3pkg.exp": "ba1e36723058acf3b49ccee8b3e81398b4726956b6f7c272fb2cf33d9f5ebcaa",
+        "modules\\modules\\zstandard.backend_c.x3pkg.lib": "5d5a66914e17933698113d73805f72a3d9c42791791eb178319ffa01a000de2e",
+        "modules\\psutil._psutil_windows.x3pkg.dll": "aeaadd62012b195a931f4d35c68eaddcc58fc482ea6a6d963bd08562245e061f",
+        "modules\\psutil._psutil_windows.x3pkg.exp": "6800f1c7e7b717af4d6011da7cc82e2c4a94599eaca844b7316ded1c5828e25e",
+        "modules\\psutil._psutil_windows.x3pkg.lib": "e94897e81e0e18da300fc218ab19f6a303b0770098e04aeeb0fe795551fc045a",
+        "modules\\pydantic_core._pydantic_core.x3pkg.dll": "c7dea7ee7716078cd744cf6d6a7d08477713333db4d4f03543496bc5046424e6",
+        "modules\\pydantic_core._pydantic_core.x3pkg.exp": "9347675442d8af3bd6e57be277b0eb0de5bd6b8f838ecfbccf5b4a8e12675b85",
+        "modules\\pydantic_core._pydantic_core.x3pkg.lib": "7111bcfefacafb932f3d16f4c13a726e8822046d2777a2fbe77bfd154c153e63",
+        "modules\\rpds.rpds.x3pkg.dll": "8df7c0ea3aa8a0248ba53bb08c871a60627dc70302ba264e7ff759bab61ac145",
+        "modules\\rpds.rpds.x3pkg.exp": "29280c84887a270bc21c23974634e4ef8fc48c559e61a2c84612f66d08ec7b62",
+        "modules\\rpds.rpds.x3pkg.lib": "5c7177cc9eb61d40b25d280f621fd71caf91c22f97853ab7ff4ca8a42f603152",
+        "modules\\xlang1_compat_sample.x3pkg.dll": "0e501c3d5e58f4413f24ea78d6816b5abbb18f27eb06bcb7369a7ef336f6289e",
+        "modules\\xlang1_compat_sample.x3pkg.exp": "621658710e25fac0c41738964aa522e7f25c3f3d1c1fac0b368be3d7d4d2bbb5",
+        "modules\\xlang1_compat_sample.x3pkg.lib": "c3a44ec097385c8123e42b403ec3f599ac7ad7b61fe9b8075078f075f2a69318",
+        "modules\\xlang__blake2.x3pkg.dll": "c7c52a771c328e443b3b9c2a13067fcbf4fcae4838e17f5c44242e3c36241d68",
+        "modules\\xlang__blake2.x3pkg.exp": "b2cf81915dc0ce96f38acbbe1baa56885829611d853449d0f09bd1bca041f9bf",
+        "modules\\xlang__blake2.x3pkg.lib": "82401a997ab29e527ca2eb2ae5a332df925ab1c1a7cd0f4db7cde819b5590339",
+        "modules\\xlang__hashlib.x3pkg.dll": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239",
+        "modules\\xlang__hashlib.x3pkg.exp": "783e2dd3a4bbd9dc2d9f40b8d2f17f68b01135d0cca6cdb87d2a231f3a64fdbb",
+        "modules\\xlang__hashlib.x3pkg.lib": "6d0de7eb0a23691de7ea5e275541b1d79b01c3c150e1bf60fe0a8371dee97142",
+        "modules\\xlang__ssl.x3pkg.dll": "1c01c0600681ee1f37244b2f96f8562a14881a9f0f84d417af6a8ecc9bb0889c",
+        "modules\\xlang__ssl.x3pkg.exp": "7d6c7e81d4d98ed2d8922af91c72f9686ab54c29a2e69131fbbfe5667f14a344",
+        "modules\\xlang__ssl.x3pkg.lib": "ffed29e487c9e2d94203d8720dc0b097a433635743a3136d599cfa0ae3580c25",
+        "modules\\xlang_curmodule_probe.x3pkg.dll": "8c37613b80ad573ec302b1012feb2c8714e3f4d682eab1828e86ef47ec9e1909",
+        "modules\\xlang_curmodule_probe.x3pkg.exp": "b63f4cf22cac482cfe92b51471961ec1cd3ecfd686af5a47f45759588da10d93",
+        "modules\\xlang_curmodule_probe.x3pkg.lib": "c889e1bc29ef5eff6e32e30a8d574a8ced356d383ad3d2debc02efb479abf1d5",
+        "modules\\xlang_device.x3pkg.dll": "2ae2e314025b899f5b434658cee0f1d2d70b89c5aeeb7b94ffa9eb8833ce12b0",
+        "modules\\xlang_device.x3pkg.exp": "db010707979b4c659d01813a898e90c1b29d054dc3c33b748da7d5dd9da2a172",
+        "modules\\xlang_device.x3pkg.lib": "04b30a9f85d720220fe7a7cc79cc34d84d7d05160a7be0850a6a224f7ea66ff3",
+        "modules\\xlang_graph_native.x3pkg.dll": "16eba1c2ebfdf2ff3f19477464da6b5b3f7213048884de145b060131b6ad427a",
+        "modules\\xlang_graph_native.x3pkg.exp": "aaf32195832af2be17ff56b96348f47d1b209374c6632befcdeffd0d85fb9522",
+        "modules\\xlang_graph_native.x3pkg.lib": "3489ec90a49e8bb4a6c73876598cfb54ef2d6c3dc709e0a003190e30803e904c",
+        "modules\\xlang_json.x3pkg.dll": "d8fa3264318a8a973c1272a3f908259a876b67959e4de86a59e5f5d0f42398b7",
+        "modules\\xlang_json.x3pkg.exp": "8b6fbae11b45a6763b9e74f2e8e7d56fc7369391748cbe077f619e80aaabb982",
+        "modules\\xlang_json.x3pkg.lib": "5a4ef2abf772b813094ce73ffe7ac00069c4c2b617f347684e0185a43cf5cab6",
+        "modules\\xlang_net.x3pkg.dll": "b5a3c71f36eac9c82a264ab45f3b4be15463b7b1bfe352bc662e4cd29e8075bd",
+        "modules\\xlang_net.x3pkg.exp": "3182cf2b170d6a80d4cb616a11e8807e3ed3283b51515b934f5afdbe448d65b4",
+        "modules\\xlang_net.x3pkg.lib": "3cdcf5d0e1a8a8e519c37c0f7408f150ac4e8008c32d95f7dfdb8dcde2000cd1",
+        "modules\\xlang_sqlite3.x3pkg.dll": "b69e608735c898d233f5e5b9b8ff2c9c34af8a077942b6b3de3b17bae0d4b5f7",
+        "modules\\xlang_sqlite3.x3pkg.exp": "6e76ed9deda275e42b8fe3677777f12508d30f75a6e1b1fa00071fe7bb8eeea2",
+        "modules\\xlang_sqlite3.x3pkg.lib": "af055f28566bc3f6602bd8ff2fac1e8f3b0d29861985fd8a12ab562a49c3ae29",
+        "modules\\xlang_yaml.x3pkg.dll": "5232bd1187ac429151ba7879de44e116a4a97ce80355b3d9230b4365946ee798",
+        "modules\\xlang_yaml.x3pkg.exp": "7389e6d716539fe17cabf43c512cc0fd2473095bc187dfd9aa7ecad675d3d9cb",
+        "modules\\xlang_yaml.x3pkg.lib": "fda25f4e7024f6c0dcd76641567b6f731e3d899f325ee4af8675985a89a58c3c",
+        "modules\\zstandard.backend_c.x3pkg.dll": "86098ae832848f2a835452bb2d219850755caf9cd3f1fbfd13c9d36e88b02867",
+        "modules\\zstandard.backend_c.x3pkg.exp": "a047e5256e4a5e7cf833bec5c64555db12c4a7c9caa2c4a250c32a637089dfe9",
+        "modules\\zstandard.backend_c.x3pkg.lib": "5d5a66914e17933698113d73805f72a3d9c42791791eb178319ffa01a000de2e",
+        "xlang3.exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+        "xlang3_runtime.dll": "ffd2ea4ef32dac1c00512f5ecd9c5d5b9c8770e6917fc90f8cb0cce442851f6b"
+      }
+    }
+  },
+  "early_correctness": {
+    "path": "inherited-slot-proof-early-20261008.json",
+    "verified_phase_names": [
+      "candidate",
+      "control",
+      "cpp",
+      "cpython3147"
+    ]
+  },
+  "probes": [
+    {
+      "name": "slot",
+      "filename": "canonical-slot-probe-20261008.py",
+      "probe_sha256": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+      "pairs": [
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009860999998636544,
+                    0.0009785000002011657,
+                    0.000984499987680465,
+                    0.0009732000180520117,
+                    0.0009630999993532896
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0018573999986983836,
+                    0.0018625000084284693,
+                    0.0018264000245835632,
+                    0.0018029000202659518,
+                    0.0018482999876141548
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010588000004645437,
+                    0.0010716000106185675,
+                    0.0011924999998882413,
+                    0.0010903000074904412,
+                    0.0011787999828811735
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009187999821733683,
+                    0.0009048999927472323,
+                    0.00091559998691082,
+                    0.0009068000072147697,
+                    0.0009980000031646341
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009166999952867627,
+                    0.0009010000212583691,
+                    0.0009088000224437565,
+                    0.0009052999957930297,
+                    0.0009043999889399856
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009897999989334494,
+                    0.000994600006379187,
+                    0.0009769999887794256,
+                    0.000995899987174198,
+                    0.0010194999922532588
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009227999835275114,
+                    0.0009067000064533204,
+                    0.0008961999847088009,
+                    0.0009028000058606267,
+                    0.0009006999898701906
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009140000038314611,
+                    0.0010593000042717904,
+                    0.0010397000005468726,
+                    0.0009227999835275114,
+                    0.0009062000026460737
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009788000024855137,
+                    0.0010157999931834638,
+                    0.00102680001873523,
+                    0.0009998000168707222,
+                    0.0010058999760076404
+                  ]
+                }
+              ]
+            },
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010025000083260238,
+                    0.0010161000245716423,
+                    0.0010794000118039548,
+                    0.001042899995809421,
+                    0.000989099993603304
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017965000006370246,
+                    0.0018454999953974038,
+                    0.001808900007745251,
+                    0.001797899982193485,
+                    0.0017954000213649124
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010930999997071922,
+                    0.0010743000020738691,
+                    0.0010687000176403672,
+                    0.0012848000042140484,
+                    0.0011679000162985176
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010181000106967986,
+                    0.0009891000227071345,
+                    0.0009787000017240644,
+                    0.0011255000135861337,
+                    0.000979800010100007
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001816300005884841,
+                    0.0018198999750893563,
+                    0.001807699998607859,
+                    0.0018042000010609627,
+                    0.0018131000106222928
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010737999982666224,
+                    0.0011034999915864319,
+                    0.0011097999813500792,
+                    0.0010810999956447631,
+                    0.0012136000150348991
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009234999888576567,
+                    0.0009278999932575971,
+                    0.000899800012120977,
+                    0.0009074000117834657,
+                    0.0009175000013783574
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009297000069636852,
+                    0.0009225000103469938,
+                    0.0009010000212583691,
+                    0.000904199987417087,
+                    0.0009040999866556376
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009827000030782074,
+                    0.000996799994027242,
+                    0.0009634000016376376,
+                    0.0010661999986041337,
+                    0.000999899988528341
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.000992499990388751,
+                    0.0009828000038396567,
+                    0.000974599999608472,
+                    0.000978299998678267,
+                    0.000964100006967783
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009917000134009868,
+                    0.0009642000077292323,
+                    0.0009846000175457448,
+                    0.0009723999828565866,
+                    0.000982600002316758
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010658999963197857,
+                    0.0010418999881949276,
+                    0.001028700004098937,
+                    0.0010447999811731279,
+                    0.0010492000146768987
+                  ]
+                }
+              ]
+            },
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.000999899988528341,
+                    0.0010077000188175589,
+                    0.0010016999731305987,
+                    0.0009725000127218664,
+                    0.000998999981675297
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0018342999974265695,
+                    0.0018145999929402024,
+                    0.0018418999970890582,
+                    0.0020592999935615808,
+                    0.0019127000123262405
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0012407999893184751,
+                    0.0011897000076714903,
+                    0.0011769999982789159,
+                    0.0010846999939531088,
+                    0.0010890999983530492
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009726999851409346,
+                    0.0010417999874334782,
+                    0.0009856000251602381,
+                    0.0009676000045146793,
+                    0.0009785000002011657
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0018164000066462904,
+                    0.0018081000016536564,
+                    0.0018326000135857612,
+                    0.0018825999868568033,
+                    0.001858100004028529
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0011667000071611255,
+                    0.0012026999902445823,
+                    0.0011035999923478812,
+                    0.0010617999942041934,
+                    0.0011034999915864319
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009454000100959092,
+                    0.000915299984626472,
+                    0.0009311999892815948,
+                    0.0009218000050168484,
+                    0.0008992999792098999
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009140000038314611,
+                    0.0009001999860629439,
+                    0.00090230000205338,
+                    0.000904799991985783,
+                    0.0008985000022221357
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009893000242300332,
+                    0.0010240999981760979,
+                    0.0010053000005427748,
+                    0.0010000000183936208,
+                    0.000996199989458546
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0011181999871041626,
+                    0.000961300014751032,
+                    0.0009398999973200262,
+                    0.0009566999797243625,
+                    0.0009278999932575971
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009240999934263527,
+                    0.0009492000099271536,
+                    0.0009281999955419451,
+                    0.0009447000047657639,
+                    0.0009413999796379358
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009996999870054424,
+                    0.0011505000002216548,
+                    0.0010130000009667128,
+                    0.0010571999882813543,
+                    0.001098200009437278
+                  ]
+                }
+              ]
+            },
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010051999997813255,
+                    0.0010127000277861953,
+                    0.001011400017887354,
+                    0.0010005999938584864,
+                    0.0010244000004604459
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0018339999951422215,
+                    0.001835199975175783,
+                    0.0018139000167138875,
+                    0.001835799979744479,
+                    0.0019117000047117472
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010820000024978071,
+                    0.0010861999762710184,
+                    0.0010902000067289919,
+                    0.0010991999879479408,
+                    0.0011464999988675117
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001014800014672801,
+                    0.0009868000051937997,
+                    0.0009788000024855137,
+                    0.0009902000019792467,
+                    0.0009986000077333301
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0018229999986942858,
+                    0.0020243999897502363,
+                    0.0020388999837450683,
+                    0.0018582000047899783,
+                    0.0018463000014889985
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010830000101123005,
+                    0.00112749999971129,
+                    0.0010636999795679003,
+                    0.0011000999948009849,
+                    0.0010455000156071037
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009441000001970679,
+                    0.0009089999948628247,
+                    0.0009079999872483313,
+                    0.0009232000156771392,
+                    0.0009011000220198184
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0008981999999377877,
+                    0.0008900999964680523,
+                    0.0009263000101782382,
+                    0.0008963999862316996,
+                    0.0009000000136438757
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009854999952949584,
+                    0.0009827000030782074,
+                    0.0010006999946199358,
+                    0.000977399991825223,
+                    0.0010082999942824244
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "cpython3147": {
+        "purpose": "checked attribute diagnostic, not official score",
+        "rows": [
+          {
+            "path": "own_slot",
+            "operations": 16384,
+            "checksum": 114688,
+            "samples_seconds": [
+              0.00033660000190138817,
+              0.00032479999936185777,
+              0.0003205999964848161,
+              0.0003240999940317124,
+              0.0003403000009711832
+            ]
+          },
+          {
+            "path": "inherited_slot",
+            "operations": 16384,
+            "checksum": 114688,
+            "samples_seconds": [
+              0.00033149999217130244,
+              0.00033969999640248716,
+              0.00033290000283159316,
+              0.00033290000283159316,
+              0.0003076000139117241
+            ]
+          },
+          {
+            "path": "ordinary_attr",
+            "operations": 16384,
+            "checksum": 114688,
+            "samples_seconds": [
+              0.00032759999157860875,
+              0.00043009998626075685,
+              0.00033939999411813915,
+              0.0003335000074002892,
+              0.00034100000630132854
+            ]
+          }
+        ]
+      },
+      "summary": [
+        {
+          "identity": {
+            "path": "own_slot",
+            "operations": 16384,
+            "checksum": 114688
+          },
+          "control_time_over_candidate_time": [
+            1.0686981369479553,
+            1.1254984691797916,
+            1.0780381702683517,
+            1.0220791064900918,
+            1.0615100833974078,
+            1.0571757492654605,
+            1.0893289412269753
+          ],
+          "median_speedup": 1.0686981369479553,
+          "pairs_favoring_candidate": 7
+        },
+        {
+          "identity": {
+            "path": "inherited_slot",
+            "operations": 16384,
+            "checksum": 114688
+          },
+          "control_time_over_candidate_time": [
+            2.0416436498434654,
+            1.9483095083300728,
+            2.005198004704186,
+            1.874516581260184,
+            2.0310318180375497,
+            1.9494370245064212,
+            2.068804280693257
+          ],
+          "median_speedup": 2.005198004704186,
+          "pairs_favoring_candidate": 7
+        },
+        {
+          "identity": {
+            "path": "ordinary_attr",
+            "operations": 16384,
+            "checksum": 114688
+          },
+          "control_time_over_candidate_time": [
+            1.096219586263273,
+            1.0866885632562033,
+            1.1070425343083155,
+            1.1265314122205003,
+            1.1035999720486818,
+            1.031214546739907,
+            1.0989345664970405
+          ],
+          "median_speedup": 1.0989345664970405,
+          "pairs_favoring_candidate": 7
+        }
+      ]
+    },
+    {
+      "name": "sqlglot_parse",
+      "filename": "canonical-slot-sqlglot-probe-20261008.py",
+      "probe_sha256": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+      "pairs": [
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.018800640001427383,
+                    0.018755740005872212,
+                    0.018432069997652435,
+                    0.018637649997253904,
+                    0.018701200003852135
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.018429320002906025,
+                    0.018476660005399027,
+                    0.018200649999198504,
+                    0.01830054999445565,
+                    0.018499739997787402
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.01828544999298174,
+                    0.0182335100020282,
+                    0.018352699998649767,
+                    0.018186430010246113,
+                    0.01831561000435613
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.018948169995564968,
+                    0.018189279999933205,
+                    0.018733549996977673,
+                    0.018331709995982236,
+                    0.019601929996861146
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.018749660000321456,
+                    0.01883680000610184,
+                    0.01878749999741558,
+                    0.01879676000389736,
+                    0.018716360002872533
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.01830930000578519,
+                    0.018105660000583158,
+                    0.01824088999419473,
+                    0.018094949997612277,
+                    0.018011239997576922
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.018317999999271705,
+                    0.0182924799999455,
+                    0.018898419998004103,
+                    0.020357389992568642,
+                    0.01924986000813078
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.018830099995830095,
+                    0.01953413999581244,
+                    0.01873914000170771,
+                    0.018761000005179086,
+                    0.018831090000458062
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.01850096000125632,
+                    0.018589510006131606,
+                    0.018581220004125498,
+                    0.0187018700002227,
+                    0.019132620000164025
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.01827865000523161,
+                    0.018182230001548304,
+                    0.01800801999634132,
+                    0.018565150003996677,
+                    0.018058850002125836
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.018652439996367322,
+                    0.01845305000024382,
+                    0.018810279996250755,
+                    0.018813370008138007,
+                    0.019862749995081686
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.018966159998672082,
+                    0.018943689999287017,
+                    0.019109369994839653,
+                    0.018715620000148193,
+                    0.018528239999432115
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.01824135000642855,
+                    0.018929100010427646,
+                    0.018318449999787843,
+                    0.018430270004319026,
+                    0.019600119997630828
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.018418380004004576,
+                    0.019002969996654427,
+                    0.01932685000356287,
+                    0.018955909996293485,
+                    0.01843535999942105
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "cpython3147": {
+        "purpose": "unchanged original parse body, checked AST output, not official score",
+        "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+        "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+        "rows": [
+          {
+            "path": "sqlglot_v2_parse",
+            "parses_per_sample": 10,
+            "samples_seconds": [
+              0.0009720999980345369,
+              0.0009600899997167289,
+              0.001082470000255853,
+              0.000937860002159141,
+              0.000948519998928532
+            ],
+            "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+          }
+        ]
+      },
+      "summary": [
+        {
+          "identity": {
+            "path": "sqlglot_v2_parse",
+            "parses_per_sample": 10,
+            "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+          },
+          "control_time_over_candidate_time": [
+            1.0147525790915366,
+            1.0245058231636586,
+            1.0376589418342363,
+            0.9963848828536341,
+            1.0223998928926001,
+            1.0070923985747608,
+            0.9722703899692898
+          ],
+          "median_speedup": 1.0147525790915366,
+          "pairs_favoring_candidate": 5
+        }
+      ]
+    }
+  ],
+  "hashes_after": {
+    "binaries_sha256": {
+      "control": {
+        "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+        "dll": "ffd2ea4ef32dac1c00512f5ecd9c5d5b9c8770e6917fc90f8cb0cce442851f6b"
+      },
+      "candidate": {
+        "exe": "31f9a848f78c7dfae4c59dc6cd0016815549d6d67409276fcaecadae504d5958",
+        "dll": "162712ce27bc1e57325e0bc15fbe69f11341542c202ad6c5e5f0b16be7e78dfd"
+      }
+    },
+    "cpp_test_binary_sha256": "fd480471d37c27a8f151dff7450518c878b5b2eeb3ff12f195fb2fd6ea2034be",
+    "cpython3147_binary_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "source_sha256": {
+      "src/internal/xlang3/object_model.h": "7a7e767de9ac93bc83992cb2367cc0cf15353f8da54326e867297bbcef1eec03",
+      "src/runtime/object_model.cpp": "835996e3db255ec24112fe93d9438df4c05d281befd502c306a3df2c1ffd1556",
+      "src/builtins/object_type_builtins.cpp": "171aafd05b11396b5522a2a45d490b37dbce0924c00b661b4f2e1ba41fa7a3d3",
+      "src/executor/xlang_vm/ops/xlang_vm_ops_construct.h": "a5e192e82b37a6545b7988395dc5324b9e0381d280ad5ee7d2c4dcca8b592c42",
+      "src/executor/xlang_vm/xlang_vm_inline_support.h": "63eb38f507193ccabd852b261eb84299d2a05dacb8cd1999760e8c7121a4d4b0",
+      "src/executor/xlang_vm/xlang_vm_attr.cpp": "264a0d6c78dc4b946fe4b1f00dd7dd6d52581589a6950d4ecaf394d312994c7a",
+      "src/serialize/value_graph_reader.cpp": "33e783e7508adaca6372383fc9b5b593509a7dc66669168ee3116a58ef90d662",
+      "src/runtime/modules/system/weakref_module.cpp": "a4d0a52d7ffa14f48c9c0226c71c80b635720f4b7153658b2e6da25be269cb73",
+      "tests/cpp/canonical_slot_read_cases.h": "6b6e18371c686021f1626293f7afd7733039bd216fae7878e42363bc410f63de",
+      "tests/fixtures/core/canonical_slot_reads.py": "7efadaea716e73e987a0ee35a2110f44ab91dec1e0d75ddb40ad627b582f918b",
+      "tests/fixtures/expected/canonical_slot_reads.out": "5fb63eb109aee4d367d06c636db3d30bea771a8c13a8819a985c43fc43bd24a2",
+      "tests/cpp/interpreter_tests.cpp": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+      "tests/run_fixtures.py": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+      "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+      "scratch/performance/canonical-slot-probe-20261008.py": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+      "scratch/performance/canonical-slot-sqlglot-probe-20261008.py": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+      "scratch/performance/check-inherited-slot-proof-20261008.py": "41c4edb898761603479b8aadae19afa4bfe38e5c793a1079a60015b72fbc285d",
+      "scratch/performance/compare-inherited-slot-proof-20261008.py": "6c6ece259c4e3e498831d8f5aebe1e4c3f6d806ad09b6c31165f1a985946d089",
+      "scratch/performance/inherited_slot_proof_support_20261008.py": "ccdd2cd93ba4ed77395c7f33df9efe3fceeadef89adc78bf877c57f64e09975e"
+    },
+    "benchmark_source_sha256": "d97aaba24f8c49f2afe5c5c740c568be6e89dde3364d5a964a4b72e5a4768a9b",
+    "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+    "preserved_control_release": {
+      "manifest_sha256": "833d8c1208d54a63d63ff56edd34fd67e3dc0aabe34c86b79c5f460f429426da",
+      "files_sha256": {
+        "modules\\_argon2_cffi_bindings._ffi.x3pkg.dll": "5e63a3ddf31187bbb0309d241cfa5e13491de37509c7a87a9789fceed2c85c0f",
+        "modules\\_argon2_cffi_bindings._ffi.x3pkg.exp": "41b0866334dca94711d70a905eb9bf92c475ee614f2ff91187610fd21411c430",
+        "modules\\_argon2_cffi_bindings._ffi.x3pkg.lib": "47a27dda119fbc35ce6e9e3dcda6afed25047753b7053d7b83e87fd9535080b3",
+        "modules\\_brotli.x3pkg.dll": "b12a085bb360c8ae989a054547f7c709da73856d90bdd41cd3a8912523344ad8",
+        "modules\\_brotli.x3pkg.exp": "0ffe3499d00e7c45ad00b97fe7cea82f1205b8823224c32c7b24d86cb969ac52",
+        "modules\\_brotli.x3pkg.lib": "124856396b1cba95cba684d37bf4090f3745a8a9507e680744a6138eed566125",
+        "modules\\_cffi_backend.x3pkg.dll": "c4b106a1d9d73611e4cbacb0e6cbff2201834152dbc132610791e833a9a4092f",
+        "modules\\_cffi_backend.x3pkg.exp": "4890736a4a860f7eff1aa2328cfe8e2f5687cdaf9f6101a426ad7aac16cd8a32",
+        "modules\\_cffi_backend.x3pkg.lib": "f71f856ea8f229f72785801b91860275874ec80dd165939bd52f2c2134131ed3",
+        "modules\\_zstd.x3pkg.dll": "a6a488ee1a24c18f4d2b23f7e42e46e174f4a5fc76d7152802a0554d83f45772",
+        "modules\\_zstd.x3pkg.exp": "85b1087c7e0f9e44517f3299f480fff2ff1eee1b2f2193445c48b50e100ef01b",
+        "modules\\_zstd.x3pkg.lib": "5cbc60d5f45700337ec0d77c1a5c449dc59e0c7c3dfb77afefeb3074553864da",
+        "modules\\cryptography.hazmat.bindings._rust.x3pkg.dll": "41dc824b8d534d8bba293036b6910f470629dbf630ff30c2adbeaa0acb941951",
+        "modules\\cryptography.hazmat.bindings._rust.x3pkg.exp": "f2192c21455beea943beb2a99fd0fc905af343fdcbec75824e22f07e3a1d2a54",
+        "modules\\cryptography.hazmat.bindings._rust.x3pkg.lib": "c9a9111702c8cfe6d65bee7fe22497aa5ccb64f3eaa7c4b65e9cd3540a35ea42",
+        "modules\\httptools.parser.parser.x3pkg.dll": "9f8d0d7adbd17d29b1dded060a464abc1a8569d97c78e8d7a9cecb77acf3073d",
+        "modules\\httptools.parser.parser.x3pkg.exp": "f473706e0ca19977c0b0250f40d3f4ed673a0fc7fa1b8f549fbf53b33d80c522",
+        "modules\\httptools.parser.parser.x3pkg.lib": "319446b8bf7e74b4036397ce3cc454a352acc28ea1e2ebdeb07b12d91b9792fb",
+        "modules\\httptools.parser.url_parser.x3pkg.dll": "edbda48a9d23f47fff9d734bf404bc665fb4d82d37a8b20f642338adf87c7254",
+        "modules\\httptools.parser.url_parser.x3pkg.exp": "eab714fbacf4c457d7cdb1b9c78a4c34e62bfaf05a5f2d1276bbfd118edc5c2f",
+        "modules\\httptools.parser.url_parser.x3pkg.lib": "c0064f505c599f678f5470b0dbc9600240330eda6417c94a07f69ca451f2f0f7",
+        "modules\\mmap.x3pkg.dll": "f503d4f7796022a2b954618f02514508b1f573abc9604990478119087fb035f5",
+        "modules\\mmap.x3pkg.exp": "d43f659c4cdebe35b364c0de94a660540fbe9b695a7bae69b9c158b5d490a969",
+        "modules\\mmap.x3pkg.lib": "60c0eb6b8342a38dcb61f0942b34246d521baad1799ea9e6e79224dbbc32134e",
+        "modules\\modules\\_argon2_cffi_bindings._ffi.x3pkg.dll": "9a3e5cde168f60c533d7fa1e5e41f05a1e96a608803eda47bddd0af0b92f0667",
+        "modules\\modules\\_argon2_cffi_bindings._ffi.x3pkg.exp": "0717674aa6b3eba29017e4504315fcdf9198ed5190a82e978bb8a3ea08a1f235",
+        "modules\\modules\\_argon2_cffi_bindings._ffi.x3pkg.lib": "47a27dda119fbc35ce6e9e3dcda6afed25047753b7053d7b83e87fd9535080b3",
+        "modules\\modules\\_brotli.x3pkg.dll": "a43835ffd2bea6a091df27e6e1e3971331a7eeb96fdbd5b147c1fbbe3c2f3311",
+        "modules\\modules\\_brotli.x3pkg.exp": "aea498236b1a83f1196f091cfd585786edea72f83a333eae542484dde71b2aad",
+        "modules\\modules\\_brotli.x3pkg.lib": "124856396b1cba95cba684d37bf4090f3745a8a9507e680744a6138eed566125",
+        "modules\\modules\\_cffi_backend.x3pkg.dll": "e971c46c1b87b19d019d5d44f843034308c4c415435cf21b5ad76a823090682e",
+        "modules\\modules\\_cffi_backend.x3pkg.exp": "614b93e03fa920552c83747bc7a17d84ad3b2139f59c09b3df7643baea37a040",
+        "modules\\modules\\_cffi_backend.x3pkg.lib": "f71f856ea8f229f72785801b91860275874ec80dd165939bd52f2c2134131ed3",
+        "modules\\modules\\_zstd.x3pkg.dll": "591fa88334d437472babb705bbd0769873506c8780533fccdf63d265f9c69c33",
+        "modules\\modules\\_zstd.x3pkg.exp": "c5f848f0d105ad0114375706047970ed24aff36004b4b821d7faf676dd5be5b4",
+        "modules\\modules\\_zstd.x3pkg.lib": "5cbc60d5f45700337ec0d77c1a5c449dc59e0c7c3dfb77afefeb3074553864da",
+        "modules\\modules\\cryptography.hazmat.bindings._rust.x3pkg.dll": "479a267e442707a34a67743dbdf84d0badc25fc82f9ce8d17c2bf6a7adbaafc8",
+        "modules\\modules\\cryptography.hazmat.bindings._rust.x3pkg.exp": "618e4371d941c1a06991788dadfdce0002dcdbe0b65fc5ba0c18617a47e393cb",
+        "modules\\modules\\cryptography.hazmat.bindings._rust.x3pkg.lib": "c9a9111702c8cfe6d65bee7fe22497aa5ccb64f3eaa7c4b65e9cd3540a35ea42",
+        "modules\\modules\\httptools.parser.parser.x3pkg.dll": "1baca62c77d276801f35f62ea7db6d1f05d3ae43553c79858d79494cdfd67815",
+        "modules\\modules\\httptools.parser.parser.x3pkg.exp": "aac8c4d5ae2d96568ed173b63e7c7e14d24e40018f5a8b4935ff66cbe242230e",
+        "modules\\modules\\httptools.parser.parser.x3pkg.lib": "319446b8bf7e74b4036397ce3cc454a352acc28ea1e2ebdeb07b12d91b9792fb",
+        "modules\\modules\\httptools.parser.url_parser.x3pkg.dll": "a3cb43df0e71d0a79d8a9b16ff88fb9824b96b1b1119f233ed8d438b415eaf24",
+        "modules\\modules\\httptools.parser.url_parser.x3pkg.exp": "b1c9bfbc1df4e4d4881cdd83376f3a928f860c4bc4522fae347f638350c81678",
+        "modules\\modules\\httptools.parser.url_parser.x3pkg.lib": "c0064f505c599f678f5470b0dbc9600240330eda6417c94a07f69ca451f2f0f7",
+        "modules\\modules\\mmap.x3pkg.dll": "538e181e244ab2d55502834a55d297a529fb73c4d736aa626ad37795e399265c",
+        "modules\\modules\\mmap.x3pkg.exp": "7dfac75245a8da27d580fc83ae7330cdef6aaa37e5c75abae144def69bf643d8",
+        "modules\\modules\\mmap.x3pkg.lib": "60c0eb6b8342a38dcb61f0942b34246d521baad1799ea9e6e79224dbbc32134e",
+        "modules\\modules\\psutil._psutil_windows.x3pkg.dll": "32f0250b27b8b45b8a6dbf03e9c317d4f1f6417aea0205739bc32a40aa5432b3",
+        "modules\\modules\\psutil._psutil_windows.x3pkg.exp": "a7d2e54338918a8f5f9caeccc0a3c452a98e6ed99fd56a2c610b5df9a1737b3f",
+        "modules\\modules\\psutil._psutil_windows.x3pkg.lib": "e94897e81e0e18da300fc218ab19f6a303b0770098e04aeeb0fe795551fc045a",
+        "modules\\modules\\pydantic_core._pydantic_core.x3pkg.dll": "243f29df3c4d8f4b312919b19df24b2f27f7a602a654332d563b8e7b3355e15f",
+        "modules\\modules\\pydantic_core._pydantic_core.x3pkg.exp": "da51d32d6c6fa2d6d2a79fcb8bca7f3261eca41bfb71afb1500713a2f5bf62ef",
+        "modules\\modules\\pydantic_core._pydantic_core.x3pkg.lib": "7111bcfefacafb932f3d16f4c13a726e8822046d2777a2fbe77bfd154c153e63",
+        "modules\\modules\\rpds.rpds.x3pkg.dll": "856ba50ad598d23432085a8f1db266821142be96898ab9a3d3ef1bec3b3b2134",
+        "modules\\modules\\rpds.rpds.x3pkg.exp": "d91fe18bbf8d61ea2adf85faae8c2f3e15ea92076ccb90f6fd7622db0bf95f99",
+        "modules\\modules\\rpds.rpds.x3pkg.lib": "5c7177cc9eb61d40b25d280f621fd71caf91c22f97853ab7ff4ca8a42f603152",
+        "modules\\modules\\xlang1_compat_sample.x3pkg.dll": "9468633701f943a31ee9126fb24023bd72fb8cea92d3b853baa7e2dcfca76489",
+        "modules\\modules\\xlang1_compat_sample.x3pkg.exp": "ce3aed41fd3481c06ab1b703bf886c4daa7390820b18ee475c39d97110fcc7ee",
+        "modules\\modules\\xlang1_compat_sample.x3pkg.lib": "c3a44ec097385c8123e42b403ec3f599ac7ad7b61fe9b8075078f075f2a69318",
+        "modules\\modules\\xlang__blake2.x3pkg.dll": "d1dc8469d59900b85783e4a5a9f3f899748fa27115709868a532fd068e3c9c3c",
+        "modules\\modules\\xlang__blake2.x3pkg.exp": "c789b787549e59c6879dc349484d410860ac4a67a4fc30f8fb89f2bcdfabafc1",
+        "modules\\modules\\xlang__blake2.x3pkg.lib": "82401a997ab29e527ca2eb2ae5a332df925ab1c1a7cd0f4db7cde819b5590339",
+        "modules\\modules\\xlang__hashlib.x3pkg.dll": "6e26d3dd819f751950558c8e7695ac6b3fd29fd9d1b54f88f30f7b00d885d384",
+        "modules\\modules\\xlang__hashlib.x3pkg.exp": "71dbffab4903c376dab6fb73f4d1d0903c9a2a7a3f773adbf98f95864a38ad9f",
+        "modules\\modules\\xlang__hashlib.x3pkg.lib": "6d0de7eb0a23691de7ea5e275541b1d79b01c3c150e1bf60fe0a8371dee97142",
+        "modules\\modules\\xlang__ssl.x3pkg.dll": "aeac669c50f2c78b3a281119728aca01d01871fa29cab2feab1351496e8dfb96",
+        "modules\\modules\\xlang__ssl.x3pkg.exp": "d7bdcd1efbee080db5e6623c4b335382c87f86b2647ef5656af7aed2b06ef77c",
+        "modules\\modules\\xlang__ssl.x3pkg.lib": "ffed29e487c9e2d94203d8720dc0b097a433635743a3136d599cfa0ae3580c25",
+        "modules\\modules\\xlang_curmodule_probe.x3pkg.dll": "4057f59f8268d3d94551a5bd096d431d1727cc09433f85fd5bc8835900768f99",
+        "modules\\modules\\xlang_curmodule_probe.x3pkg.exp": "77f0b093ed384ad2c0fa2691a6fb67e4b88eaa260ce54f8862dbd1aec98351d3",
+        "modules\\modules\\xlang_curmodule_probe.x3pkg.lib": "c889e1bc29ef5eff6e32e30a8d574a8ced356d383ad3d2debc02efb479abf1d5",
+        "modules\\modules\\xlang_device.x3pkg.dll": "9c2d0b7d9d6c5de3cfc405ade9a3408952372f2467e7349ccd7640a96225a5e8",
+        "modules\\modules\\xlang_device.x3pkg.exp": "0dab1c9cab7887fd21401a0fe749d102f61055f1e5faf1c6bb08239e23ce5747",
+        "modules\\modules\\xlang_device.x3pkg.lib": "04b30a9f85d720220fe7a7cc79cc34d84d7d05160a7be0850a6a224f7ea66ff3",
+        "modules\\modules\\xlang_graph_native.x3pkg.dll": "a17c49b0810c9894f2e67313ddbf9b38d6a96030b99a44b025434de9bd90910f",
+        "modules\\modules\\xlang_graph_native.x3pkg.exp": "7f74c36173c260002a3536d5aa48db87c88f1ce2816025f1bad13c983cee775f",
+        "modules\\modules\\xlang_graph_native.x3pkg.lib": "3489ec90a49e8bb4a6c73876598cfb54ef2d6c3dc709e0a003190e30803e904c",
+        "modules\\modules\\xlang_json.x3pkg.dll": "eade9bb4b73ee83748e21a16f64f37249056cfbf5aadc6d6f64776dc3265ab28",
+        "modules\\modules\\xlang_json.x3pkg.exp": "d6c6091f989faedf88d090ab7adfdafd39acf676a64ba6b3d5818d55c9085dca",
+        "modules\\modules\\xlang_json.x3pkg.lib": "5a4ef2abf772b813094ce73ffe7ac00069c4c2b617f347684e0185a43cf5cab6",
+        "modules\\modules\\xlang_net.x3pkg.dll": "af1e501a0a0d00d710a3cda4c1e1b008462caa06505aa280a42d281af58187cd",
+        "modules\\modules\\xlang_net.x3pkg.exp": "551ecc521ab2f4dc5986ba71c93e4e9b4fd4e5550a185e54b9257179da01c7a1",
+        "modules\\modules\\xlang_net.x3pkg.lib": "3cdcf5d0e1a8a8e519c37c0f7408f150ac4e8008c32d95f7dfdb8dcde2000cd1",
+        "modules\\modules\\xlang_sqlite3.x3pkg.dll": "dac3fdda223d5d91367ad7bfbf839bf061c6d9287dfab7298038004c7626936d",
+        "modules\\modules\\xlang_sqlite3.x3pkg.exp": "28eefa90e3e4e7ad1e46f1899689333f6be4e42ff00ec79c78a40f7aeb175a5b",
+        "modules\\modules\\xlang_sqlite3.x3pkg.lib": "af055f28566bc3f6602bd8ff2fac1e8f3b0d29861985fd8a12ab562a49c3ae29",
+        "modules\\modules\\xlang_yaml.x3pkg.dll": "42ada58589b1cc302029e3c2a414c46431cc7fdd069286237f6f354fe8c6a783",
+        "modules\\modules\\xlang_yaml.x3pkg.exp": "98ab4fd8483f2e8ea139bd8b75616ee8aacf21b5a9c3317bb7edd3fdb849c3c4",
+        "modules\\modules\\xlang_yaml.x3pkg.lib": "fda25f4e7024f6c0dcd76641567b6f731e3d899f325ee4af8675985a89a58c3c",
+        "modules\\modules\\zstandard.backend_c.x3pkg.dll": "3a4ae5d3c73ed8088d94040a0ae038df7232decbdd5351609a7de6e19c852022",
+        "modules\\modules\\zstandard.backend_c.x3pkg.exp": "ba1e36723058acf3b49ccee8b3e81398b4726956b6f7c272fb2cf33d9f5ebcaa",
+        "modules\\modules\\zstandard.backend_c.x3pkg.lib": "5d5a66914e17933698113d73805f72a3d9c42791791eb178319ffa01a000de2e",
+        "modules\\psutil._psutil_windows.x3pkg.dll": "aeaadd62012b195a931f4d35c68eaddcc58fc482ea6a6d963bd08562245e061f",
+        "modules\\psutil._psutil_windows.x3pkg.exp": "6800f1c7e7b717af4d6011da7cc82e2c4a94599eaca844b7316ded1c5828e25e",
+        "modules\\psutil._psutil_windows.x3pkg.lib": "e94897e81e0e18da300fc218ab19f6a303b0770098e04aeeb0fe795551fc045a",
+        "modules\\pydantic_core._pydantic_core.x3pkg.dll": "c7dea7ee7716078cd744cf6d6a7d08477713333db4d4f03543496bc5046424e6",
+        "modules\\pydantic_core._pydantic_core.x3pkg.exp": "9347675442d8af3bd6e57be277b0eb0de5bd6b8f838ecfbccf5b4a8e12675b85",
+        "modules\\pydantic_core._pydantic_core.x3pkg.lib": "7111bcfefacafb932f3d16f4c13a726e8822046d2777a2fbe77bfd154c153e63",
+        "modules\\rpds.rpds.x3pkg.dll": "8df7c0ea3aa8a0248ba53bb08c871a60627dc70302ba264e7ff759bab61ac145",
+        "modules\\rpds.rpds.x3pkg.exp": "29280c84887a270bc21c23974634e4ef8fc48c559e61a2c84612f66d08ec7b62",
+        "modules\\rpds.rpds.x3pkg.lib": "5c7177cc9eb61d40b25d280f621fd71caf91c22f97853ab7ff4ca8a42f603152",
+        "modules\\xlang1_compat_sample.x3pkg.dll": "0e501c3d5e58f4413f24ea78d6816b5abbb18f27eb06bcb7369a7ef336f6289e",
+        "modules\\xlang1_compat_sample.x3pkg.exp": "621658710e25fac0c41738964aa522e7f25c3f3d1c1fac0b368be3d7d4d2bbb5",
+        "modules\\xlang1_compat_sample.x3pkg.lib": "c3a44ec097385c8123e42b403ec3f599ac7ad7b61fe9b8075078f075f2a69318",
+        "modules\\xlang__blake2.x3pkg.dll": "c7c52a771c328e443b3b9c2a13067fcbf4fcae4838e17f5c44242e3c36241d68",
+        "modules\\xlang__blake2.x3pkg.exp": "b2cf81915dc0ce96f38acbbe1baa56885829611d853449d0f09bd1bca041f9bf",
+        "modules\\xlang__blake2.x3pkg.lib": "82401a997ab29e527ca2eb2ae5a332df925ab1c1a7cd0f4db7cde819b5590339",
+        "modules\\xlang__hashlib.x3pkg.dll": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239",
+        "modules\\xlang__hashlib.x3pkg.exp": "783e2dd3a4bbd9dc2d9f40b8d2f17f68b01135d0cca6cdb87d2a231f3a64fdbb",
+        "modules\\xlang__hashlib.x3pkg.lib": "6d0de7eb0a23691de7ea5e275541b1d79b01c3c150e1bf60fe0a8371dee97142",
+        "modules\\xlang__ssl.x3pkg.dll": "1c01c0600681ee1f37244b2f96f8562a14881a9f0f84d417af6a8ecc9bb0889c",
+        "modules\\xlang__ssl.x3pkg.exp": "7d6c7e81d4d98ed2d8922af91c72f9686ab54c29a2e69131fbbfe5667f14a344",
+        "modules\\xlang__ssl.x3pkg.lib": "ffed29e487c9e2d94203d8720dc0b097a433635743a3136d599cfa0ae3580c25",
+        "modules\\xlang_curmodule_probe.x3pkg.dll": "8c37613b80ad573ec302b1012feb2c8714e3f4d682eab1828e86ef47ec9e1909",
+        "modules\\xlang_curmodule_probe.x3pkg.exp": "b63f4cf22cac482cfe92b51471961ec1cd3ecfd686af5a47f45759588da10d93",
+        "modules\\xlang_curmodule_probe.x3pkg.lib": "c889e1bc29ef5eff6e32e30a8d574a8ced356d383ad3d2debc02efb479abf1d5",
+        "modules\\xlang_device.x3pkg.dll": "2ae2e314025b899f5b434658cee0f1d2d70b89c5aeeb7b94ffa9eb8833ce12b0",
+        "modules\\xlang_device.x3pkg.exp": "db010707979b4c659d01813a898e90c1b29d054dc3c33b748da7d5dd9da2a172",
+        "modules\\xlang_device.x3pkg.lib": "04b30a9f85d720220fe7a7cc79cc34d84d7d05160a7be0850a6a224f7ea66ff3",
+        "modules\\xlang_graph_native.x3pkg.dll": "16eba1c2ebfdf2ff3f19477464da6b5b3f7213048884de145b060131b6ad427a",
+        "modules\\xlang_graph_native.x3pkg.exp": "aaf32195832af2be17ff56b96348f47d1b209374c6632befcdeffd0d85fb9522",
+        "modules\\xlang_graph_native.x3pkg.lib": "3489ec90a49e8bb4a6c73876598cfb54ef2d6c3dc709e0a003190e30803e904c",
+        "modules\\xlang_json.x3pkg.dll": "d8fa3264318a8a973c1272a3f908259a876b67959e4de86a59e5f5d0f42398b7",
+        "modules\\xlang_json.x3pkg.exp": "8b6fbae11b45a6763b9e74f2e8e7d56fc7369391748cbe077f619e80aaabb982",
+        "modules\\xlang_json.x3pkg.lib": "5a4ef2abf772b813094ce73ffe7ac00069c4c2b617f347684e0185a43cf5cab6",
+        "modules\\xlang_net.x3pkg.dll": "b5a3c71f36eac9c82a264ab45f3b4be15463b7b1bfe352bc662e4cd29e8075bd",
+        "modules\\xlang_net.x3pkg.exp": "3182cf2b170d6a80d4cb616a11e8807e3ed3283b51515b934f5afdbe448d65b4",
+        "modules\\xlang_net.x3pkg.lib": "3cdcf5d0e1a8a8e519c37c0f7408f150ac4e8008c32d95f7dfdb8dcde2000cd1",
+        "modules\\xlang_sqlite3.x3pkg.dll": "b69e608735c898d233f5e5b9b8ff2c9c34af8a077942b6b3de3b17bae0d4b5f7",
+        "modules\\xlang_sqlite3.x3pkg.exp": "6e76ed9deda275e42b8fe3677777f12508d30f75a6e1b1fa00071fe7bb8eeea2",
+        "modules\\xlang_sqlite3.x3pkg.lib": "af055f28566bc3f6602bd8ff2fac1e8f3b0d29861985fd8a12ab562a49c3ae29",
+        "modules\\xlang_yaml.x3pkg.dll": "5232bd1187ac429151ba7879de44e116a4a97ce80355b3d9230b4365946ee798",
+        "modules\\xlang_yaml.x3pkg.exp": "7389e6d716539fe17cabf43c512cc0fd2473095bc187dfd9aa7ecad675d3d9cb",
+        "modules\\xlang_yaml.x3pkg.lib": "fda25f4e7024f6c0dcd76641567b6f731e3d899f325ee4af8675985a89a58c3c",
+        "modules\\zstandard.backend_c.x3pkg.dll": "86098ae832848f2a835452bb2d219850755caf9cd3f1fbfd13c9d36e88b02867",
+        "modules\\zstandard.backend_c.x3pkg.exp": "a047e5256e4a5e7cf833bec5c64555db12c4a7c9caa2c4a250c32a637089dfe9",
+        "modules\\zstandard.backend_c.x3pkg.lib": "5d5a66914e17933698113d73805f72a3d9c42791791eb178319ffa01a000de2e",
+        "xlang3.exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+        "xlang3_runtime.dll": "ffd2ea4ef32dac1c00512f5ecd9c5d5b9c8770e6917fc90f8cb0cce442851f6b"
+      }
+    }
+  },
+  "hashes_unchanged": true,
+  "terminal_record": true
+}

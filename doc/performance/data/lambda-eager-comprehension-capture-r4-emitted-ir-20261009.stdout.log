@@ -1,0 +1,5 @@
+PASS ordinary_and_generator_controls
+PASS returned_lambda_all_eager_types
+PASS first_iterable_before_target_shadow
+PASS lambda_parameter_scope
+PASS filters_results_and_multiple_clauses

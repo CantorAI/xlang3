@@ -1,0 +1,37 @@
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+index abf5eb2c..d24ed564 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+@@ -4871,10 +4871,28 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_module_method(
+     return raise_runtime_error("module slot is not bound") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+   }
+   uint32_t resolved_module_slot = 0;
+-  std::string module_slot_error;
+-  if (!module_find_attr_slot(globals_module, module.global_slots[in.a], resolved_module_slot, module_slot_error) ||
+-      resolved_module_slot >= globals_module_obj->slots.size()) {
+-    return raise_runtime_error("module slot is not bound") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
++  auto& global_cache = instr_cache[ip].global;
++  // in.a names a compiled global, not the live Module's physical slot. Reuse
++  // only that binding's index under the same mutation guard as LoadModuleSlot;
++  // always reread its live Value before the existing export/call dispatch.
++  // The frame owns globals_module throughout this activation, and frame pop
++  // clears the global payload even when a scalar CallMethod proof survives.
++  // Do not retain a receiver/callee or carry this local-version proof across
++  // activations: Module versions alone do not prevent pointer-reuse ABA.
++  if (global_cache.kind == 1 && global_cache.version == globals_module_obj->version &&
++      global_cache.slot < globals_module_obj->slots.size() &&
++      globals_module_obj->slots[global_cache.slot].tag != ValueTag::Invalid) {
++    resolved_module_slot = global_cache.slot;
++  } else {
++    std::string module_slot_error;
++    if (!module_find_attr_slot(globals_module, module.global_slots[in.a], resolved_module_slot, module_slot_error) ||
++        resolved_module_slot >= globals_module_obj->slots.size()) {
++      return raise_runtime_error("module slot is not bound") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
++    }
++    // Publish scalar binding metadata before any export/property/call callback.
++    global_cache.kind = 1;
++    global_cache.slot = resolved_module_slot;
++    global_cache.version = globals_module_obj->version;
+   }
+   const auto& module_value = globals_module_obj->slots[resolved_module_slot];
+   auto* module_object = value_as_module(module_value);

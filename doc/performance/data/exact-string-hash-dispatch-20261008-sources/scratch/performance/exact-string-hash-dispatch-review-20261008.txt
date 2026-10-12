@@ -1,0 +1,89 @@
+STATIC REVIEW / PROPOSED TRIAL ONLY — 2026-10-08
+
+Recommendation: trial exact StringObject hashing before numeric payload conversion
+in the shared value_hash_key primitive. No native-module ABI, compiler IR,
+specialization cache or pure Python library implementation needs changing.
+The proposed patch changes only src/runtime/value_hash.cpp; git apply --check
+passed against the recorded source. No build, fixture, benchmark or engine edit
+was performed by this author. The SQLite exporter remains frozen and untouched.
+
+Current measured evidence (unpaired diagnostic only)
+doc/performance/data/python-hash-callback-cost-20261008.json is terminal, from
+accepted commit 9de05e0d945a2d75ea50dfb7ddba4843363dfe41, exact CPython 3.14.7,
+16384 operations per sample, five samples per row, 256 warmups, no instrumentation.
+Median builtin_hash_string is X 9.8370 ms versus CP 0.8337 ms: about 0.6004 us
+versus 0.0509 us per operation, 11.799x slower. Python-key builtin hash is
+2.2444 us/op and Python-key dict.get 3.0026 us/op. These include the Python loop,
+comparison and checksum work. They do not isolate native time or prove any
+candidate gain. Original raw logs and all five values remain intact.
+
+Concrete repeated work
+1. functional_builtins.cpp:5832 registers hash with builtin_fast_adapter<...,1>.
+   builtin_methods.h:94 already uses borrowed stack Values for the normal single
+   argument. It does not create a heap argument vector or increment string RC.
+   Runtime::register_native_builtin (runtime.cpp:1018) registers an internal
+   NativeFunctionObject. This builtin does not cross SDK X3CallContext/package
+   host conversion. CallArgsView (interpreter.h:45) holds register indices.
+2. Ordinary warmed CALL still routes ops_call.h:2955 to call_native_function
+   (:3737): counter eligibility, TLS error scratch, native monitoring/profile
+   eligibility, indirect adapter callback. fast_releases_vm_lock defaults false,
+   so hash does not normally unlock/relock the VM. Counter name locking is also
+   absent when instrumentation is disabled (perf_counters.cpp:46).
+3. builtin_hash (functional_builtins.cpp:5248) calls runtime_hash_value, which
+   calls runtime_value_hash_key (value_hash.cpp:492). Primitive string reaches
+   the final value_hash_key after weakref/instance/class/tuple/alias/set probes.
+4. Within value_hash_key, BEFORE the exact-string branch (:371), its Object path
+   calls value_int_like_hash (:362 -> bigint.cpp:931 -> value_to_payload:197).
+   Failed conversion invokes object_get_attr for '__xlang3_int_value__' and
+   '_value_' (bigint.cpp:216-217). It then calls int_payload_value (:366), whose
+   first value_int_like_to_i64 (bigint.cpp:899) repeats both object_get_attr
+   calls (:910 and :914). This is FOUR full generic failed attribute lookups.
+   Exact strings eventually reach object_get_attr's 'object has no attributes'
+   failure (object_model.cpp:4962). These generic probes are unnecessary for an
+   immutable StringObject, but are required for Python/SDK instances carrying
+   numeric payloads. No repeated byte hashing is necessary: string_object_hash
+   (value.h:811) already loads/stores cached_hash with relaxed atomics.
+
+First candidate and safety
+Move the existing exact string branch before numeric probes, keeping the existing
+Class identity fast branch first. The returned cached value and sentinel remapping
+stay byte-for-byte the same. value_as_string tests exact ObjectKind::String; Python
+str subclasses remain Instance objects and still use runtime hash hooks. Numeric
+subclasses, enum payloads, native hooks, weakrefs, cached tuple/bytes semantics,
+errors, builtin rebinding, tracing/profile/monitoring and call lifetime remain on
+their unchanged paths. The source comment explains the avoided failed lookups.
+The shared primitive benefits Python __hash__ returning hash(self.text), tuple
+members, sets and mappings that call it; specialized string dict indexing already
+uses string_object_hash directly and is an important unchanged control.
+
+A guarded primitive native hash intrinsic is missing, but defer it until the
+shared dispatch correction is measured. A later VM candidate could compute exact
+string hash directly after proving canonical builtin callback identity, one plain
+argument, no hooks/monitoring/debug, and safe result overwrite. Callable name or
+the live builtins dictionary alone is not sufficient proof. Callee rebinding,
+captured builtins, aliases, polymorphic arguments and output-finalizer reentry
+must remain observable. Keep normal Next when the old output can finalize, and
+read the complete hash before publishing an output that may alias the input.
+Do not add byte/tuple caches or repeat accepted trivial/captured callback work.
+
+Bounded validation after the parent's current freeze
+- Run proposed exact-string-hash-fixture-proposed-20261008.py on CPython 3.14.7
+  and accepted control before adoption; preserve any pre-existing failure.
+  It checks empty/ASCII/NUL/Unicode/long strings, equal independently constructed
+  strings in dict/set/tuple keys, repeated str-subclass and Python-key callbacks,
+  failures, and live builtin rebinding. No salted integer equality across runtimes.
+- If candidate proceeds, replay the SAME existing diagnostic source unchanged,
+  using alternating accepted-control/candidate order for seven pairs, all eight
+  rows, immutable binary/source hashes and full raw logs. Keep saved CP data as
+  its own reference; do not present historical unpaired CP as candidate speedup.
+- Expected affected rows: builtin_hash_string; Python-key builtin/direct/saved/
+  ordinary/wrapper hashes whose bodies hash the string; Python-key dict.get.
+  Unchanged controls: string_dict_get and separate class/numeric hashing. Do not
+  drop slow controls or alter loop/warmup/sample/source workloads.
+- Require the current fixed gate 11/21/5/0.1 and relevant correctness suites.
+  Only then obtain an original official SQLGlot/sqlite_synth result if the parent
+  selects it. Native samplers are diagnostic only, never official scores.
+
+Remaining uncertainty: source proves redundant dispatch, not its share of 0.6004
+us/op, and no speedup has yet been measured. This narrow correction is preferable
+as the first controlled trial because it does not require a new callable guard.

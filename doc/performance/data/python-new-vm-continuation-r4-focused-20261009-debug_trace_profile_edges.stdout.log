@@ -1,0 +1,22 @@
+plain 6
+handled handled
+generator 1
+generator-stop 2
+coroutine 3
+opcode 2
+coro_target ['call', 'line', 'return:None', 'call', 'exception:StopIteration', 'line', 'return:3']
+gen_target ['call', 'line', 'return:1', 'call', 'line', 'return:2']
+handled_target ['call', 'line', 'line', 'exception:ValueError', 'line', 'line', "return:'handled'"]
+opcode_target ('call', 'return:2', 0, False)
+plain_target ['call', 'line', 'line', 'return:6']
+thread_target ['call', 'line', 'return:4']
+target 2
+gen-yield 5
+gen-return 6
+coro 7
+profile_coro ['call', 'return:None', 'call', 'return:7']
+profile_gen ['call', 'return:5', 'call', 'return:6']
+profile_target ['call', 'c_call:len', 'c_return:len', 'c_call:len', 'c_exception:len', 'return:2']
+profile_thread ['call', 'c_call:len', 'c_return:len', 'return:3']
+monitor-race-value 8
+monitor-race ['target'] [True] False

@@ -1,0 +1,7 @@
+returned wrappers
+initializer and name mutation
+bases and metaclass mutation
+code and live defaults
+no retained class or initializer
+binding and original exceptions
+profile and reentrant code mutation

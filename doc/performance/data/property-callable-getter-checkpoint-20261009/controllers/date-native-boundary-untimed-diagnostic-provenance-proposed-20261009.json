@@ -1,0 +1,79 @@
+{
+  "status": "frozen_untimed_native_boundary_diagnostic_proposal",
+  "source": "scratch/performance/date-native-boundary-untimed-diagnostic-proposed-20261009.py",
+  "source_sha256": "7fdda0ebbaa1851cb1e0dff4ca39b7cff56a0fa672675d74d504ac02693c2617",
+  "parent_manifest": "build-repro/controls/property-callable-getter-parent-20261009/preserved-release-provenance.json",
+  "parent_manifest_sha256": "608aadc303532321de8ba8cf464ce7d341ba6366373d386ab2230e865c9f6573",
+  "preparation_head": "3fec9047ddd7c12e3dbcdd511167e972ecc314a5",
+  "parent_recorded_source_count": 124,
+  "parent_release_count": 178,
+  "parent_scope": "Preparation lineage only; each child requires caller-pinned actual executable and runtime DLL SHA256 at the fixed paths. Never silently reuse parent hashes after application/build.",
+  "original_sources": {
+    "C:/Python/Python314/Lib/datetime.py": "8262c677654011417ae08751ae9c38edc8ca802d21c65232452529248a17aae9",
+    "C:/Python/Python314/Lib/_pydatetime.py": "63249ee7bac11a6c1cee7fae0355f1432d17c60bd3d503346cf9eab2cb875ec9"
+  },
+  "operations": {
+    "setup_date_count": 1,
+    "direct_reduction_calls": 64,
+    "direct_bytes_state_restoration_calls": 64,
+    "state_hex": "07bc0507",
+    "timers_used": false,
+    "profile_or_trace_installed": false,
+    "original_pickle_body_run": false,
+    "speed_or_workload_fraction_claim": false
+  },
+  "observational_fields": [
+    "native_datetime_imported",
+    "native_datetime_file",
+    "date_module",
+    "date_qualname",
+    "reducer callable type/code metadata",
+    "constructor callable type/code metadata"
+  ],
+  "strict_semantics": [
+    "canonical reducer class identity",
+    "tuple of one exact four-byte bytes state",
+    "restored exact date class and (1980,5,7) fields",
+    "equal restored value",
+    "CP reducer has no Python code; current X fallback reducer has Python code",
+    "no trace/profile and unoptimized exact3.14.7",
+    "executable/DLL and two Python source hashes stable before/after"
+  ],
+  "primary_reference": "https://github.com/python/cpython/blob/v3.14.7/Modules/_datetimemodule.c#L3002-L3056",
+  "native_reducer_reference": "https://github.com/python/cpython/blob/v3.14.7/Modules/_datetimemodule.c#L3661-L3673",
+  "frequency_limit": "Counts are executed caller operations in two artificial finite diagnostic loops, not observed original benchmark frequencies. The static original-body estimate of 820 reducers per2460 dumps is separately derived and is not a CPU fraction.",
+  "root_execution_policy": [
+    "Root only; independently verify the frozen source hash and supplied current binary pins.",
+    "One CP child then one X child; raw stdout/stderr captured separately; use120s cap; no retries.",
+    "A failed assertion/exception retains original raw traceback, does not invent passing metadata.",
+    "No timing admission or benchmark score; preserve original purePython pickle workload unchanged.",
+    "If primary executable/DLL no longer matches parent pins after property application, supply the actual new hashes and record that new identity explicitly; do not label the new build as the parent."
+  ],
+  "proposed_commands": [
+    [
+      "C:/Python/Python314/python.exe",
+      "-I",
+      "scratch/performance/date-native-boundary-untimed-diagnostic-proposed-20261009.py",
+      "--runtime",
+      "cpython3147",
+      "--exe-sha256",
+      "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "--dll-sha256",
+      "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700"
+    ],
+    [
+      "build-repro/main-verify-20261006/Release/xlang3.exe",
+      "scratch/performance/date-native-boundary-untimed-diagnostic-proposed-20261009.py",
+      "--runtime",
+      "xlang3",
+      "--exe-sha256",
+      "c6358221bd7836f877c566557269b4bf9a011a9a2ca33060eeb2e00b4e6de5b4",
+      "--dll-sha256",
+      "05c05c8f4f252c276aa9810480b3992d73159a4bca96499cf94b36e559c3d724"
+    ]
+  ],
+  "author_execution": false,
+  "author_ast": false,
+  "engine_or_test_edits": false,
+  "staging": false
+}

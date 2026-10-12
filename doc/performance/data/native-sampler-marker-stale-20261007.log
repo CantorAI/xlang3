@@ -1,0 +1,5 @@
+usage: sample_native_windows.py [-h] --output OUTPUT
+                                [--interval-ms INTERVAL_MS]
+                                [--sample-after-file SAMPLE_AFTER_FILE]
+                                ...
+sample_native_windows.py: error: start marker already exists; use a fresh path

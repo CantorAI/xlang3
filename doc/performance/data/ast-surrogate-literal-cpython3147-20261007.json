@@ -1,0 +1,5 @@
+{
+  "input_repr": "'\\ud800'",
+  "decoded_repr": "'\\ud800'",
+  "decoded_matches": true
+}

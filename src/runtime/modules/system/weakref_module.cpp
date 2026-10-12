@@ -41,6 +41,7 @@ namespace {
 
 static constexpr const char* kWeakrefCallbackAttr = "__xlang3_weakref_callback__";
 static constexpr const char* kWeakrefHashAttr = "__xlang3_weakref_hash__";
+static constexpr const char* kWeakrefInlineTargetNativeType = "_weakref.ref";
 Value weakref_reference_type_value = Value::invalid();
 std::atomic_uint64_t weakref_reference_type_version{0};
 
@@ -71,6 +72,34 @@ std::vector<WeakrefEntry>& weakref_registry() {
   return *refs;
 }
 
+// These indexes contain raw pointers, just like the enumeration registry:
+// neither the referent nor the reference is kept alive. All accesses share
+// weakref_registry_mutex, and invalidation removes keys before memory reuse.
+// Keep enumeration separate so collector traversal and callback order retain
+// their existing behavior; ordinary ref reuse/dereference must not scan every
+// unrelated weak reference imported by a Python library such as inspect.
+std::unordered_map<Object*, Object*>& weakref_target_by_reference() {
+  static auto* targets = new std::unordered_map<Object*, Object*>();
+  return *targets;
+}
+
+std::unordered_map<Object*, std::vector<Object*>>& weakref_references_by_target() {
+  static auto* references = new std::unordered_map<Object*, std::vector<Object*>>();
+  return *references;
+}
+
+// Caller holds the registry lock. Erase preserves registration order within a
+// target, including the reverse registration order used for callbacks.
+void remove_weakref_target_index(Object* target, Object* reference) {
+  if (target == nullptr) return;
+  auto& index = weakref_references_by_target();
+  auto found = index.find(target);
+  if (found == index.end()) return;
+  auto& references = found->second;
+  references.erase(std::remove(references.begin(), references.end(), reference), references.end());
+  if (references.empty()) index.erase(found);
+}
+
 std::recursive_mutex& weakref_registry_mutex() {
   static auto* mutex = new std::recursive_mutex();
   return *mutex;
@@ -79,7 +108,7 @@ std::recursive_mutex& weakref_registry_mutex() {
 bool weakref_retain_if_alive(Object* object, Value& out) {
   if (object == nullptr) return false;
   if (object->kind == ObjectKind::String &&
-      reinterpret_cast<StringObject*>(object)->immortal.load(std::memory_order_relaxed)) {
+      string_object_is_immortal(*reinterpret_cast<StringObject*>(object))) {
     Value retained;
     retained.tag = ValueTag::Object;
     retained.flags = 0;
@@ -139,28 +168,63 @@ void register_weakref_instance(const Value& ref, const Value& target) {
   auto& refs = weakref_registry();
   Object* ref_pointer = ref.tag == ValueTag::Object ? ref.as.obj : nullptr;
   Object* target_pointer = target.tag == ValueTag::Object ? target.as.obj : nullptr;
+  auto* ref_instance = value_as_instance(ref);
+  const bool exact_builtin_reference = ref_instance != nullptr &&
+      weakref_reference_type_value.tag != ValueTag::Invalid &&
+      value_is(ref_instance->klass, weakref_reference_type_value);
+  const bool has_inline_target = exact_builtin_reference &&
+      ref_instance->native_type == kWeakrefInlineTargetNativeType;
+  const bool can_install_inline_target = exact_builtin_reference &&
+      (has_inline_target || (ref_instance->native_type.empty() &&
+          ref_instance->native_data == nullptr &&
+          ref_instance->native_data_cast == nullptr &&
+          ref_instance->native_data_cleanup == nullptr));
+  if (can_install_inline_target) {
+    // Exact builtin refs have no other native payload. Keeping their borrowed
+    // referent pointer in the instance avoids a hash lookup on every ref().
+    // Access and invalidation remain under weakref_registry_mutex so retaining
+    // the target cannot race its final release; subclasses keep the map path.
+    ref_instance->native_type = kWeakrefInlineTargetNativeType;
+    ref_instance->native_data = target_pointer;
+  }
   if (ref_pointer != nullptr)
     ref_pointer->gc_tracking_state.fetch_or(
         kObjectWeakrefReferenceFlag, std::memory_order_release);
   if (target_pointer != nullptr)
     target_pointer->gc_tracking_state.fetch_or(
         kObjectWeakrefTargetFlag, std::memory_order_release);
-  for (auto& existing : refs) {
-    if (existing.ref == ref_pointer) {
-      existing.target = target_pointer;
-      return;
+  auto& targets = weakref_target_by_reference();
+  auto found = targets.find(ref_pointer);
+  if (found != targets.end()) {
+    if (found->second == target_pointer) return;
+    remove_weakref_target_index(found->second, ref_pointer);
+    found->second = target_pointer;
+    // Reinitialization is rare; preserve the enumeration entry's original
+    // position instead of changing global callback registration order.
+    for (auto& existing : refs) {
+      if (existing.ref == ref_pointer) {
+        existing.target = target_pointer;
+        break;
+      }
     }
+  } else {
+    refs.push_back({ref_pointer, target_pointer});
+    targets.emplace(ref_pointer, target_pointer);
   }
-  refs.push_back({ref_pointer, target_pointer});
+  if (target_pointer != nullptr)
+    weakref_references_by_target()[target_pointer].push_back(ref_pointer);
 }
 
 std::vector<Value> weakref_candidates_for_target(Object* target) {
   std::vector<Value> candidates;
   std::lock_guard lock(weakref_registry_mutex());
-  for (const auto& entry : weakref_registry()) {
-    if (entry.target != target || entry.ref == nullptr) continue;
+  const auto& index = weakref_references_by_target();
+  const auto found = index.find(target);
+  if (found == index.end()) return candidates;
+  candidates.reserve(found->second.size());
+  for (Object* reference : found->second) {
     Value candidate;
-    if (weakref_retain_if_alive(entry.ref, candidate))
+    if (weakref_retain_if_alive(reference, candidate))
       candidates.push_back(std::move(candidate));
   }
   return candidates;
@@ -195,7 +259,8 @@ bool weakref_reference_new(Runtime& runtime, const Value* args, uint32_t argc, V
       if (instance == nullptr || !value_is(instance->klass, args[0])) continue;
       Value callback;
       std::string ignored;
-      if (object_get_attr(candidate, kWeakrefCallbackAttr, callback, ignored) && callback.tag == ValueTag::None) {
+      if (object_get_attr(candidate, kWeakrefCallbackAttr, callback, ignored) &&
+          callback.tag == ValueTag::None) {
         value_assign_fast(out, candidate);
         return true;
       }
@@ -464,6 +529,7 @@ Value weakref_reference_type(Runtime& runtime) {
     reference_class->restrict_instance_attrs = true;
     reference_class->allow_instance_dict = false;
     reference_class->allow_weakref = false;
+    class_forget_slot_declarations(reference_class);
     reference_class->instance_slot_names = {kWeakrefCallbackAttr, kWeakrefHashAttr};
     reference_class->instance_slot_indices.clear();
     for (size_t i = 0; i < reference_class->instance_slot_names.size(); ++i) {
@@ -492,18 +558,20 @@ bool weakref_ref(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
       if (instance == nullptr || !value_is(instance->klass, reference_type)) continue;
       Value callback;
       std::string ignored;
-      if (object_get_attr(candidate, kWeakrefCallbackAttr, callback, ignored) && callback.tag == ValueTag::None) {
+      if (object_get_attr(candidate, kWeakrefCallbackAttr, callback, ignored) &&
+          callback.tag == ValueTag::None) {
         value_assign_fast(out, candidate);
         return true;
       }
     }
   }
   out = make_weakref_ref(runtime, args[0]);
-  if (argc == 2) {
-    return object_set_attr(out, kWeakrefCallbackAttr, args[1], error);
-  } else {
-    return object_set_attr(out, kWeakrefCallbackAttr, Value::none(), error);
-  }
+  // make_weakref_ref initializes the callback slot to None before publishing
+  // the reference. Keep the common weakref.ref(obj) path off generic attribute
+  // dispatch; only replace that default when the caller supplied a callback.
+  return argc == 2 && args[1].tag != ValueTag::None
+      ? object_set_attr(out, kWeakrefCallbackAttr, args[1], error)
+      : true;
 }
 
 bool weakref_proxy_getattr(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -854,11 +922,9 @@ bool weakref_getweakrefcount(Runtime& runtime, const Value* args, uint32_t argc,
   int64_t count = 0;
   if (args[0].tag == ValueTag::Object) {
     std::lock_guard lock(weakref_registry_mutex());
-    for (const auto& entry : weakref_registry()) {
-      if (entry.target != nullptr && entry.target == args[0].as.obj) {
-        ++count;
-      }
-    }
+    const auto& index = weakref_references_by_target();
+    const auto found = index.find(args[0].as.obj);
+    if (found != index.end()) count = static_cast<int64_t>(found->second.size());
   }
   value_set_int64(out, count);
   return true;
@@ -940,6 +1006,20 @@ bool weakref_cached_hash(const Value& ref, size_t& out) {
   return true;
 }
 
+bool weakref_reference_call_fast_eligible(const Value& ref) {
+  auto* instance = value_as_instance(ref);
+  // This proof deliberately covers only the exact builtin and an unchanged
+  // class dictionary. Subclasses and monkey-patched __call__ stay on normal
+  // special-method dispatch, preserving Python's override semantics.
+  if (instance == nullptr || weakref_reference_type_value.tag == ValueTag::Invalid ||
+      !value_is(instance->klass, weakref_reference_type_value)) {
+    return false;
+  }
+  auto* klass = value_as_class(instance->klass);
+  return klass != nullptr && klass->version ==
+      weakref_reference_type_version.load(std::memory_order_relaxed);
+}
+
 Value make_weakref_ref(Runtime& runtime, const Value& target) {
   Value ref = Value::instance(weakref_reference_type(runtime));
   std::string ignored;
@@ -951,21 +1031,26 @@ Value make_weakref_ref(Runtime& runtime, const Value& target) {
 bool weakref_get_target(const Value& ref, Value& out) {
   if (ref.tag != ValueTag::Object) return false;
   std::lock_guard lock(weakref_registry_mutex());
-  for (const auto& entry : weakref_registry()) {
-    if (entry.ref == ref.as.obj && entry.target != nullptr)
-      return weakref_retain_if_alive(entry.target, out);
+  auto* instance = value_as_instance(ref);
+  if (instance != nullptr &&
+      instance->native_type == kWeakrefInlineTargetNativeType &&
+      weakref_reference_type_value.tag != ValueTag::Invalid &&
+      value_is(instance->klass, weakref_reference_type_value)) {
+    return weakref_retain_if_alive(
+        static_cast<Object*>(instance->native_data), out);
   }
-  return false;
+  const auto& index = weakref_target_by_reference();
+  const auto found = index.find(ref.as.obj);
+  return found != index.end() && weakref_retain_if_alive(found->second, out);
 }
 
 bool weakref_find_ref(const Value& target, Value& out) {
   std::lock_guard lock(weakref_registry_mutex());
-  for (const auto& entry : weakref_registry()) {
-    if (entry.target != nullptr && target.tag == ValueTag::Object && entry.target == target.as.obj) {
-      return weakref_retain_if_alive(entry.ref, out);
-    }
-  }
-  return false;
+  if (target.tag != ValueTag::Object) return false;
+  const auto& index = weakref_references_by_target();
+  const auto found = index.find(target.as.obj);
+  return found != index.end() && !found->second.empty() &&
+         weakref_retain_if_alive(found->second.front(), out);
 }
 
 void weakref_invalidate_target(Object* target) {
@@ -995,9 +1080,26 @@ void weakref_invalidate_target(Object* target) {
             callback_candidates.push_back(std::move(owned));
         }
         entry->target = nullptr;
+        weakref_target_by_reference()[entry->ref] = nullptr;
+        if (entry->ref != nullptr && entry->ref->kind == ObjectKind::Instance) {
+          auto* ref_instance = reinterpret_cast<InstanceObject*>(entry->ref);
+          if (ref_instance->native_type == kWeakrefInlineTargetNativeType) {
+            // Clear the borrowed address before target storage is reclaimed;
+            // removing the marker restores ordinary instance GC classification.
+            ref_instance->native_data = nullptr;
+            ref_instance->native_type.clear();
+          }
+        }
       }
+      weakref_references_by_target().erase(target);
     }
     if ((roles & kObjectWeakrefReferenceFlag) != 0) {
+      auto& targets = weakref_target_by_reference();
+      auto found = targets.find(target);
+      if (found != targets.end()) {
+        remove_weakref_target_index(found->second, target);
+        targets.erase(found);
+      }
       refs.erase(
           std::remove_if(
               refs.begin(), refs.end(),
@@ -1103,6 +1205,8 @@ void visit_strong_object_edges(Object* object, Object* cycle_root, Visit visit) 
     for (const auto& item : value->defaults) edge(item);
     for (const auto& item : value->positional_defaults) edge(item);
     for (const auto& item : value->kwdefaults) edge(item.second);
+    edge(value->kwdefaults_dict);
+    edge(value->code_object);
   } else if (auto* value = value_as_native_function(borrowed)) {
     if (value->attrs_dict != nullptr) edge(*value->attrs_dict);
   } else if (auto* value = value_as_generic_alias(borrowed)) {
@@ -1117,6 +1221,12 @@ void visit_strong_object_edges(Object* object, Object* cycle_root, Visit visit) 
     edge(value->metaclass);
     for (const auto& base : value->bases) edge(base);
     for (const auto& member : value->mro_cache) edge(member);
+    // This field is either invalid or an owning tuple Value. Skip the generic
+    // borrowed-reference test on the GC hot path; the tuple remains a required
+    // Class -> tuple -> Class edge for collecting isolated class cycles.
+    const Value& public_mro = value->public_mro_cache;
+    if (public_mro.tag == ValueTag::Object && public_mro.as.obj != nullptr)
+      visit(public_mro.as.obj);
     for (const auto& item : value->attrs) edge(item.second);
   } else if (auto* value = value_as_instance(borrowed)) {
     if (value->klass.tag == ValueTag::Object &&
@@ -1149,6 +1259,8 @@ void visit_strong_object_edges(Object* object, Object* cycle_root, Visit visit) 
     edge(value->doc);
     edge(value->name);
   } else if (auto* value = value_as_frame(borrowed)) {
+    // Match the frame's lazy owning f_code edge in strong-component accounting.
+    edge(value->code_object);
     edge(value->globals_module);
     edge(value->locals);
     for (const auto& item : value->local_snapshot) edge(item);
@@ -1270,7 +1382,12 @@ uint64_t collect_isolated_class_component(Runtime& runtime, ClassObject* klass) 
         const auto found = item.tag == ValueTag::Object ? indices.find(item.as.obj) : indices.end();
         return found != indices.end() && reaches_class[found->second];
       });
-  if (cyclic_attributes.empty() && !cyclic_mro) return 0;
+  const auto public_mro_position = klass->public_mro_cache.tag == ValueTag::Object
+      ? indices.find(klass->public_mro_cache.as.obj)
+      : indices.end();
+  const bool cyclic_public_mro = public_mro_position != indices.end() &&
+      reaches_class[public_mro_position->second];
+  if (cyclic_attributes.empty() && !cyclic_mro && !cyclic_public_mro) return 0;
   Value borrowed;
   borrowed.tag = ValueTag::Object;
   borrowed.flags = kXlangValueBorrowedRefFlag;
@@ -1285,6 +1402,8 @@ uint64_t collect_isolated_class_component(Runtime& runtime, ClassObject* klass) 
     klass->mro_cache.clear();
     klass->mro_cache_version = 0;
   }
+  if (cyclic_public_mro) value_set_invalid(klass->public_mro_cache);
+  if (cyclic_mro || cyclic_public_mro) klass->mro_values_view.clear();
   const uint64_t collected = static_cast<uint64_t>(pending.size());
   value_set_invalid(keep_alive);
   return collected;
@@ -1293,49 +1412,57 @@ uint64_t collect_isolated_class_component(Runtime& runtime, ClassObject* klass) 
 uint64_t collect_isolated_function_component(FunctionObject* function) {
   constexpr size_t kMaximumCandidateObjects = 4096;
   auto* root = &function->header;
-  // Function attribute cycles normally leave the function with one strong
-  // reference from the cycle.  This fast rejection matters because test and
-  // framework registries can hold weak references to thousands of live
-  // functions, none of which are collection candidates.
+  // Ordinary attribute cycles normally leave one strong reference. Keep
+  // that cheap rejection for unexposed defaults: framework weak registries
+  // can hold thousands of live functions. A live keyword-default dictionary
+  // can add another back-edge, so verify its candidate component's complete
+  // internal reference counts instead of rejecting it solely at refcount > 1.
   const auto root_refcount = root->refcnt.load(std::memory_order_relaxed);
-  if (root_refcount != 1 ||
-      function->attrs_dict.tag != ValueTag::Object) {
+  if (root_refcount != 1 && function->kwdefaults_dict.tag != ValueTag::Object) {
     return 0;
   }
-  const auto* attrs_dict = value_as_dict(function->attrs_dict);
-  if (attrs_dict == nullptr) return 0;
   bool has_path_to_function = false;
-  for (const auto& entry : attrs_dict->entries) {
-    if (entry.second.tag != ValueTag::Object || entry.second.as.obj == nullptr)
-      continue;
-    if (entry.second.as.obj == root) {
-      has_path_to_function = true;
-      break;
+  const Value* dictionaries[] = {&function->attrs_dict, &function->kwdefaults_dict};
+  for (const auto* dictionary : dictionaries) {
+    const auto* attrs_dict = value_as_dict(*dictionary);
+    if (attrs_dict == nullptr && mapping_is_dict(*dictionary)) {
+      const auto* instance = value_as_instance(*dictionary);
+      if (instance != nullptr) attrs_dict = value_as_dict(instance->mapping_storage);
     }
-    const auto* instance = value_as_instance(entry.second);
-    if (instance == nullptr || !instance_has_native_gc_references(*instance)) continue;
-
-    // Most native-backed attributes do not point back to their owner.  Check
-    // reachability before constructing the complete reference graph so a
-    // gc.collect() remains proportional to actual cycle candidates.
-    constexpr size_t kMaximumReachabilityObjects = 2048;
-    std::vector<Object*> pending;
-    pending.reserve(instance->native_gc_references.size() + 12);
-    instance_visit_native_gc_references(*instance,
-        [&](Object* target) { pending.push_back(target); });
-    std::unordered_set<Object*> visited;
-    while (!pending.empty() && visited.size() < kMaximumReachabilityObjects) {
-      auto* candidate = pending.back();
-      pending.pop_back();
-      if (candidate == root) {
+    if (attrs_dict == nullptr) continue;
+    for (const auto& entry : attrs_dict->entries) {
+      if (entry.second.tag != ValueTag::Object || entry.second.as.obj == nullptr)
+        continue;
+      if (entry.second.as.obj == root) {
         has_path_to_function = true;
         break;
       }
-      if (candidate == nullptr || !visited.insert(candidate).second) continue;
-      visit_strong_object_edges(candidate, root, [&](Object* target) {
-        if (target != nullptr && visited.find(target) == visited.end())
-          pending.push_back(target);
-      });
+      const auto* instance = value_as_instance(entry.second);
+      if (instance == nullptr || !instance_has_native_gc_references(*instance)) continue;
+
+      // Most native-backed attributes do not point back to their owner.  Check
+      // reachability before constructing the complete reference graph so a
+      // gc.collect() remains proportional to actual cycle candidates.
+      constexpr size_t kMaximumReachabilityObjects = 2048;
+      std::vector<Object*> pending;
+      pending.reserve(instance->native_gc_references.size() + 12);
+      instance_visit_native_gc_references(*instance,
+          [&](Object* target) { pending.push_back(target); });
+      std::unordered_set<Object*> visited;
+      while (!pending.empty() && visited.size() < kMaximumReachabilityObjects) {
+        auto* candidate = pending.back();
+        pending.pop_back();
+        if (candidate == root) {
+          has_path_to_function = true;
+          break;
+        }
+        if (candidate == nullptr || !visited.insert(candidate).second) continue;
+        visit_strong_object_edges(candidate, root, [&](Object* target) {
+          if (target != nullptr && visited.find(target) == visited.end())
+            pending.push_back(target);
+        });
+      }
+      if (has_path_to_function) break;
     }
     if (has_path_to_function) break;
   }
@@ -1362,7 +1489,10 @@ uint64_t collect_isolated_function_component(FunctionObject* function) {
       adjacency[index].push_back(position->second);
     };
     if (index == 0) {
-      add_edge(function->attrs_dict.as.obj);
+      for (const auto* dictionary : dictionaries) {
+        if (dictionary->tag == ValueTag::Object && dictionary->as.obj != nullptr)
+          add_edge(dictionary->as.obj);
+      }
     } else {
       visit_strong_object_edges(nodes[index], root, add_edge);
     }
@@ -1403,7 +1533,13 @@ uint64_t collect_isolated_function_component(FunctionObject* function) {
       function->attrs_dict.tag == ValueTag::Object
           ? function->attrs_dict.as.obj
           : nullptr);
-  if (attrs == indices.end() || !reaches_function[attrs->second]) return 0;
+  const auto keyword_defaults = indices.find(
+      function->kwdefaults_dict.tag == ValueTag::Object
+          ? function->kwdefaults_dict.as.obj : nullptr);
+  const bool clear_attrs = attrs != indices.end() && reaches_function[attrs->second];
+  const bool clear_keyword_defaults = keyword_defaults != indices.end() &&
+      reaches_function[keyword_defaults->second];
+  if (!clear_attrs && !clear_keyword_defaults) return 0;
 
   Value borrowed;
   borrowed.tag = ValueTag::Object;
@@ -1411,7 +1547,8 @@ uint64_t collect_isolated_function_component(FunctionObject* function) {
   borrowed.as.obj = root;
   Value keep_alive;
   value_assign_fast(keep_alive, borrowed);
-  value_set_invalid(function->attrs_dict);
+  if (clear_attrs) value_set_invalid(function->attrs_dict);
+  if (clear_keyword_defaults) value_set_none(function->kwdefaults_dict);
   const uint64_t collected = static_cast<uint64_t>(pending.size());
   value_set_invalid(keep_alive);
   return collected;

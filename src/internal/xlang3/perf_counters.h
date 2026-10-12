@@ -40,7 +40,7 @@ struct XlangPerfCounters {
   std::atomic_uint64_t store_local_moves{0};
   std::atomic_uint64_t store_local_copies{0};
   std::atomic_uint64_t call_argument_transfers{0};
-  std::atomic_uint64_t call_ex_varargs_kwonly_bindings{0};
+  std::atomic_uint64_t call_ex_single_star_varargs_bindings{0};
   std::array<std::atomic_uint64_t, xlang_perf_monitoring_event_count> monitoring_dispatches{};
   std::array<std::atomic_uint64_t, xlang_perf_monitoring_event_count> monitoring_callbacks{};
   std::atomic_uint64_t frame_snapshot_calls{0};
@@ -133,9 +133,9 @@ XLANG3_HOT_INLINE void xlang_perf_count_call_argument_transfer() {
   }
 }
 
-XLANG3_HOT_INLINE void xlang_perf_count_call_ex_varargs_kwonly_binding() {
+XLANG3_HOT_INLINE void xlang_perf_count_call_ex_single_star_varargs_binding() {
   if (xlang_perf_enabled()) {
-    xlang_perf_counters().call_ex_varargs_kwonly_bindings.fetch_add(1, std::memory_order_relaxed);
+    xlang_perf_counters().call_ex_single_star_varargs_bindings.fetch_add(1, std::memory_order_relaxed);
   }
 }
 

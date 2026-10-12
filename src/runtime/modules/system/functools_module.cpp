@@ -236,12 +236,13 @@ bool lru_wrapper_call(Runtime& runtime, const Value* args, uint32_t argc,
     if (!keys_equal(runtime, entry.key, key, equal, error)) return false;
     if (equal) { out = result; return true; }
   }
+  LruEntry new_entry{std::move(key), result, hash, ++state.clock};
   if (state.maxsize < 0 || state.entries.size() < static_cast<size_t>(state.maxsize)) {
-    state.entries.push_back({std::move(key), result, hash, ++state.clock});
+    state.entries.push_back(std::move(new_entry));
   } else if (!state.entries.empty()) {
     auto oldest = std::min_element(state.entries.begin(), state.entries.end(),
         [](const LruEntry& a, const LruEntry& b) { return a.age < b.age; });
-    *oldest = {std::move(key), result, hash, ++state.clock};
+    *oldest = std::move(new_entry);
   }
   out = std::move(result);
   return true;

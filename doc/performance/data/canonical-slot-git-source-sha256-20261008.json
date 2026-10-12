@@ -1,0 +1,37 @@
+{
+  "src/executor/xlang_vm/xlang_vm_attr.cpp": {
+    "compiled_working_sha256": "5f09f741ceab8f72c2b918912ba30e12f12bcde91988097d056ae3f20a62bb64",
+    "staged_sha256": "1ce47fa154dcaa13bc65e296c47c20303d5957c6eedb08e3ee7ece8e84461c54",
+    "only_line_ending_normalization_allowed": true
+  },
+  "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": {
+    "compiled_working_sha256": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+    "staged_sha256": "b8c1123d33a4413a9c286c586125407c17e661210710cfac1418de5c0af8cd92",
+    "only_line_ending_normalization_allowed": true
+  },
+  "tests/cpp/canonical_slot_read_cases.h": {
+    "compiled_working_sha256": "cb8346950866fade0435e2fadcac56ff1eb403995dc4648f24d3ed7be89f7e50",
+    "staged_sha256": "dd411066ebaf1051782ea9adb34a7b4e84b29f1f9b910730da0b217888d991c2",
+    "only_line_ending_normalization_allowed": true
+  },
+  "tests/cpp/interpreter_tests.cpp": {
+    "compiled_working_sha256": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+    "staged_sha256": "c21a4fa8292e074c6dff8f9b847fcae8b54717ced019392b30f50bb88fd2f778",
+    "only_line_ending_normalization_allowed": true
+  },
+  "tests/run_fixtures.py": {
+    "compiled_working_sha256": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+    "staged_sha256": "cd1271b10af498a86b5b71aa76b5a6af95abb69ca99dad23b2a866dcd19a4d95",
+    "only_line_ending_normalization_allowed": true
+  },
+  "tests/fixtures/core/canonical_slot_reads.py": {
+    "compiled_working_sha256": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+    "staged_sha256": "6afb7f1d5901b77ee02b4aee58a01d3ac035cb714e865ce2131ac54dfc79bd5a",
+    "only_line_ending_normalization_allowed": true
+  },
+  "tests/fixtures/expected/canonical_slot_reads.out": {
+    "compiled_working_sha256": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+    "staged_sha256": "d1ab7fe480e1fa69e42fb355b8fc8dbb9b78604ad2aa1ff77f707c68160e676c",
+    "only_line_ending_normalization_allowed": true
+  }
+}

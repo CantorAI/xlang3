@@ -1,0 +1,15 @@
+# SQLite aggregate R5 static readiness
+
+R5 preserves all R4 artifacts. It corrects the C++ helper's exceptional lifetime defect: registered factory contexts previously held pointers to helper-stack counters, which could die before an outer runtime released a pending Python exception/traceback retaining that connection. Declaring counters before local values was insufficient because the runtime outlived the helper.
+
+`FactoryState` now owns `std::shared_ptr<FactoryCounters>`. Every factory call and destructor accesses that owned storage; no factory contains a pointer to a stack counter. All original exception transport, registration success/failure, factory replacement, empty-group, close and repeated-close assertions remain.
+
+The new bounded failure test registers a native factory, calls a Python function that raises `RuntimeError(connection)` so its exception args deterministically retain the connection, and throws a distinct C++ marker to unwind all local connection/factory owners. It requires that the unused registered factory survives while the pending Python error owns it. After detaching that pending exception through the real package-host ABI, the observer releases its counter ownership. A weak pointer then proves the factory still owns the storage. Releasing the exception must invoke factory cleanup exactly once; releasing the final observer must expire the storage. The detached exception has an SDK RAII owner, so assertion failure cannot leak that transport value.
+
+The four engine candidate sources are byte-for-byte unchanged from R4. The CPython 3.14.7-validated seven-group R2 fixture, including committed setup rows, is unchanged. Integration still uses the clean existing `xlang3_interpreter_tests` target with no CMake edit, new build folder, changed executable path, or alteration to `runtime_value_tests.cpp`.
+
+Correction to earlier review wording: the SDK **already exposes** `instance_set_native_gc_references`. SQLite currently does not publish its retained registration factory edges through that facility. Consequently factory→connection cycles remain untraversed unless explicitly closed; this is a SQLite graph-publication gap, not absence of an SDK GC facility. R5 makes no cyclic-collection parity claim. Publishing/updating those edges correctly across replacement, failure, close and outstanding statements would be a separate native SQLite ownership change and needs a dedicated cycle fixture. The pre-existing scalar registration failure double-destroy also remains separate.
+
+Static generation, Python AST inspection, exact source hashing and `git apply --check` passed against current main `9de05e0d`. No actual engine/test files were edited, and no compiler/build/runtime fixture or benchmark was run by this reviewer. The meaningful new unwind assertion is unexecuted and must pass in the controlled candidate trial.
+
+Verdict: the identified stack-pointer lifetime blocker is corrected in the scratch proposal. Ready for independent static review followed by a controlled build/correctness trial. Candidate ownership/runtime failures still block acceptance; no performance gain is claimed.

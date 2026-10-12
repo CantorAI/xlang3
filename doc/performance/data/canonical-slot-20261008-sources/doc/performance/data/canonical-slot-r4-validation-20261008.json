@@ -1,0 +1,204 @@
+{
+  "status": "validated",
+  "scope": "Fresh focused correctness followed by unchanged paired diagnostics",
+  "owned_controller_pids": [
+    2336
+  ],
+  "phases": [
+    {
+      "name": "fixtures",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "tests/run_fixtures.py",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe"
+      ],
+      "exit_code": 0,
+      "timeout": false,
+      "log": "canonical-slot-r4-validation-20261008-fixtures.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "cpp",
+      "command": [
+        "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\Common7\\IDE\\CommonExtensions\\Microsoft\\CMake\\CMake\\bin\\ctest.exe",
+        "--test-dir",
+        "build-repro/main-verify-20261006",
+        "-C",
+        "Release",
+        "-R",
+        "xlang3_(runtime_value_tests|interpreter_tests|sdk_stream_call_tests|graph_)",
+        "--output-on-failure"
+      ],
+      "exit_code": 0,
+      "timeout": false,
+      "log": "canonical-slot-r4-validation-20261008-cpp.log",
+      "sha256": "0840e744a9b61457ea3dc7042ccebb6a07302de2db16dcf6dadc13353835cf57"
+    },
+    {
+      "name": "gate",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "benchmarks/check_regression.py",
+        "--baseline",
+        "D:\\CantorAI\\xlang3\\build-repro\\Release\\xlang3.exe",
+        "--candidate",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "--output",
+        "D:\\CantorAI\\xlang3\\doc\\performance\\data\\release-canonical-slot-r4-fixed-gate-20261008.json"
+      ],
+      "exit_code": 0,
+      "timeout": false,
+      "log": "canonical-slot-r4-validation-20261008-gate.log",
+      "sha256": "f3b750c1218c380e7a69355ab3ba982ed6adade8be438b89cc7d95aa2188b2ec"
+    },
+    {
+      "name": "official-sqlglot-parse",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+        "--runtime",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "--benchmarks",
+        "sqlglot_v2_parse",
+        "--mode",
+        "fast",
+        "--case-timeout",
+        "300",
+        "--dependency-site",
+        "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+        "--output",
+        "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-canonical-slot-r4-sqlglot-parse-fast-20261008.json"
+      ],
+      "exit_code": 0,
+      "timeout": false,
+      "log": "canonical-slot-r4-validation-20261008-official-sqlglot-parse.log",
+      "sha256": "713a4ce3bad7ac68e05d653147049e8d03ffc701c87bb8db8571a8c17552751e"
+    }
+  ],
+  "idle_guards": [
+    {
+      "name": "start",
+      "allowed_controller_pids": [
+        2336
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    },
+    {
+      "name": "before-paired",
+      "allowed_controller_pids": [
+        2336
+      ],
+      "busy_processes": [],
+      "status": "idle"
+    }
+  ],
+  "hashes_before": {
+    "binaries_sha256": {
+      "control": {
+        "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+        "dll": "d32719ac907a10b994d5160a5ce97f05561c6c003de9a7c6f8dcd862da464ea3"
+      },
+      "candidate": {
+        "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+        "dll": "ffd2ea4ef32dac1c00512f5ecd9c5d5b9c8770e6917fc90f8cb0cce442851f6b"
+      }
+    },
+    "cpp_test_binary_sha256": "c7bcb8c1a7718a083fb9f2c87b4d74daa48f48e98bc38f480b7dd134594b1293",
+    "cpython3147_binary_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "source_sha256": {
+      "src/executor/xlang_vm/xlang_vm_attr.cpp": "5f09f741ceab8f72c2b918912ba30e12f12bcde91988097d056ae3f20a62bb64",
+      "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+      "tests/cpp/canonical_slot_read_cases.h": "cb8346950866fade0435e2fadcac56ff1eb403995dc4648f24d3ed7be89f7e50",
+      "tests/cpp/interpreter_tests.cpp": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+      "tests/run_fixtures.py": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+      "tests/fixtures/core/canonical_slot_reads.py": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+      "tests/fixtures/expected/canonical_slot_reads.out": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "scratch/performance/canonical-slot-probe-20261008.py": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+      "scratch/performance/canonical-slot-sqlglot-probe-20261008.py": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+      "scratch/performance/check-canonical-slot-r4-20261008.py": "1ca75f92cf61bad84c98d05db3cfda9a3099f1116016d6902ea685990d56e3fe",
+      "scratch/performance/compare-canonical-slot-r4-20261008.py": "2eba18fbeba42ceb4d828da1eaa2cd0721892df618b87e9dca95498f89d792ec",
+      "scratch/performance/canonical_slot_r4_support_20261008.py": "bd06e6fd7e78b1106d6f0eef01a3fac68f0996395e36ea5ebccfb7ec5decb831"
+    },
+    "benchmark_source_sha256": "d97aaba24f8c49f2afe5c5c740c568be6e89dde3364d5a964a4b72e5a4768a9b",
+    "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317"
+  },
+  "paired_result": {
+    "path": "canonical-slot-r4-paired-20261008.json",
+    "sha256": "f08f34fdf1d3a69e5141d8ea23c21495cd62e245fd7996ab7e0eb3f70aefe0d1"
+  },
+  "hashes_after": {
+    "binaries_sha256": {
+      "control": {
+        "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+        "dll": "d32719ac907a10b994d5160a5ce97f05561c6c003de9a7c6f8dcd862da464ea3"
+      },
+      "candidate": {
+        "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+        "dll": "ffd2ea4ef32dac1c00512f5ecd9c5d5b9c8770e6917fc90f8cb0cce442851f6b"
+      }
+    },
+    "cpp_test_binary_sha256": "c7bcb8c1a7718a083fb9f2c87b4d74daa48f48e98bc38f480b7dd134594b1293",
+    "cpython3147_binary_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "source_sha256": {
+      "src/executor/xlang_vm/xlang_vm_attr.cpp": "5f09f741ceab8f72c2b918912ba30e12f12bcde91988097d056ae3f20a62bb64",
+      "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+      "tests/cpp/canonical_slot_read_cases.h": "cb8346950866fade0435e2fadcac56ff1eb403995dc4648f24d3ed7be89f7e50",
+      "tests/cpp/interpreter_tests.cpp": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+      "tests/run_fixtures.py": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+      "tests/fixtures/core/canonical_slot_reads.py": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+      "tests/fixtures/expected/canonical_slot_reads.out": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "scratch/performance/canonical-slot-probe-20261008.py": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+      "scratch/performance/canonical-slot-sqlglot-probe-20261008.py": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+      "scratch/performance/check-canonical-slot-r4-20261008.py": "1ca75f92cf61bad84c98d05db3cfda9a3099f1116016d6902ea685990d56e3fe",
+      "scratch/performance/compare-canonical-slot-r4-20261008.py": "2eba18fbeba42ceb4d828da1eaa2cd0721892df618b87e9dca95498f89d792ec",
+      "scratch/performance/canonical_slot_r4_support_20261008.py": "bd06e6fd7e78b1106d6f0eef01a3fac68f0996395e36ea5ebccfb7ec5decb831"
+    },
+    "benchmark_source_sha256": "d97aaba24f8c49f2afe5c5c740c568be6e89dde3364d5a964a4b72e5a4768a9b",
+    "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317"
+  },
+  "hashes_unchanged": true,
+  "terminal_record": true,
+  "candidate_binary_sha256": {
+    "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+    "dll": "ffd2ea4ef32dac1c00512f5ecd9c5d5b9c8770e6917fc90f8cb0cce442851f6b"
+  },
+  "source_sha256": {
+    "src/executor/xlang_vm/xlang_vm_attr.cpp": "5f09f741ceab8f72c2b918912ba30e12f12bcde91988097d056ae3f20a62bb64",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h": "f29726b53a7e0538b65d5a860b39927c3b598d285e678c6b19e0f7fbfdd0e60f",
+    "tests/cpp/canonical_slot_read_cases.h": "cb8346950866fade0435e2fadcac56ff1eb403995dc4648f24d3ed7be89f7e50",
+    "tests/cpp/interpreter_tests.cpp": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+    "tests/run_fixtures.py": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+    "tests/fixtures/core/canonical_slot_reads.py": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+    "tests/fixtures/expected/canonical_slot_reads.out": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+    "scratch/performance/canonical-slot-probe-20261008.py": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+    "scratch/performance/canonical-slot-sqlglot-probe-20261008.py": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+    "scratch/performance/check-canonical-slot-r4-20261008.py": "1ca75f92cf61bad84c98d05db3cfda9a3099f1116016d6902ea685990d56e3fe",
+    "scratch/performance/compare-canonical-slot-r4-20261008.py": "2eba18fbeba42ceb4d828da1eaa2cd0721892df618b87e9dca95498f89d792ec",
+    "scratch/performance/canonical_slot_r4_support_20261008.py": "bd06e6fd7e78b1106d6f0eef01a3fac68f0996395e36ea5ebccfb7ec5decb831"
+  },
+  "early_evidence": {
+    "output": "canonical-slot-r4-early-20261008.json",
+    "sha256": "e5c621d800be41f611adf658494f8f0939d51b4ebdd37be42bf4036736878b83"
+  },
+  "paired_evidence": {
+    "output": "canonical-slot-r4-paired-20261008.json",
+    "sha256": "f08f34fdf1d3a69e5141d8ea23c21495cd62e245fd7996ab7e0eb3f70aefe0d1"
+  },
+  "fixture_counts": {
+    "core": 376,
+    "compatibility_sections": 11,
+    "expected_failures": 3
+  },
+  "fixed_gate": {
+    "output": "release-canonical-slot-r4-fixed-gate-20261008.json",
+    "sha256": "ed37d4bae41d61a6ab8eb3a2b3d1e844a1ac46793e846868c0f6e7003cd4d014",
+    "exit_code": 0
+  },
+  "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+  "official_sqlglot_parse": {
+    "output": "pyperformance-canonical-slot-r4-sqlglot-parse-fast-20261008.json",
+    "sha256": "a3a841f120a719aa06f0f964b19af1630e35d321560081800ca34c843dd9b0b6",
+    "exit_code": 0
+  }
+}

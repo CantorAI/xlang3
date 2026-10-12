@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="294" viewBox="0 0 900 294" role="img" aria-labelledby="title desc">
+<title id="title">XLang3 long dictionary diagnostic, accepted A equals one</title>
+<desc id="desc">Speed is the median of three within-cycle accepted A time divided by runtime time ratios. A is 1.000x, E is 0.896x, F is 0.988x. This is an unscored XLang3 build comparison with 189 retained samples, not a CPython or pyperformance suite score.</desc>
+<rect width="900" height="294" fill="#fff"/>
+<g font-family="Segoe UI,Arial,sans-serif" fill="#172536">
+<text x="24" y="32" font-size="20" font-weight="600">Long string-dict diagnostic · accepted A = 1.000x</text>
+<text x="24" y="55" font-size="13">Median within-cycle A time / runtime time · higher is faster · diagnostic only</text>
+<line x1="680" y1="73" x2="680" y2="221" stroke="#7b8797" stroke-dasharray="4 4"/>
+<text x="24" y="105" font-size="14">A · accepted 184b</text><rect x="220" y="83" width="460" height="32" rx="3" fill="#607086"/><text x="699" y="105" font-size="15">1.000x</text>
+<text x="24" y="158" font-size="14">E · heapq source 75</text><rect x="220" y="136" width="412.28" height="32" rx="3" fill="#cd8740"/><text x="699" y="158" font-size="15">0.896x</text>
+<text x="24" y="211" font-size="14">F · cold outline 76</text><rect x="220" y="189" width="454.48" height="32" rx="3" fill="#2878b8"/><text x="699" y="211" font-size="15">0.988x</text>
+<text x="220" y="242" font-size="12">0x</text><text x="663" y="242" font-size="12">1.0x</text>
+<text x="24" y="273" font-size="12">3 rotated cycles · 21 samples/build/cycle · 189 raw timings · async score incomplete; diagnostic only</text>
+</g></svg>

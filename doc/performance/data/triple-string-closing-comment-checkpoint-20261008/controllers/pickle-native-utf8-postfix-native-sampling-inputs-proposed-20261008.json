@@ -1,0 +1,1374 @@
+{
+  "status": "frozen_read_only_current_utf8_object_inputs",
+  "checkpoint_head": "87f5293782d21592df3bcc4ea924e659c906b6da",
+  "source_inventory_sha256": "96ba3820206e00029a26231b15accb79ff94e1ba33098d769e586d7a28b12f83",
+  "recorded_source_count": 119,
+  "candidate_binary_sha256": {
+    "exe": "c6358221bd7836f877c566557269b4bf9a011a9a2ca33060eeb2e00b4e6de5b4",
+    "dll": "64640e503a103341dd44d220eba17ef802219b9df639bb1be5cbe5f2bf847564"
+  },
+  "object_roots": [
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release",
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release"
+  ],
+  "root_counts": {
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release": 85,
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release": 64
+  },
+  "object_count": 149,
+  "objects": {
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/api/buffer_api.cpp.obj": {
+      "object_sha256": "4a2e25b40ebfa60cacbaf9f4fa0f9f01c3245dada9bb8dc697fbf27a30c8a178",
+      "source": "src/api/buffer_api.cpp",
+      "source_sha256": "05faff1d603aa9df726f42a2c3d56054eea5c85151ab8ceff9a4c3846321f8a3",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64869b018927c76ad7a400005c050000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/api/c_api.cpp.obj": {
+      "object_sha256": "eca78780c3420a32e6e5718245a8d3fb8440b42f65b1f501a403ff6e2430c9c6",
+      "source": "src/api/c_api.cpp",
+      "source_sha256": "797d206df243f348338dcb4b112f7d5313f85834c1d56213ee9eef80b1fb9b50",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64868309da0ec86a21770400561f0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/api/ipc_api.cpp.obj": {
+      "object_sha256": "e33b90352550005a346b96483a21394be9867aa16e349e09e310838f0b3f89ff",
+      "source": "src/api/ipc_api.cpp",
+      "source_sha256": "95758e44fd8de2a7e5fc18961d37961f7b0d14267f38de4f7d5a67feeae13292",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64860d018b27c76a8c6e000090030000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/api/native_serialization_api.cpp.obj": {
+      "object_sha256": "7f8cc3e4faf70027aebfa5cd677d06f42ecac5346e4f3ed418a611e53f47ca00",
+      "source": "src/api/native_serialization_api.cpp",
+      "source_sha256": "da8c25b130f1daaaa6cb47367f6c10d04f73259226dadf8690bfa1ef1e7071d3",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486b7028c27c76a46170100c0080000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/api/protocol_api.cpp.obj": {
+      "object_sha256": "e4cd13c6fb350500a4cba190d360a7871c52b8f99fdde5a189737172321e4c94",
+      "source": "src/api/protocol_api.cpp",
+      "source_sha256": "2d0e225c3b4de84e59e7bf4546e8fa2fac386f1e489974cdc3baf3af15fba082",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486a002c2e6c76ace410100af080000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/api/stream_api.cpp.obj": {
+      "object_sha256": "a36aa731a1f15996caa3f8542d61e1e77af11016dd6344f6fb27cda8898ee744",
+      "source": "src/api/stream_api.cpp",
+      "source_sha256": "bbca71952172403f4c3dd0bbeb37e66439b351e02419d350558c7e77bab8c220",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64861b018b27c76a63710000b5030000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/builtin_modules.cpp.obj": {
+      "object_sha256": "fa135537d6e91e7e293fea264ecc2d554c34100c4d6b648767bb2dab45a1439a",
+      "source": "src/builtins/builtin_modules.cpp",
+      "source_sha256": "05709d2af467b5778795114f47ff63132a041cc6da6fd9f1daf0e98dcbdde173",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64866a016776c86a118e00008f040000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/builtins.cpp.obj": {
+      "object_sha256": "3b5c647d0170b1704a6e74361f2859d2037c68341e9689dda1ac79ce69df9291",
+      "source": "src/builtins/builtins.cpp",
+      "source_sha256": "135c805d32dd03b8740b08c1833bee09fa5d91d88b2bc4ea4fe2704bd184cb19",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "648614006776c86a2313000093000000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/exception_builtins.cpp.obj": {
+      "object_sha256": "3765642398b96fd4c2ab8a880183eff0250af3b26a7befba04ac9ad31633f558",
+      "source": "src/builtins/exception_builtins.cpp",
+      "source_sha256": "ee0abee0934c0eb96658c7716be735be4b13d0f66274bea87d46d772b25f40d2",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "648662076a76c86a0c15040089170000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/functional_builtins.cpp.obj": {
+      "object_sha256": "eb2283f889a1701097ebb2a4ca380913d13037ea633efff4bc01ebe580ee1cb4",
+      "source": "src/builtins/functional_builtins.cpp",
+      "source_sha256": "ca8094ecce251bf2e473141399d67541a9abda7d4f39321c7a0968d3db6c58e0",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "64860f2b8876c86a9035160028890000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/io_builtins.cpp.obj": {
+      "object_sha256": "e5e6e4373b5c4f2d4dee855f5d1f462cdadd8e087bf84f0d0e03f3347563f0ef",
+      "source": "src/builtins/io_builtins.cpp",
+      "source_sha256": "9604ee7231926f18b603639821ac8504bfdbb8cfc28138618e3c5194d6294822",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "648628056c76c86ab7ed020099100000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/math_module.cpp.obj": {
+      "object_sha256": "7c6d846967bc37b8427de899348f94d2df74e282fd246945e7bdd07d414cfc7b",
+      "source": "src/builtins/math_module.cpp",
+      "source_sha256": "c6ae3cf370d35f92eaf14ce195ba97a781a28f709c615edb7bb9200ddb39d62d",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486e2046b76c86a16be0200c30f0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/object_type_builtins.cpp.obj": {
+      "object_sha256": "dd1e15ab317b496b096c2ffbbee46b195e185bae5983b3d291b7db61282ae572",
+      "source": "src/builtins/object_type_builtins.cpp",
+      "source_sha256": "171aafd05b11396b5522a2a45d490b37dbce0924c00b661b4f2e1ba41fa7a3d3",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64862f147d76c86a141b0c003e400000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/raw_block_builtins.cpp.obj": {
+      "object_sha256": "7b474ab90b6464b52aadec67743a6522eea7b0080157b4c06ea426767a210cae",
+      "source": "src/builtins/raw_block_builtins.cpp",
+      "source_sha256": "35fc140d5f1b215cc681227bf1cd4a0dc1ea96553740e88ca543700e3b1c38a2",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486aa006976c86ada40000040020000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/builtins/sequence_builtins.cpp.obj": {
+      "object_sha256": "c70bf5ae4225958ec8dbe6d5f43135f1d5573b5b2de78cfcb1517e1c862f3d70",
+      "source": "src/builtins/sequence_builtins.cpp",
+      "source_sha256": "6afc90d03f86848d114ff14c40856e79098f52e38725d1936fa7306aa951b200",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "648657046a76c86ad5200200020e0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/debug/dap_session.cpp.obj": {
+      "object_sha256": "840b14c84971eb3c8821c6402f731d0351ee5a9e9f82f00e7ed3ad2b1efb1d75",
+      "source": "src/debug/dap_session.cpp",
+      "source_sha256": "6908a383a308795b9e688975981196840c3f3a32873033e2b4b623a82e2feb46",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64861b23e50ec86a97e90f003a720000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/debug/debug_session.cpp.obj": {
+      "object_sha256": "0d48442bfb33c0e24826b6ee34f0f7a37276f3d1d6aad2a647b6bb42fc19d7c2",
+      "source": "src/debug/debug_session.cpp",
+      "source_sha256": "b23a164a071dbd9ad763ed48af301d61b4621169628db901677bb566fa50884d",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64860005d60ec86a9b250200a0100000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/executor/xlang_vm/xlang_interpreter.cpp.obj": {
+      "object_sha256": "0b8b51b52edf7994e3d24c31961b0ffb0303b3fc8de378d597bc22e84ee48cd9",
+      "source": "src/executor/xlang_vm/xlang_interpreter.cpp",
+      "source_sha256": "f309acf74a45f5d212d97f0f0b51b65ed7ff9b86a56bbbdf0ae5047125341ab8",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "6486880e7976c86add840700262f0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/executor/xlang_vm/xlang_vm_attr.cpp.obj": {
+      "object_sha256": "447ef3a0f2416aedb30724ff42498362c4a933668bab94acb92965d2c7e81837",
+      "source": "src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "source_sha256": "9633377725d293f8e206ec8bc1c554ef6333ce6c05c3ecfe92c8281cec89934c",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "64867302d40ec86ace18010004080000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/executor/xlang_vm/xlang_vm_loop.cpp.obj": {
+      "object_sha256": "42d7f48ee4431bf24b09561c66657483584cd98ba82976819394b645e6ea371e",
+      "source": "src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "source_sha256": "edf6c52d37cc85990a1cfd995b769786773e13bdf70bc8908bd52d3d803da30d",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "6486af2e8e76c86a81921f00d4940000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/import/import_loader.cpp.obj": {
+      "object_sha256": "06a901f35d3935b05cbbf6209bcb060da9459827d24b3b8a871264b688abef9a",
+      "source": "src/import/import_loader.cpp",
+      "source_sha256": "bb12d15c31df96f3b4810a93101dae915f8668c9f70a2e6f949dd467d2538206",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486730f7776c86a1e10070004320000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/import/native_package_loader.cpp.obj": {
+      "object_sha256": "8e2557f14b723ee2bcbf9509c190ba2419070b5e15bd14893635b0608c45e92d",
+      "source": "src/import/native_package_loader.cpp",
+      "source_sha256": "eb34eb4d10a4c72e39cec20dab602cb54f1d6ea427c5af5702f6be226acc3d6b",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "64862e0f7676c86afc10070065310000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/ipc/ipc_runtime.cpp.obj": {
+      "object_sha256": "0a96c39e78462701e9d8ecea1b935ab93d3dfebb46425e2e2aecd93079a3715c",
+      "source": "src/ipc/ipc_runtime.cpp",
+      "source_sha256": "7ef4bbfb3b7c01371c576f3bb559cb3856fd2cd68a465cf1a67c07be5365444c",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486f90cb9e6c76a95b1050061290000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/ipc/shared_memory_block_stream.cpp.obj": {
+      "object_sha256": "b32d253fc67c759b1aced4142315f6e54fb07b926b5b61b9860b076bb2458490",
+      "source": "src/ipc/shared_memory_block_stream.cpp",
+      "source_sha256": "8ad4a1769d3d52caaf608d80950d0aca5a9de02b56655260b871fc78a4491430",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64869401363dc56afd9900002d050000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/ipc/shared_memory_transport_win32.cpp.obj": {
+      "object_sha256": "32c71da2902873aa32898e60f6596b1aefad670dbf10ccd378788eb49450fbf1",
+      "source": "src/ipc/shared_memory_transport_win32.cpp",
+      "source_sha256": "a6813265dbe78f6b86e2fba5dc6d20c580e30332bb0d12a21a82e235918596e8",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486e4068727c76a2f22030065160000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/ipc/shared_memory_transport.cpp.obj": {
+      "object_sha256": "eb670e7da68df9c2eb971d9edd7bb2fc98ce6fda04e38c6d568b9e4df38f0e81",
+      "source": "src/ipc/shared_memory_transport.cpp",
+      "source_sha256": "93b315781ff815f958ca4f103d30d87276a85125d92061028d58a7678fa43c8f",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486d1027827c76a122501002d090000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/ir/codec.cpp.obj": {
+      "object_sha256": "7208e89b3f0e91f0c2cd81adfe2ea6b65e9b17a0612fe0ccc95abbcd9dbb2217",
+      "source": "src/ir/codec.cpp",
+      "source_sha256": "6726f090de59651f7570007c130e2b7129fac3a2133f67905c374d841f9da384",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "6486cd0bd10ec86aaf4405004d260000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/ir/dump.cpp.obj": {
+      "object_sha256": "ed9d7e9c97f11e10258565b7905105670d61296b58de0eff7dc12ba8d470bb7f",
+      "source": "src/ir/dump.cpp",
+      "source_sha256": "f21ba927c25f7c1d272b18840694635e1883849cb07f6d45653045659ba08039",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "64868c02d40ec86ad81d0100d2080000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/parser/lexer.cpp.obj": {
+      "object_sha256": "97eff363e5a4715a75a17092d6aabfa9cbc0458ff702bd2b24e7b302067d2b4d",
+      "source": "src/parser/lexer.cpp",
+      "source_sha256": "52bf409a30bd4fc207b93351da69f883ed81da3660e3cc99e74b5e402c2a690c",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "648615057376c86a517402009a100000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/parser/parser.cpp.obj": {
+      "object_sha256": "3e5361ccefb2406ca01828c7e8918d971cb6265395c8eb9e4b515d23355a9d26",
+      "source": "src/parser/parser.cpp",
+      "source_sha256": "0ccc9f0270aeedd95d0daefe21ec7ba2b4522a70c5c5d3077a919913078ca6d5",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486c3194a3dc56a7eb40b000e530000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/parser/source_cursor.cpp.obj": {
+      "object_sha256": "2f1af1ba032cd7dc40c0e80e776a875e7451871adc98e2139216eaaa552b5d50",
+      "source": "src/parser/source_cursor.cpp",
+      "source_sha256": "522aaea9e8c0ecf4a3ab6880dca5973729fbf31f9c074d19a97079cc25fd2b47",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64864c00423dc56af21e0000f5000000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/rpc/memory_file_store.cpp.obj": {
+      "object_sha256": "c80cbde7947c17dfcc3d81729c5447ca16bb2a82dcc96b0d63031bd56219f0e0",
+      "source": "src/rpc/memory_file_store.cpp",
+      "source_sha256": "3c0399f157f5e0bf3f7a21811dd1b53de78124735060942450b542d15f5e0eba",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64868f04493dc56ab5d90100c70e0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/rpc/object_table.cpp.obj": {
+      "object_sha256": "3c6b23847af49803dfa72a6beea03e928d47ee8ec29bd99ebbb2845f242804ce",
+      "source": "src/rpc/object_table.cpp",
+      "source_sha256": "6954bc44aa6c7ced6019c878d953c28d5e8dd79f280939acff2e810e6e749b2b",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64868e018327c76afa9b0000fd040000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/attribute.cpp.obj": {
+      "object_sha256": "7beb78494d0d43da744fc98a077412f2346bb2f331f330c6b74ed34525cd1ac3",
+      "source": "src/runtime/attribute.cpp",
+      "source_sha256": "0e6d514f8168812bbe33dcc985d7811e0f0ec97383bbeb273d1582500df57f4d",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64861e03b8e6c76a736001006b0a0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/bigint.cpp.obj": {
+      "object_sha256": "597c1fc1469a9f49db05f4eedae14e0d7424908e1c33a6a6b339498f5c26fe93",
+      "source": "src/runtime/bigint.cpp",
+      "source_sha256": "b7e927d36a926f63f540190a6b3ebcaab4975f60d55bc406fd10d2ddf012e26a",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486f902b9e6c76a4ab5010063090000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/c_api_bridge.cpp.obj": {
+      "object_sha256": "ebfc4d38a65957ebed0d75b956ab63e488414a45aeb95fce26dd13ec6f239b0f",
+      "source": "src/runtime/c_api_bridge.cpp",
+      "source_sha256": "0864f04072096ea8f36b4c508643def71987d93069fea272f9bab965243caa53",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486c8007827c76a744e0000a9020000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/exceptions.cpp.obj": {
+      "object_sha256": "fb20f04ba91285abff73f7ffcf3ecbccbc9ac431e22a074be809c9c56dcbea2a",
+      "source": "src/runtime/exceptions.cpp",
+      "source_sha256": "d5c13f7126a415d7b297ddb9f27052ddd35feb6595976654ba6bf017410f5dde",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "64866a02b6e6c76a3e250100d9070000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/expression.cpp.obj": {
+      "object_sha256": "e02e10e4f6bb6ae25448f3395fd5dc3f27d68a21260fcd235fda869cf7f24cfe",
+      "source": "src/runtime/expression.cpp",
+      "source_sha256": "3c35701f2e04d1e2bd5bf45963fba35ecf4ddb059ef64aace37e9f5fb82fdd47",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486da04b6e6c76a8a320200c40f0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/functional_iterators.cpp.obj": {
+      "object_sha256": "9ef78d67f9fa1e85859ee2bce46fb4654565efe7fcc2b6d7278806de5ab32cdf",
+      "source": "src/runtime/functional_iterators.cpp",
+      "source_sha256": "4a038c4b5152b87f8fa4d8d83a0f4961b069b8731cd99a4245c74ee5eee21e2e",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "64864d076e76c86a00a70300b6170000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/generator.cpp.obj": {
+      "object_sha256": "e64fff1b3a3c6117bf71586d0f68d952a9ebfe3de6614075c1d0e222527a4fee",
+      "source": "src/runtime/generator.cpp",
+      "source_sha256": "8316896bb60aa35c956d3f3b55047d79e955a6da89de67be91837fc3593f934b",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "648690066c76c86a0499030045150000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/interpreter_events.cpp.obj": {
+      "object_sha256": "08a001aa5295de766d8ef5a6e128afee4659c7c38f21e5321e71dbb0eca0ec79",
+      "source": "src/runtime/interpreter_events.cpp",
+      "source_sha256": "49e16fe303ca9346c3f0759832f95166f93d5dca88666c3640b8813ba130eca4",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64861100d4a1c56a8906000034000000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/mapping.cpp.obj": {
+      "object_sha256": "be710beecbbad607b52cfee49c1178c98b2bc551a2a9fb0041e91b824aa24bca",
+      "source": "src/runtime/mapping.cpp",
+      "source_sha256": "c06a143e985a8f67703e11d58aad3a12fa6d3cb964e77a68a7fbf3193d290fbf",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "6486590b9234c86aa95905006c240000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/memory/x3_bucket_allocator.cpp.obj": {
+      "object_sha256": "6f8da851f38d26968e55e11ce2da04bf86f2d01f83c98848e6d5086e511b5e0c",
+      "source": "src/runtime/memory/x3_bucket_allocator.cpp",
+      "source_sha256": "53a095e9b94d8078adccb2c19f274367db7f55488b096987688f07d0d9245747",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486d7003d3dc56ac8510000ce020000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/memory/x3_memory.cpp.obj": {
+      "object_sha256": "a7aead2ae6f45522b0e5092586ecef78443c0c7b5fca5a2994d5c3979dabca2d",
+      "source": "src/runtime/memory/x3_memory.cpp",
+      "source_sha256": "33bce038de276b784423a42a3b69f94b898bb57fb4f48be640af1cbd82c2fac3",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64860a003d3dc56ae90500001d000000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/memory/x3_object_pool.cpp.obj": {
+      "object_sha256": "361c4185727835315af06846011b848e133be7c565ce199f5656c897bc9d3e93",
+      "source": "src/runtime/memory/x3_object_pool.cpp",
+      "source_sha256": "12716b98f63f42d147dc35686db8ab9fc627cfad9f546b7a735b1b7166d0acb5",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486f7013d3dc56a5fc400006b060000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/memory/x3_page_allocator.cpp.obj": {
+      "object_sha256": "060d513d5c699e433e2cf6588bee6aab69fa962193d65184552f3c7bc45e98ad",
+      "source": "src/runtime/memory/x3_page_allocator.cpp",
+      "source_sha256": "36fe4939c9288492c1aabbc0007fe84e5bb6a550a7a2731d518b60ec00f1ab97",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "648605003d3dc56afc02000012000000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/memory/x3_runtime_memory.cpp.obj": {
+      "object_sha256": "2bc8f6176ed65bdde167ba3686d554b648d36aae7c59213276402e1e0896f698",
+      "source": "src/runtime/memory/x3_runtime_memory.cpp",
+      "source_sha256": "4f5ff1263f4a13b9c72d5805dc4efcea046a19fba5d0e4ec37ab172a4237dc4f",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "648601013e3dc56ae95e000054030000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/memory/x3_temp_arena.cpp.obj": {
+      "object_sha256": "1fccb7c8519d70586bbfdf2edce27120643dd33cca75d47a0ba80403144d2eca",
+      "source": "src/runtime/memory/x3_temp_arena.cpp",
+      "source_sha256": "889b75acca0815ffbb13c5737bba1c358bcf7a384c482e001678974db91f5e6b",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486b0003d3dc56a6642000047020000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/bytes_methods.cpp.obj": {
+      "object_sha256": "7bd0a40f7f99147d0f1628ec8481f799bc332e2b7a028164280e3923745b792d",
+      "source": "src/runtime/methods/bytes_methods.cpp",
+      "source_sha256": "660db7174f984c4a145bddde76cf42c8e2cacaa156c34fc52855f8db785c00af",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64860a0cc4e6c76aa1ef060058260000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/dict_methods.cpp.obj": {
+      "object_sha256": "02b258e41e8869fa9a31562c3440ce6f4b43d2699c77c53711604d17f84bce9a",
+      "source": "src/runtime/methods/dict_methods.cpp",
+      "source_sha256": "9241c105d298a226273a7fae2e66b1bd1cd816656f57bf478240050c25b56135",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "64863e06bce6c76a01a5030008140000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/file_methods.cpp.obj": {
+      "object_sha256": "3e714822b3c1e2fb33234e48c32261993377bbc17a5af7ebe8735d114c61d5f6",
+      "source": "src/runtime/methods/file_methods.cpp",
+      "source_sha256": "425110987b2557eb637adfcd10efccce226dafede14a036c5609ac97550218a9",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486f106c2e6c76a07f403003a160000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/int_methods.cpp.obj": {
+      "object_sha256": "b9af0caa48a870565e0f4a0458e1bf84e01f9f707ce249fdf8f0be5bfe25283d",
+      "source": "src/runtime/methods/int_methods.cpp",
+      "source_sha256": "b0c15ea93f31d473eeab55cf050d1d97fbbb64a0a9675a079c2f8038be384e6f",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64863e05bbe6c76a0f59020004110000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/iterator_methods.cpp.obj": {
+      "object_sha256": "0451441c51052e0d6d5d12a16b6908ffabfb4957279b745615c67406e2325b28",
+      "source": "src/runtime/methods/iterator_methods.cpp",
+      "source_sha256": "0a8f37721115218048136c6b7ee3b98a85c333e4bebb714f26d160567d4311b1",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64861c03bae6c76a466501002d0a0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/list_methods.cpp.obj": {
+      "object_sha256": "6c3f4e3541398af6903385ddd52e744b5c013db14153bca6b92e3246d42b060b",
+      "source": "src/runtime/methods/list_methods.cpp",
+      "source_sha256": "f85de0589596f6ad20411754df5d5ddfeda7f4cffe6f05607df4027311b74d10",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486a406b9e6c76aed3f030030150000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/property_methods.cpp.obj": {
+      "object_sha256": "9b7a0b3c169d19d6ed3bfd8e489d63aab057db91876838e7c8bcc7fe075bf7e0",
+      "source": "src/runtime/methods/property_methods.cpp",
+      "source_sha256": "2f0c9654b30e4885e730b27e2f63c85b12600b83cef184dff329e0b0263dfefd",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64865b04bee6c76a94510200010e0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/set_methods.cpp.obj": {
+      "object_sha256": "cb4fbc12e9ceba9dbac6986cf888022957fbbf401b68d72a7fa9eccf3e26896e",
+      "source": "src/runtime/methods/set_methods.cpp",
+      "source_sha256": "5e07e871609579635fbf06d987f461688160f648f012c399c4965c21c0809aba",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "648677066a76c86a15200300c5140000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/string_methods.cpp.obj": {
+      "object_sha256": "527ca433d39dc23b5eee7afbaa275efe83c03847c55c0d2aec9f15b96f8968a4",
+      "source": "src/runtime/methods/string_methods.cpp",
+      "source_sha256": "8caa51cfd7aff414da1abea251f4c65dd5068071c1e7eb58f6e0c095ef657d79",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "64860c0c7076c86a5e41070068260000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/methods/tuple_methods.cpp.obj": {
+      "object_sha256": "67a4baecbe8d71ae1349753024e5b2a0874aaa2cd93d32d0126fb30da4e5ff19",
+      "source": "src/runtime/methods/tuple_methods.cpp",
+      "source_sha256": "5accc27187e99650cde5ebb56fcaced9101446a2b94709f6b472b29527a0ab16",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64869f03bae6c76a79a10100c30b0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/module_object.cpp.obj": {
+      "object_sha256": "d55379b594b461c31b15a7f68cee50357b7a88a0e928993c1a36b4eb0573e8dc",
+      "source": "src/runtime/module_object.cpp",
+      "source_sha256": "ff2a6d0bff9d76f47a0d13c09c8927bcc554c9e1cb3ce5abc583f1aa67069da3",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "6486c009c2e6c76a10640400a21f0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/module_slots.cpp.obj": {
+      "object_sha256": "a66ee07c42a97839598968336c6f65f7befb4a9f0b4f3374993005080466cf6e",
+      "source": "src/runtime/module_slots.cpp",
+      "source_sha256": "35ce111869b6590abdbbcbaed9755965611261b097a2546ff7090df43e9a9edf",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "648680048227c76a7ace01009c0e0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/object_model.cpp.obj": {
+      "object_sha256": "aa7f518bc271bb01d7f8f5d7e326ad1dd0c7460524bfd18992877d75cf91f9a6",
+      "source": "src/runtime/object_model.cpp",
+      "source_sha256": "10806dd37498170b7172f469ca44d190698f85c0a6adb2bed104053df1c0fedc",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "6486d2268776c86abf2a13006d7c0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/perf_counters.cpp.obj": {
+      "object_sha256": "630b3687a6a8950d5957e043337123712ea0aa299894beba5fdd852ad528719d",
+      "source": "src/runtime/perf_counters.cpp",
+      "source_sha256": "a0d837e0a018cba36f82cc08dea6f524147ce7230e4dd0b331d96f87cff0835a",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "648640047e27c76ab6cd01002a0e0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/runtime.cpp.obj": {
+      "object_sha256": "903425080cb4ccfd3b66854b4d78bc848a959ee89aa89345f2d95b57c42ecf7c",
+      "source": "src/runtime/runtime.cpp",
+      "source_sha256": "2d7a0836eea66c376f652276d35edaa412edf792ab74c220711cd4bd3a14ca98",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "6486292c8176c86aeb831300b18c0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/sequence.cpp.obj": {
+      "object_sha256": "40d06d2a50eb21e85f26c5234e158a8603727d9e16e78292fcb073232f736994",
+      "source": "src/runtime/sequence.cpp",
+      "source_sha256": "934c24e1afc3be755ce7bb01abc499fbec566460f406f361b660eb33c942c093",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "6486a608c4e6c76a9c700400cd1b0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/set_object.cpp.obj": {
+      "object_sha256": "5a9c6023267ec6bd6c9aca104446c923b02d789371e32191836ad7466133c5f4",
+      "source": "src/runtime/set_object.cpp",
+      "source_sha256": "efca67b7b1d1c15816802aeef71299a8616cb7bf5d3907b15c475404ad4df33f",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64869004bce6c76a17fc0100bf0e0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/unicode_data.cpp.obj": {
+      "object_sha256": "20531a67e9daaf252550a35e1178203117115f5d89efcb3e7b2648ebaf05ab03",
+      "source": "src/runtime/unicode_data.cpp",
+      "source_sha256": "3fb612613a54f79ca47206b846fc74d872bcf72fbaf405b2bbe1da73b536f843",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "648674034b3dc56aa4a54700130b0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/unicode_names.cpp.obj": {
+      "object_sha256": "0068f11362d30aff7bb646a57a7cf51a33ef380b2e0ef37fef148680481c950e",
+      "source": "src/runtime/unicode_names.cpp",
+      "source_sha256": "a5feae86ad2c2815d15694fa117781761c31d556ea9a39cecf3b9624306c0cf9",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "648645006a76c86af61e0000ec000000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/value_hash.cpp.obj": {
+      "object_sha256": "908139b3da7908b5558811026f8bbb5ea13d9694340fd859a662346a0b67ee88",
+      "source": "src/runtime/value_hash.cpp",
+      "source_sha256": "aeb9abb4697569a3b28485000337e31d21f2cd9227dbf2ea0e76e2e125d439ed",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "6486a1026b76c86a722f0100ad080000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/value.cpp.obj": {
+      "object_sha256": "9bbd29a41f44ecf31053436b02898a64a5fd5cc2023177cb2af948268729f965",
+      "source": "src/runtime/value.cpp",
+      "source_sha256": "18be33a526dbcc6627490a12a68aefc9e168d42afbf238ce38fa240e74bba0e0",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "6486e3137476c86aba2f0a003d400000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/runtime/vfs.cpp.obj": {
+      "object_sha256": "ba3c6ee8f54fc230e882e99b5f7fc0d4199c7f397b3144be1b8f0d71dfcc7ca7",
+      "source": "src/runtime/vfs.cpp",
+      "source_sha256": "4710d43538b91b404a8c11343b553294c16e4accf3a1f9762e88fdf526daf457",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486b80a443dc56a43eb0400e4220000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/sema/lower.cpp.obj": {
+      "object_sha256": "4661061a19b5089a4e2062043660239f1e2d1a3eb8bd6714db9bb949f809ef25",
+      "source": "src/sema/lower.cpp",
+      "source_sha256": "12aae5ef15a98288aa359112ee8a6bd64f0213a228a3b11132849fad0f62fb04",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "6486c630f40ec86ac7b917001b9b0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/sema/scope_analysis.cpp.obj": {
+      "object_sha256": "3af517d0e0b106f385c07b45108e40a6e830f5c54845fd0e5894f9f119c2e7b9",
+      "source": "src/sema/scope_analysis.cpp",
+      "source_sha256": "a8ddc01fbc94413b8ad3d1624812abc1701dfed1ec9e62621032cdd6e5f3177e",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64862804443dc56a14060200470d0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/sema/xlang_module_globals.cpp.obj": {
+      "object_sha256": "77c9df30687d863adf4af5c7b21593a69baab1567996c872c8c44692de3d04b9",
+      "source": "src/sema/xlang_module_globals.cpp",
+      "source_sha256": "2c3355cf9b0b45427bfff76743df4b77c1c4ca618cb96f75f5e571474c4ac892",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64862e03433dc56a184a01003c0a0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/serialize/block_stream.cpp.obj": {
+      "object_sha256": "1c5a96d3c9da3461ca2f961e531ff5efe59eae3e64c2b1640ae9a83df8ed116b",
+      "source": "src/serialize/block_stream.cpp",
+      "source_sha256": "f069c07eca738441072f0e90ffdc7f903518439fa8b611398453f55fe0aee7ba",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486e300373dc56ae1530000f6020000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/serialize/ipc_value_marshal.cpp.obj": {
+      "object_sha256": "19ba5a97778a4452338a209eedc6dbf7ea0f5d075bfe5a43bc8d3ecc1f4f029f",
+      "source": "src/serialize/ipc_value_marshal.cpp",
+      "source_sha256": "58fe681445a0cfc0929246f4c694788b5de2ca1e6ab9cc5c0f7134f6555b9e22",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64865902b4e6c76a4e0c0100c1070000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/serialize/value_graph_lifetime.cpp.obj": {
+      "object_sha256": "ef438f52398ee8dc2a64caccf357e62b5ffedc08b70ed96671a5c7d395f4673c",
+      "source": "src/serialize/value_graph_lifetime.cpp",
+      "source_sha256": "66a56c2b298a5cec161fd41baaf6c97978c5a6e6f9a037d7e9e67edf1c4e09c8",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64869103d70ec86ae57e0100860b0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/serialize/value_graph_reader.cpp.obj": {
+      "object_sha256": "d79b217cceb6c0eaa48d079f66f92f79a5369a053ce527123f99029c7d487509",
+      "source": "src/serialize/value_graph_reader.cpp",
+      "source_sha256": "33e783e7508adaca6372383fc9b5b593509a7dc66669168ee3116a58ef90d662",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486970de30ec86a3dcf0500542c0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/serialize/value_graph_writer.cpp.obj": {
+      "object_sha256": "a83b54f53c2621df7a69e82d507fce6380f54dbab80daf2bfcb47b143e3e3c59",
+      "source": "src/serialize/value_graph_writer.cpp",
+      "source_sha256": "68630506eedec3ec07176a7a8646cde49310171e597871525c8a627da50d850f",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64860111e20ec86a930907008e360000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/serialize/xlang_stream.cpp.obj": {
+      "object_sha256": "7daac653aaf45a6c0e662b3e18583220a26d864b3b310cfce9611047ff788fec",
+      "source": "src/serialize/xlang_stream.cpp",
+      "source_sha256": "1d3c703f51922df0047261080bac500435724e59186592fe68184d2da13713aa",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64861401373dc56ae770000083030000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/tensor/tensor_api.cpp.obj": {
+      "object_sha256": "398328ac852ec34ca73fb52f6c815ff31573d1696ea6b074b309b4437173b316",
+      "source": "src/tensor/tensor_api.cpp",
+      "source_sha256": "07006fae14850be6aca61a26d2ae8a3957b7b87e11bfd708f40495a27c3ea9f9",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486f206c2e6c76a98dd02007d160000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/tensor/tensor_cpu.cpp.obj": {
+      "object_sha256": "50193f73500e5d0eb91e41b8e1ca48a88a1952840c3ff39153a3ac87f60351e9",
+      "source": "src/tensor/tensor_cpu.cpp",
+      "source_sha256": "74bc4f36fb9e0d58dc3d10641a046f2703bfdb8280df2bb64da7a1b073fe9ba3",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486cd079a2ec76abcbc030027190000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/tensor/tensor_graph.cpp.obj": {
+      "object_sha256": "6bcf0ea8e437b82433b263fb6a9ae7db8ef745f8eaf3e16fe936255768e892f2",
+      "source": "src/tensor/tensor_graph.cpp",
+      "source_sha256": "178c3a5da4203244bdd733ab660c8eb86a606908f9a181a1d1391a3eae8dd9db",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486c20a992ec76a169704007d220000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/tensor/tensor_module.cpp.obj": {
+      "object_sha256": "dfdf8f4bb41e0ff3c0b3307e0826abaed67332877d443a6aedd43a4fe83958e4",
+      "source": "src/tensor/tensor_module.cpp",
+      "source_sha256": "66c5f0bd9c1f0dc7225cacaf0dc7a559a36c91ef053ad7e8f0741bdfd0557e52",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64868209c6e6c76adb2a0400871e0000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/tensor/tensor_serialization.cpp.obj": {
+      "object_sha256": "2476951858d5768cda0004cf2d74e72eba748252c551ab34ed72bbba527d443a",
+      "source": "src/tensor/tensor_serialization.cpp",
+      "source_sha256": "3e142e813067545a893ce61f3c3c8d90b4539819633218979e32f507aaf3b8be",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "6486e805c1e6c76aac4d0200e3120000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_runtime.dir/Release/src/tensor/tensor_storage.cpp.obj": {
+      "object_sha256": "f7e1397a93b0e16bc8c69759b8574a57ae51de740e5c6224dcbb7a297155f8de",
+      "source": "src/tensor/tensor_storage.cpp",
+      "source_sha256": "4bdea1b09914bdc0d4f58af3322dedb672a59230174ca625169caefb50071b7d",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "64860d07c1e6c76ac9c60200d8160000000000002e64726563747665",
+      "format_evidence": "classic_amd64_candidate_for_bounded_reader"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/abc_module.cpp.obj": {
+      "object_sha256": "5394bbc5faa1cd6ba3b133e8a8d840c6a08b70aa06f35d3435c06fd46213bd76",
+      "source": "src/runtime/modules/system/abc_module.cpp",
+      "source_sha256": "5a51025f6eefe046864d5c400a0dcd11f33b71794236ab9ab007411897632985",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/array_module.cpp.obj": {
+      "object_sha256": "f24961b14f11da27b14e4ddfa68e2d91d0b8e8b35e200948f84dc15158fe0e1a",
+      "source": "src/runtime/modules/system/array_module.cpp",
+      "source_sha256": "6f0b3a1c6d112456542d90664fe086868739c6b262640c3fa979a4f06befd04a",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866476c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/ast_module.cpp.obj": {
+      "object_sha256": "87705040e8e7901d8f24e884dbccda70c22f5fc1dae24ec20d4e2d8aff33dbda",
+      "source": "src/runtime/modules/system/ast_module.cpp",
+      "source_sha256": "0cd5e2ed9c9db84a6870ac2b1e4c65e421a7a1c1b052e8bed96003b9eabd1a1d",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/asyncio_future.cpp.obj": {
+      "object_sha256": "35321319957aef7a683f3d60a824fe956bdde8a6e79e082a0e1abe88c987cae6",
+      "source": "src/runtime/modules/system/asyncio_future.cpp",
+      "source_sha256": "1d615b0cf23623cf0ab277ce3a3ba85c2c197dddf9c2ae80a0ac18eb699ce403",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/asyncio_module.cpp.obj": {
+      "object_sha256": "388dc6e90dc06452b188c82c79bd8c0bbe45b466112745a358706cb0db74c4a2",
+      "source": "src/runtime/modules/system/asyncio_module.cpp",
+      "source_sha256": "e977029516ba827b7becded5edf3073fad9ba65fcfb6f97790b5b3f93585e0fd",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/asyncio_task.cpp.obj": {
+      "object_sha256": "c0ff815749e58b82c66977e0c906876db4dc968eac6689a3af47bb55c0d3577b",
+      "source": "src/runtime/modules/system/asyncio_task.cpp",
+      "source_sha256": "78ca9fb2197953146d3630c5313312553afe4b626608a6cfcfa7ff5bc6194d19",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/atexit_module.cpp.obj": {
+      "object_sha256": "7ee69bd45d5381903242eb5304c1690f56fe44983b7da13f268350bad570ef3e",
+      "source": "src/runtime/modules/system/atexit_module.cpp",
+      "source_sha256": "1ec5695a07b997791971cad0f56214948acc23aa67530ff7e03ef4659a82259c",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/binascii_module.cpp.obj": {
+      "object_sha256": "8730ac08acb5c51e28a3e308ba5ea8c447a32dd28b6df77cd222d7caad598198",
+      "source": "src/runtime/modules/system/binascii_module.cpp",
+      "source_sha256": "91884984e967bc225320ee3334f301a791a08f31d9e09ea55204ef4e6149551b",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/bisect_module.cpp.obj": {
+      "object_sha256": "748ba4119e146360ae4edbdd9fd9b1dc3e45b9011bbd81faa19a0c262aee1559",
+      "source": "src/runtime/modules/system/bisect_module.cpp",
+      "source_sha256": "e8b6497918f6a4dc1675b7197fdc376ccffc0d3465a917108ac306a34ad73396",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/bz2_module.cpp.obj": {
+      "object_sha256": "e01e4d93f80b6c685f33a32f8f75f34e399d0f1ff6e96474c6a8b447b51cf5e7",
+      "source": "src/runtime/modules/system/bz2_module.cpp",
+      "source_sha256": "59a978f81c9d87cb2cc8a9fe3b16f4d4074d8f5785ac3b6c2249133893d84b00",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/cmath_module.cpp.obj": {
+      "object_sha256": "f0ef0753d0271a819f19fc8d0f599f393e0c5f6227319a032f589b940a61a5dc",
+      "source": "src/runtime/modules/system/cmath_module.cpp",
+      "source_sha256": "2ffc60ff9ea3ab3460061b75f46fc7dbf26d604bf1a0605133ff6a666eb8db87",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/codecs_module.cpp.obj": {
+      "object_sha256": "ba2746f324c88b1915864958c8322e554ba7e9f1eb7a3c83e8867bae301a88f3",
+      "source": "src/runtime/modules/system/codecs_module.cpp",
+      "source_sha256": "7851c04b3f4e1fe3f844e8d54afce2106e2f46335c0bf53da6d8cd9a6ad4a34e",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/collections_module.cpp.obj": {
+      "object_sha256": "97d0014edc42dcbbccd31c6b985f59091f81bc19476a0b9a7271a8ca0c735db4",
+      "source": "src/runtime/modules/system/collections_module.cpp",
+      "source_sha256": "d8ba67b14c814d0e9e5a4e1674506eaa4e0a86dc2051018c552570bbdddbe728",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/contextvars_module.cpp.obj": {
+      "object_sha256": "83042226c93196aafb0f57576357c476f95d3eb0d5e85c98f01bf9807ccccddb",
+      "source": "src/runtime/modules/system/contextvars_module.cpp",
+      "source_sha256": "829002229ee12aa8320d2e8956082970f8f5c2e57500d8069e18652636dacee4",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/csv_module.cpp.obj": {
+      "object_sha256": "3bdb8f86db51bb9ff411f80e5227b334f301593433bf105e26b1c292a8bc109f",
+      "source": "src/runtime/modules/system/csv_module.cpp",
+      "source_sha256": "0969f3324b5893c3616192e42df9a92500fa020be008f2f1202a329f186a398d",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/ctypes_module.cpp.obj": {
+      "object_sha256": "0caa06332a95ada791a4a8bb7144976d0b76f5f0c0af7724350ba13ec4c01fdf",
+      "source": "src/runtime/modules/system/ctypes_module.cpp",
+      "source_sha256": "b44cdc9ab417ffd4489aac7f636946bda32c8d14f83acdadc604fec634b411e3",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/decimal_module.cpp.obj": {
+      "object_sha256": "3f23a00d199d2fb2ffc06fe9193ec3a916b63c70bf15f26b585027400ad34c21",
+      "source": "src/runtime/modules/system/decimal_module.cpp",
+      "source_sha256": "c8eb8865bc80afa440d2989482ef3600798d4984e4adfdd18ccb1e016136a759",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/errno_module.cpp.obj": {
+      "object_sha256": "588bb0d241409a24ea115a19909db565032dbf308ba0727e78839cb55bafc3bf",
+      "source": "src/runtime/modules/system/errno_module.cpp",
+      "source_sha256": "d68c3fa739994e5298ee83a733b7941be4d48a9b974ac37ca8ab5fc5cf6aaaf9",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/faulthandler_module.cpp.obj": {
+      "object_sha256": "8cd717f9645a6590b816448b5c8447eced7f0ab4b65ac5aac3058b2ba2b51e4e",
+      "source": "src/runtime/modules/system/faulthandler_module.cpp",
+      "source_sha256": "142896e162a58d4abda541e666ca66bc776a3fd35335cd0dcf671e2d20022375",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866476c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/functools_module.cpp.obj": {
+      "object_sha256": "27a7407f50e4d031628340b16831adf613ab5c52db36d9793f5945bae81fa0d0",
+      "source": "src/runtime/modules/system/functools_module.cpp",
+      "source_sha256": "5bf7ffd665385aba83e9fd0b40ecdda7ebf78c55bbcbfbcddf593a2c84723bf9",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866476c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/gc_module.cpp.obj": {
+      "object_sha256": "bd75175151a86b5c317ce499832d0b674b0b4db10e0b6423ec3ed925cfcb1a4b",
+      "source": "src/runtime/modules/system/gc_module.cpp",
+      "source_sha256": "6901925b5e1768ac0bf76c2ea89da99359a8303310ffaa36ff41009bfbce35f8",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866476c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/heapq_module.cpp.obj": {
+      "object_sha256": "eac88ea828e832497c919eb2853e52402f11312a9e8ea06fee9d010c55502a4c",
+      "source": "src/runtime/modules/system/heapq_module.cpp",
+      "source_sha256": "0f6cbf97cd5f0065f22206232bc01b09ae8cf65b5bc1d35f71196933c330771c",
+      "source_in_recorded_inventory": true,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/imp_module.cpp.obj": {
+      "object_sha256": "657159e313a82a3b82a4212615e3644d995549b2f7424ba26386a9d451593a00",
+      "source": "src/runtime/modules/system/imp_module.cpp",
+      "source_sha256": "f403660108cd5b87131fb6fcf27b9d8a9081eb8929964e0444452875b1d923c4",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866476c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/importlib_module.cpp.obj": {
+      "object_sha256": "fa8874306651c24513f6227751f13c1d30e956db4c3cab67d007405c2993cf99",
+      "source": "src/runtime/modules/system/importlib_module.cpp",
+      "source_sha256": "8d13fc442fd54613a975dbe9cdf2130b058e8fbd4b8b78f4649e6c67ca5aab46",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866576c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/interpreters_module.cpp.obj": {
+      "object_sha256": "ee8a31df703d8bc3449b47ede13270966c224f8a2381952f361ad0d8fd124c90",
+      "source": "src/runtime/modules/system/interpreters_module.cpp",
+      "source_sha256": "7fce9edd7f37815dfadcc5612b399e2702d4d5ac254f4c61925cc28b5cb3a226",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866576c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/io_module.cpp.obj": {
+      "object_sha256": "96724628c6be3e9881fda2e9ad7a0ae0c1e756b81b26c7b98934e9b110c0baa9",
+      "source": "src/runtime/modules/system/io_module.cpp",
+      "source_sha256": "db132cc95ce3cbb98c827c4300d8ce93573e787876621c7f8d1b3b904c2d6cb5",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866576c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/itertools_module.cpp.obj": {
+      "object_sha256": "5665c05fdc1da79cf4e04e3c7c6c632e92ccaf50eb157ba55c024de4007f3f27",
+      "source": "src/runtime/modules/system/itertools_module.cpp",
+      "source_sha256": "41df49864e49a0b2f2c96bdcec36aa06adf84783e768d72b492d66bbe4012bf0",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866576c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/json_module.cpp.obj": {
+      "object_sha256": "4c71838e4e35ded15f496753997a129ea3502775a94b9fa9e370242d13041c61",
+      "source": "src/runtime/modules/system/json_module.cpp",
+      "source_sha256": "801a254340d4d2f3ea892b68d8b8b8657a309e1f1ec4ff0313430d30e0e4d701",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866576c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/locale_module.cpp.obj": {
+      "object_sha256": "46445cc4f5e24101465f0572c403ae7eecc2b4437b4050d494c021e1587b1800",
+      "source": "src/runtime/modules/system/locale_module.cpp",
+      "source_sha256": "2e5a3295d7957f0c1a6cc8f1d27cad5e191d79b3da9f921e06056da7493ca724",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/lsprof_module.cpp.obj": {
+      "object_sha256": "1b1c5a7f8f31da48d75a663736d68af9d33aab097050e18810f1e7cc926cb00a",
+      "source": "src/runtime/modules/system/lsprof_module.cpp",
+      "source_sha256": "016ae8f5cba583d9101083b8377587090d10c2325b3fbb7519f5e6c4d142059b",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866576c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/marshal_module.cpp.obj": {
+      "object_sha256": "bf2c3076343d48f4fc6389b0260154a4546391d4666cb660ad5a4dab5c1850eb",
+      "source": "src/runtime/modules/system/marshal_module.cpp",
+      "source_sha256": "9570f9ea055e9dc613617124b7daa7cc1699b466bb338f95b0e34df5207f37af",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866576c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/msvcrt_module.cpp.obj": {
+      "object_sha256": "f90603a5815f01f823f09018003318ba877ebb924d7f16cf9de6fe5cda4ea9b7",
+      "source": "src/runtime/modules/system/msvcrt_module.cpp",
+      "source_sha256": "2cd430d9f7f75547b90023f06811b9740bc3cebb7596706e996249d2263f77db",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866576c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/multibytecodec_module.cpp.obj": {
+      "object_sha256": "6910f8682427caea17461dcd6bdc194c82a7048ddab39de05dc03b344f592cca",
+      "source": "src/runtime/modules/system/multibytecodec_module.cpp",
+      "source_sha256": "83cf9aeab571018a2238e8529b4c6f718c294b73a9d64b45d2e39938c60d4247",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866376c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/multiprocessing_module.cpp.obj": {
+      "object_sha256": "dac385d3e602182c815cb37e26b33ef899b0da81e956140d9d42de509e74ba5d",
+      "source": "src/runtime/modules/system/multiprocessing_module.cpp",
+      "source_sha256": "4d1a6b5f1ba67cc42e378b60fb72886f4b5d36c991f94bda9edf7c93f74e6239",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866476c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/opcode_module.cpp.obj": {
+      "object_sha256": "4db67ac65279ba1dec4646e4c197f94b3c244442d1eebd9ee48fc1a0045ba429",
+      "source": "src/runtime/modules/system/opcode_module.cpp",
+      "source_sha256": "cffdb5b33da2b5bb4a0f04c9c2ce90031eed0ddcff9683c5a506c5a329026336",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866476c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/operator_module.cpp.obj": {
+      "object_sha256": "e2d1c82ed699f9f6725b4ca7e7dd3337ac29874f27fed1b7ee4124004a04581e",
+      "source": "src/runtime/modules/system/operator_module.cpp",
+      "source_sha256": "52e0f01bc943e78275e865505a733f295e14aa66a3f22851cbdb3fbbc9ccd34e",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866476c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/os_module.cpp.obj": {
+      "object_sha256": "f1d25ed133c1a666111ca2bf5550acc9a5ba67512faba063cc00ff5b773dacc3",
+      "source": "src/runtime/modules/system/os_module.cpp",
+      "source_sha256": "75247d7382d073b6e7392d2734f40770da13da0c0e6ad6f831b25877bd1857d2",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866676c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/overlapped_module.cpp.obj": {
+      "object_sha256": "b93d5b396862dcf86dfcdb7ebcf2915fb2630484f666f473bfe1c10451166d0c",
+      "source": "src/runtime/modules/system/overlapped_module.cpp",
+      "source_sha256": "44f34957a48c171f800b636e9ad9889789d0456ec34f748f7c301216e3b37daa",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866576c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/pickle_module.cpp.obj": {
+      "object_sha256": "002f2f9adc9068170d02e7522872f180045a65a0970ffefb740e53c504d98b7f",
+      "source": "src/runtime/modules/system/pickle_module.cpp",
+      "source_sha256": "d2f40517db08f51375effcda525b648c25354c7177ac3bf084bc4a688d5ca83c",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866576c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/posix_process_module.cpp.obj": {
+      "object_sha256": "593c599f6e892752ac6252b2e87b7befefbc23110ec4041d282012253c6bf6d2",
+      "source": "src/runtime/modules/system/posix_process_module.cpp",
+      "source_sha256": "e3b08f84550902b5a1807dcbe0404d4b0ab8296e3a5798cb8b2711eabb63cba2",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866776c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/pyexpat_module.cpp.obj": {
+      "object_sha256": "555b227328038bb6b5b1f5d388899991a40b6344b501a6ddd026c2646125aab4",
+      "source": "src/runtime/modules/system/pyexpat_module.cpp",
+      "source_sha256": "e7cc0094f5c916bd28dc351caf8cdba43f85995436308c06d20e5b64cbc58243",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866576c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/queue_module.cpp.obj": {
+      "object_sha256": "2963a46d00fc622230bcbdebf6edd37548706908aec4f76c2bfc8f6dde45e584",
+      "source": "src/runtime/modules/system/queue_module.cpp",
+      "source_sha256": "b8cdde4dfe8c6707db2944373790cf638d3a00dc13033cbcd09c26f396711f51",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866576c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/random_module.cpp.obj": {
+      "object_sha256": "c558cf5788f6927ad5e25e669fd39ef5f82932caf345c4854602a06121f5eda1",
+      "source": "src/runtime/modules/system/random_module.cpp",
+      "source_sha256": "105032ef9ab020f01cacdd58b0d313df204dd5f40e975980d141dd13f5a168af",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866576c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/sha2_module.cpp.obj": {
+      "object_sha256": "a7972e2aee31cd47190bd66e6084c98a5699758529fe1b9d8c8de2447b69fefd",
+      "source": "src/runtime/modules/system/sha2_module.cpp",
+      "source_sha256": "fc35f211828a1f8809a418e8c2a5b0c98b2f60554c2a47ed94c0f7fb018d4cb8",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866676c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/signal_module.cpp.obj": {
+      "object_sha256": "61a0c512e844cf99858ca0d1edf6d53def6baab06dbc872dd5264add517dc93f",
+      "source": "src/runtime/modules/system/signal_module.cpp",
+      "source_sha256": "83902dcff7721df541fdba2b7b471cabb253512784d46019be646f1dd302ffb5",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866776c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/socket_select_module.cpp.obj": {
+      "object_sha256": "761c878e5fa5517aa3560387280bcda856d46238769353c8c3053de190b46955",
+      "source": "src/runtime/modules/system/socket_select_module.cpp",
+      "source_sha256": "346796323b9bf133d45ea22f73f4a1ea3448a97f8d6633e1a5dd29761fa77b6f",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866776c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/source_encoding.cpp.obj": {
+      "object_sha256": "84b5818b88a064ab0869aac0399c571b2c905540c664356f24b007abb876027f",
+      "source": "src/runtime/modules/system/source_encoding.cpp",
+      "source_sha256": "cc02777b223fdecb8898da821c7a53ec11c5b5df71716b49f39fb3321b3ad3bf",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff01006486313dc56a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/sre_module.cpp.obj": {
+      "object_sha256": "2da59bd9ce56cebab1ebe86b811f01e8b9d2463263e8b3a6a04ad7c79292cf83",
+      "source": "src/runtime/modules/system/sre_module.cpp",
+      "source_sha256": "619712066cee99eb7daae21da0939a43c022f579effdcb0e5298c8f145f119b1",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866876c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/stat_module.cpp.obj": {
+      "object_sha256": "58eb31d46782c50566886b20696c95ea8382944f371abec3a3e5412ec1b0b391",
+      "source": "src/runtime/modules/system/stat_module.cpp",
+      "source_sha256": "dd60b4806959205302bb3cfaf6d77f218ea0f0ae4eff7f9612aaf91298c2590d",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866676c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/string_module.cpp.obj": {
+      "object_sha256": "b9d3b8ee3f865312cadd2ca53b60db1c28589c2e0ee48eca000a7caef9c79398",
+      "source": "src/runtime/modules/system/string_module.cpp",
+      "source_sha256": "e4d808c58e996946726ef64f12d9df3699e39e286896814dec7abd535642aae3",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866676c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/struct_module.cpp.obj": {
+      "object_sha256": "390daa2b613b06b3104a5042c05b4177916fc12febfd2224421965fc9fc0863a",
+      "source": "src/runtime/modules/system/struct_module.cpp",
+      "source_sha256": "0b46e65caf5c0d4349936bf12de3a2d38c7e075e920162cd498c7e71c0e89f9a",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866676c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/sys_module.cpp.obj": {
+      "object_sha256": "77c9225f85b981c2c1757b458e02081eaa182080f4f5fff24a1f48dcb197b287",
+      "source": "src/runtime/modules/system/sys_module.cpp",
+      "source_sha256": "84d469d90d0ad669c139910e2f42ef2b1dfdbd832cd341d67e4efea36bf112ba",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866876c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/sysconfig_native_module.cpp.obj": {
+      "object_sha256": "d5e928c16ac685aefd848fc4a41ba5768b5bbf0fa6e47bbe68cbecad6d3ee3c0",
+      "source": "src/runtime/modules/system/sysconfig_native_module.cpp",
+      "source_sha256": "7e58d74d323134cd0c3e2b8d837b7e6bb3f330c7e516143f091229a4204c9660",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866776c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/time_module.cpp.obj": {
+      "object_sha256": "79e696272fc733663b051bd27f8f308eb7cf276bcb695119fffcc770aafdce1c",
+      "source": "src/runtime/modules/system/time_module.cpp",
+      "source_sha256": "0f19a565e1402777b9e0d23620fed1c6d7519f89690d74bfb5aa0419a7be39e5",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866876c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/tokenize_module.cpp.obj": {
+      "object_sha256": "a284fffc736262a8032ed35214bce5c71e70d03bba3fd10335142a5668591e6e",
+      "source": "src/runtime/modules/system/tokenize_module.cpp",
+      "source_sha256": "1eee4f5bd3f2bfac4cc8173e1def30d52e87f6d1409e8a8e50d3dc0c249b1678",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff01006486b2e6c76a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/typing_module.cpp.obj": {
+      "object_sha256": "860e7bb47214fc1d9461e99cf85cda1958b84ca64ece9bbaf739a3b3cc8cbfc5",
+      "source": "src/runtime/modules/system/typing_module.cpp",
+      "source_sha256": "5f8350667862b15416bd9e96d7369702ff1a132e913c03b8223aaf7c572537d2",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866776c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/unicodedata_module.cpp.obj": {
+      "object_sha256": "1ef6d1489dd83b1cf2bfb089bf52ee906ab336a1ed543c5197da7a70faeb9380",
+      "source": "src/runtime/modules/system/unicodedata_module.cpp",
+      "source_sha256": "35c30daf0db235a8c8d7cbee9417d08e9c4d1f6b5eac5d40f4b8e3eb64784909",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866676c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/warnings_module.cpp.obj": {
+      "object_sha256": "79265c73b0dac3dedb5ede7502f9e6b78746be7da634897852400b66398ac649",
+      "source": "src/runtime/modules/system/warnings_module.cpp",
+      "source_sha256": "72d6e1b0f098caba205d4ccaa96b6531b34ed9c4285fe2cea50b34c72a63c8b8",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866776c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/weakref_module.cpp.obj": {
+      "object_sha256": "103ea847ec8a9f17902d520fa1e3d1ebc4fd0cce1d1a302d17343bb59e43a129",
+      "source": "src/runtime/modules/system/weakref_module.cpp",
+      "source_sha256": "a4d0a52d7ffa14f48c9c0226c71c80b635720f4b7153658b2e6da25be269cb73",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866876c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/winapi_module.cpp.obj": {
+      "object_sha256": "713e20585b04caa811cd286b04d361b5f4d1c8b07c9aba5259a70a494ee9d0a3",
+      "source": "src/runtime/modules/system/winapi_module.cpp",
+      "source_sha256": "681c4463f38608530481aee000c95cdc38295e0364b43d2231667b95d12d1ba4",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866776c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/winreg_module.cpp.obj": {
+      "object_sha256": "e9c3efb685f0fecb3743350b3de0ba6760e25819e5c40a511813bb8799e55795",
+      "source": "src/runtime/modules/system/winreg_module.cpp",
+      "source_sha256": "ea9b4f3fa2132f1d3d9cd036001cc517fcf98eb82493c22b46a919d4256b52af",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866776c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/zip_archive.cpp.obj": {
+      "object_sha256": "528ede1cdcf30a75abd8b05bec4b2ab449a38245690bc1859a575cd6f9216a6b",
+      "source": "src/runtime/modules/system/zip_archive.cpp",
+      "source_sha256": "77827ca8d8701e985bb70487c94439b414eaa74b6c34f850ad411f864313091d",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff01006486333dc56a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/zipimport_module.cpp.obj": {
+      "object_sha256": "ee40f140c55994fe76663ceea71a6ea4f5b9c40e09a307fe954ac5ee1f4c2e78",
+      "source": "src/runtime/modules/system/zipimport_module.cpp",
+      "source_sha256": "af9c8fb8a9bdbfba1ca718221e44c9f3e7f46dd6dddbfa31e07e94eebc54d677",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866776c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    },
+    "build-repro/main-verify-20261006/CMakeFiles/xlang3_system_runtime.dir/Release/src/runtime/modules/system/zlib_module.cpp.obj": {
+      "object_sha256": "8503abc7340eaec327092873039875f499bd25420330383593faa73658062750",
+      "source": "src/runtime/modules/system/zlib_module.cpp",
+      "source_sha256": "6fffab4c374f852cc3c5f93ebd0c651ce50e363c33fe0ca283ac6c01bb4106c6",
+      "source_in_recorded_inventory": false,
+      "header_prefix_hex": "0000ffff010064866776c86a38feb30ca5d9ab4dac9bd6b6222653c2",
+      "format_evidence": "anonymous_version_1_unsupported_until_format_admission"
+    }
+  },
+  "physical_source_count": 149,
+  "physical_source_sha256": {
+    "src/api/buffer_api.cpp": "05faff1d603aa9df726f42a2c3d56054eea5c85151ab8ceff9a4c3846321f8a3",
+    "src/api/c_api.cpp": "797d206df243f348338dcb4b112f7d5313f85834c1d56213ee9eef80b1fb9b50",
+    "src/api/ipc_api.cpp": "95758e44fd8de2a7e5fc18961d37961f7b0d14267f38de4f7d5a67feeae13292",
+    "src/api/native_serialization_api.cpp": "da8c25b130f1daaaa6cb47367f6c10d04f73259226dadf8690bfa1ef1e7071d3",
+    "src/api/protocol_api.cpp": "2d0e225c3b4de84e59e7bf4546e8fa2fac386f1e489974cdc3baf3af15fba082",
+    "src/api/stream_api.cpp": "bbca71952172403f4c3dd0bbeb37e66439b351e02419d350558c7e77bab8c220",
+    "src/builtins/builtin_modules.cpp": "05709d2af467b5778795114f47ff63132a041cc6da6fd9f1daf0e98dcbdde173",
+    "src/builtins/builtins.cpp": "135c805d32dd03b8740b08c1833bee09fa5d91d88b2bc4ea4fe2704bd184cb19",
+    "src/builtins/exception_builtins.cpp": "ee0abee0934c0eb96658c7716be735be4b13d0f66274bea87d46d772b25f40d2",
+    "src/builtins/functional_builtins.cpp": "ca8094ecce251bf2e473141399d67541a9abda7d4f39321c7a0968d3db6c58e0",
+    "src/builtins/io_builtins.cpp": "9604ee7231926f18b603639821ac8504bfdbb8cfc28138618e3c5194d6294822",
+    "src/builtins/math_module.cpp": "c6ae3cf370d35f92eaf14ce195ba97a781a28f709c615edb7bb9200ddb39d62d",
+    "src/builtins/object_type_builtins.cpp": "171aafd05b11396b5522a2a45d490b37dbce0924c00b661b4f2e1ba41fa7a3d3",
+    "src/builtins/raw_block_builtins.cpp": "35fc140d5f1b215cc681227bf1cd4a0dc1ea96553740e88ca543700e3b1c38a2",
+    "src/builtins/sequence_builtins.cpp": "6afc90d03f86848d114ff14c40856e79098f52e38725d1936fa7306aa951b200",
+    "src/debug/dap_session.cpp": "6908a383a308795b9e688975981196840c3f3a32873033e2b4b623a82e2feb46",
+    "src/debug/debug_session.cpp": "b23a164a071dbd9ad763ed48af301d61b4621169628db901677bb566fa50884d",
+    "src/executor/xlang_vm/xlang_interpreter.cpp": "f309acf74a45f5d212d97f0f0b51b65ed7ff9b86a56bbbdf0ae5047125341ab8",
+    "src/executor/xlang_vm/xlang_vm_attr.cpp": "9633377725d293f8e206ec8bc1c554ef6333ce6c05c3ecfe92c8281cec89934c",
+    "src/executor/xlang_vm/xlang_vm_loop.cpp": "edf6c52d37cc85990a1cfd995b769786773e13bdf70bc8908bd52d3d803da30d",
+    "src/import/import_loader.cpp": "bb12d15c31df96f3b4810a93101dae915f8668c9f70a2e6f949dd467d2538206",
+    "src/import/native_package_loader.cpp": "eb34eb4d10a4c72e39cec20dab602cb54f1d6ea427c5af5702f6be226acc3d6b",
+    "src/ipc/ipc_runtime.cpp": "7ef4bbfb3b7c01371c576f3bb559cb3856fd2cd68a465cf1a67c07be5365444c",
+    "src/ipc/shared_memory_block_stream.cpp": "8ad4a1769d3d52caaf608d80950d0aca5a9de02b56655260b871fc78a4491430",
+    "src/ipc/shared_memory_transport_win32.cpp": "a6813265dbe78f6b86e2fba5dc6d20c580e30332bb0d12a21a82e235918596e8",
+    "src/ipc/shared_memory_transport.cpp": "93b315781ff815f958ca4f103d30d87276a85125d92061028d58a7678fa43c8f",
+    "src/ir/codec.cpp": "6726f090de59651f7570007c130e2b7129fac3a2133f67905c374d841f9da384",
+    "src/ir/dump.cpp": "f21ba927c25f7c1d272b18840694635e1883849cb07f6d45653045659ba08039",
+    "src/parser/lexer.cpp": "52bf409a30bd4fc207b93351da69f883ed81da3660e3cc99e74b5e402c2a690c",
+    "src/parser/parser.cpp": "0ccc9f0270aeedd95d0daefe21ec7ba2b4522a70c5c5d3077a919913078ca6d5",
+    "src/parser/source_cursor.cpp": "522aaea9e8c0ecf4a3ab6880dca5973729fbf31f9c074d19a97079cc25fd2b47",
+    "src/rpc/memory_file_store.cpp": "3c0399f157f5e0bf3f7a21811dd1b53de78124735060942450b542d15f5e0eba",
+    "src/rpc/object_table.cpp": "6954bc44aa6c7ced6019c878d953c28d5e8dd79f280939acff2e810e6e749b2b",
+    "src/runtime/attribute.cpp": "0e6d514f8168812bbe33dcc985d7811e0f0ec97383bbeb273d1582500df57f4d",
+    "src/runtime/bigint.cpp": "b7e927d36a926f63f540190a6b3ebcaab4975f60d55bc406fd10d2ddf012e26a",
+    "src/runtime/c_api_bridge.cpp": "0864f04072096ea8f36b4c508643def71987d93069fea272f9bab965243caa53",
+    "src/runtime/exceptions.cpp": "d5c13f7126a415d7b297ddb9f27052ddd35feb6595976654ba6bf017410f5dde",
+    "src/runtime/expression.cpp": "3c35701f2e04d1e2bd5bf45963fba35ecf4ddb059ef64aace37e9f5fb82fdd47",
+    "src/runtime/functional_iterators.cpp": "4a038c4b5152b87f8fa4d8d83a0f4961b069b8731cd99a4245c74ee5eee21e2e",
+    "src/runtime/generator.cpp": "8316896bb60aa35c956d3f3b55047d79e955a6da89de67be91837fc3593f934b",
+    "src/runtime/interpreter_events.cpp": "49e16fe303ca9346c3f0759832f95166f93d5dca88666c3640b8813ba130eca4",
+    "src/runtime/mapping.cpp": "c06a143e985a8f67703e11d58aad3a12fa6d3cb964e77a68a7fbf3193d290fbf",
+    "src/runtime/memory/x3_bucket_allocator.cpp": "53a095e9b94d8078adccb2c19f274367db7f55488b096987688f07d0d9245747",
+    "src/runtime/memory/x3_memory.cpp": "33bce038de276b784423a42a3b69f94b898bb57fb4f48be640af1cbd82c2fac3",
+    "src/runtime/memory/x3_object_pool.cpp": "12716b98f63f42d147dc35686db8ab9fc627cfad9f546b7a735b1b7166d0acb5",
+    "src/runtime/memory/x3_page_allocator.cpp": "36fe4939c9288492c1aabbc0007fe84e5bb6a550a7a2731d518b60ec00f1ab97",
+    "src/runtime/memory/x3_runtime_memory.cpp": "4f5ff1263f4a13b9c72d5805dc4efcea046a19fba5d0e4ec37ab172a4237dc4f",
+    "src/runtime/memory/x3_temp_arena.cpp": "889b75acca0815ffbb13c5737bba1c358bcf7a384c482e001678974db91f5e6b",
+    "src/runtime/methods/bytes_methods.cpp": "660db7174f984c4a145bddde76cf42c8e2cacaa156c34fc52855f8db785c00af",
+    "src/runtime/methods/dict_methods.cpp": "9241c105d298a226273a7fae2e66b1bd1cd816656f57bf478240050c25b56135",
+    "src/runtime/methods/file_methods.cpp": "425110987b2557eb637adfcd10efccce226dafede14a036c5609ac97550218a9",
+    "src/runtime/methods/int_methods.cpp": "b0c15ea93f31d473eeab55cf050d1d97fbbb64a0a9675a079c2f8038be384e6f",
+    "src/runtime/methods/iterator_methods.cpp": "0a8f37721115218048136c6b7ee3b98a85c333e4bebb714f26d160567d4311b1",
+    "src/runtime/methods/list_methods.cpp": "f85de0589596f6ad20411754df5d5ddfeda7f4cffe6f05607df4027311b74d10",
+    "src/runtime/methods/property_methods.cpp": "2f0c9654b30e4885e730b27e2f63c85b12600b83cef184dff329e0b0263dfefd",
+    "src/runtime/methods/set_methods.cpp": "5e07e871609579635fbf06d987f461688160f648f012c399c4965c21c0809aba",
+    "src/runtime/methods/string_methods.cpp": "8caa51cfd7aff414da1abea251f4c65dd5068071c1e7eb58f6e0c095ef657d79",
+    "src/runtime/methods/tuple_methods.cpp": "5accc27187e99650cde5ebb56fcaced9101446a2b94709f6b472b29527a0ab16",
+    "src/runtime/module_object.cpp": "ff2a6d0bff9d76f47a0d13c09c8927bcc554c9e1cb3ce5abc583f1aa67069da3",
+    "src/runtime/module_slots.cpp": "35ce111869b6590abdbbcbaed9755965611261b097a2546ff7090df43e9a9edf",
+    "src/runtime/object_model.cpp": "10806dd37498170b7172f469ca44d190698f85c0a6adb2bed104053df1c0fedc",
+    "src/runtime/perf_counters.cpp": "a0d837e0a018cba36f82cc08dea6f524147ce7230e4dd0b331d96f87cff0835a",
+    "src/runtime/runtime.cpp": "2d7a0836eea66c376f652276d35edaa412edf792ab74c220711cd4bd3a14ca98",
+    "src/runtime/sequence.cpp": "934c24e1afc3be755ce7bb01abc499fbec566460f406f361b660eb33c942c093",
+    "src/runtime/set_object.cpp": "efca67b7b1d1c15816802aeef71299a8616cb7bf5d3907b15c475404ad4df33f",
+    "src/runtime/unicode_data.cpp": "3fb612613a54f79ca47206b846fc74d872bcf72fbaf405b2bbe1da73b536f843",
+    "src/runtime/unicode_names.cpp": "a5feae86ad2c2815d15694fa117781761c31d556ea9a39cecf3b9624306c0cf9",
+    "src/runtime/value_hash.cpp": "aeb9abb4697569a3b28485000337e31d21f2cd9227dbf2ea0e76e2e125d439ed",
+    "src/runtime/value.cpp": "18be33a526dbcc6627490a12a68aefc9e168d42afbf238ce38fa240e74bba0e0",
+    "src/runtime/vfs.cpp": "4710d43538b91b404a8c11343b553294c16e4accf3a1f9762e88fdf526daf457",
+    "src/sema/lower.cpp": "12aae5ef15a98288aa359112ee8a6bd64f0213a228a3b11132849fad0f62fb04",
+    "src/sema/scope_analysis.cpp": "a8ddc01fbc94413b8ad3d1624812abc1701dfed1ec9e62621032cdd6e5f3177e",
+    "src/sema/xlang_module_globals.cpp": "2c3355cf9b0b45427bfff76743df4b77c1c4ca618cb96f75f5e571474c4ac892",
+    "src/serialize/block_stream.cpp": "f069c07eca738441072f0e90ffdc7f903518439fa8b611398453f55fe0aee7ba",
+    "src/serialize/ipc_value_marshal.cpp": "58fe681445a0cfc0929246f4c694788b5de2ca1e6ab9cc5c0f7134f6555b9e22",
+    "src/serialize/value_graph_lifetime.cpp": "66a56c2b298a5cec161fd41baaf6c97978c5a6e6f9a037d7e9e67edf1c4e09c8",
+    "src/serialize/value_graph_reader.cpp": "33e783e7508adaca6372383fc9b5b593509a7dc66669168ee3116a58ef90d662",
+    "src/serialize/value_graph_writer.cpp": "68630506eedec3ec07176a7a8646cde49310171e597871525c8a627da50d850f",
+    "src/serialize/xlang_stream.cpp": "1d3c703f51922df0047261080bac500435724e59186592fe68184d2da13713aa",
+    "src/tensor/tensor_api.cpp": "07006fae14850be6aca61a26d2ae8a3957b7b87e11bfd708f40495a27c3ea9f9",
+    "src/tensor/tensor_cpu.cpp": "74bc4f36fb9e0d58dc3d10641a046f2703bfdb8280df2bb64da7a1b073fe9ba3",
+    "src/tensor/tensor_graph.cpp": "178c3a5da4203244bdd733ab660c8eb86a606908f9a181a1d1391a3eae8dd9db",
+    "src/tensor/tensor_module.cpp": "66c5f0bd9c1f0dc7225cacaf0dc7a559a36c91ef053ad7e8f0741bdfd0557e52",
+    "src/tensor/tensor_serialization.cpp": "3e142e813067545a893ce61f3c3c8d90b4539819633218979e32f507aaf3b8be",
+    "src/tensor/tensor_storage.cpp": "4bdea1b09914bdc0d4f58af3322dedb672a59230174ca625169caefb50071b7d",
+    "src/runtime/modules/system/abc_module.cpp": "5a51025f6eefe046864d5c400a0dcd11f33b71794236ab9ab007411897632985",
+    "src/runtime/modules/system/array_module.cpp": "6f0b3a1c6d112456542d90664fe086868739c6b262640c3fa979a4f06befd04a",
+    "src/runtime/modules/system/ast_module.cpp": "0cd5e2ed9c9db84a6870ac2b1e4c65e421a7a1c1b052e8bed96003b9eabd1a1d",
+    "src/runtime/modules/system/asyncio_future.cpp": "1d615b0cf23623cf0ab277ce3a3ba85c2c197dddf9c2ae80a0ac18eb699ce403",
+    "src/runtime/modules/system/asyncio_module.cpp": "e977029516ba827b7becded5edf3073fad9ba65fcfb6f97790b5b3f93585e0fd",
+    "src/runtime/modules/system/asyncio_task.cpp": "78ca9fb2197953146d3630c5313312553afe4b626608a6cfcfa7ff5bc6194d19",
+    "src/runtime/modules/system/atexit_module.cpp": "1ec5695a07b997791971cad0f56214948acc23aa67530ff7e03ef4659a82259c",
+    "src/runtime/modules/system/binascii_module.cpp": "91884984e967bc225320ee3334f301a791a08f31d9e09ea55204ef4e6149551b",
+    "src/runtime/modules/system/bisect_module.cpp": "e8b6497918f6a4dc1675b7197fdc376ccffc0d3465a917108ac306a34ad73396",
+    "src/runtime/modules/system/bz2_module.cpp": "59a978f81c9d87cb2cc8a9fe3b16f4d4074d8f5785ac3b6c2249133893d84b00",
+    "src/runtime/modules/system/cmath_module.cpp": "2ffc60ff9ea3ab3460061b75f46fc7dbf26d604bf1a0605133ff6a666eb8db87",
+    "src/runtime/modules/system/codecs_module.cpp": "7851c04b3f4e1fe3f844e8d54afce2106e2f46335c0bf53da6d8cd9a6ad4a34e",
+    "src/runtime/modules/system/collections_module.cpp": "d8ba67b14c814d0e9e5a4e1674506eaa4e0a86dc2051018c552570bbdddbe728",
+    "src/runtime/modules/system/contextvars_module.cpp": "829002229ee12aa8320d2e8956082970f8f5c2e57500d8069e18652636dacee4",
+    "src/runtime/modules/system/csv_module.cpp": "0969f3324b5893c3616192e42df9a92500fa020be008f2f1202a329f186a398d",
+    "src/runtime/modules/system/ctypes_module.cpp": "b44cdc9ab417ffd4489aac7f636946bda32c8d14f83acdadc604fec634b411e3",
+    "src/runtime/modules/system/decimal_module.cpp": "c8eb8865bc80afa440d2989482ef3600798d4984e4adfdd18ccb1e016136a759",
+    "src/runtime/modules/system/errno_module.cpp": "d68c3fa739994e5298ee83a733b7941be4d48a9b974ac37ca8ab5fc5cf6aaaf9",
+    "src/runtime/modules/system/faulthandler_module.cpp": "142896e162a58d4abda541e666ca66bc776a3fd35335cd0dcf671e2d20022375",
+    "src/runtime/modules/system/functools_module.cpp": "5bf7ffd665385aba83e9fd0b40ecdda7ebf78c55bbcbfbcddf593a2c84723bf9",
+    "src/runtime/modules/system/gc_module.cpp": "6901925b5e1768ac0bf76c2ea89da99359a8303310ffaa36ff41009bfbce35f8",
+    "src/runtime/modules/system/heapq_module.cpp": "0f6cbf97cd5f0065f22206232bc01b09ae8cf65b5bc1d35f71196933c330771c",
+    "src/runtime/modules/system/imp_module.cpp": "f403660108cd5b87131fb6fcf27b9d8a9081eb8929964e0444452875b1d923c4",
+    "src/runtime/modules/system/importlib_module.cpp": "8d13fc442fd54613a975dbe9cdf2130b058e8fbd4b8b78f4649e6c67ca5aab46",
+    "src/runtime/modules/system/interpreters_module.cpp": "7fce9edd7f37815dfadcc5612b399e2702d4d5ac254f4c61925cc28b5cb3a226",
+    "src/runtime/modules/system/io_module.cpp": "db132cc95ce3cbb98c827c4300d8ce93573e787876621c7f8d1b3b904c2d6cb5",
+    "src/runtime/modules/system/itertools_module.cpp": "41df49864e49a0b2f2c96bdcec36aa06adf84783e768d72b492d66bbe4012bf0",
+    "src/runtime/modules/system/json_module.cpp": "801a254340d4d2f3ea892b68d8b8b8657a309e1f1ec4ff0313430d30e0e4d701",
+    "src/runtime/modules/system/locale_module.cpp": "2e5a3295d7957f0c1a6cc8f1d27cad5e191d79b3da9f921e06056da7493ca724",
+    "src/runtime/modules/system/lsprof_module.cpp": "016ae8f5cba583d9101083b8377587090d10c2325b3fbb7519f5e6c4d142059b",
+    "src/runtime/modules/system/marshal_module.cpp": "9570f9ea055e9dc613617124b7daa7cc1699b466bb338f95b0e34df5207f37af",
+    "src/runtime/modules/system/msvcrt_module.cpp": "2cd430d9f7f75547b90023f06811b9740bc3cebb7596706e996249d2263f77db",
+    "src/runtime/modules/system/multibytecodec_module.cpp": "83cf9aeab571018a2238e8529b4c6f718c294b73a9d64b45d2e39938c60d4247",
+    "src/runtime/modules/system/multiprocessing_module.cpp": "4d1a6b5f1ba67cc42e378b60fb72886f4b5d36c991f94bda9edf7c93f74e6239",
+    "src/runtime/modules/system/opcode_module.cpp": "cffdb5b33da2b5bb4a0f04c9c2ce90031eed0ddcff9683c5a506c5a329026336",
+    "src/runtime/modules/system/operator_module.cpp": "52e0f01bc943e78275e865505a733f295e14aa66a3f22851cbdb3fbbc9ccd34e",
+    "src/runtime/modules/system/os_module.cpp": "75247d7382d073b6e7392d2734f40770da13da0c0e6ad6f831b25877bd1857d2",
+    "src/runtime/modules/system/overlapped_module.cpp": "44f34957a48c171f800b636e9ad9889789d0456ec34f748f7c301216e3b37daa",
+    "src/runtime/modules/system/pickle_module.cpp": "d2f40517db08f51375effcda525b648c25354c7177ac3bf084bc4a688d5ca83c",
+    "src/runtime/modules/system/posix_process_module.cpp": "e3b08f84550902b5a1807dcbe0404d4b0ab8296e3a5798cb8b2711eabb63cba2",
+    "src/runtime/modules/system/pyexpat_module.cpp": "e7cc0094f5c916bd28dc351caf8cdba43f85995436308c06d20e5b64cbc58243",
+    "src/runtime/modules/system/queue_module.cpp": "b8cdde4dfe8c6707db2944373790cf638d3a00dc13033cbcd09c26f396711f51",
+    "src/runtime/modules/system/random_module.cpp": "105032ef9ab020f01cacdd58b0d313df204dd5f40e975980d141dd13f5a168af",
+    "src/runtime/modules/system/sha2_module.cpp": "fc35f211828a1f8809a418e8c2a5b0c98b2f60554c2a47ed94c0f7fb018d4cb8",
+    "src/runtime/modules/system/signal_module.cpp": "83902dcff7721df541fdba2b7b471cabb253512784d46019be646f1dd302ffb5",
+    "src/runtime/modules/system/socket_select_module.cpp": "346796323b9bf133d45ea22f73f4a1ea3448a97f8d6633e1a5dd29761fa77b6f",
+    "src/runtime/modules/system/source_encoding.cpp": "cc02777b223fdecb8898da821c7a53ec11c5b5df71716b49f39fb3321b3ad3bf",
+    "src/runtime/modules/system/sre_module.cpp": "619712066cee99eb7daae21da0939a43c022f579effdcb0e5298c8f145f119b1",
+    "src/runtime/modules/system/stat_module.cpp": "dd60b4806959205302bb3cfaf6d77f218ea0f0ae4eff7f9612aaf91298c2590d",
+    "src/runtime/modules/system/string_module.cpp": "e4d808c58e996946726ef64f12d9df3699e39e286896814dec7abd535642aae3",
+    "src/runtime/modules/system/struct_module.cpp": "0b46e65caf5c0d4349936bf12de3a2d38c7e075e920162cd498c7e71c0e89f9a",
+    "src/runtime/modules/system/sys_module.cpp": "84d469d90d0ad669c139910e2f42ef2b1dfdbd832cd341d67e4efea36bf112ba",
+    "src/runtime/modules/system/sysconfig_native_module.cpp": "7e58d74d323134cd0c3e2b8d837b7e6bb3f330c7e516143f091229a4204c9660",
+    "src/runtime/modules/system/time_module.cpp": "0f19a565e1402777b9e0d23620fed1c6d7519f89690d74bfb5aa0419a7be39e5",
+    "src/runtime/modules/system/tokenize_module.cpp": "1eee4f5bd3f2bfac4cc8173e1def30d52e87f6d1409e8a8e50d3dc0c249b1678",
+    "src/runtime/modules/system/typing_module.cpp": "5f8350667862b15416bd9e96d7369702ff1a132e913c03b8223aaf7c572537d2",
+    "src/runtime/modules/system/unicodedata_module.cpp": "35c30daf0db235a8c8d7cbee9417d08e9c4d1f6b5eac5d40f4b8e3eb64784909",
+    "src/runtime/modules/system/warnings_module.cpp": "72d6e1b0f098caba205d4ccaa96b6531b34ed9c4285fe2cea50b34c72a63c8b8",
+    "src/runtime/modules/system/weakref_module.cpp": "a4d0a52d7ffa14f48c9c0226c71c80b635720f4b7153658b2e6da25be269cb73",
+    "src/runtime/modules/system/winapi_module.cpp": "681c4463f38608530481aee000c95cdc38295e0364b43d2231667b95d12d1ba4",
+    "src/runtime/modules/system/winreg_module.cpp": "ea9b4f3fa2132f1d3d9cd036001cc517fcf98eb82493c22b46a919d4256b52af",
+    "src/runtime/modules/system/zip_archive.cpp": "77827ca8d8701e985bb70487c94439b414eaa74b6c34f850ad411f864313091d",
+    "src/runtime/modules/system/zipimport_module.cpp": "af9c8fb8a9bdbfba1ca718221e44c9f3e7f46dd6dddbfa31e07e94eebc54d677",
+    "src/runtime/modules/system/zlib_module.cpp": "6fffab4c374f852cc3c5f93ebd0c651ce50e363c33fe0ca283ac6c01bb4106c6"
+  },
+  "format_evidence_counts": {
+    "classic_amd64_candidate_for_bounded_reader": 85,
+    "anonymous_version_1_unsupported_until_format_admission": 64
+  },
+  "build_metadata_sha256": {
+    "build-repro/main-verify-20261006/build.ninja": "59a88590e0f26cb449764bc83f6f859afb9310a0f2def514e71802298dc1e122",
+    "build-repro/main-verify-20261006/CMakeCache.txt": "c5627cacedec85839ffb69135e4d57487c01ae180b1f294160224900f5a142ef"
+  },
+  "source_identity_limit": "Physical current translation units and 119 recorded files are byte-pinned. No complete transitive-header, clean-checkout or ownership claim; anonymous LTCG formats remain explicitly unsupported until a separate bounded format-aware analysis."
+}

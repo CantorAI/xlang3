@@ -172,6 +172,8 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, type=Path)
     parser.add_argument("--interval-ms", type=float, default=5.0)
+    parser.add_argument("--sample-after-file", type=Path,
+                        help="wait for a fresh child-created marker before collecting samples")
     parser.add_argument("command", nargs=argparse.REMAINDER)
     args = parser.parse_args()
     if not args.command:
@@ -179,7 +181,10 @@ def main():
     command = args.command[1:] if args.command[0] == "--" else args.command
     if ctypes.sizeof(ctypes.c_void_p) != 8:
         parser.error("the sampler requires 64-bit Python on 64-bit Windows")
+    if args.sample_after_file is not None and args.sample_after_file.exists():
+        parser.error("start marker already exists; use a fresh path")
 
+    started = time.perf_counter()
     child = subprocess.Popen(command)
     process_handle = kernel32.OpenProcess(
         PROCESS_QUERY_INFORMATION | PROCESS_VM_READ, False, child.pid)
@@ -191,9 +196,18 @@ def main():
     modules = []
     thread_handles = {}
     prior_cpu_times = {}
+    marker_seen = args.sample_after_file is None
+    sampling_started_seconds = 0.0 if marker_seen else None
     try:
         deadline = time.perf_counter()
         while child.poll() is None:
+            if not marker_seen:
+                if not args.sample_after_file.exists():
+                    time.sleep(0.05)
+                    continue
+                marker_seen = True
+                sampling_started_seconds = time.perf_counter() - started
+                deadline = time.perf_counter()
             if not modules:
                 modules = target_modules(process_handle) or []
                 if not modules:
@@ -232,6 +246,8 @@ def main():
             deadline += 0.05
             time.sleep(max(0.0, deadline - time.perf_counter()))
         return_code = child.wait()
+        if not marker_seen:
+            failures["start_marker_not_seen"] += 1
     finally:
         for thread in thread_handles.values():
             kernel32.CloseHandle(thread)
@@ -243,6 +259,9 @@ def main():
     args.output.write_text(json.dumps({
         "command": command,
         "return_code": return_code,
+        "sample_after_file": str(args.sample_after_file) if args.sample_after_file else None,
+        "start_marker_seen": marker_seen,
+        "sampling_started_seconds": sampling_started_seconds,
         "sample_interval_ms": args.interval_ms,
         "modules": modules,
         "sample_count": sum(samples.values()),
@@ -253,7 +272,7 @@ def main():
           f"unavailable={failures['context_unavailable']} output={args.output}")
     for row in rows[:20]:
         print(f"{row['samples']:6d} tid={row['thread_id']} {row['module']}+{row['rva']}")
-    return return_code
+    return return_code if marker_seen else (return_code or 2)
 
 
 if __name__ == "__main__":

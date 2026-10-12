@@ -5,6 +5,8 @@
 
 #include "xlang3/value.h"
 
+#include <memory>
+
 namespace xlang3 {
 
 class Runtime;
@@ -12,8 +14,10 @@ namespace ir { struct Function; }
 
 // Explicit eval locals are consulted by the entry code on every name load.
 // Nested functions use their normal globals, as in Python.
-void push_eval_locals(Runtime& runtime, const ir::Function* function, const Value& locals);
-void pop_eval_locals(Runtime& runtime);
+// The owner must live through execution of the eval entry frame. VM callers
+// retain it on that frame so return, unwind, and debugger pauses share one scope.
+std::shared_ptr<void> push_eval_locals(
+    Runtime& runtime, const ir::Function* function, const Value& locals);
 const Value* current_eval_locals(Runtime& runtime, const ir::Function* function);
 
 } // namespace xlang3

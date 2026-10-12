@@ -13,6 +13,13 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "test_harness.h"
+#include "mapping_iterator_ownership_cases.h"
+#include "unicode_index_cache_cases.h"
+#include "strided_memoryview_serialization_cases.h"
+#include "bigint_multiply_operand_view_cases.h"
+#include "bigint_division_working_buffer_cases.h"
+#include "bigint_add_compare_operand_view_cases.h"
+#include "bigint_storage_lifetime_cases.h"
 #include <atomic>
 #include <chrono>
 #include <thread>
@@ -39,6 +46,14 @@ int main() {
   xlang3::test::CaseResult result;
   std::string error;
   xlang3::Value out;
+
+  xlang3::test::check_mapping_iterator_ownership(result);
+  xlang3::test::check_unicode_index_cache(result);
+  xlang3::test::check_strided_memoryview_ipc(result);
+  xlang3::test::check_bigint_multiply_operand_views(result);
+  xlang3::test::check_bigint_division_working_buffers(result);
+  xlang3::test::check_bigint_add_compare_operand_views(result);
+  xlang3::test::check_bigint_storage_lifetime(result);
 
   {
     xlang3::Value escaped_set, escaped_iterator;
@@ -72,7 +87,6 @@ int main() {
                             "None should be falsey");
   xlang3::test::expect_true(result, xlang3::value_to_string(xlang3::Value::tuple({xlang3::Value::int64(1)})) == "(1,)",
                             "single item tuple should print with trailing comma");
-
   {
     std::ostringstream output;
     xlang3::Runtime runtime(output);

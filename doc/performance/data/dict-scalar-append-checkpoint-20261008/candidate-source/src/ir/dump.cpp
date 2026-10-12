@@ -1,0 +1,434 @@
+/*
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#include "xlang3/ir.h"
+
+#include <sstream>
+
+namespace xlang3::ir {
+
+namespace {
+
+const char* op_name(Op op) {
+  switch (op) {
+    case Op::LoadConst: return "LoadConst";
+    case Op::Move: return "Move";
+    case Op::LoadLocal: return "LoadLocal";
+    case Op::StoreLocal: return "StoreLocal";
+    case Op::MoveLocal: return "MoveLocal";
+    case Op::AddLocalConst: return "AddLocalConst";
+    case Op::AddLocalLocal: return "AddLocalLocal";
+    case Op::LoadCell: return "LoadCell";
+    case Op::StoreCell: return "StoreCell";
+    case Op::LoadCellObject: return "LoadCellObject";
+    case Op::LoadFree: return "LoadFree";
+    case Op::StoreFree: return "StoreFree";
+    case Op::LoadFreeObject: return "LoadFreeObject";
+    case Op::LoadGlobal: return "LoadGlobal";
+    case Op::StoreGlobal: return "StoreGlobal";
+    case Op::DeleteLocal: return "DeleteLocal";
+    case Op::DeleteGlobal: return "DeleteGlobal";
+    case Op::DeleteModuleSlot: return "DeleteModuleSlot";
+    case Op::LoadModuleSlot: return "LoadModuleSlot";
+    case Op::StoreModuleSlot: return "StoreModuleSlot";
+    case Op::ImportModule: return "ImportModule";
+    case Op::ImportModuleThru: return "ImportModuleThru";
+    case Op::ImportFrom: return "ImportFrom";
+    case Op::ImportStar: return "ImportStar";
+    case Op::RawBlock: return "RawBlock";
+    case Op::LoadAttr: return "LoadAttr";
+    case Op::StoreAttr: return "StoreAttr";
+    case Op::DeleteAttr: return "DeleteAttr";
+    case Op::LoadInstanceSlot: return "LoadInstanceSlot";
+    case Op::StoreInstanceSlot: return "StoreInstanceSlot";
+    case Op::MakeClass: return "MakeClass";
+    case Op::MakeFunction: return "MakeFunction";
+    case Op::SetFunctionAnnotations: return "SetFunctionAnnotations";
+    case Op::SetFunctionKwDefaults: return "SetFunctionKwDefaults";
+    case Op::SetClassBase: return "SetClassBase";
+    case Op::MakeTuple: return "MakeTuple";
+    case Op::MakeList: return "MakeList";
+    case Op::MakeDict: return "MakeDict";
+    case Op::MakeSet: return "MakeSet";
+    case Op::MakeSlice: return "MakeSlice";
+    case Op::ListAppend: return "ListAppend";
+    case Op::ListExtend: return "ListExtend";
+    case Op::DictSet: return "DictSet";
+    case Op::SetAdd: return "SetAdd";
+    case Op::SetUpdate: return "SetUpdate";
+    case Op::TupleFromList: return "TupleFromList";
+    case Op::Len: return "Len";
+    case Op::GetItem: return "GetItem";
+    case Op::GetItemConst: return "GetItemConst";
+    case Op::ReversePrefixSliceAssign: return "ReversePrefixSliceAssign";
+    case Op::GuardedLocalListGetItem: return "GuardedLocalListGetItem";
+    case Op::GuardedLocalListAugmentConst: return "GuardedLocalListAugmentConst";
+      case Op::WhileReversePrefixCount: return "WhileReversePrefixCount";
+      case Op::ListPopFrontInsert: return "ListPopFrontInsert";
+      case Op::WhileResetCount: return "WhileResetCount";
+      case Op::GuardedLocalListCompare: return "GuardedLocalListCompare";
+      case Op::WhileListPermutationAdvance: return "WhileListPermutationAdvance";
+    case Op::SetItem: return "SetItem";
+    case Op::DeleteItem: return "DeleteItem";
+    case Op::UnpackSequence: return "UnpackSequence";
+    case Op::GetIter: return "GetIter";
+    case Op::IterNext: return "IterNext";
+    case Op::ForRangeConstLocalNext: return "ForRangeConstLocalNext";
+    case Op::ForRangeConstLocalSum: return "ForRangeConstLocalSum";
+    case Op::ForLocalMoveAddLoop: return "ForLocalMoveAddLoop";
+    case Op::ForCallAccumulateLoop: return "ForCallAccumulateLoop";
+    case Op::ForConstructMethodAccumulateLoop: return "ForConstructMethodAccumulateLoop";
+    case Op::ForScalarArithmeticLoop: return "ForScalarArithmeticLoop";
+    case Op::ForPropertyAccessLoop: return "ForPropertyAccessLoop";
+    case Op::Add: return "Add";
+    case Op::Sub: return "Sub";
+    case Op::Mul: return "Mul";
+    case Op::MatMul: return "MatMul";
+    case Op::Div: return "Div";
+    case Op::FloorDiv: return "FloorDiv";
+    case Op::Mod: return "Mod";
+    case Op::ModConst: return "ModConst";
+    case Op::Pow: return "Pow";
+    case Op::BitAnd: return "BitAnd";
+    case Op::BitOr: return "BitOr";
+    case Op::BitXor: return "BitXor";
+    case Op::Shl: return "Shl";
+    case Op::Shr: return "Shr";
+    case Op::BoolAnd: return "BoolAnd";
+    case Op::BoolOr: return "BoolOr";
+    case Op::Compare: return "Compare";
+    case Op::Is: return "Is";
+    case Op::Contains: return "Contains";
+    case Op::Not: return "Not";
+    case Op::Neg: return "Neg";
+    case Op::Invert: return "Invert";
+    case Op::Jump: return "Jump";
+    case Op::JumpIfFalse: return "JumpIfFalse";
+    case Op::JumpIfLocalConstFalse: return "JumpIfLocalConstFalse";
+    case Op::SetupExcept: return "SetupExcept";
+    case Op::SetupWith: return "SetupWith";
+    case Op::PopExcept: return "PopExcept";
+    case Op::Raise: return "Raise";
+    case Op::SetExceptionCause: return "SetExceptionCause";
+    case Op::Reraise: return "Reraise";
+    case Op::ClearException: return "ClearException";
+    case Op::LoadException: return "LoadException";
+    case Op::LoadExceptionType: return "LoadExceptionType";
+    case Op::MatchException: return "MatchException";
+    case Op::CallModuleMethod: return "CallModuleMethod";
+    case Op::CallMethod: return "CallMethod";
+    case Op::CallMethodEx: return "CallMethodEx";
+    case Op::CallEx: return "CallEx";
+    case Op::Call: return "Call";
+    case Op::Await: return "Await";
+    case Op::Yield: return "Yield";
+    case Op::YieldFrom: return "YieldFrom";
+    case Op::Pop: return "Pop";
+    case Op::Return: return "Return";
+    case Op::CaptureExpressions: return "CaptureExpressions";
+    case Op::SetException: return "SetException";
+    case Op::InplaceAdd: return "InplaceAdd";
+    case Op::InplaceAddLocalConst: return "InplaceAddLocalConst";
+    case Op::InplaceAddLocalLocal: return "InplaceAddLocalLocal";
+    case Op::JumpIfLocalLocalFalse: return "JumpIfLocalLocalFalse";
+    case Op::IsLocalConstJumpIfFalse: return "IsLocalConstJumpIfFalse";
+    case Op::GuardedLocalNumericExpr: return "GuardedLocalNumericExpr";
+    case Op::LoadLocalInstanceSlot: return "LoadLocalInstanceSlot";
+    case Op::StoreLocalInstanceSlot: return "StoreLocalInstanceSlot";
+    case Op::LoadLocalPair: return "LoadLocalPair";
+    case Op::LoadLocalConst: return "LoadLocalConst";
+    case Op::LoadConstPair: return "LoadConstPair";
+    case Op::StoreLocalLoadLocal: return "StoreLocalLoadLocal";
+    case Op::JumpIfFalseLoadLocal: return "JumpIfFalseLoadLocal";
+    case Op::LoadLocalAttr: return "LoadLocalAttr";
+    case Op::CallLocal: return "CallLocal";
+    case Op::CallLocalMethod: return "CallLocalMethod";
+    case Op::CompareJumpIfFalse: return "CompareJumpIfFalse";
+    case Op::IsJumpIfFalse: return "IsJumpIfFalse";
+    case Op::IsNoneJumpIfFalse: return "IsNoneJumpIfFalse";
+    case Op::MoveJumpIfFalse: return "MoveJumpIfFalse";
+    case Op::StoreLocalPair: return "StoreLocalPair";
+    case Op::MoveJumpIfTrue: return "MoveJumpIfTrue";
+    case Op::ReturnConst: return "ReturnConst";
+    case Op::ReturnLocal: return "ReturnLocal";
+    case Op::LoadLocalGlobal: return "LoadLocalGlobal";
+    case Op::LoadGlobalLocal: return "LoadGlobalLocal";
+    case Op::CallGlobal: return "CallGlobal";
+    case Op::DictSetConst: return "DictSetConst";
+    case Op::LoadInstanceSlotLocal: return "LoadInstanceSlotLocal";
+    case Op::IterNextLocal: return "IterNextLocal";
+    case Op::NotJumpIfFalse: return "NotJumpIfFalse";
+    case Op::LoadModuleAttr: return "LoadModuleAttr";
+    case Op::LoadLocalGetItem: return "LoadLocalGetItem";
+  }
+  return "Unknown";
+}
+
+const char* compare_name(CompareOp op) {
+  switch (op) {
+    case CompareOp::Eq: return "Eq";
+    case CompareOp::Ne: return "Ne";
+    case CompareOp::Lt: return "Lt";
+    case CompareOp::Le: return "Le";
+    case CompareOp::Gt: return "Gt";
+    case CompareOp::Ge: return "Ge";
+  }
+  return "Unknown";
+}
+
+const char* param_kind_name(ParamKind kind) {
+  switch (kind) {
+    case ParamKind::PosOnly: return "posonly";
+    case ParamKind::PosOrKeyword: return "poskw";
+    case ParamKind::VarArgs: return "varargs";
+    case ParamKind::KeywordOnly: return "kwonly";
+    case ParamKind::KwArgs: return "kwargs";
+  }
+  return "unknown";
+}
+
+} // namespace
+
+std::string dump_module(const Module& module) {
+  std::ostringstream os;
+  os << "entry: #" << module.entry << "\n\n";
+  if (!module.source_file.empty()) {
+    os << "source_file: " << module.source_file << "\n\n";
+  }
+  os << "module_slots:";
+  for (size_t i = 0; i < module.global_slots.size(); ++i) {
+    os << " %" << i << "=" << module.global_slots[i];
+  }
+  os << "\n\n";
+  for (size_t fn_i = 0; fn_i < module.functions.size(); ++fn_i) {
+    const auto& fn = module.functions[fn_i];
+    os << "function #" << fn_i << " " << fn.name << "\n";
+    if (!fn.qualname.empty() && fn.qualname != fn.name) {
+      os << "  qualname: " << fn.qualname << "\n";
+    }
+    if (!fn.doc.empty()) {
+      os << "  doc: " << fn.doc << "\n";
+    }
+    os << "  first_line: " << fn.first_line << "\n";
+    os << "  generator: " << (fn.is_generator ? "true" : "false") << "\n";
+    os << "  async: " << (fn.is_async ? "true" : "false") << "\n";
+    os << "  coroutine: " << (fn.is_coroutine ? "true" : "false") << "\n";
+    os << "  params:";
+    for (size_t i = 0; i < fn.params.size(); ++i) {
+      os << " %" << i << "=" << fn.params[i];
+    }
+    os << "\n";
+    if (!fn.type_params.empty()) {
+      os << "  type_params:";
+      for (size_t i = 0; i < fn.type_params.size(); ++i) {
+        os << " #" << i << "=" << fn.type_params[i];
+      }
+      os << "\n";
+    }
+    os << "  signature:";
+    for (size_t i = 0; i < fn.signature.size(); ++i) {
+      const auto& param = fn.signature[i];
+      os << " %" << i << "=" << param.name
+         << "/" << param_kind_name(param.kind)
+         << "/d" << param.default_reg;
+    }
+    os << "\n";
+    os << "  locals:";
+    for (size_t i = 0; i < fn.locals.size(); ++i) {
+      os << " %" << i << "=" << fn.locals[i];
+    }
+    os << "\n";
+    os << "  cells:";
+    for (auto slot : fn.cell_slots) {
+      os << " %" << slot;
+    }
+    os << "\n";
+    os << "  free_vars:";
+    for (size_t i = 0; i < fn.free_vars.size(); ++i) {
+      os << " $" << i << "=" << fn.free_vars[i];
+    }
+    os << "\n";
+    os << "  registers: " << fn.register_count << "\n";
+    os << "  constants: " << fn.constants.size() << "\n";
+    os << "  names:";
+    for (size_t i = 0; i < fn.names.size(); ++i) {
+      os << " #" << i << "=" << fn.names[i];
+    }
+    os << "\n";
+    for (size_t args_i = 0; args_i < fn.call_args.size(); ++args_i) {
+      os << "  call_args #" << args_i << ":";
+      for (auto reg : fn.call_args[args_i]) {
+        os << " r" << reg;
+      }
+      os << "\n";
+    }
+    for (size_t spec_i = 0; spec_i < fn.call_specs.size(); ++spec_i) {
+      const auto& spec = fn.call_specs[spec_i];
+      os << "  call_spec #" << spec_i << ":";
+      for (auto reg : spec.positional) {
+        os << " r" << reg;
+      }
+      for (const auto& kw : spec.keywords) {
+        os << " " << kw.name << "=r" << kw.value_reg;
+      }
+      if (spec.star_arg != UINT32_MAX) {
+        os << " *r" << spec.star_arg;
+      }
+      for (auto reg : spec.star_args) {
+        if (reg != spec.star_arg) {
+          os << " *r" << reg;
+        }
+      }
+      if (spec.kw_star_arg != UINT32_MAX) {
+        os << " **r" << spec.kw_star_arg;
+      }
+      for (auto reg : spec.kw_star_args) {
+        if (reg != spec.kw_star_arg) {
+          os << " **r" << reg;
+        }
+      }
+      os << "\n";
+    }
+    for (size_t defaults_i = 0; defaults_i < fn.function_defaults.size(); ++defaults_i) {
+      os << "  function_defaults #" << defaults_i << ":";
+      for (auto reg : fn.function_defaults[defaults_i]) {
+        os << " r" << reg;
+      }
+      os << "\n";
+    }
+    for (size_t annotations_i = 0; annotations_i < fn.function_annotations.size(); ++annotations_i) {
+      os << "  function_annotations #" << annotations_i << ":";
+      for (const auto& annotation : fn.function_annotations[annotations_i]) {
+        os << " " << annotation.first << "=r" << annotation.second;
+      }
+      os << "\n";
+    }
+    for (size_t kwdefaults_i = 0; kwdefaults_i < fn.function_kwdefaults.size(); ++kwdefaults_i) {
+      os << "  function_kwdefaults #" << kwdefaults_i << ":";
+      for (const auto& item : fn.function_kwdefaults[kwdefaults_i]) {
+        os << " " << item.first << "=r" << item.second;
+      }
+      os << "\n";
+    }
+    for (size_t raw_i = 0; raw_i < fn.raw_blocks.size(); ++raw_i) {
+      os << "  raw_block #" << raw_i << ": "
+         << fn.raw_blocks[raw_i].language
+         << " " << fn.raw_blocks[raw_i].provider
+         << " bytes=" << fn.raw_blocks[raw_i].body.size() << "\n";
+    }
+    for (size_t tuple_i = 0; tuple_i < fn.tuple_items.size(); ++tuple_i) {
+      os << "  tuple_items #" << tuple_i << ":";
+      for (auto reg : fn.tuple_items[tuple_i]) {
+        os << " r" << reg;
+      }
+      os << "\n";
+    }
+    for (size_t list_i = 0; list_i < fn.list_items.size(); ++list_i) {
+      os << "  list_items #" << list_i << ":";
+      for (auto reg : fn.list_items[list_i]) {
+        os << " r" << reg;
+      }
+      os << "\n";
+    }
+    for (size_t set_i = 0; set_i < fn.set_items.size(); ++set_i) {
+      os << "  set_items #" << set_i << ":";
+      for (auto reg : fn.set_items[set_i]) {
+        os << " r" << reg;
+      }
+      os << "\n";
+    }
+    for (size_t dict_i = 0; dict_i < fn.dict_items.size(); ++dict_i) {
+      os << "  dict_items #" << dict_i << ":";
+      for (const auto& pair : fn.dict_items[dict_i]) {
+        os << " (r" << pair.first << ": r" << pair.second << ")";
+      }
+      os << "\n";
+    }
+    for (size_t closure_i = 0; closure_i < fn.function_closures.size(); ++closure_i) {
+      os << "  function_closure #" << closure_i << ":";
+      for (auto reg : fn.function_closures[closure_i]) {
+        os << " r" << reg;
+      }
+      os << "\n";
+    }
+    for (size_t attrs_i = 0; attrs_i < fn.class_attrs.size(); ++attrs_i) {
+      os << "  class_attrs #" << attrs_i << ":";
+      for (const auto& attr : fn.class_attrs[attrs_i]) {
+        os << " " << attr.first << "=r" << attr.second;
+      }
+      os << "\n";
+    }
+    for (size_t slots_i = 0; slots_i < fn.class_instance_slots.size(); ++slots_i) {
+      os << "  class_instance_slots #" << slots_i << ":";
+      for (size_t slot_i = 0; slot_i < fn.class_instance_slots[slots_i].size(); ++slot_i) {
+        os << " %" << slot_i << "=" << fn.class_instance_slots[slots_i][slot_i];
+      }
+      os << "\n";
+    }
+    for (size_t range_i = 0; range_i < fn.range_specs.size(); ++range_i) {
+      os << "  range_spec #" << range_i
+         << ": stop=c" << fn.range_specs[range_i].first
+         << " step=c" << fn.range_specs[range_i].second << "\n";
+    }
+    for (size_t expr_i = 0; expr_i < fn.guarded_local_numeric_exprs.size(); ++expr_i) {
+      const auto& expr = fn.guarded_local_numeric_exprs[expr_i];
+      os << "  guarded_local_numeric_expr #" << expr_i
+         << " fallback_span=" << expr.fallback_span << " nodes=";
+      for (size_t node_i = 0; node_i < expr.nodes.size(); ++node_i) {
+        const auto& node = expr.nodes[node_i];
+        if (node_i != 0) os << ";";
+        switch (node.kind) {
+          case GuardedLocalNumericExprNodeKind::Local:
+            os << "local%" << node.a;
+            break;
+          case GuardedLocalNumericExprNodeKind::Constant:
+            os << "const#" << node.a;
+            break;
+          case GuardedLocalNumericExprNodeKind::Add:
+            os << "add(" << node.a << "," << node.b << ")";
+            break;
+          case GuardedLocalNumericExprNodeKind::Sub:
+            os << "sub(" << node.a << "," << node.b << ")";
+            break;
+          case GuardedLocalNumericExprNodeKind::Mul:
+            os << "mul(" << node.a << "," << node.b << ")";
+            break;
+        }
+      }
+      os << "\n";
+    }
+    for (size_t ip = 0; ip < fn.code.size(); ++ip) {
+      const auto& in = fn.code[ip];
+      const uint32_t line = ip < fn.source_lines.size() ? fn.source_lines[ip] : 0;
+      os << "  " << ip << ": " << op_name(in.op)
+         << " line=" << line
+         << " pos=";
+      if (ip < fn.source_positions.size()) {
+        const auto& pos = fn.source_positions[ip];
+        os << pos.line << ":" << pos.column << "-" << pos.end_line << ":" << pos.end_column;
+      } else {
+        os << "0:0-0:0";
+      }
+      os
+         << " dst=" << in.dst << " a=" << in.a << " b=" << in.b << " c=" << in.c << "\n";
+      if (in.op == Op::Compare) {
+        os << "       compare=" << compare_name(static_cast<CompareOp>(in.c)) << "\n";
+      }
+    }
+    os << "\n";
+  }
+  return os.str();
+}
+
+} // namespace xlang3::ir

@@ -1,0 +1,27 @@
+{
+  "status": "held_scratch_only_unexecuted_strict_six_group_fixture",
+  "source": "D:/CantorAI/xlang3/scratch/performance/call-module-global-binding-fixture-proposed-20261008.py",
+  "source_sha256": "5558bd421e9d28746176287c25ee2259fb2a4040f32058309a44259c9addbc8d",
+  "expected": "D:/CantorAI/xlang3/scratch/performance/call-module-global-binding-fixture-proposed-20261008.out",
+  "expected_sha256": "17d12e90f532d48699853e3e9a8983d398e690f51c5028982529533158594c12",
+  "groups_proposed": 6,
+  "cp_reference_status": "not_run_by_author",
+  "engine_patch": "scratch/performance/call-module-global-binding-proposed-20261008.patch",
+  "engine_patch_sha256": "80dceda82870d0c377249b48bd00688b2dff1285d3700719cb9055bbaa4f81ce",
+  "engine_provenance_sha256": "8add986fec6bde7551b9d4287ea4ff8dd11b706441804ac2676f1f87d35c2720",
+  "source_note_sha256": "32ff1e34b5c3bbe377c48c0e960de4999da324b9feec4b78bedd8c27b4834799",
+  "scope": [
+    "32 stable native calls at one imported-name site within one activation",
+    "direct global replacement/delete-readd at one site",
+    "globals namespace write/delete-readd plus slot vector growth",
+    "ordinary nonmodule __getattr__ rebinds its last global receiver owner",
+    "local module reassignment delegates existing non-global method route",
+    "native export replacement, repeated lazy __getattr__, original Python exception identity"
+  ],
+  "eligibility_source_contract": "Compiler emits CallModuleMethod for nonlocal imported globals at lower.cpp6800; stable32 site is one activation with no globals writes, first cold binding scalar publication and unchanged namespace version/nonInvalid slot imply subsequent kind1 branch. No new IR shape, owner field or runtime counter. Dynamic groups force actual namespace versions/indices to change; reread live Value before existing target dispatch.",
+  "expected_error_scope": "Deletion and recreation occur between calls; does not assert new missing-global exception wording/type or claim existing error transport repaired.",
+  "limits": "Four of190 sampled leaves were module_find_attr_slot, not an isolated first-binding call count. One-call-per-activation sites remain cold. No measured gain or cross-activation reuse claim.",
+  "runtime_ast_build_execution_by_author": false,
+  "actual_source_test_edits_by_author": false,
+  "independent_static_review": "class_scope_design READY for engine and six-group fixture; actual CP/candidate execution remains parent-owned"
+}

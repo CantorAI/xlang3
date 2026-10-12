@@ -1,0 +1,30 @@
+{
+  "status": "decision_frozen_before_any_live_engine_edit_or_candidate_measurement",
+  "hypothesis": "Avoid duplicate registry dispatch and tuple/count materialization for guarded native str.encode UTF-8 using the unchanged own native UTF-8 kernel.",
+  "parent_manifest": "build-repro/controls/native-str-utf8-encode-parent-20261008/preserved-release-provenance.json",
+  "parent_manifest_sha256": "cd5035f531a513104f2948286e81d4996bb01a9b6dc4c84353303f370de4bd97",
+  "parent_recorded_sources": 117,
+  "parent_release_files": 178,
+  "parent_objects": 149,
+  "diagnostic": "doc/performance/data/native-utf8-encoding-current-vs-cpython3147-20261008.json",
+  "diagnostic_sha256": "edcefb28ec3dee4cfed88d6b69c73ad6f2a5973276a24afd370dc5edf57f06c8",
+  "screen": {
+    "focused_semantics_first": true,
+    "pairs": 7,
+    "children": 14,
+    "alternating_order": true,
+    "retain_all_samples": true,
+    "original_body": "Unchanged pickle benchmark function: protocol5,41 outer loops,3 seeded objects,20 dumps each,2460 dumps; strict byte signatures and roundtrips.",
+    "ratio": "parent_seconds/candidate_seconds",
+    "median_strictly_greater_than": 1.05,
+    "bootstrap_resamples": 50000,
+    "bootstrap_seed": 20261008,
+    "bootstrap_percentiles": "Linear2.5/97.5 percentiles of resampled seven-pair medians",
+    "lower95_strictly_greater_than": 1.0,
+    "adaptive_counts": false,
+    "retries": false,
+    "outlier_cuts": false
+  },
+  "after_useful_screen": "Fresh complete correctness, unchanged default11 fixed-baseline gate21 repeats/5 warmups/0.10, then original official pickle_pure_python protocol5/20 values against CPython3.14.7 reference. Commit only if passing; otherwise preserve and restore parent.",
+  "exclusions": "No library translation, byte-loop rewrite, custom-handler parity repair, alias widening, subclass replacement, or gain claim from diagnostic timings or sample counts."
+}

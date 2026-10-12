@@ -1,0 +1,149 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (chameleon)
+
+(trying common venv first)
+
+[1/1] chameleon...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_chameleon\run_benchmark.py", line 35, in <module>
+    main()
+    ~~~~^^
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_chameleon\run_benchmark.py", line 25, in main
+    tmpl = PageTemplate(BIGTABLE_ZPT)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\zpt\template.py", line 249, in __init__
+    super().__init__(body, **config)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 175, in __init__
+    self.write(body)
+    ~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 293, in write
+    self.cook(body)
+    ~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 211, in cook
+    program = self._cook(body, digest, names)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 308, in _cook
+    source = self._compile(body, builtins)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\template.py", line 344, in _compile
+    compiler = Compiler(
+        self.engine,
+    ...<4 lines>...
+        strict=self.strict
+    )
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1031, in __init__
+    module.body += self.visit(node)
+                   ~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1094, in visit
+    iterator = visitor(node)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1139, in visit_Module
+    program = self.visit(node.program)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1094, in visit
+    iterator = visitor(node)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1163, in visit_MacroProgram
+    stmts = self.visit(macro)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1096, in visit
+    for key, group in itertools.groupby(
+                      ~~~~~~~~~~~~~~~~~^
+            iterator, lambda node: node.__class__):
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1204, in visit_Macro
+    nodes = list(itertools.chain(*tuple(map(self.visit, node.body))))
+                                  ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1094, in visit
+    iterator = visitor(node)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1179, in visit_Context
+    self.visit(node.node)
+    ~~~~~~~~~~^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1096, in visit
+    for key, group in itertools.groupby(
+                      ~~~~~~~~~~~~~~~~~^
+            iterator, lambda node: node.__class__):
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1109, in visit_Sequence
+    yield from self.visit(item)
+               ~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1096, in visit
+    for key, group in itertools.groupby(
+                      ~~~~~~~~~~~~~~~~~^
+            iterator, lambda node: node.__class__):
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1395, in visit_Define
+    yield from self.visit(node.node)
+               ~~~~~~~~~~^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1096, in visit
+    for key, group in itertools.groupby(
+                      ~~~~~~~~~~~~~~~~~^
+            iterator, lambda node: node.__class__):
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1114, in visit_Element
+    yield from self.visit(node.content)
+               ~~~~~~~~~~^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1096, in visit
+    for key, group in itertools.groupby(
+                      ~~~~~~~~~~~~~~~~~^
+            iterator, lambda node: node.__class__):
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1109, in visit_Sequence
+    yield from self.visit(item)
+               ~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1096, in visit
+    for key, group in itertools.groupby(
+                      ~~~~~~~~~~~~~~~~~^
+            iterator, lambda node: node.__class__):
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1395, in visit_Define
+    yield from self.visit(node.node)
+               ~~~~~~~~~~^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1094, in visit
+    iterator = visitor(node)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 1862, in visit_Repeat
+    outer = self._engine(node.expression, store("__iterator"))
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 824, in __call__
+    stmts = self._translate(expression, target)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 863, in _translate
+    stmts = visitor(expression, target)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 878, in visit_Value
+    return compiler.assign_value(target)
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 642, in assign_value
+    return self.compiler(target, self.engine)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\compiler.py", line 546, in compiler
+    stmts = expression(target, engine)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\tales.py", line 135, in __call__
+    assignment = self.translate_proxy(engine, expression, target)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\tales.py", line 168, in translate_proxy
+    return self.translate(*args)
+           ~~~~~~~~~~~~~~^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\tales.py", line 239, in translate
+    string = expression.strip()
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\tokenize.py", line 159, in strip
+    return self.lstrip(chars).rstrip(chars)
+           ~~~~~~~~~~~^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\chameleon\tokenize.py", line 162, in lstrip
+    s = str.lstrip(self, chars)
+TypeError: str.lstrip chars must be a string
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 155, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark chameleon failed: Benchmark died
+
+ERROR: No benchmark was run

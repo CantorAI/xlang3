@@ -1,0 +1,35 @@
+{
+  "status": "read_only_future_proposal_no_runtime_or_build",
+  "note": "scratch/performance/inherited-slot-declaration-proof-20261008.md",
+  "note_sha256": "0e1f885697a605a8ba1a0df523e0f215e9d04baeb9955063bf71b9f7b6a3fd77",
+  "sources": [
+    {
+      "path": "src/internal/xlang3/object_model.h",
+      "sha256": "c19265954e6c941c62ceeecdc362f51144210c1cadf612949fbb981737b50b79"
+    },
+    {
+      "path": "src/runtime/object_model.cpp",
+      "sha256": "b52bb39cf25c68d88dd24b063bc530052469b6d7eedf9a1081aefb90ea5fa7bd"
+    },
+    {
+      "path": "src/builtins/object_type_builtins.cpp",
+      "sha256": "6c9c022a4b7eba99ac41b01197950f2dd2860dfee7d8901675fd62986e466b99"
+    },
+    {
+      "path": "src/serialize/value_graph_reader.cpp",
+      "sha256": "7e96a6a6d248a54525cea52a2397833a5b33fc4a0500a862eaff06c73cf52729"
+    },
+    {
+      "path": "src/serialize/value_graph_writer.cpp",
+      "sha256": "68630506eedec3ec07176a7a8646cde49310171e597871525c8a627da50d850f"
+    },
+    {
+      "path": "src/runtime/modules/system/weakref_module.cpp",
+      "sha256": "b17237a4f270ac911b4679c8892642667c9dae41d2938c4799d232cab0ad65ae"
+    },
+    {
+      "path": "src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "sha256": "5f09f741ceab8f72c2b918912ba30e12f12bcde91988097d056ae3f20a62bb64"
+    }
+  ]
+}

@@ -1,0 +1,81 @@
+{
+  "status": "frozen_scratch_root_only_untimed_correctness_resume_unexecuted",
+  "controller_sha256": "3a9b3f7d7289afbf7421d8a910862fd5821915d830a3649e28e11ba62253f3f5",
+  "immutable_parent_controller_sha256": "e02a8aa15973a1b153348807f7ca4b0c4adb0bcbd3f3a42042f69d7da0f46133",
+  "files_sha256": {
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\validate-native-str-utf8-original-pickle-trial-resume-r2-proposed-20261008.py": "3a9b3f7d7289afbf7421d8a910862fd5821915d830a3649e28e11ba62253f3f5",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\validate-native-str-utf8-original-pickle-trial-proposed-20261008.py": "e02a8aa15973a1b153348807f7ca4b0c4adb0bcbd3f3a42042f69d7da0f46133",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-validation-20261008.json": "bd123e16ce4355fdffa7e430cf4ec191af280ced17adc3f14ee59bbc7019b83a",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-applied-source-20261008.json": "96ba3820206e00029a26231b15accb79ff94e1ba33098d769e586d7a28b12f83",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-focused-20261008.json": "92803ffcd0287c7f17bf8431c399519891289ee143304bed7b6b4c6e1c532808",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-build-terminal-20261008.json": "55fd6ac5c90df146a8c0d6cd280adb2d8c364a93cf6cbb6fa8057db186746055",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-original-pickle-paired-20261008.json": "462c2bc896f601ac94102517ecd8a3646c6810d7320963aa8f152b1b05d2d074",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\validate-call-ex-cross-activation-constructor-resume-r3-20261008.py": "50007db5cc6adc2e54012fdfbd48514699513f990906d4a508582ba73d6ae0bf"
+  },
+  "prior_phase_evidence_sha256": {
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-validation-20261008-full-fixtures-clean.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-validation-20261008-full-fixtures-clean.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-validation-20261008-full-fixtures-clean.external-process-observations.jsonl": "a22e66954ebe01ae43aa64f8c6ef78bb5627e7e8e19047ec8061e53a00950ef7",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-validation-20261008-ctest-inventory.stdout.log": "1104a32a60d19adbf6bb99a36bf2c20e00f7c2b9ad27a9bf4a04c2ce58036aa4",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-validation-20261008-ctest-inventory.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-validation-20261008-ctest-inventory.external-process-observations.jsonl": "22f9c508e45b8a7eeabe62a7fe17650b5e3867a7d555c5c94ee3bb49ad1a0aa0",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-validation-20261008-ctest.stdout.log": "66b75dde92a41f09275834f07c480b4988120193cd88fde59e4e1cad1b972d0d",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-validation-20261008-ctest.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\native-str-utf8-validation-20261008-ctest.external-process-observations.jsonl": "5d568eb38275bd0d9f11ce59379a1730486c9ea5d3ccdc06a23474b097ffc8a2"
+  },
+  "prior_terminal_status": "trial_validation_failed",
+  "prior_correctness_passed": false,
+  "prior_full_validated": false,
+  "prior_ctest_original_flags": {
+    "owned_pid": 35388,
+    "passed": false,
+    "measurement_valid": false,
+    "watch_measurement_valid": false
+  },
+  "authenticate": "Exact terminal bd123/e02 lineage, unchanged allold input map, source119/Release178/baseline177/current parent117 snapshot, allthree command/timeouts/exit0/cleanup/rawwatch hashes; no missing or unexpected prior phases.",
+  "classification": "Only historical untimed CTest record: all9 distinct expected Passed lines plus footer, exit0,stderrblank,rawwatch soleexactctest.exe PID35388 matchingownedrow andno scannererrors. Original false flags remainfalse in retained row; separate semantic_passed true/owner_observer_false_positive. Original receipt and controller are unchanged.",
+  "reuse": [
+    "full-fixtures-clean",
+    "ctest-inventory",
+    "ctest"
+  ],
+  "fresh_remaining": [
+    "old_xlang_sqlite_api",
+    "python_sqlite3_api",
+    "fixed-gate",
+    "official-xlang3",
+    "official-cpython3147"
+  ],
+  "default_gate": {
+    "warmup": 5,
+    "baseline": "build-repro/Release/xlang3.exe",
+    "repeats": 21,
+    "case_count": 11,
+    "unchanged": true,
+    "threshold": 0.1
+  },
+  "official": {
+    "case_cap_seconds": 300,
+    "inner_loops": 20,
+    "definition": "pickle_pure_python",
+    "pure_python": true,
+    "parent_cap_seconds": 360,
+    "values_per_runtime": 20,
+    "protocol": 5,
+    "unchanged": true
+  },
+  "future_timing_policy": "Unchanged50007 helper and livephase/watch logic; no global CTest exclusion, no PID exemption for gate/official, no retry/resampling/threshold changes.",
+  "fresh_correctness_semantics": "Historical399/11/3 and9CTest plusfreshAPI2; no completedphase executedagain. New correctness_passed is asserted only afterallthree historical semantic proofs are consumed andbothAPIs pass.",
+  "author_python_execution": false,
+  "author_ast_execution": false,
+  "author_runtime_execution": false,
+  "author_build_execution": false,
+  "old_files_modified": [],
+  "engine_or_test_changes": [],
+  "root_only": true,
+  "additional_cli": {
+    "resume_receipt": "doc/performance/data/native-str-utf8-validation-20261008.json",
+    "resume_receipt_sha256": "bd123e16ce4355fdffa7e430cf4ec191af280ced17adc3f14ee59bbc7019b83a",
+    "prefix": "native-str-utf8-validation-resume-r2-20261008"
+  }
+}

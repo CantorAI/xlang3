@@ -16,12 +16,50 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# XLang3 writes UTF-8. Windows PowerShell otherwise decodes native stdout
+# using IBM437 when CTest launches it without a console, corrupting Unicode
+# before the fixture comparison even though Get-Content already reads UTF-8.
+[Console]::OutputEncoding = [System.Text.UTF8Encoding]::new($false)
+$OutputEncoding = [Console]::OutputEncoding
+
 if (-not $XLang3) {
     throw "XLang3 executable path is required"
 }
 
 $root = $PSScriptRoot
 $cases = @(
+    "sorted_key_scoped_entry",
+    "sorted_key_iteration_owner",
+    "sorted_key_nested_handled_context",
+    "ordinary_canonical_slot_constructor",
+    "call_module_global_binding",
+    "sorted_exact_integer_keys",
+    "native_str_utf8_encode",
+    "synchronous_class_argument_lifetime",
+    "nested_profile_setting",
+    "nested_trace_setting",
+    "sys_monitoring_all_events",
+    "multiprocessing_spawn_semlock",
+    "frame_f_code_cache",
+    "coverage_tracer_native",
+    "trace_disable_local_events",
+    "class_namespace_lifetime",
+    "class_method_annotation_capture",
+    "explicit_slot_descriptor_fallback",
+    "slot_descriptor_owner",
+    "dict_get_exception_preservation",
+    "call_method_dict_cache_touch",
+    "inherited_call_ex_constructor",
+    "call_ex_cross_activation_constructor",
+    "sqlite_statement_cache",
+    "native_bound_zero_args",
+    "native_callback_frame_cache_reuse",
+    "call_ex_dict_subclass_kwargs",
+    "getitem_int_attr_inline",
+    "identity_last_use",
+    "hash_exception_preservation",
+    "sqlite_cursor_completion",
+    "sqlite_native_aggregate",
     "scalar_loop",
     "functions",
     "keyword_method_call",
@@ -76,7 +114,12 @@ $cases = @(
     "default_object_repr",
     "code_traceback_model",
     "mro_model",
+    "public_mro_tuple_identity",
     "property_descriptor",
+    "property_callable_getter",
+    "lambda_eager_comprehension_capture",
+    "python_new_vm_continuation",
+    "python_new_completion_finalizer",
     "chained_object_methods",
     "builtin_alias",
     "builtin_function_batch",
@@ -86,6 +129,7 @@ $cases = @(
     "tuples",
     "tuple_methods",
     "dict_views",
+    "dict_iterator_ownership",
     "slices",
     "string_slice_offsets",
     "regex_borrowed_ascii_match",
@@ -219,6 +263,8 @@ $cases = @(
     "builtin_generic_subclasses",
     "type_parameter_repr",
     "gc_class_components",
+    "gc_generic_cycles",
+    "two_argument_double_ir_plan",
     "deque_class_getitem",
     "sre_class_getitem",
     "exception_group_class_getitem",
@@ -296,6 +342,7 @@ $cases = @(
     "finally_blocks",
     "classes",
     "class_dynamic_attrs",
+    "class_descriptor_cache",
     "context_managers",
     "context_manager_exception_traceback",
     "with_assignment_targets",
@@ -332,11 +379,17 @@ $cases = @(
     "ctypes_cast_errcheck_array",
     "itertools_zip_longest_shared",
     "minmax_custom_key",
+    "heapq_rich_compare_cache",
+    "native_callback_slot_compare",
     "math_combinatorics",
     "try_loop_exception_scope",
     "native_module_function_binding",
     "classmethod_attr_int_compare"
 )
+
+if ($env:OS -ne 'Windows_NT') {
+    $cases = @($cases | Where-Object { $_ -ne "multiprocessing_spawn_semlock" })
+}
 
 foreach ($case in $cases) {
     $source = Join-Path $root "fixtures/core/$case.py"

@@ -1,0 +1,3 @@
+builtin-descriptors True True
+class-lookup old metaclass static Example True
+class-write-invalidates True new

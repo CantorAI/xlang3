@@ -1,0 +1,1538 @@
+[
+  {
+    "pair": 1,
+    "runtime": "candidate",
+    "case": "python_call_direct",
+    "seconds": 0.0001522
+  },
+  {
+    "pair": 1,
+    "runtime": "candidate",
+    "case": "python_call_indirect",
+    "seconds": 0.0001513
+  },
+  {
+    "pair": 1,
+    "runtime": "candidate",
+    "case": "exact_isinstance_direct",
+    "seconds": 0.0005458
+  },
+  {
+    "pair": 1,
+    "runtime": "candidate",
+    "case": "exact_isinstance_indirect",
+    "seconds": 0.0002868
+  },
+  {
+    "pair": 1,
+    "runtime": "candidate",
+    "case": "exact_issubclass_direct",
+    "seconds": 0.0005233
+  },
+  {
+    "pair": 1,
+    "runtime": "candidate",
+    "case": "exact_issubclass_indirect",
+    "seconds": 0.0002335
+  },
+  {
+    "pair": 1,
+    "runtime": "candidate",
+    "case": "protocol_positive_direct",
+    "seconds": 0.0611863
+  },
+  {
+    "pair": 1,
+    "runtime": "candidate",
+    "case": "protocol_positive_indirect",
+    "seconds": 0.0609199
+  },
+  {
+    "pair": 1,
+    "runtime": "candidate",
+    "case": "protocol_negative_direct",
+    "seconds": 0.0920012
+  },
+  {
+    "pair": 1,
+    "runtime": "candidate",
+    "case": "protocol_nominal_direct",
+    "seconds": 0.0094899
+  },
+  {
+    "pair": 1,
+    "runtime": "candidate",
+    "case": "protocol_many_negative_direct",
+    "seconds": 0.0912303
+  },
+  {
+    "pair": 1,
+    "runtime": "candidate",
+    "case": "protocol_hook_direct",
+    "seconds": 0.050936
+  },
+  {
+    "pair": 1,
+    "runtime": "candidate",
+    "case": "abc_instancecheck_direct",
+    "seconds": 0.0027316
+  },
+  {
+    "pair": 1,
+    "runtime": "candidate",
+    "case": "static_attribute_direct",
+    "seconds": 0.0420676
+  },
+  {
+    "pair": 1,
+    "runtime": "candidate",
+    "case": "ordinary_attribute_direct",
+    "seconds": 0.0007767
+  },
+  {
+    "pair": 1,
+    "runtime": "candidate",
+    "case": "weakref_deref_direct",
+    "seconds": 0.0001742
+  },
+  {
+    "pair": 1,
+    "runtime": "parent",
+    "case": "python_call_direct",
+    "seconds": 0.0001384
+  },
+  {
+    "pair": 1,
+    "runtime": "parent",
+    "case": "python_call_indirect",
+    "seconds": 0.0001378
+  },
+  {
+    "pair": 1,
+    "runtime": "parent",
+    "case": "exact_isinstance_direct",
+    "seconds": 0.0010875
+  },
+  {
+    "pair": 1,
+    "runtime": "parent",
+    "case": "exact_isinstance_indirect",
+    "seconds": 0.0007986
+  },
+  {
+    "pair": 1,
+    "runtime": "parent",
+    "case": "exact_issubclass_direct",
+    "seconds": 0.00104
+  },
+  {
+    "pair": 1,
+    "runtime": "parent",
+    "case": "exact_issubclass_indirect",
+    "seconds": 0.0007477
+  },
+  {
+    "pair": 1,
+    "runtime": "parent",
+    "case": "protocol_positive_direct",
+    "seconds": 0.061793
+  },
+  {
+    "pair": 1,
+    "runtime": "parent",
+    "case": "protocol_positive_indirect",
+    "seconds": 0.0615674
+  },
+  {
+    "pair": 1,
+    "runtime": "parent",
+    "case": "protocol_negative_direct",
+    "seconds": 0.0920812
+  },
+  {
+    "pair": 1,
+    "runtime": "parent",
+    "case": "protocol_nominal_direct",
+    "seconds": 0.0095428
+  },
+  {
+    "pair": 1,
+    "runtime": "parent",
+    "case": "protocol_many_negative_direct",
+    "seconds": 0.0928568
+  },
+  {
+    "pair": 1,
+    "runtime": "parent",
+    "case": "protocol_hook_direct",
+    "seconds": 0.0522341
+  },
+  {
+    "pair": 1,
+    "runtime": "parent",
+    "case": "abc_instancecheck_direct",
+    "seconds": 0.0028618
+  },
+  {
+    "pair": 1,
+    "runtime": "parent",
+    "case": "static_attribute_direct",
+    "seconds": 0.0419531
+  },
+  {
+    "pair": 1,
+    "runtime": "parent",
+    "case": "ordinary_attribute_direct",
+    "seconds": 0.0008139
+  },
+  {
+    "pair": 1,
+    "runtime": "parent",
+    "case": "weakref_deref_direct",
+    "seconds": 0.0004684
+  },
+  {
+    "pair": 2,
+    "runtime": "parent",
+    "case": "python_call_direct",
+    "seconds": 0.0001417
+  },
+  {
+    "pair": 2,
+    "runtime": "parent",
+    "case": "python_call_indirect",
+    "seconds": 0.0001348
+  },
+  {
+    "pair": 2,
+    "runtime": "parent",
+    "case": "exact_isinstance_direct",
+    "seconds": 0.0010544
+  },
+  {
+    "pair": 2,
+    "runtime": "parent",
+    "case": "exact_isinstance_indirect",
+    "seconds": 0.0007953
+  },
+  {
+    "pair": 2,
+    "runtime": "parent",
+    "case": "exact_issubclass_direct",
+    "seconds": 0.0009978
+  },
+  {
+    "pair": 2,
+    "runtime": "parent",
+    "case": "exact_issubclass_indirect",
+    "seconds": 0.0007485
+  },
+  {
+    "pair": 2,
+    "runtime": "parent",
+    "case": "protocol_positive_direct",
+    "seconds": 0.0608399
+  },
+  {
+    "pair": 2,
+    "runtime": "parent",
+    "case": "protocol_positive_indirect",
+    "seconds": 0.0598678
+  },
+  {
+    "pair": 2,
+    "runtime": "parent",
+    "case": "protocol_negative_direct",
+    "seconds": 0.090688
+  },
+  {
+    "pair": 2,
+    "runtime": "parent",
+    "case": "protocol_nominal_direct",
+    "seconds": 0.0095626
+  },
+  {
+    "pair": 2,
+    "runtime": "parent",
+    "case": "protocol_many_negative_direct",
+    "seconds": 0.0910536
+  },
+  {
+    "pair": 2,
+    "runtime": "parent",
+    "case": "protocol_hook_direct",
+    "seconds": 0.0511273
+  },
+  {
+    "pair": 2,
+    "runtime": "parent",
+    "case": "abc_instancecheck_direct",
+    "seconds": 0.0027152
+  },
+  {
+    "pair": 2,
+    "runtime": "parent",
+    "case": "static_attribute_direct",
+    "seconds": 0.0411522
+  },
+  {
+    "pair": 2,
+    "runtime": "parent",
+    "case": "ordinary_attribute_direct",
+    "seconds": 0.0007695
+  },
+  {
+    "pair": 2,
+    "runtime": "parent",
+    "case": "weakref_deref_direct",
+    "seconds": 0.0004654
+  },
+  {
+    "pair": 2,
+    "runtime": "candidate",
+    "case": "python_call_direct",
+    "seconds": 0.0001516
+  },
+  {
+    "pair": 2,
+    "runtime": "candidate",
+    "case": "python_call_indirect",
+    "seconds": 0.00015
+  },
+  {
+    "pair": 2,
+    "runtime": "candidate",
+    "case": "exact_isinstance_direct",
+    "seconds": 0.0005459
+  },
+  {
+    "pair": 2,
+    "runtime": "candidate",
+    "case": "exact_isinstance_indirect",
+    "seconds": 0.0002785
+  },
+  {
+    "pair": 2,
+    "runtime": "candidate",
+    "case": "exact_issubclass_direct",
+    "seconds": 0.0005203
+  },
+  {
+    "pair": 2,
+    "runtime": "candidate",
+    "case": "exact_issubclass_indirect",
+    "seconds": 0.0002332
+  },
+  {
+    "pair": 2,
+    "runtime": "candidate",
+    "case": "protocol_positive_direct",
+    "seconds": 0.0601259
+  },
+  {
+    "pair": 2,
+    "runtime": "candidate",
+    "case": "protocol_positive_indirect",
+    "seconds": 0.0607786
+  },
+  {
+    "pair": 2,
+    "runtime": "candidate",
+    "case": "protocol_negative_direct",
+    "seconds": 0.0906472
+  },
+  {
+    "pair": 2,
+    "runtime": "candidate",
+    "case": "protocol_nominal_direct",
+    "seconds": 0.0097712
+  },
+  {
+    "pair": 2,
+    "runtime": "candidate",
+    "case": "protocol_many_negative_direct",
+    "seconds": 0.0910166
+  },
+  {
+    "pair": 2,
+    "runtime": "candidate",
+    "case": "protocol_hook_direct",
+    "seconds": 0.0510556
+  },
+  {
+    "pair": 2,
+    "runtime": "candidate",
+    "case": "abc_instancecheck_direct",
+    "seconds": 0.002658
+  },
+  {
+    "pair": 2,
+    "runtime": "candidate",
+    "case": "static_attribute_direct",
+    "seconds": 0.0414284
+  },
+  {
+    "pair": 2,
+    "runtime": "candidate",
+    "case": "ordinary_attribute_direct",
+    "seconds": 0.0007787
+  },
+  {
+    "pair": 2,
+    "runtime": "candidate",
+    "case": "weakref_deref_direct",
+    "seconds": 0.0001735
+  },
+  {
+    "pair": 3,
+    "runtime": "candidate",
+    "case": "python_call_direct",
+    "seconds": 0.0001508
+  },
+  {
+    "pair": 3,
+    "runtime": "candidate",
+    "case": "python_call_indirect",
+    "seconds": 0.0001511
+  },
+  {
+    "pair": 3,
+    "runtime": "candidate",
+    "case": "exact_isinstance_direct",
+    "seconds": 0.0005527
+  },
+  {
+    "pair": 3,
+    "runtime": "candidate",
+    "case": "exact_isinstance_indirect",
+    "seconds": 0.0002836
+  },
+  {
+    "pair": 3,
+    "runtime": "candidate",
+    "case": "exact_issubclass_direct",
+    "seconds": 0.000516
+  },
+  {
+    "pair": 3,
+    "runtime": "candidate",
+    "case": "exact_issubclass_indirect",
+    "seconds": 0.000234
+  },
+  {
+    "pair": 3,
+    "runtime": "candidate",
+    "case": "protocol_positive_direct",
+    "seconds": 0.0619162
+  },
+  {
+    "pair": 3,
+    "runtime": "candidate",
+    "case": "protocol_positive_indirect",
+    "seconds": 0.0614418
+  },
+  {
+    "pair": 3,
+    "runtime": "candidate",
+    "case": "protocol_negative_direct",
+    "seconds": 0.0914974
+  },
+  {
+    "pair": 3,
+    "runtime": "candidate",
+    "case": "protocol_nominal_direct",
+    "seconds": 0.0094537
+  },
+  {
+    "pair": 3,
+    "runtime": "candidate",
+    "case": "protocol_many_negative_direct",
+    "seconds": 0.0912961
+  },
+  {
+    "pair": 3,
+    "runtime": "candidate",
+    "case": "protocol_hook_direct",
+    "seconds": 0.0518721
+  },
+  {
+    "pair": 3,
+    "runtime": "candidate",
+    "case": "abc_instancecheck_direct",
+    "seconds": 0.0026579
+  },
+  {
+    "pair": 3,
+    "runtime": "candidate",
+    "case": "static_attribute_direct",
+    "seconds": 0.0420056
+  },
+  {
+    "pair": 3,
+    "runtime": "candidate",
+    "case": "ordinary_attribute_direct",
+    "seconds": 0.0008006
+  },
+  {
+    "pair": 3,
+    "runtime": "candidate",
+    "case": "weakref_deref_direct",
+    "seconds": 0.0001799
+  },
+  {
+    "pair": 3,
+    "runtime": "parent",
+    "case": "python_call_direct",
+    "seconds": 0.00014
+  },
+  {
+    "pair": 3,
+    "runtime": "parent",
+    "case": "python_call_indirect",
+    "seconds": 0.0001422
+  },
+  {
+    "pair": 3,
+    "runtime": "parent",
+    "case": "exact_isinstance_direct",
+    "seconds": 0.001046
+  },
+  {
+    "pair": 3,
+    "runtime": "parent",
+    "case": "exact_isinstance_indirect",
+    "seconds": 0.0007991
+  },
+  {
+    "pair": 3,
+    "runtime": "parent",
+    "case": "exact_issubclass_direct",
+    "seconds": 0.0009965
+  },
+  {
+    "pair": 3,
+    "runtime": "parent",
+    "case": "exact_issubclass_indirect",
+    "seconds": 0.0007454
+  },
+  {
+    "pair": 3,
+    "runtime": "parent",
+    "case": "protocol_positive_direct",
+    "seconds": 0.061515
+  },
+  {
+    "pair": 3,
+    "runtime": "parent",
+    "case": "protocol_positive_indirect",
+    "seconds": 0.0612607
+  },
+  {
+    "pair": 3,
+    "runtime": "parent",
+    "case": "protocol_negative_direct",
+    "seconds": 0.092349
+  },
+  {
+    "pair": 3,
+    "runtime": "parent",
+    "case": "protocol_nominal_direct",
+    "seconds": 0.0096563
+  },
+  {
+    "pair": 3,
+    "runtime": "parent",
+    "case": "protocol_many_negative_direct",
+    "seconds": 0.0940344
+  },
+  {
+    "pair": 3,
+    "runtime": "parent",
+    "case": "protocol_hook_direct",
+    "seconds": 0.0507401
+  },
+  {
+    "pair": 3,
+    "runtime": "parent",
+    "case": "abc_instancecheck_direct",
+    "seconds": 0.0027118
+  },
+  {
+    "pair": 3,
+    "runtime": "parent",
+    "case": "static_attribute_direct",
+    "seconds": 0.0420835
+  },
+  {
+    "pair": 3,
+    "runtime": "parent",
+    "case": "ordinary_attribute_direct",
+    "seconds": 0.0007706
+  },
+  {
+    "pair": 3,
+    "runtime": "parent",
+    "case": "weakref_deref_direct",
+    "seconds": 0.0004722
+  },
+  {
+    "pair": 4,
+    "runtime": "parent",
+    "case": "python_call_direct",
+    "seconds": 0.0001435
+  },
+  {
+    "pair": 4,
+    "runtime": "parent",
+    "case": "python_call_indirect",
+    "seconds": 0.0001353
+  },
+  {
+    "pair": 4,
+    "runtime": "parent",
+    "case": "exact_isinstance_direct",
+    "seconds": 0.0010497
+  },
+  {
+    "pair": 4,
+    "runtime": "parent",
+    "case": "exact_isinstance_indirect",
+    "seconds": 0.0007986
+  },
+  {
+    "pair": 4,
+    "runtime": "parent",
+    "case": "exact_issubclass_direct",
+    "seconds": 0.0009974
+  },
+  {
+    "pair": 4,
+    "runtime": "parent",
+    "case": "exact_issubclass_indirect",
+    "seconds": 0.0007489
+  },
+  {
+    "pair": 4,
+    "runtime": "parent",
+    "case": "protocol_positive_direct",
+    "seconds": 0.0608104
+  },
+  {
+    "pair": 4,
+    "runtime": "parent",
+    "case": "protocol_positive_indirect",
+    "seconds": 0.0608529
+  },
+  {
+    "pair": 4,
+    "runtime": "parent",
+    "case": "protocol_negative_direct",
+    "seconds": 0.0930205
+  },
+  {
+    "pair": 4,
+    "runtime": "parent",
+    "case": "protocol_nominal_direct",
+    "seconds": 0.0096613
+  },
+  {
+    "pair": 4,
+    "runtime": "parent",
+    "case": "protocol_many_negative_direct",
+    "seconds": 0.0942244
+  },
+  {
+    "pair": 4,
+    "runtime": "parent",
+    "case": "protocol_hook_direct",
+    "seconds": 0.0508073
+  },
+  {
+    "pair": 4,
+    "runtime": "parent",
+    "case": "abc_instancecheck_direct",
+    "seconds": 0.0027099
+  },
+  {
+    "pair": 4,
+    "runtime": "parent",
+    "case": "static_attribute_direct",
+    "seconds": 0.0414357
+  },
+  {
+    "pair": 4,
+    "runtime": "parent",
+    "case": "ordinary_attribute_direct",
+    "seconds": 0.000798
+  },
+  {
+    "pair": 4,
+    "runtime": "parent",
+    "case": "weakref_deref_direct",
+    "seconds": 0.0004756
+  },
+  {
+    "pair": 4,
+    "runtime": "candidate",
+    "case": "python_call_direct",
+    "seconds": 0.0001544
+  },
+  {
+    "pair": 4,
+    "runtime": "candidate",
+    "case": "python_call_indirect",
+    "seconds": 0.0001515
+  },
+  {
+    "pair": 4,
+    "runtime": "candidate",
+    "case": "exact_isinstance_direct",
+    "seconds": 0.000546
+  },
+  {
+    "pair": 4,
+    "runtime": "candidate",
+    "case": "exact_isinstance_indirect",
+    "seconds": 0.0002807
+  },
+  {
+    "pair": 4,
+    "runtime": "candidate",
+    "case": "exact_issubclass_direct",
+    "seconds": 0.0005196
+  },
+  {
+    "pair": 4,
+    "runtime": "candidate",
+    "case": "exact_issubclass_indirect",
+    "seconds": 0.0002309
+  },
+  {
+    "pair": 4,
+    "runtime": "candidate",
+    "case": "protocol_positive_direct",
+    "seconds": 0.0612365
+  },
+  {
+    "pair": 4,
+    "runtime": "candidate",
+    "case": "protocol_positive_indirect",
+    "seconds": 0.0605244
+  },
+  {
+    "pair": 4,
+    "runtime": "candidate",
+    "case": "protocol_negative_direct",
+    "seconds": 0.0909372
+  },
+  {
+    "pair": 4,
+    "runtime": "candidate",
+    "case": "protocol_nominal_direct",
+    "seconds": 0.0095724
+  },
+  {
+    "pair": 4,
+    "runtime": "candidate",
+    "case": "protocol_many_negative_direct",
+    "seconds": 0.0908915
+  },
+  {
+    "pair": 4,
+    "runtime": "candidate",
+    "case": "protocol_hook_direct",
+    "seconds": 0.0528118
+  },
+  {
+    "pair": 4,
+    "runtime": "candidate",
+    "case": "abc_instancecheck_direct",
+    "seconds": 0.0027874
+  },
+  {
+    "pair": 4,
+    "runtime": "candidate",
+    "case": "static_attribute_direct",
+    "seconds": 0.0426139
+  },
+  {
+    "pair": 4,
+    "runtime": "candidate",
+    "case": "ordinary_attribute_direct",
+    "seconds": 0.0007747
+  },
+  {
+    "pair": 4,
+    "runtime": "candidate",
+    "case": "weakref_deref_direct",
+    "seconds": 0.0001727
+  },
+  {
+    "pair": 5,
+    "runtime": "candidate",
+    "case": "python_call_direct",
+    "seconds": 0.0001516
+  },
+  {
+    "pair": 5,
+    "runtime": "candidate",
+    "case": "python_call_indirect",
+    "seconds": 0.0001502
+  },
+  {
+    "pair": 5,
+    "runtime": "candidate",
+    "case": "exact_isinstance_direct",
+    "seconds": 0.0005469
+  },
+  {
+    "pair": 5,
+    "runtime": "candidate",
+    "case": "exact_isinstance_indirect",
+    "seconds": 0.0002797
+  },
+  {
+    "pair": 5,
+    "runtime": "candidate",
+    "case": "exact_issubclass_direct",
+    "seconds": 0.0005246
+  },
+  {
+    "pair": 5,
+    "runtime": "candidate",
+    "case": "exact_issubclass_indirect",
+    "seconds": 0.0002318
+  },
+  {
+    "pair": 5,
+    "runtime": "candidate",
+    "case": "protocol_positive_direct",
+    "seconds": 0.0628506
+  },
+  {
+    "pair": 5,
+    "runtime": "candidate",
+    "case": "protocol_positive_indirect",
+    "seconds": 0.0623603
+  },
+  {
+    "pair": 5,
+    "runtime": "candidate",
+    "case": "protocol_negative_direct",
+    "seconds": 0.0912415
+  },
+  {
+    "pair": 5,
+    "runtime": "candidate",
+    "case": "protocol_nominal_direct",
+    "seconds": 0.0096387
+  },
+  {
+    "pair": 5,
+    "runtime": "candidate",
+    "case": "protocol_many_negative_direct",
+    "seconds": 0.0909162
+  },
+  {
+    "pair": 5,
+    "runtime": "candidate",
+    "case": "protocol_hook_direct",
+    "seconds": 0.0524854
+  },
+  {
+    "pair": 5,
+    "runtime": "candidate",
+    "case": "abc_instancecheck_direct",
+    "seconds": 0.002801
+  },
+  {
+    "pair": 5,
+    "runtime": "candidate",
+    "case": "static_attribute_direct",
+    "seconds": 0.0423933
+  },
+  {
+    "pair": 5,
+    "runtime": "candidate",
+    "case": "ordinary_attribute_direct",
+    "seconds": 0.0008127
+  },
+  {
+    "pair": 5,
+    "runtime": "candidate",
+    "case": "weakref_deref_direct",
+    "seconds": 0.000183
+  },
+  {
+    "pair": 5,
+    "runtime": "parent",
+    "case": "python_call_direct",
+    "seconds": 0.0001373
+  },
+  {
+    "pair": 5,
+    "runtime": "parent",
+    "case": "python_call_indirect",
+    "seconds": 0.0001395
+  },
+  {
+    "pair": 5,
+    "runtime": "parent",
+    "case": "exact_isinstance_direct",
+    "seconds": 0.0010556
+  },
+  {
+    "pair": 5,
+    "runtime": "parent",
+    "case": "exact_isinstance_indirect",
+    "seconds": 0.0009381
+  },
+  {
+    "pair": 5,
+    "runtime": "parent",
+    "case": "exact_issubclass_direct",
+    "seconds": 0.0010427
+  },
+  {
+    "pair": 5,
+    "runtime": "parent",
+    "case": "exact_issubclass_indirect",
+    "seconds": 0.0007629
+  },
+  {
+    "pair": 5,
+    "runtime": "parent",
+    "case": "protocol_positive_direct",
+    "seconds": 0.0608394
+  },
+  {
+    "pair": 5,
+    "runtime": "parent",
+    "case": "protocol_positive_indirect",
+    "seconds": 0.0606257
+  },
+  {
+    "pair": 5,
+    "runtime": "parent",
+    "case": "protocol_negative_direct",
+    "seconds": 0.0913771
+  },
+  {
+    "pair": 5,
+    "runtime": "parent",
+    "case": "protocol_nominal_direct",
+    "seconds": 0.0095366
+  },
+  {
+    "pair": 5,
+    "runtime": "parent",
+    "case": "protocol_many_negative_direct",
+    "seconds": 0.0908133
+  },
+  {
+    "pair": 5,
+    "runtime": "parent",
+    "case": "protocol_hook_direct",
+    "seconds": 0.0519266
+  },
+  {
+    "pair": 5,
+    "runtime": "parent",
+    "case": "abc_instancecheck_direct",
+    "seconds": 0.0027062
+  },
+  {
+    "pair": 5,
+    "runtime": "parent",
+    "case": "static_attribute_direct",
+    "seconds": 0.04126
+  },
+  {
+    "pair": 5,
+    "runtime": "parent",
+    "case": "ordinary_attribute_direct",
+    "seconds": 0.000769
+  },
+  {
+    "pair": 5,
+    "runtime": "parent",
+    "case": "weakref_deref_direct",
+    "seconds": 0.000472
+  },
+  {
+    "pair": 6,
+    "runtime": "parent",
+    "case": "python_call_direct",
+    "seconds": 0.0001384
+  },
+  {
+    "pair": 6,
+    "runtime": "parent",
+    "case": "python_call_indirect",
+    "seconds": 0.0001401
+  },
+  {
+    "pair": 6,
+    "runtime": "parent",
+    "case": "exact_isinstance_direct",
+    "seconds": 0.0010468
+  },
+  {
+    "pair": 6,
+    "runtime": "parent",
+    "case": "exact_isinstance_indirect",
+    "seconds": 0.0007987
+  },
+  {
+    "pair": 6,
+    "runtime": "parent",
+    "case": "exact_issubclass_direct",
+    "seconds": 0.0009983
+  },
+  {
+    "pair": 6,
+    "runtime": "parent",
+    "case": "exact_issubclass_indirect",
+    "seconds": 0.0007465
+  },
+  {
+    "pair": 6,
+    "runtime": "parent",
+    "case": "protocol_positive_direct",
+    "seconds": 0.0617045
+  },
+  {
+    "pair": 6,
+    "runtime": "parent",
+    "case": "protocol_positive_indirect",
+    "seconds": 0.0618957
+  },
+  {
+    "pair": 6,
+    "runtime": "parent",
+    "case": "protocol_negative_direct",
+    "seconds": 0.0921338
+  },
+  {
+    "pair": 6,
+    "runtime": "parent",
+    "case": "protocol_nominal_direct",
+    "seconds": 0.0096804
+  },
+  {
+    "pair": 6,
+    "runtime": "parent",
+    "case": "protocol_many_negative_direct",
+    "seconds": 0.093267
+  },
+  {
+    "pair": 6,
+    "runtime": "parent",
+    "case": "protocol_hook_direct",
+    "seconds": 0.0528093
+  },
+  {
+    "pair": 6,
+    "runtime": "parent",
+    "case": "abc_instancecheck_direct",
+    "seconds": 0.0028128
+  },
+  {
+    "pair": 6,
+    "runtime": "parent",
+    "case": "static_attribute_direct",
+    "seconds": 0.0431916
+  },
+  {
+    "pair": 6,
+    "runtime": "parent",
+    "case": "ordinary_attribute_direct",
+    "seconds": 0.0007952
+  },
+  {
+    "pair": 6,
+    "runtime": "parent",
+    "case": "weakref_deref_direct",
+    "seconds": 0.000486
+  },
+  {
+    "pair": 6,
+    "runtime": "candidate",
+    "case": "python_call_direct",
+    "seconds": 0.0001596
+  },
+  {
+    "pair": 6,
+    "runtime": "candidate",
+    "case": "python_call_indirect",
+    "seconds": 0.0001523
+  },
+  {
+    "pair": 6,
+    "runtime": "candidate",
+    "case": "exact_isinstance_direct",
+    "seconds": 0.0005571
+  },
+  {
+    "pair": 6,
+    "runtime": "candidate",
+    "case": "exact_isinstance_indirect",
+    "seconds": 0.0002808
+  },
+  {
+    "pair": 6,
+    "runtime": "candidate",
+    "case": "exact_issubclass_direct",
+    "seconds": 0.0005551
+  },
+  {
+    "pair": 6,
+    "runtime": "candidate",
+    "case": "exact_issubclass_indirect",
+    "seconds": 0.0002448
+  },
+  {
+    "pair": 6,
+    "runtime": "candidate",
+    "case": "protocol_positive_direct",
+    "seconds": 0.0619746
+  },
+  {
+    "pair": 6,
+    "runtime": "candidate",
+    "case": "protocol_positive_indirect",
+    "seconds": 0.0604298
+  },
+  {
+    "pair": 6,
+    "runtime": "candidate",
+    "case": "protocol_negative_direct",
+    "seconds": 0.0910304
+  },
+  {
+    "pair": 6,
+    "runtime": "candidate",
+    "case": "protocol_nominal_direct",
+    "seconds": 0.0095808
+  },
+  {
+    "pair": 6,
+    "runtime": "candidate",
+    "case": "protocol_many_negative_direct",
+    "seconds": 0.0907677
+  },
+  {
+    "pair": 6,
+    "runtime": "candidate",
+    "case": "protocol_hook_direct",
+    "seconds": 0.0514411
+  },
+  {
+    "pair": 6,
+    "runtime": "candidate",
+    "case": "abc_instancecheck_direct",
+    "seconds": 0.0027377
+  },
+  {
+    "pair": 6,
+    "runtime": "candidate",
+    "case": "static_attribute_direct",
+    "seconds": 0.0417568
+  },
+  {
+    "pair": 6,
+    "runtime": "candidate",
+    "case": "ordinary_attribute_direct",
+    "seconds": 0.0007787
+  },
+  {
+    "pair": 6,
+    "runtime": "candidate",
+    "case": "weakref_deref_direct",
+    "seconds": 0.0001734
+  },
+  {
+    "pair": 7,
+    "runtime": "candidate",
+    "case": "python_call_direct",
+    "seconds": 0.0001529
+  },
+  {
+    "pair": 7,
+    "runtime": "candidate",
+    "case": "python_call_indirect",
+    "seconds": 0.0001495
+  },
+  {
+    "pair": 7,
+    "runtime": "candidate",
+    "case": "exact_isinstance_direct",
+    "seconds": 0.0005497
+  },
+  {
+    "pair": 7,
+    "runtime": "candidate",
+    "case": "exact_isinstance_indirect",
+    "seconds": 0.0002849
+  },
+  {
+    "pair": 7,
+    "runtime": "candidate",
+    "case": "exact_issubclass_direct",
+    "seconds": 0.0005315
+  },
+  {
+    "pair": 7,
+    "runtime": "candidate",
+    "case": "exact_issubclass_indirect",
+    "seconds": 0.0002383
+  },
+  {
+    "pair": 7,
+    "runtime": "candidate",
+    "case": "protocol_positive_direct",
+    "seconds": 0.0625804
+  },
+  {
+    "pair": 7,
+    "runtime": "candidate",
+    "case": "protocol_positive_indirect",
+    "seconds": 0.0619376
+  },
+  {
+    "pair": 7,
+    "runtime": "candidate",
+    "case": "protocol_negative_direct",
+    "seconds": 0.0918446
+  },
+  {
+    "pair": 7,
+    "runtime": "candidate",
+    "case": "protocol_nominal_direct",
+    "seconds": 0.0097972
+  },
+  {
+    "pair": 7,
+    "runtime": "candidate",
+    "case": "protocol_many_negative_direct",
+    "seconds": 0.0911054
+  },
+  {
+    "pair": 7,
+    "runtime": "candidate",
+    "case": "protocol_hook_direct",
+    "seconds": 0.0528875
+  },
+  {
+    "pair": 7,
+    "runtime": "candidate",
+    "case": "abc_instancecheck_direct",
+    "seconds": 0.0026899
+  },
+  {
+    "pair": 7,
+    "runtime": "candidate",
+    "case": "static_attribute_direct",
+    "seconds": 0.0430067
+  },
+  {
+    "pair": 7,
+    "runtime": "candidate",
+    "case": "ordinary_attribute_direct",
+    "seconds": 0.0008184
+  },
+  {
+    "pair": 7,
+    "runtime": "candidate",
+    "case": "weakref_deref_direct",
+    "seconds": 0.0001827
+  },
+  {
+    "pair": 7,
+    "runtime": "parent",
+    "case": "python_call_direct",
+    "seconds": 0.0001376
+  },
+  {
+    "pair": 7,
+    "runtime": "parent",
+    "case": "python_call_indirect",
+    "seconds": 0.0001388
+  },
+  {
+    "pair": 7,
+    "runtime": "parent",
+    "case": "exact_isinstance_direct",
+    "seconds": 0.0010456
+  },
+  {
+    "pair": 7,
+    "runtime": "parent",
+    "case": "exact_isinstance_indirect",
+    "seconds": 0.0007956
+  },
+  {
+    "pair": 7,
+    "runtime": "parent",
+    "case": "exact_issubclass_direct",
+    "seconds": 0.0009988
+  },
+  {
+    "pair": 7,
+    "runtime": "parent",
+    "case": "exact_issubclass_indirect",
+    "seconds": 0.0007465
+  },
+  {
+    "pair": 7,
+    "runtime": "parent",
+    "case": "protocol_positive_direct",
+    "seconds": 0.0624089
+  },
+  {
+    "pair": 7,
+    "runtime": "parent",
+    "case": "protocol_positive_indirect",
+    "seconds": 0.0623383
+  },
+  {
+    "pair": 7,
+    "runtime": "parent",
+    "case": "protocol_negative_direct",
+    "seconds": 0.0926245
+  },
+  {
+    "pair": 7,
+    "runtime": "parent",
+    "case": "protocol_nominal_direct",
+    "seconds": 0.0095437
+  },
+  {
+    "pair": 7,
+    "runtime": "parent",
+    "case": "protocol_many_negative_direct",
+    "seconds": 0.0925884
+  },
+  {
+    "pair": 7,
+    "runtime": "parent",
+    "case": "protocol_hook_direct",
+    "seconds": 0.0516891
+  },
+  {
+    "pair": 7,
+    "runtime": "parent",
+    "case": "abc_instancecheck_direct",
+    "seconds": 0.0028528
+  },
+  {
+    "pair": 7,
+    "runtime": "parent",
+    "case": "static_attribute_direct",
+    "seconds": 0.0419
+  },
+  {
+    "pair": 7,
+    "runtime": "parent",
+    "case": "ordinary_attribute_direct",
+    "seconds": 0.0007901
+  },
+  {
+    "pair": 7,
+    "runtime": "parent",
+    "case": "weakref_deref_direct",
+    "seconds": 0.0004921
+  },
+  {
+    "pair": 8,
+    "runtime": "parent",
+    "case": "python_call_direct",
+    "seconds": 0.0001391
+  },
+  {
+    "pair": 8,
+    "runtime": "parent",
+    "case": "python_call_indirect",
+    "seconds": 0.000139
+  },
+  {
+    "pair": 8,
+    "runtime": "parent",
+    "case": "exact_isinstance_direct",
+    "seconds": 0.0010453
+  },
+  {
+    "pair": 8,
+    "runtime": "parent",
+    "case": "exact_isinstance_indirect",
+    "seconds": 0.0008011
+  },
+  {
+    "pair": 8,
+    "runtime": "parent",
+    "case": "exact_issubclass_direct",
+    "seconds": 0.0009997
+  },
+  {
+    "pair": 8,
+    "runtime": "parent",
+    "case": "exact_issubclass_indirect",
+    "seconds": 0.0007487
+  },
+  {
+    "pair": 8,
+    "runtime": "parent",
+    "case": "protocol_positive_direct",
+    "seconds": 0.0608469
+  },
+  {
+    "pair": 8,
+    "runtime": "parent",
+    "case": "protocol_positive_indirect",
+    "seconds": 0.0624715
+  },
+  {
+    "pair": 8,
+    "runtime": "parent",
+    "case": "protocol_negative_direct",
+    "seconds": 0.0929698
+  },
+  {
+    "pair": 8,
+    "runtime": "parent",
+    "case": "protocol_nominal_direct",
+    "seconds": 0.0095012
+  },
+  {
+    "pair": 8,
+    "runtime": "parent",
+    "case": "protocol_many_negative_direct",
+    "seconds": 0.0919497
+  },
+  {
+    "pair": 8,
+    "runtime": "parent",
+    "case": "protocol_hook_direct",
+    "seconds": 0.0503554
+  },
+  {
+    "pair": 8,
+    "runtime": "parent",
+    "case": "abc_instancecheck_direct",
+    "seconds": 0.0027088
+  },
+  {
+    "pair": 8,
+    "runtime": "parent",
+    "case": "static_attribute_direct",
+    "seconds": 0.0414177
+  },
+  {
+    "pair": 8,
+    "runtime": "parent",
+    "case": "ordinary_attribute_direct",
+    "seconds": 0.0007681
+  },
+  {
+    "pair": 8,
+    "runtime": "parent",
+    "case": "weakref_deref_direct",
+    "seconds": 0.0004685
+  },
+  {
+    "pair": 8,
+    "runtime": "candidate",
+    "case": "python_call_direct",
+    "seconds": 0.0001497
+  },
+  {
+    "pair": 8,
+    "runtime": "candidate",
+    "case": "python_call_indirect",
+    "seconds": 0.0001467
+  },
+  {
+    "pair": 8,
+    "runtime": "candidate",
+    "case": "exact_isinstance_direct",
+    "seconds": 0.0005475
+  },
+  {
+    "pair": 8,
+    "runtime": "candidate",
+    "case": "exact_isinstance_indirect",
+    "seconds": 0.0002823
+  },
+  {
+    "pair": 8,
+    "runtime": "candidate",
+    "case": "exact_issubclass_direct",
+    "seconds": 0.0005324
+  },
+  {
+    "pair": 8,
+    "runtime": "candidate",
+    "case": "exact_issubclass_indirect",
+    "seconds": 0.0002319
+  },
+  {
+    "pair": 8,
+    "runtime": "candidate",
+    "case": "protocol_positive_direct",
+    "seconds": 0.0610533
+  },
+  {
+    "pair": 8,
+    "runtime": "candidate",
+    "case": "protocol_positive_indirect",
+    "seconds": 0.0615459
+  },
+  {
+    "pair": 8,
+    "runtime": "candidate",
+    "case": "protocol_negative_direct",
+    "seconds": 0.0906694
+  },
+  {
+    "pair": 8,
+    "runtime": "candidate",
+    "case": "protocol_nominal_direct",
+    "seconds": 0.0095574
+  },
+  {
+    "pair": 8,
+    "runtime": "candidate",
+    "case": "protocol_many_negative_direct",
+    "seconds": 0.0914269
+  },
+  {
+    "pair": 8,
+    "runtime": "candidate",
+    "case": "protocol_hook_direct",
+    "seconds": 0.0517298
+  },
+  {
+    "pair": 8,
+    "runtime": "candidate",
+    "case": "abc_instancecheck_direct",
+    "seconds": 0.0026703
+  },
+  {
+    "pair": 8,
+    "runtime": "candidate",
+    "case": "static_attribute_direct",
+    "seconds": 0.04216
+  },
+  {
+    "pair": 8,
+    "runtime": "candidate",
+    "case": "ordinary_attribute_direct",
+    "seconds": 0.0007965
+  },
+  {
+    "pair": 8,
+    "runtime": "candidate",
+    "case": "weakref_deref_direct",
+    "seconds": 0.0001784
+  }
+]

@@ -1,0 +1,99 @@
+{
+  "status": "frozen_for_independent_static_review",
+  "controller": "scratch/performance/validate-triple-string-closing-comment-trial-r2-proposed-20261008.py",
+  "controller_sha256": "f1d561d95a5ecea7efe9b4d4f4678e200c05d3ab9e8f019f945fc86314965ca5",
+  "input_sha256": {
+    "scratch/performance/validate-native-str-utf8-original-pickle-trial-proposed-20261008.py": "e02a8aa15973a1b153348807f7ca4b0c4adb0bcbd3f3a42042f69d7da0f46133",
+    "scratch/performance/validate-call-ex-cross-activation-constructor-resume-r3-20261008.py": "50007db5cc6adc2e54012fdfbd48514699513f990906d4a508582ba73d6ae0bf",
+    "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py": "c078ee77d5d66165f0bf4b2d782df56e71868ada827c81c5c53516c8d017ceaf",
+    "benchmarks/diagnostics/pyperf_compat/sitecustomize.py": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+    "benchmarks/diagnostics/preserve_pyperformance_partial.py": "0dfbc86863421165ecfda246b17dcc4846a41306a49aaf346456b78273bf7c06",
+    "benchmarks/check_regression.py": "579934598caddc37409fed03181b0cd42408853a34bde65dff48b777e4e8ffef",
+    "tests/run_fixtures.py": "5f01b67a19b867c72be902eb9bb38a752a1c4c6797f454fbb7bdad2d6e36e06d",
+    "scratch/performance/triple-string-closing-comment-proposed-20261008-provenance.json": "279a10cfb06301350b307874f4e358cf59fa1b08817481ffaff9f8ba145b4260",
+    "doc/performance/data/triple-string-closing-comment-applied-source-20261008.json": "1890c86d5c90a25e017577d7147a5324d000af6673e7d830b6c516d0874e95db",
+    "doc/performance/data/triple-string-closing-comment-build-terminal-20261008.json": "368b7c4eeb61b78ee9e2fe0ef80a72dab6b926985763e3c02503d6ea7e891d5a",
+    "doc/performance/data/triple-string-closing-comment-focused-20261008.json": "a3b6860b4b841e1b711bccaf34b325df98e30b92ab9d8cd9d6b886b593cba447",
+    "build-repro/controls/triple-string-closing-comment-parent-20261008/preserved-release-provenance.json": "c25be037d188eb0b83a3885acfa16085e49bd1192fdbbf15010182feeb78f6b3",
+    "build-repro/main-verify-20261006/CTestTestfile.cmake": "9d56d701bfcff27d8d647b758749cf7eca29d00b777824d8a23b7457f187c220",
+    "build-repro/main-verify-20261006/CMakeCache.txt": "c5627cacedec85839ffb69135e4d57487c01ae180b1f294160224900f5a142ef"
+  },
+  "benchmark_definition_sha256": {
+    "C:/Python/Python314/Lib/site-packages/pyperformance/data-files/benchmarks/bm_sqlalchemy_declarative/run_benchmark.py": "f478a5a5f9b2ca0576f6d0f2925a21d79dbffc8036d076b9df4aef170543c1e3",
+    "C:/Python/Python314/Lib/site-packages/pyperformance/data-files/benchmarks/bm_sqlalchemy_declarative/pyproject.toml": "118cd31a3b0c8ea020edf0de47405538f464e278ada1ce3ed3991b2df2cc916f",
+    "C:/Python/Python314/Lib/site-packages/pyperformance/data-files/benchmarks/bm_sqlalchemy_imperative/run_benchmark.py": "0dd462de295088aa6d3ccf61c466ca7b647518bfd3115a64b7bbce7f4508be72",
+    "C:/Python/Python314/Lib/site-packages/pyperformance/data-files/benchmarks/bm_sqlalchemy_imperative/pyproject.toml": "6c918071c960e6302c04ff895dd2561df2d266242d1cb225cbc4287c0b419788"
+  },
+  "source_count": 124,
+  "release_count": 178,
+  "baseline_count": 177,
+  "parent_source_count": 124,
+  "parent_object_count": 149,
+  "applied_source_sha256": "1890c86d5c90a25e017577d7147a5324d000af6673e7d830b6c516d0874e95db",
+  "focused_receipt_sha256": "a3b6860b4b841e1b711bccaf34b325df98e30b92ab9d8cd9d6b886b593cba447",
+  "build_receipt_sha256": "368b7c4eeb61b78ee9e2fe0ef80a72dab6b926985763e3c02503d6ea7e891d5a",
+  "parent_manifest_sha256": "c25be037d188eb0b83a3885acfa16085e49bd1192fdbbf15010182feeb78f6b3",
+  "focused_phase_count": 10,
+  "fresh_correctness_commands": [
+    "full-fixtures-clean",
+    "ctest-inventory",
+    "ctest",
+    "old_xlang_sqlite_api",
+    "python_sqlite3_api"
+  ],
+  "fixture_counts": {
+    "compat_sections": 11,
+    "expected_failures": 3,
+    "core": 399
+  },
+  "selected_ctest_count": 9,
+  "native_api_count": 2,
+  "fixed_gate": {
+    "baseline": "build-repro/Release/xlang3.exe",
+    "case_count": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1,
+    "command_default_unchanged": true
+  },
+  "official": {
+    "benchmarks": [
+      "sqlalchemy_declarative",
+      "sqlalchemy_imperative"
+    ],
+    "runtimes": [
+      "fixed current XLang3",
+      "CPython 3.14.7 only"
+    ],
+    "mode": "fast",
+    "values_per_complete_row": 20,
+    "case_timeout": 300,
+    "owned_phase_timeout": 360,
+    "unchanged_source_and_work": true,
+    "sequential_attempt_count": 4,
+    "ordinary_benchmark_failures_retained_then_next_original_case_once": true,
+    "invalid_watch_or_hash_aborts": true,
+    "no_retry": true,
+    "unpaired": true,
+    "no_speed_claim_until_all_complete": true
+  },
+  "untimed_policy": "Log MSBuild name/PID before/during/after untimed correctness only. All other build/runtime processes block. Only the actual owned CTest PID is tolerated in the two CTest phases. Raw strict watcher false flags remain untouched; separate semantic classification validates exit0 and exact nine outputs. No timing accepted there.",
+  "timing_policy": "Canonical 50007 watcher unchanged for gate/official; every compiler/CTest overlap/scanner error invalidates. Strict all-tool idle immediately before timing. No parked-worker or own-CTest timing exception.",
+  "busy_transition": "After five fresh correctness phases, strict timing idle busy -> terminal correctness_passed_performance_pending, full_validated false, exit2, no timing executed.",
+  "continuation": "Optional same-controller --resume-correctness-receipt plus SHA accepts ONLY hash-stable terminal correctness_passed_performance_pending for exact current124/current178/baseline177 and same app/focus/build/proposal/control; exact5commands/timeouts/rawlogs/watch/outputs/oldinputs authenticated; copied rows labeled historical same current124, executed_again false. No old119 or timed reuse.",
+  "fresh_mode": "All five correctness children execute fresh when resume arguments absent; immutable old UTF8 manager remains untouched.",
+  "input_coverage": "Source124/currentRelease178/baseline177/complete preserved parent; all399/11/3 fixture inputs/expected; gate11 sources; exact SQLAlchemy benchmark .py/TOML; shared-site SQLAlchemy+pyperf .py and distribution METADATA; canonical runner/hook/helper, CP exe/DLL, CTest executable/config. Partial worktree source inventory is not a clean-checkout reproduction guarantee.",
+  "no_execution_by_author": true,
+  "no_ast_by_author": true,
+  "no_build_by_author": true,
+  "no_live_source_edits": true,
+  "no_staging": true,
+  "prefix": "triple-string-closing-comment-validation-20261008",
+  "launch": "C:/Python/Python314/python.exe -I scratch/performance/validate-triple-string-closing-comment-trial-r2-proposed-20261008.py --source-inventory doc/performance/data/triple-string-closing-comment-applied-source-20261008.json --source-inventory-sha256 1890c86d5c90a25e017577d7147a5324d000af6673e7d830b6c516d0874e95db --focused-receipt doc/performance/data/triple-string-closing-comment-focused-20261008.json --focused-receipt-sha256 a3b6860b4b841e1b711bccaf34b325df98e30b92ab9d8cd9d6b886b593cba447 --proposal-provenance scratch/performance/triple-string-closing-comment-proposed-20261008-provenance.json --proposal-provenance-sha256 279a10cfb06301350b307874f4e358cf59fa1b08817481ffaff9f8ba145b4260 --build-receipt doc/performance/data/triple-string-closing-comment-build-terminal-20261008.json --build-receipt-sha256 368b7c4eeb61b78ee9e2fe0ef80a72dab6b926985763e3c02503d6ea7e891d5a --prefix triple-string-closing-comment-validation-20261008",
+  "preserved_first_draft": {
+    "executed": false,
+    "proof_sha256": "8d5a5dd4767940e5c2086e1171f7fae3ea1e0d6d4728273cbd992fe8e4a2e48a",
+    "controller_sha256": "ca9c482a8e5eb42f5a1c989760a822280e9fdf80927e1c9c1c2d4138a21c2408"
+  },
+  "bounded_R2_delta": "Explicit post_idle_guard_passed/post_hashes_stable fields and revoked timing acceptance on failure; resume requires them; official ordinary-failure continuation requires both true. All fresh correctness/gate/workload/timing policy and receipt lineage unchanged."
+}

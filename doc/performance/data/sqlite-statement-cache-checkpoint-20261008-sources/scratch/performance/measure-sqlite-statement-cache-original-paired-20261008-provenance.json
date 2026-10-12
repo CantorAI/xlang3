@@ -1,0 +1,40 @@
+{
+  "status": "frozen_scratch_only_not_executed",
+  "script": "scratch/performance/measure-sqlite-statement-cache-original-paired-20261008.py",
+  "script_sha256": "403ee3f8efdf87dd64c27b03c38a0f023290a85f8ddc72a6e8799e45fc0d0f3d",
+  "source_inventory": "doc/performance/data/sqlite-statement-cache-r4-compiled-source-20261008.json",
+  "source_inventory_sha256": "bf6bbae7b0256693574a9b7581403c880b214d026cc86d556b062eb50ca9b875",
+  "validation": "doc/performance/data/sqlite-statement-cache-r4-validation-20261008.json",
+  "validation_sha256": "0c4f5f00a64f370f171b0af606ae92287412cc8719ffb9b4431a81bcc5f4e0a9",
+  "pair_count": 3,
+  "run_count": 6,
+  "values_per_run": 20,
+  "order": [
+    [
+      "control",
+      "candidate"
+    ],
+    [
+      "candidate",
+      "control"
+    ],
+    [
+      "control",
+      "candidate"
+    ]
+  ],
+  "runtime_commands_run": false,
+  "ast_parse_run": false,
+  "official_definition": "sqlite_synth",
+  "no_cpython_timing_rerun": true,
+  "output": "doc/performance/data/sqlite-statement-cache-r4-original-paired-20261008.json",
+  "terminal_success_status": "validated_paired_original_official",
+  "raw_stream": "binary stdout and stderr merged without conversion",
+  "ratio_definition": "mean(control)/mean(candidate) within each pair; median of three ratios",
+  "manager": "C:/Python/Python314/python.exe",
+  "version": "3.14.7",
+  "control": "build-repro/controls/native-bound-zero-args-checkpoint-20261008/xlang3.exe",
+  "candidate": "build-repro/main-verify-20261006/Release/xlang3.exe",
+  "source_count": 44,
+  "binary_files_per_runtime": 140
+}

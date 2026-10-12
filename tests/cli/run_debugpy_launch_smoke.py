@@ -24,7 +24,7 @@ IDE_PROFILE = next(
 XLANG = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else ROOT / "build" / "Release" / "xlang3.exe"
 REFERENCE_RUN = os.environ.get("XLANG3_DEBUGPY_REFERENCE_RUN") == "1"
 ADAPTER_PYTHON = XLANG if REFERENCE_RUN else Path(os.environ.get(
-    "XLANG3_VS_ADAPTER_PYTHON", str(LAUNCH_CONFIG["$adapter"])
+    "XLANG3_VS_ADAPTER_PYTHON", str(XLANG)
 )).resolve()
 CONFIG_ADAPTER_ENTRY = str(LAUNCH_CONFIG["$adapterArgs"]).strip()
 if CONFIG_ADAPTER_ENTRY.startswith('"') and CONFIG_ADAPTER_ENTRY.endswith('"'):
@@ -63,10 +63,19 @@ def main() -> int:
     if not same_path(PROGRAM, ROOT / "tests" / "ide" / "vs2026_debug_smoke.py"):
         raise RuntimeError("Visual Studio launch config does not target the repository smoke program")
     profile_program = (ROOT / str(IDE_PROFILE["project"])).resolve()
-    profile_interpreter = XLANG if REFERENCE_RUN else Path(str(IDE_PROFILE["interpreter"])).resolve()
+    configured_interpreter = Path(str(IDE_PROFILE["interpreter"])).resolve()
+    profile_interpreter = XLANG
     if not REFERENCE_RUN:
-        if not same_path(profile_interpreter, XLANG):
+        if configured_interpreter.name.casefold() != "xlang3.exe":
             raise RuntimeError("Visual Studio profile does not use xlang3.exe directly")
+        # Validate the checked-in IDE profiles against each other, then use
+        # CTest's explicit executable for both adapter and debuggee. Its build
+        # directory can differ from the developer's default IDE build directory.
+        for configured_path in (LAUNCH_CONFIG["$adapter"],
+                                LAUNCH_CONFIG["debugLauncherPython"],
+                                LAUNCH_CONFIG["python"][0]):
+            if not same_path(Path(str(configured_path)), configured_interpreter):
+                raise RuntimeError("Visual Studio launch configs select different interpreters")
         if not same_path(ADAPTER_PYTHON, XLANG):
             raise RuntimeError("Visual Studio launch config does not run the adapter with xlang3.exe")
     if IDE_PROFILE.get("interpreterArguments") != "-S":

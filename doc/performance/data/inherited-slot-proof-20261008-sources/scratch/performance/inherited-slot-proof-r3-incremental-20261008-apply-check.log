@@ -1,0 +1,3 @@
+command: git apply --check -- scratch/performance/inherited-slot-proof-r3-incremental-20261008.patch
+exit: 0
+

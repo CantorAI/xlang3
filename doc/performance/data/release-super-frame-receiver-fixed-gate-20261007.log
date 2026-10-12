@@ -1,0 +1,12 @@
+local_slots              pass         1.025x
+scalar_arithmetic        pass         1.013x
+range_for                pass         0.987x
+function_calls           pass         1.017x
+class_construct          pass         1.011x
+list_append              pass         1.008x
+property_access          pass         0.993x
+deepcopy_memo            pass         0.895x
+json_dumps               pass         0.973x
+gc_traversal             pass         0.731x
+subparsers               pass         0.942x
+Performance check: pass. Report: doc\performance\data\release-super-frame-receiver-fixed-gate-20261007.json

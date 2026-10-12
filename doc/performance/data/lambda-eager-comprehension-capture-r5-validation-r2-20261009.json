@@ -1,0 +1,37 @@
+{
+  "status": "trial_validation_failed",
+  "terminal": true,
+  "full_validated": false,
+  "whole_goal_complete": false,
+  "correctness_reused_same_candidate": false,
+  "correctness_passed": false,
+  "phases": [],
+  "idle_guards": [
+    {
+      "phase": "preflight",
+      "timed": false,
+      "busy": [],
+      "logged_untimed_msbuild": [],
+      "timing_allowance": false
+    }
+  ],
+  "fixed_gate": null,
+  "official_results": {},
+  "fresh_correctness": true,
+  "scope": "Fresh R5 source128 complete correctness/default11 gate and original X SQLAlchemy; historical exact-input CP3.14.7 reference, no parent correctness reuse, paired claim or full97 run",
+  "started_utc": "2026-10-09T09:10:50.843541+00:00",
+  "error": "AssertionError: ",
+  "hashes_after": {
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\lambda-eager-comprehension-capture-r5-applied-source-20261009.json": "455070f024691a9223abedea366278e1399b9789340d8954bad7549d06cdb29e",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\lambda-eager-comprehension-capture-r5-focused-complete-20261009.json": "9d3dc798e925c9b87fc9e8c6e82dd4cbc1ddeac7189b93b0311df3daf742005e",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\lambda-eager-comprehension-capture-r5-proposed-20261009-provenance.json": "ca1f333f7d01105d352e5fe583190a5b276f8d414209b0d448b6df9cd832e88a",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\lambda-eager-comprehension-capture-r5-build-terminal-20261009.json": "5a18941f71560ec98879872a0039703df19ad4856cd8225e375f3a3302b41fea",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\lambda-eager-comprehension-capture-r5-ir-eligibility-20261009.json": "ea2fcad8f1ca097cf4719e83c1ccbd0a16bad4b39482f43f514b30bbb7856b81",
+    "D:\\CantorAI\\xlang3\\build-repro\\controls\\lambda-eager-comprehension-capture-parent-20261009\\preserved-release-provenance.json": "865ed0cfaed6e20bc47710808ebbe29cc56ed8d11426ba2e90e008490308b0e1",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\validate-call-ex-cross-activation-constructor-resume-r3-20261008.py": "50007db5cc6adc2e54012fdfbd48514699513f990906d4a508582ba73d6ae0bf",
+    "C:\\Python\\Python314\\python.exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "C:\\Python\\Python314\\python314.dll": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700"
+  },
+  "hashes_unchanged": true,
+  "completed_utc": "2026-10-09T09:10:51.642992+00:00"
+}

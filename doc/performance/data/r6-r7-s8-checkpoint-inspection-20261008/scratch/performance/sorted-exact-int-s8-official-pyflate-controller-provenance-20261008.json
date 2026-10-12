@@ -1,0 +1,33 @@
+{
+  "status": "frozen_held_official_case_controller_unexecuted_no_ast",
+  "controller": "scratch/performance/run-sorted-exact-int-s8-original-official-pyflate-20261008.py",
+  "controller_sha256": "3dbfc68c563c30b615d7a4770b891f984b9f576fa51b49985ae78ba8b060ef29",
+  "requires_actual_parent_validation_sha_parameter": true,
+  "current_validation": "doc/performance/data/sorted-exact-int-s8-full-validation-20261008.json",
+  "current_validation_sha256": "d4b028b1255f23b11e664bd9e6778b808a7d160d3628e17f39710faa1900d022",
+  "required_full_producer_sha256": "997d0e694f5c04aa2459bfbaca36065054c53d1661f810e37c5f7dd7b50813f3",
+  "required_source_count": 110,
+  "required_release_count": 178,
+  "required_current_default_gate": {
+    "cases": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1,
+    "exit_code": 0
+  },
+  "correctness_reexecuted": false,
+  "cpython_benchmark_reexecuted": false,
+  "benchmark": "pyflate",
+  "values_required": 20,
+  "case_cap_seconds": 300,
+  "outer_cap_seconds": 360,
+  "benchmark_source_sha256": "ec5347c7045af86ba33e1b2c6f64bc4b506d0ade3b77391d7e41863fe25fb464",
+  "benchmark_input_sha256": "81101162ee7fc7a3db86d1a87e0c86781304eb9026aca4078432004a1383c51a",
+  "definition_sha256": "ea7eb22536c8fd9aa822abf9d60192b4787de2a2258f059a363e99d8598bdcac",
+  "output_checksum": "afa004a630fe072901b1d9628b960974",
+  "saved_cp_reference_sha256": "ac474df5576ac85f6f5350363affecc439d4f658b4dfa3dbe291b46964276eb0",
+  "saved_cp_provenance_sha256": "3d6c8cb2c72c786583c382b835e8e411f56ca285963bc2835f757a13f399f85c",
+  "source_analysis": "scratch/performance/sorted-exact-int-official-pyflate-source-review-20261008.md",
+  "source_analysis_sha256": "14416d4b796977ed48c8ec8c5b626fe53928699d775576e4cde34ea9abde4f58",
+  "scope": "Original pure Python decoder, native sorted builtin only; one officialattempt, failures/partials/raw/watch retained, no retry/score on overlap, saved CP unpaired"
+}

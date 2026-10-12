@@ -156,6 +156,7 @@ const char* op_name(Op op) {
     case Op::CallLocalMethod: return "CallLocalMethod";
     case Op::CompareJumpIfFalse: return "CompareJumpIfFalse";
     case Op::IsJumpIfFalse: return "IsJumpIfFalse";
+    case Op::IsNoneJumpIfFalse: return "IsNoneJumpIfFalse";
     case Op::MoveJumpIfFalse: return "MoveJumpIfFalse";
     case Op::StoreLocalPair: return "StoreLocalPair";
     case Op::MoveJumpIfTrue: return "MoveJumpIfTrue";

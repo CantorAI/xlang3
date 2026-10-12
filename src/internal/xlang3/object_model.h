@@ -16,6 +16,7 @@ limitations under the License.
 
 #include "xlang3/compiler.h"
 #include "xlang3/value.h"
+#include "xlang3/native_trace_hook.h"
 
 #include <atomic>
 #include <memory>
@@ -45,6 +46,74 @@ using NativeTypeConstructorCallback = bool (*)(
 // address reuse after a class is collected.
 uint64_t next_class_version_tag() noexcept;
 
+// A proved ordinary Python constructor may be called once per short callback
+// activation. Keep its physical plan with the live class instead of rebuilding
+// it after every owning VM call cache is released. This record contains no
+// Python owners: live class/base/metaclass generations must precede every weak
+// initializer read, and code mutation separately invalidates the body plan.
+struct ClassCanonicalSlotConstructorCache {
+  uint64_t class_version = 0;
+  uint64_t metaclass_version = 0;
+  uint64_t object_version = 0;
+  uint64_t initializer_code_version = 0;
+  ClassObject* metaclass = nullptr;
+  ClassObject* object_class = nullptr;
+  FunctionObject* initializer = nullptr;
+  std::vector<std::pair<uint32_t, uint32_t>> slots;
+};
+
+// Non-owning rich-comparison function targets for the native callback path.
+// The receiver class version guards inherited and local method replacement;
+// keeping only a FunctionObject pointer avoids rooting methods on every class.
+struct ClassRichCompareFunctionCache {
+  uint64_t class_version = 0;
+  FunctionObject* function = nullptr;
+  // The native heap callback can prove one exact slot/double comparison once
+  // per live method/global/type generation. The optional record stores scalar
+  // guards and a pointer to a runtime-owned builtin class; module and class
+  // versions invalidate the proof before execution can skip Python semantics.
+  struct SlotDoubleCompare {
+    uint64_t function_code_version = 0;
+    uint64_t globals_version = 0;
+    uint64_t builtins_version = 0;
+    uint64_t receiver_class_version = 0;
+    uint64_t builtin_type_version = 0;
+    uint32_t slot_index = UINT32_MAX;
+    uint8_t state = 0; // 0 unknown, 1 rejected, 2 guarded fast path available
+    Object* builtin_type = nullptr;
+  };
+  std::unique_ptr<SlotDoubleCompare> slot_double_compare;
+};
+
+// Borrow the MRO values from either the lazy vector cache or the public tuple.
+// Keeping this view non-owning lets an exposed __mro__ tuple become the single
+// reference/GC-edge owner instead of duplicating every class in a second vector.
+struct ClassMroValues {
+  const std::vector<Value>* vector_values = nullptr;
+  const TupleItems* tuple_values = nullptr;
+
+  void bind(const std::vector<Value>* values) { vector_values = values; tuple_values = nullptr; }
+  void bind(const TupleItems* values) { tuple_values = values; vector_values = nullptr; }
+  void clear() { vector_values = nullptr; tuple_values = nullptr; }
+  size_t size() const { return tuple_values ? tuple_values->size() : vector_values->size(); }
+  const Value& operator[](size_t index) const {
+    return tuple_values ? (*tuple_values)[index] : (*vector_values)[index];
+  }
+  const Value* begin() const {
+    return tuple_values ? tuple_values->begin() : vector_values->data();
+  }
+  const Value* end() const {
+    return tuple_values ? tuple_values->end() : vector_values->data() + vector_values->size();
+  }
+  const ClassMroValues& operator*() const { return *this; }
+  std::vector<Value> to_vector() const {
+    std::vector<Value> values;
+    values.reserve(size());
+    for (const auto& value : *this) values.push_back(value);
+    return values;
+  }
+};
+
 struct ClassObject {
   Object header;
   std::string name;
@@ -54,8 +123,22 @@ struct ClassObject {
   std::vector<Value> bases;
   std::unordered_map<std::string, Value> attrs;
   std::vector<std::string> definition_attr_order;
+  // Capture the builtin type's ordinary instance/subclass-check version at
+  // startup. Generic isinstance/issubclass can use direct MRO checks only
+  // while this version still proves type.__instancecheck__/__subclasscheck__
+  // has not been monkey-patched.
+  uint64_t builtin_type_check_version = 0;
   std::vector<std::string> instance_slot_names;
   std::unordered_map<std::string, uint32_t> instance_slot_indices;
+  // Keep actual own declaration occurrences before inherited layout dedup.
+  // Inherited LOAD_ATTR can prove one canonical declaration only from this
+  // immutable history; mutable __slots__/attrs and flattened names cannot.
+  std::vector<std::string> own_instance_slot_declarations;
+  bool own_instance_slot_declarations_known = false;
+  // Keep the source of this layout even if mutable __slots__ or its member
+  // descriptor is deleted. Inferred/native compact fields are not explicit
+  // Python slots and retain their descriptor-free storage fallback.
+  bool own_explicit_instance_slots = false;
   uint64_t version = next_class_version_tag();
   // Cached builtin-container traits for Value::instance. The version tag lets
   // instance creation avoid repeated MRO queries while still tracking changes
@@ -84,6 +167,19 @@ struct ClassObject {
   std::vector<ClassObject*> subclasses;
   std::vector<Value> mro_cache;
   uint64_t mro_cache_version = 0;
+  // The public type.__mro__ result is an owning tuple with stable identity.
+  // It is invalidated only by hierarchy changes, not ordinary class writes.
+  Value public_mro_cache;
+  ClassMroValues mro_values_view;
+  // Allocate only for an admitted class. The vector owns scalar slot/argument
+  // indices; leaving an invalidated record until replacement cannot root Python
+  // classes/functions or extend any destructor/weakref boundary.
+  std::unique_ptr<ClassCanonicalSlotConstructorCache> canonical_slot_constructor_cache;
+  // Native algorithms such as _heapq compare user objects outside a VM CALL
+  // site. Cache only raw Python functions for ordering slots; descriptor cases
+  // and other comparison operators continue through generic lookup.
+  ClassRichCompareFunctionCache rich_compare_lt_cache;
+  ClassRichCompareFunctionCache rich_compare_gt_cache;
 };
 
 using NativeGCReferenceVisitor = void (*)(Object*, void*);
@@ -113,6 +209,7 @@ struct InstanceObject {
   NativeInstanceGetAttr native_get_attr = nullptr;
   NativeInstanceSetAttr native_set_attr = nullptr;
   NativeInstanceDeleteAttr native_delete_attr = nullptr;
+  NativeInstanceTraceHook native_trace_hook = nullptr;
   bool finalizer_started = false;
   // Lets ordinary instance recycling skip probing the native-edge registry.
   bool native_gc_registered = false;
@@ -255,6 +352,8 @@ void slot_descriptor_set_owner_class(Value& descriptor, const Value& owner_class
 std::string object_model_to_string(const Value& value);
 
 bool object_get_attr(const Value& object, const std::string& name, Value& out, std::string& error);
+bool object_get_super_method_for_call(
+    const Value& object, const std::string& name, Value& method, Value& receiver);
 void function_capture_builtins(Runtime& runtime, FunctionObject& function, const Value& globals);
 bool object_set_attr(Value& object, const std::string& name, const Value& value, std::string& error);
 bool object_delete_attr(Value& object, const std::string& name, std::string& error);
@@ -286,8 +385,21 @@ bool object_value_is_descriptor(const Value& value);
 bool object_value_is_data_descriptor(const Value& value);
 bool object_construct(Value klass, const Value* args, uint32_t argc, Value& out, std::string& error);
 bool class_set_base(Value klass, Value base, std::string& error);
+// Only Python construction keeps captured declaration history through base
+// assembly. SDK/native mutation retains the original entry and becomes unknown.
+bool class_set_base_for_construction(Value klass, Value base, std::string& error);
+// Cold layout writers invalidate descendant guards before losing their proof.
+void class_forget_slot_declarations(ClassObject* klass);
+bool class_allows_raw_instance_slot_fallback(
+    ClassObject* klass, const std::string& name, std::string* owner_error = nullptr);
+bool slot_descriptor_validate_receiver_owner(
+    const SlotDescriptorObject& descriptor, const Value& receiver, std::string& error);
 bool class_get_subclasses(const Value& klass, Value& out, std::string& error);
 bool class_is_subclass(const ClassObject* klass, const ClassObject* base);
+// Borrow the version-validated MRO without allocating a pointer vector.
+// The view is invalidated by class/base mutation; do not keep it across Python
+// callbacks or other operations that can change the class hierarchy.
+bool class_get_mro_values(ClassObject* klass, const ClassMroValues*& out, std::string& error);
 bool class_has_builtin_base_name(ClassObject* klass, std::string_view name);
 bool class_try_enum_value_lookup(const Value& klass, const Value& value, Value& out);
 bool instance_set_native_data(

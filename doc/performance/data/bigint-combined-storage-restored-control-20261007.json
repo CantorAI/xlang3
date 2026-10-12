@@ -1,0 +1,7 @@
+{
+  "restored_engine_commit": "0767451529c26f6a66edfb6e346a1bab92b1261d",
+  "runtime_path": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "restored_runtime_dll_sha256": "d425ba688e3a09896eb35f3bc3164af9f8d09fbf785484dab9bf5f357eee0d3a",
+  "source_matches_head": true,
+  "decision": "Rejected neutral official performance trial; no engine change retained"
+}

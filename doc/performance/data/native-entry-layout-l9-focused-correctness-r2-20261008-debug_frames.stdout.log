@@ -1,0 +1,9 @@
+live True None 42
+names inner outer ['inner', 'outer', '<module>']
+namespaces True global-value False
+source inner True def inner(value):
+code inner inner 10 True
+completed 41 42 outer
+set-line ValueError f_lineno can only be set in a trace function
+clear-running RuntimeError cannot clear an executing frame
+cleared {}

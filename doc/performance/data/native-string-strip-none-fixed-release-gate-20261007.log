@@ -1,0 +1,12 @@
+local_slots              pass         0.995x
+scalar_arithmetic        pass         1.002x
+range_for                pass         1.005x
+function_calls           pass         0.979x
+class_construct          pass         1.013x
+list_append              pass         1.004x
+property_access          pass         0.995x
+deepcopy_memo            pass         0.885x
+json_dumps               pass         1.011x
+gc_traversal             pass         1.010x
+subparsers               pass         0.944x
+Performance check: pass. Report: doc\performance\data\native-string-strip-none-fixed-release-gate-20261007.json

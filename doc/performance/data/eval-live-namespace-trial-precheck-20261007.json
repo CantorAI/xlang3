@@ -1,0 +1,92 @@
+{
+  "checks": [
+    {
+      "path": "benchmarks/diagnostics/eval_live_namespace.py",
+      "match": false,
+      "cpython3147": {
+        "exit_code": 0,
+        "stdout": "{\"global_mutation_within_eval\": 2, \"builtins_inserted_into_original\": true, \"globals_identity\": true, \"nested_function_sees_later_global_mutation\": 3, \"explicit_locals_shadow_globals\": 7, \"custom_builtins\": 42}\n",
+        "stderr": ""
+      },
+      "xlang3": {
+        "exit_code": 0,
+        "stdout": "{\"global_mutation_within_eval\": 2, \"builtins_inserted_into_original\": true, \"globals_identity\": true, \"nested_function_sees_later_global_mutation\": 3, \"explicit_locals_shadow_globals\": 7, \"custom_builtins\": 2}\n",
+        "stderr": ""
+      }
+    },
+    {
+      "path": "tests/fixtures/core/eval_mapping_locals.py",
+      "match": true,
+      "cpython3147": {
+        "exit_code": 0,
+        "stdout": "3 ['x', 'x']\n9 ['x', 'x', 'y']\n7\nValueError lookup failed\n",
+        "stderr": ""
+      },
+      "xlang3": {
+        "exit_code": 0,
+        "stdout": "3 ['x', 'x']\n9 ['x', 'x', 'y']\n7\nValueError lookup failed\n",
+        "stderr": ""
+      }
+    },
+    {
+      "path": "tests/fixtures/core/dynamic_execution_builtins.py",
+      "match": true,
+      "cpython3147": {
+        "exit_code": 0,
+        "stdout": "10\n12\n9\nNone\n10\n15\n42 41 True\nTrue 5\n51 5 False\nTrue\nFalse\nsyntax\n",
+        "stderr": ""
+      },
+      "xlang3": {
+        "exit_code": 0,
+        "stdout": "10\n12\n9\nNone\n10\n15\n42 41 True\nTrue 5\n51 5 False\nTrue\nFalse\nsyntax\n",
+        "stderr": ""
+      }
+    },
+    {
+      "path": "tests/fixtures/core/compile_ast_named_expr.py",
+      "match": true,
+      "cpython3147": {
+        "exit_code": 0,
+        "stdout": "NamedExpr\n6 True 3 2\n",
+        "stderr": ""
+      },
+      "xlang3": {
+        "exit_code": 0,
+        "stdout": "NamedExpr\n6 True 3 2\n",
+        "stderr": ""
+      }
+    },
+    {
+      "path": "tests/fixtures/core/function_builtins_capture.py",
+      "match": true,
+      "cpython3147": {
+        "exit_code": 0,
+        "stdout": "dict\nTrue\nCreated from code-owned doc text.\nupdated doc\n{}\nTrue\nset readonly\ndelete readonly\nTrue\nTrue\nTrue\n",
+        "stderr": ""
+      },
+      "xlang3": {
+        "exit_code": 0,
+        "stdout": "dict\nTrue\nCreated from code-owned doc text.\nupdated doc\n{}\nTrue\nset readonly\ndelete readonly\nTrue\nTrue\nTrue\n",
+        "stderr": ""
+      }
+    },
+    {
+      "path": "tests/fixtures/core/exec_live_globals.py",
+      "match": true,
+      "cpython3147": {
+        "exit_code": 0,
+        "stdout": "True 7\nTrue True\n11\n",
+        "stderr": ""
+      },
+      "xlang3": {
+        "exit_code": 0,
+        "stdout": "True 7\nTrue True\n11\n",
+        "stderr": ""
+      }
+    }
+  ],
+  "sha256": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "546710985aad87dcb58e4dde0580a736d2dda2f32fa6550f61122bd06b57589c"
+  }
+}

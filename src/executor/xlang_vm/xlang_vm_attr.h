@@ -20,6 +20,10 @@ limitations under the License.
 
 namespace xlang3 {
 
+XLANG3_NOINLINE bool xlang_vm_resolve_method_value(
+    Runtime& runtime, const Value& object, const std::string& name,
+    Value& out, std::string& error);
+
 XLANG3_NOINLINE bool xlang_vm_load_attr_cached(
     const Value& object,
     const std::string& name,

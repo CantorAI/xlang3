@@ -1,0 +1,702 @@
+{
+  "parent_commit": "dc92b00d5480eb96c53a01218657ba8826ee6eac",
+  "description": "All pending live source/build/test/diagnostic changes; no runtime binaries.",
+  "files": [
+    {
+      "path": ".gitattributes",
+      "working_file_sha256": "59fe1a872e05f3f6f5e9dad0ab14d382a34e11d56a9a4c7f9b0ab76527768a15",
+      "staged_git_sha256": "59fe1a872e05f3f6f5e9dad0ab14d382a34e11d56a9a4c7f9b0ab76527768a15"
+    },
+    {
+      "path": "CMakeLists.txt",
+      "working_file_sha256": "9282be8d61375de44197a3c3ae1b5fd077bd23c8b74ecda94f2c59ff5760a021",
+      "staged_git_sha256": "9282be8d61375de44197a3c3ae1b5fd077bd23c8b74ecda94f2c59ff5760a021"
+    },
+    {
+      "path": "benchmarks/diagnostics/async_context_run_microbench.py",
+      "working_file_sha256": "0c7d1172016f33b6886ed6c6644b29e15dd4b1019ea5d3c2450be5942a3327b7",
+      "staged_git_sha256": "0c7d1172016f33b6886ed6c6644b29e15dd4b1019ea5d3c2450be5942a3327b7"
+    },
+    {
+      "path": "benchmarks/diagnostics/async_tree_gc_retention_probe.py",
+      "working_file_sha256": "7ce17c55bbfcea0db45a91b666a882964a37b3c0befb3669143c13fd6ab19fd3",
+      "staged_git_sha256": "7ce17c55bbfcea0db45a91b666a882964a37b3c0befb3669143c13fd6ab19fd3"
+    },
+    {
+      "path": "benchmarks/diagnostics/async_tree_io_body_timing.py",
+      "working_file_sha256": "c0a909941f1cf6d2ece1d1a1bd32c0fe84ec060d55a3266a281e59f1076faa46",
+      "staged_git_sha256": "c0a909941f1cf6d2ece1d1a1bd32c0fe84ec060d55a3266a281e59f1076faa46"
+    },
+    {
+      "path": "benchmarks/diagnostics/async_tree_timer_compare_count.py",
+      "working_file_sha256": "e85c10b3f69e56963a43f5786c43ef918afa2c25f00ae65ded0a9dff0f5ac7ce",
+      "staged_git_sha256": "e85c10b3f69e56963a43f5786c43ef918afa2c25f00ae65ded0a9dff0f5ac7ce"
+    },
+    {
+      "path": "benchmarks/diagnostics/call_ex_single_star_varargs_microbench.py",
+      "working_file_sha256": "b5e2a7aa775ff066d8558c385645796b07a871ee8e0460972fdab7f3d8ba84d3",
+      "staged_git_sha256": "b5e2a7aa775ff066d8558c385645796b07a871ee8e0460972fdab7f3d8ba84d3"
+    },
+    {
+      "path": "benchmarks/diagnostics/class_dict_view_population.py",
+      "working_file_sha256": "df3617f9c9b5093cf6d9733b9576eda38baf9d802e145540c8ca59810e82641f",
+      "staged_git_sha256": "df3617f9c9b5093cf6d9733b9576eda38baf9d802e145540c8ca59810e82641f"
+    },
+    {
+      "path": "benchmarks/diagnostics/count_async_tree_python_bytecodes.py",
+      "working_file_sha256": "2b8f778de85f8d7cbf3ad44f325cc727c3f03a2011fa3f321c8e4ae9e397f3b3",
+      "staged_git_sha256": "2b8f778de85f8d7cbf3ad44f325cc727c3f03a2011fa3f321c8e4ae9e397f3b3"
+    },
+    {
+      "path": "benchmarks/diagnostics/count_typing_runtime_protocol_ops.py",
+      "working_file_sha256": "3f1376e7477577c3a36018faed7d45cc7402290c433415ec3b5ed6b2ad1f1604",
+      "staged_git_sha256": "3f1376e7477577c3a36018faed7d45cc7402290c433415ec3b5ed6b2ad1f1604"
+    },
+    {
+      "path": "benchmarks/diagnostics/isinstance_builtin_call_microbench.py",
+      "working_file_sha256": "468a6baf144e948531b5cf34d81fb1d145a987098890bf901c8bbd76d41f6dbb",
+      "staged_git_sha256": "468a6baf144e948531b5cf34d81fb1d145a987098890bf901c8bbd76d41f6dbb"
+    },
+    {
+      "path": "benchmarks/diagnostics/native_callback_slot_compare_bench.py",
+      "working_file_sha256": "54b641facbec24700dac308bfdf35c05dc66986b7a2f0a26a6103ca65c21ed81",
+      "staged_git_sha256": "54b641facbec24700dac308bfdf35c05dc66986b7a2f0a26a6103ca65c21ed81"
+    },
+    {
+      "path": "benchmarks/diagnostics/native_vm_opcode_timer.h",
+      "working_file_sha256": "5b704559b4e53d7ee21e5aa8858925d5d9956ba76d1bdb2ef81af82cd89306c6",
+      "staged_git_sha256": "677faf249ec5f9458844034c97e7171d07d20ded92a8e7a0a0184de7772d392f"
+    },
+    {
+      "path": "benchmarks/diagnostics/probe_sys_monitoring_midframe_lines.py",
+      "working_file_sha256": "2c7ca9b7a20e14b3fd6d707f076b4e218627a31a86e5e58d76e6f149692f9e2f",
+      "staged_git_sha256": "2c7ca9b7a20e14b3fd6d707f076b4e218627a31a86e5e58d76e6f149692f9e2f"
+    },
+    {
+      "path": "benchmarks/diagnostics/profile_attribute_error_cost.py",
+      "working_file_sha256": "54e2ddacd8c3626535aba9534436764171c26431ce50496b6c6df41a48ef936d",
+      "staged_git_sha256": "54e2ddacd8c3626535aba9534436764171c26431ce50496b6c6df41a48ef936d"
+    },
+    {
+      "path": "benchmarks/diagnostics/profile_dict_iterator_overhead.py",
+      "working_file_sha256": "5dc73afdd6fbd855764199a9f7d826302d38ec5504c91bae0cf9fc46666c5594",
+      "staged_git_sha256": "5dc73afdd6fbd855764199a9f7d826302d38ec5504c91bae0cf9fc46666c5594"
+    },
+    {
+      "path": "benchmarks/diagnostics/profile_inspect_primitive_binding.py",
+      "working_file_sha256": "a23c1814e21dab5b74ae75e94b59afc627b108c1d46508b79d76dbec2d92b428",
+      "staged_git_sha256": "a23c1814e21dab5b74ae75e94b59afc627b108c1d46508b79d76dbec2d92b428"
+    },
+    {
+      "path": "benchmarks/diagnostics/profile_inspect_static_lookup.py",
+      "working_file_sha256": "bca04012c4dad82531c162cd1ce65509089fd14b50544e837de3cb13b845e99f",
+      "staged_git_sha256": "bca04012c4dad82531c162cd1ce65509089fd14b50544e837de3cb13b845e99f"
+    },
+    {
+      "path": "benchmarks/diagnostics/profile_inspect_static_primitives.py",
+      "working_file_sha256": "96d196ab4d29b82246ec12b39e45a8d8de9f47c3d514d23a10c41dcdede1c45b",
+      "staged_git_sha256": "96d196ab4d29b82246ec12b39e45a8d8de9f47c3d514d23a10c41dcdede1c45b"
+    },
+    {
+      "path": "benchmarks/diagnostics/profile_inspect_weakref_lru_cache.py",
+      "working_file_sha256": "64752adf1f0b3f63039f911065f94b5eb917b9542c34d5a0d7d0469eaba5b326",
+      "staged_git_sha256": "64752adf1f0b3f63039f911065f94b5eb917b9542c34d5a0d7d0469eaba5b326"
+    },
+    {
+      "path": "benchmarks/diagnostics/profile_lru_cache_hit_scaling.py",
+      "working_file_sha256": "a9be4136d1600df60e2b8aa611040017b15963a4655b211995d151424fa1e807",
+      "staged_git_sha256": "a9be4136d1600df60e2b8aa611040017b15963a4655b211995d151424fa1e807"
+    },
+    {
+      "path": "benchmarks/diagnostics/profile_object_dict_access_layers.py",
+      "working_file_sha256": "4c10cba475f4178c5391364ebd96573a5c54562e0bf01ca6fcc0099624b393e8",
+      "staged_git_sha256": "4c10cba475f4178c5391364ebd96573a5c54562e0bf01ca6fcc0099624b393e8"
+    },
+    {
+      "path": "benchmarks/diagnostics/profile_python_call_shapes.py",
+      "working_file_sha256": "4c76e5a6351552b558754003ef5b43f805c041d64ab499944e54a7f8190d4663",
+      "staged_git_sha256": "4c76e5a6351552b558754003ef5b43f805c041d64ab499944e54a7f8190d4663"
+    },
+    {
+      "path": "benchmarks/diagnostics/profile_raytrace_calls.py",
+      "working_file_sha256": "ec2772c200d1fbd79ec752baf1379b5c07bc7e6d24e32ddcbb05ed0946a21ad0",
+      "staged_git_sha256": "ec2772c200d1fbd79ec752baf1379b5c07bc7e6d24e32ddcbb05ed0946a21ad0"
+    },
+    {
+      "path": "benchmarks/diagnostics/profile_typing_runtime_protocol_cases.py",
+      "working_file_sha256": "86447e75b71cd3ce0769c31d2cdb57069108ab036cb49631c018fb630b8ca231",
+      "staged_git_sha256": "86447e75b71cd3ce0769c31d2cdb57069108ab036cb49631c018fb630b8ca231"
+    },
+    {
+      "path": "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+      "working_file_sha256": "e4b984f3b9fbb251395e6a415b73929b6afa04023fa92c05c40357980323bcc8",
+      "staged_git_sha256": "1459c6d70e7d6d2d64f1fece4b44b34755cf533c3d907d0d32427f92bcc97a4f"
+    },
+    {
+      "path": "benchmarks/diagnostics/time_async_tree_none_body.py",
+      "working_file_sha256": "e54a28c1d3d6540e60fde16749c7653930ed2e4fe287c3e125da881ca1760a6c",
+      "staged_git_sha256": "e54a28c1d3d6540e60fde16749c7653930ed2e4fe287c3e125da881ca1760a6c"
+    },
+    {
+      "path": "benchmarks/diagnostics/typing_protocol_dispatch_layers.py",
+      "working_file_sha256": "d372179fe00b51a562156a5f2b1fa9adfb864e831bf5e02165a69be2f47282b9",
+      "staged_git_sha256": "d372179fe00b51a562156a5f2b1fa9adfb864e831bf5e02165a69be2f47282b9"
+    },
+    {
+      "path": "benchmarks/diagnostics/weakref_creation_probe.py",
+      "working_file_sha256": "fb6a812a90e2e80b028d82cfc703704e07efb19fc2ea3c5f7dd50e63ec5b9358",
+      "staged_git_sha256": "fb6a812a90e2e80b028d82cfc703704e07efb19fc2ea3c5f7dd50e63ec5b9358"
+    },
+    {
+      "path": "modules/psutil/psutil_windows_module.cpp",
+      "working_file_sha256": "572227d0a25e2a169b10e7cef491a6dd0c68a56ae77202988b84b06d0bdd46e9",
+      "staged_git_sha256": "572227d0a25e2a169b10e7cef491a6dd0c68a56ae77202988b84b06d0bdd46e9"
+    },
+    {
+      "path": "src/builtins/builtins.cpp",
+      "working_file_sha256": "63ec4ce0680501d182e75d3ce81b2beed84650497a4d8d35e499b991897ba185",
+      "staged_git_sha256": "63ec4ce0680501d182e75d3ce81b2beed84650497a4d8d35e499b991897ba185"
+    },
+    {
+      "path": "src/builtins/exception_builtins.cpp",
+      "working_file_sha256": "0d1b82e4fdb06026c5a7165c6821c5a897144f48da96e5ef2be2ba3bdcb2bafa",
+      "staged_git_sha256": "a4610067fabfc15acca7b20c16b530bd19bea6fdf972617841bb8408a9fdd58c"
+    },
+    {
+      "path": "src/builtins/functional_builtins.cpp",
+      "working_file_sha256": "8afbb9dd77b39e657fc0521a3427b412c4bacac7500a3aaefde2fe8b93f02811",
+      "staged_git_sha256": "8afbb9dd77b39e657fc0521a3427b412c4bacac7500a3aaefde2fe8b93f02811"
+    },
+    {
+      "path": "src/builtins/object_type_builtins.cpp",
+      "working_file_sha256": "c603948d9ffce0bbb5c77a2da2f46b6227ada388683d4bda92d2ec5a976fbfae",
+      "staged_git_sha256": "daa96c12950a1c67b3f0c2cf014bafff84b1a92fb4d62c5a442f7c98003e3417"
+    },
+    {
+      "path": "src/executor/xlang_vm/ops/xlang_vm_ops_async.h",
+      "working_file_sha256": "8b055d23c24c3477d1a78e4ff57c69ee4ca30d4f8ff3f90710dc8b8126646cdc",
+      "staged_git_sha256": "95acb636dde10ea70dd2e9c47fc6944d69b1b9a6d82e68269cd5f88e83d2f7f1"
+    },
+    {
+      "path": "src/executor/xlang_vm/ops/xlang_vm_ops_attr.h",
+      "working_file_sha256": "9833d9b3d3b961a353af77846f573c81c75501327d650b097ac809380135a207",
+      "staged_git_sha256": "9833d9b3d3b961a353af77846f573c81c75501327d650b097ac809380135a207"
+    },
+    {
+      "path": "src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "working_file_sha256": "0ccdaceb3bf9fa253545eba1b57c6cf9c0b9cb6957c4409619ac8b99790c335e",
+      "staged_git_sha256": "0ccdaceb3bf9fa253545eba1b57c6cf9c0b9cb6957c4409619ac8b99790c335e"
+    },
+    {
+      "path": "src/executor/xlang_vm/ops/xlang_vm_ops_containers.h",
+      "working_file_sha256": "e8ddaec256b07550e600aadd4c70cf97970c0d23cb023e5a5291f4878bc79982",
+      "staged_git_sha256": "348d3e7063cc19e267027c48814b538ff6f024080e115e7caf1c607561dcb7f9"
+    },
+    {
+      "path": "src/executor/xlang_vm/ops/xlang_vm_ops_control.h",
+      "working_file_sha256": "e7f122273c9c65849363de8b1af42b59abd2b5f69ce81fd99396fc9973867f7e",
+      "staged_git_sha256": "b59cbeb7be1aefd2c7cf7b516483b27af0acc2f8d64304f0a060531f4d5843ff"
+    },
+    {
+      "path": "src/executor/xlang_vm/ops/xlang_vm_ops_variables.h",
+      "working_file_sha256": "7734666c55434124f88382ad946538d387778f305e66848dc8521c3234b3ee56",
+      "staged_git_sha256": "a503a7e1a3a9d8458ec33e1ade24fb9e0a8a243ee48bed727b1f76ed18479dfa"
+    },
+    {
+      "path": "src/executor/xlang_vm/xlang_frame.h",
+      "working_file_sha256": "b1819294e11d007e316562c0ddcf0849979fab3024780dde7b15a806e31c0a41",
+      "staged_git_sha256": "b1819294e11d007e316562c0ddcf0849979fab3024780dde7b15a806e31c0a41"
+    },
+    {
+      "path": "src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "working_file_sha256": "a29fa23a126499ab0b593a8951ac5ae3427afa6290ae13eca0b76e721e8dc709",
+      "staged_git_sha256": "d4751718fc4c27ab9463cbe7c730aa8e3a5979a29c4114249892fe674d39fd7c"
+    },
+    {
+      "path": "src/executor/xlang_vm/xlang_vm_inline_call.h",
+      "working_file_sha256": "2316e4a6c787d79bb2bc9df0654a489eb8b9f99ed8f285dad4c11fc93c69f2af",
+      "staged_git_sha256": "2316e4a6c787d79bb2bc9df0654a489eb8b9f99ed8f285dad4c11fc93c69f2af"
+    },
+    {
+      "path": "src/executor/xlang_vm/xlang_vm_inline_support.h",
+      "working_file_sha256": "8d110b8c2f8b6ed027b5264677a2b964e4d73f8440e863acea96fcea1bd1be41",
+      "staged_git_sha256": "a9cbfbc1f7cdb03a813d53012f2eb34b18300bd0a6b17bd3f4cc95d1ce909874"
+    },
+    {
+      "path": "src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "working_file_sha256": "e2d490293f3e55b5c724f591250f00fd3658d0653f6ab31ab33efe623c343613",
+      "staged_git_sha256": "24bf78fe56d1f6f66538e06c98f8846112b0bdd1e1d27f7068c9a394095ae553"
+    },
+    {
+      "path": "src/internal/xlang3/builtins.h",
+      "working_file_sha256": "c4a4d2f1a0914e84212bc6eb0c8df460e9b263fc5b39720535bd4bc497361c8d",
+      "staged_git_sha256": "c4a4d2f1a0914e84212bc6eb0c8df460e9b263fc5b39720535bd4bc497361c8d"
+    },
+    {
+      "path": "src/internal/xlang3/eval_locals.h",
+      "working_file_sha256": "2535028117d2f76b9e571c33740182e4d593c8267573ec4a73b27ddf1ec79836",
+      "staged_git_sha256": "248d1ce14d2490b1599cb31df33372cfb24319f9f4e50752a1fd1a1f31c8c3c9"
+    },
+    {
+      "path": "src/internal/xlang3/mapping.h",
+      "working_file_sha256": "2b6171c84f559ae45058d789442d4288287a7a1eba0a005fbda6b4fc11e31391",
+      "staged_git_sha256": "da8c3968e606339cbf51a52371e3d15a911fbbfc6d7a2578b51fa65828bcb2c7"
+    },
+    {
+      "path": "src/internal/xlang3/native_trace_hook.h",
+      "working_file_sha256": "69758255b2317af423903d1012252b9d0fe5678a0c5cb485349b07d4e51c1722",
+      "staged_git_sha256": "69758255b2317af423903d1012252b9d0fe5678a0c5cb485349b07d4e51c1722"
+    },
+    {
+      "path": "src/internal/xlang3/object_model.h",
+      "working_file_sha256": "6923d1f4a72a72209416e264440e41d00c3c184099f28195d5cdc09fb189d6b0",
+      "staged_git_sha256": "6923d1f4a72a72209416e264440e41d00c3c184099f28195d5cdc09fb189d6b0"
+    },
+    {
+      "path": "src/internal/xlang3/perf_counters.h",
+      "working_file_sha256": "ed620a266a5630a3362c38355b0cf6822a611cba33f70d5e8b38162168c707e8",
+      "staged_git_sha256": "2a80c59b5f5e0747c1527ef01184add2a26d2f3e9b4fa29b5fccad7474b8cec7"
+    },
+    {
+      "path": "src/internal/xlang3/pyc_magic.h",
+      "working_file_sha256": "c978ad90d664c56c5e1382367a3cd10d76ee2d922818149c4614ba5e084eebd4",
+      "staged_git_sha256": "c978ad90d664c56c5e1382367a3cd10d76ee2d922818149c4614ba5e084eebd4"
+    },
+    {
+      "path": "src/internal/xlang3/runtime.h",
+      "working_file_sha256": "3de166e17e53a8f8c99d8bfaf1b329a1267569131af450fe1a941889e955fbba",
+      "staged_git_sha256": "f81a5353cebe69662ebb9b492c9131886a3462b7d50a79973cd358438d3ddd41"
+    },
+    {
+      "path": "src/internal/xlang3/value.h",
+      "working_file_sha256": "84b1168ba0d4b66dd9457adedc28c2d120d3708f88d71b90942a08fff4c43529",
+      "staged_git_sha256": "753eb9e1ce6918004680cdb04cb47ee5b576d11e80cb2c536d36efa71c9c1706"
+    },
+    {
+      "path": "src/runtime/attribute.cpp",
+      "working_file_sha256": "9c749a9ec4bbfcffce0f955a8d292f4af26b2f8b52e2a80922e2373319fe70c8",
+      "staged_git_sha256": "046fb5b60a086225858fad14c9100105b96414677261472a775e70bb5618ab1b"
+    },
+    {
+      "path": "src/runtime/bigint.cpp",
+      "working_file_sha256": "34284f2381b4207539218c6f47aa831d65fa12b7ed94aaf81e362df381b003c9",
+      "staged_git_sha256": "7f351ca8f2b11e65ec79b86c2e09e424d69963d89aa6c92a746fcc33297fbe02"
+    },
+    {
+      "path": "src/runtime/functional_iterators.cpp",
+      "working_file_sha256": "98dbedb7f91042db36fc3b2d805cabcc9632cd371877790b3d0d306d8a0a1c2a",
+      "staged_git_sha256": "cb73ed7219beb0c526fd38d35516b33824826f483ed2ed3b986c2465508c13b9"
+    },
+    {
+      "path": "src/runtime/generator.cpp",
+      "working_file_sha256": "5072a91e3d859df613918d6b41a5e85c565fa2bb3ef1514e842eb2f62e70688d",
+      "staged_git_sha256": "5677f23ed22c1c31329f0b466380b84ea82f3a852dfd74dc1b3686a265f6d2a1"
+    },
+    {
+      "path": "src/runtime/mapping.cpp",
+      "working_file_sha256": "9d26fdbc88becff3002a526dba7a3aa2cb866d9927914d30a5c92d58fabca048",
+      "staged_git_sha256": "9d26fdbc88becff3002a526dba7a3aa2cb866d9927914d30a5c92d58fabca048"
+    },
+    {
+      "path": "src/runtime/methods/int_methods.cpp",
+      "working_file_sha256": "81028bd181d6e7763ae7785e943c91386e5291565d3aabd6c4eb2a02702352a5",
+      "staged_git_sha256": "213485f583b89bd49fde73ad6446bd112e1edd76fbc1731a2f70cc8526466576"
+    },
+    {
+      "path": "src/runtime/methods/set_methods.cpp",
+      "working_file_sha256": "8263c192f6d259d571d425b49715e88cd91fa8454c22b2f9f60e58178b33e0bf",
+      "staged_git_sha256": "b41655ea885387cb2a80e3764ad58b0f41554c6bf7c1a7edf60325bd872584b0"
+    },
+    {
+      "path": "src/runtime/module_object.cpp",
+      "working_file_sha256": "30e805bea9aea1a5bbc57241b27a6e5339ceaa3f195b11835ec288616a88354a",
+      "staged_git_sha256": "646f95f21eaccf5a849c856d247327b50df5012e6dd2b2b78059f157c4bea5d7"
+    },
+    {
+      "path": "src/runtime/modules/system/ast_module.cpp",
+      "working_file_sha256": "52d44d5de10e37386cd2e791ba25fcfa05ad51dc9d32caa4390a390916d1c183",
+      "staged_git_sha256": "34fd6dafae134ead5fa9090f9021e8d0ca14ca707ae41a6dae039852052096e4"
+    },
+    {
+      "path": "src/runtime/modules/system/coverage_tracer_module.cpp",
+      "working_file_sha256": "4a19a436bd1a447f13d84915a12032bb46a6f34ee029bb15313f2c9bd9c0496d",
+      "staged_git_sha256": "4a19a436bd1a447f13d84915a12032bb46a6f34ee029bb15313f2c9bd9c0496d"
+    },
+    {
+      "path": "src/runtime/modules/system/functools_module.cpp",
+      "working_file_sha256": "57aa633a772637e38fe4b7bd217db934be03fa8821746a91127b2a5872bf2ec9",
+      "staged_git_sha256": "57aa633a772637e38fe4b7bd217db934be03fa8821746a91127b2a5872bf2ec9"
+    },
+    {
+      "path": "src/runtime/modules/system/gc_module.cpp",
+      "working_file_sha256": "be6a359886f990070ea0feed8f87196777b5f7154608c1b6836f9cd9d2f6fa1f",
+      "staged_git_sha256": "80e0f9de622986c9e20833659d8d0fa963a3880882e7db1b2d7ba36e1fa47d23"
+    },
+    {
+      "path": "src/runtime/modules/system/heapq_module.cpp",
+      "working_file_sha256": "e4af3163b0f98291f362fc490b80e13c2df65ceb437ed5610398f4882b2e476b",
+      "staged_git_sha256": "e4af3163b0f98291f362fc490b80e13c2df65ceb437ed5610398f4882b2e476b"
+    },
+    {
+      "path": "src/runtime/modules/system/multiprocessing_module.cpp",
+      "working_file_sha256": "8a6633809dc3d354bfcde579d55cf906e2cbf3e6dc4904fbf36a8e7873fa9fbd",
+      "staged_git_sha256": "a51665ec37e7a6f52a7bbdfb215fb2ce22e7cfc0a1597a268dc3222f9d2e506f"
+    },
+    {
+      "path": "src/runtime/modules/system/socket_select_module.cpp",
+      "working_file_sha256": "fd88f8e3911c487bb021731f1009bb9afff253e6a25abdbd9bba3129025bc9ae",
+      "staged_git_sha256": "d819fd5436ab74e7b4debea9d894ff386e9880da9e4a499cdf0264f189f14b4b"
+    },
+    {
+      "path": "src/runtime/modules/system/weakref_module.cpp",
+      "working_file_sha256": "a383168967530c35091d528e2bdad3ddf2fb2e16a7bc24bd1bf74ba989eba1c5",
+      "staged_git_sha256": "7521c2bd43ff6379eb0e0ded59edbe025c58f35c68891b3a267bf211c943b806"
+    },
+    {
+      "path": "src/runtime/native_trace_hook.cpp",
+      "working_file_sha256": "604a528650a7579c9cf91c0b759b545277c5e8fe42f4bcb8f1168a312b36eef7",
+      "staged_git_sha256": "604a528650a7579c9cf91c0b759b545277c5e8fe42f4bcb8f1168a312b36eef7"
+    },
+    {
+      "path": "src/runtime/object_model.cpp",
+      "working_file_sha256": "b5e469be4ffab4a85daa81173b803eb55515ad6fdc5c13854b85dbbea65e6b94",
+      "staged_git_sha256": "ebf7dc12f0d07c39c055d92fda6cbc174f59aa974848e1bc8561e89f02533517"
+    },
+    {
+      "path": "src/runtime/perf_counters.cpp",
+      "working_file_sha256": "07d8c597d90fb3cbebd8fcc3f9d69e3547d8514d13dc67640295a0127a7f4540",
+      "staged_git_sha256": "6cdfe0f28618a5ddcfd362926703e8982dc15b3d874a3c91e2997ba8363b7d78"
+    },
+    {
+      "path": "src/runtime/runtime.cpp",
+      "working_file_sha256": "db610fd49fb42eff4858788c1cce0e427a4f8e9c46cc773f311a745764cd4b34",
+      "staged_git_sha256": "adb9c1c6ce0f67346550d4c3b4bab0d059485350dd4b2fcd6d6e2636f36a48bb"
+    },
+    {
+      "path": "src/runtime/value.cpp",
+      "working_file_sha256": "bcc2f1e51d4f27139bbece041f1028f21e7b61e66e324d8d2af11f8877db60da",
+      "staged_git_sha256": "bcc2f1e51d4f27139bbece041f1028f21e7b61e66e324d8d2af11f8877db60da"
+    },
+    {
+      "path": "src/sema/lower.cpp",
+      "working_file_sha256": "f8ac32d43bd0d648344612e1361581e12a301c1838340fb7fc96e09b0ce3b48a",
+      "staged_git_sha256": "f8ac32d43bd0d648344612e1361581e12a301c1838340fb7fc96e09b0ce3b48a"
+    },
+    {
+      "path": "tests/cpp/runtime_value_tests.cpp",
+      "working_file_sha256": "7b5ac4f61c3937985f374d506602866d81a15db9596914789345696772a5f261",
+      "staged_git_sha256": "27dffbddaf41107f4dd1c0dc1088f7f6063caff1a0b71565496d918d6153cb1b"
+    },
+    {
+      "path": "tests/fastapi/psutil_windows_contract.out",
+      "working_file_sha256": "026a07c24c77b5e7979a359b95864cc60a1bbb8193cac208545dee799caed650",
+      "staged_git_sha256": "026a07c24c77b5e7979a359b95864cc60a1bbb8193cac208545dee799caed650"
+    },
+    {
+      "path": "tests/fastapi/psutil_windows_contract.py",
+      "working_file_sha256": "c6dd31df840178499eed0ddef0840d0eb1e4560ba44433bd8ec68483ccba66dc",
+      "staged_git_sha256": "c6dd31df840178499eed0ddef0840d0eb1e4560ba44433bd8ec68483ccba66dc"
+    },
+    {
+      "path": "tests/fixtures/core/attribute_error_native_constructor.py",
+      "working_file_sha256": "ec203e2769d9a97744a6b145fb784b6e8543abb4211071c638cd39dd4b9308fa",
+      "staged_git_sha256": "ec203e2769d9a97744a6b145fb784b6e8543abb4211071c638cd39dd4b9308fa"
+    },
+    {
+      "path": "tests/fixtures/core/call_ex_dict_subclass_kwargs.py",
+      "working_file_sha256": "58233e078c5fe7d0a0030bb9f23e93948124cf4ed21fcf1748affeb222b79a92",
+      "staged_git_sha256": "58233e078c5fe7d0a0030bb9f23e93948124cf4ed21fcf1748affeb222b79a92"
+    },
+    {
+      "path": "tests/fixtures/core/call_ex_single_star_varargs_binding.py",
+      "working_file_sha256": "eee62bd389868cbc7f1ac309f30a9f85887ae20c5a7f7f6cf0a5a60e645cbb14",
+      "staged_git_sha256": "eee62bd389868cbc7f1ac309f30a9f85887ae20c5a7f7f6cf0a5a60e645cbb14"
+    },
+    {
+      "path": "tests/fixtures/core/callsite_exact_positional_invalidation.py",
+      "working_file_sha256": "9848084da14f3b016f28f091308550795c469539b46a2e26b3d33e3347d54ee7",
+      "staged_git_sha256": "9848084da14f3b016f28f091308550795c469539b46a2e26b3d33e3347d54ee7"
+    },
+    {
+      "path": "tests/fixtures/core/class_body_for_loop_namespace.py",
+      "working_file_sha256": "46bda5f7a8450763b08db12ba8a888f453b814cdbb41886bdd9de256701e6b7e",
+      "staged_git_sha256": "46bda5f7a8450763b08db12ba8a888f453b814cdbb41886bdd9de256701e6b7e"
+    },
+    {
+      "path": "tests/fixtures/core/class_descriptor_cache.py",
+      "working_file_sha256": "8f67eee614bbe904a0b1c71c69720385a1833b393a6870e3f99a1fa0851dcc84",
+      "staged_git_sha256": "8f67eee614bbe904a0b1c71c69720385a1833b393a6870e3f99a1fa0851dcc84"
+    },
+    {
+      "path": "tests/fixtures/core/class_future_annotations_live_mapping.py",
+      "working_file_sha256": "25c23ee4f1b6369e26eb885d0fde023f0420dd34677089fe36bd83602aa38ca3",
+      "staged_git_sha256": "25c23ee4f1b6369e26eb885d0fde023f0420dd34677089fe36bd83602aa38ca3"
+    },
+    {
+      "path": "tests/fixtures/core/closure_arg_binary_inline.py",
+      "working_file_sha256": "c2d5df68bcab247a37e827adff5d6b72206dffcac0cb1331c60abde5d809b4e6",
+      "staged_git_sha256": "c2d5df68bcab247a37e827adff5d6b72206dffcac0cb1331c60abde5d809b4e6"
+    },
+    {
+      "path": "tests/fixtures/core/closure_frame_reuse.py",
+      "working_file_sha256": "2b7918f02aafcbccac835f4e5da42395e78ecb6f96a16d6b93d9c7ba0cfc276b",
+      "staged_git_sha256": "2b7918f02aafcbccac835f4e5da42395e78ecb6f96a16d6b93d9c7ba0cfc276b"
+    },
+    {
+      "path": "tests/fixtures/core/coverage_tracer_native.py",
+      "working_file_sha256": "028024d61cd8a41f1dc7188c08eb3677b29fddc857363405017e46bb5f06639e",
+      "staged_git_sha256": "028024d61cd8a41f1dc7188c08eb3677b29fddc857363405017e46bb5f06639e"
+    },
+    {
+      "path": "tests/fixtures/core/dataclass_slots_weakref_field.py",
+      "working_file_sha256": "fa599a74fd87e8cf48a9e60d52a192607654bfad005576d23e24ff999b1960dc",
+      "staged_git_sha256": "fa599a74fd87e8cf48a9e60d52a192607654bfad005576d23e24ff999b1960dc"
+    },
+    {
+      "path": "tests/fixtures/core/dict_custom_hash_equality.py",
+      "working_file_sha256": "3c787af8671a7180e3324e81a2e94167ea13678236787e7cc371dc2c021fb138",
+      "staged_git_sha256": "52b582d4d2b8e5aeb71708741e11ff777e4550058ccd735b0000cec96755fd4c"
+    },
+    {
+      "path": "tests/fixtures/core/dict_keys_mapping_format.py",
+      "working_file_sha256": "f1d407839617538dd92f2826b68ec8cb4fa71e1f3a1e05829c18dc9e9e061e77",
+      "staged_git_sha256": "f1d407839617538dd92f2826b68ec8cb4fa71e1f3a1e05829c18dc9e9e061e77"
+    },
+    {
+      "path": "tests/fixtures/core/dynamic_builtins_lookup.py",
+      "working_file_sha256": "bb1fde5c938084e03c83af91a62e3da1db4ed4e5ce236e487b80379a54bc5c9d",
+      "staged_git_sha256": "a947192185bedf51b9a5efebe7b99a9d075ad6fa76038b4bddc95db0a9bb4f54"
+    },
+    {
+      "path": "tests/fixtures/core/eval_live_namespaces.py",
+      "working_file_sha256": "801a0d23d6ee3e0cfed677b46b5c13d311b369ded911049cc31fa9148377a879",
+      "staged_git_sha256": "801a0d23d6ee3e0cfed677b46b5c13d311b369ded911049cc31fa9148377a879"
+    },
+    {
+      "path": "tests/fixtures/core/generic_alias_callable.py",
+      "working_file_sha256": "9a836768df629b8fa484a3f9ad8a694bdb146366cfd459ab45ebff7f5c779a1e",
+      "staged_git_sha256": "9a836768df629b8fa484a3f9ad8a694bdb146366cfd459ab45ebff7f5c779a1e"
+    },
+    {
+      "path": "tests/fixtures/core/getitem_int_attr_inline.py",
+      "working_file_sha256": "08a5ba8c33a669a9d35428095402c8f5ef78585eb6aa34754ad8d7b30b3b250f",
+      "staged_git_sha256": "08a5ba8c33a669a9d35428095402c8f5ef78585eb6aa34754ad8d7b30b3b250f"
+    },
+    {
+      "path": "tests/fixtures/core/heapq_rich_compare_cache.py",
+      "working_file_sha256": "fb07bd908a4412a1df79c3449adb8fe189d54088433d60fa185ce51cf3a08972",
+      "staged_git_sha256": "fb07bd908a4412a1df79c3449adb8fe189d54088433d60fa185ce51cf3a08972"
+    },
+    {
+      "path": "tests/fixtures/core/int_bytes_small_fastpaths.py",
+      "working_file_sha256": "e0fb2e5ee3784721f745af14de90c6e0dc47caee3f634d2e90812833ad42abb2",
+      "staged_git_sha256": "e0fb2e5ee3784721f745af14de90c6e0dc47caee3f634d2e90812833ad42abb2"
+    },
+    {
+      "path": "tests/fixtures/core/isinstance_builtin_mro_fastpath.py",
+      "working_file_sha256": "b5ae4e76968d2aa6c3633f8695977c09f1f696712ff1eac38395ecdd59201b4e",
+      "staged_git_sha256": "b5ae4e76968d2aa6c3633f8695977c09f1f696712ff1eac38395ecdd59201b4e"
+    },
+    {
+      "path": "tests/fixtures/core/multiprocessing_spawn_semlock.py",
+      "working_file_sha256": "70fe548c5aa93b8ef97e9f0a8e7418a9ac58bdd333d8b7e4602affa297c301f2",
+      "staged_git_sha256": "70fe548c5aa93b8ef97e9f0a8e7418a9ac58bdd333d8b7e4602affa297c301f2"
+    },
+    {
+      "path": "tests/fixtures/core/native_callback_frame_cache_reuse.py",
+      "working_file_sha256": "e0796bd2f1da8ad2784cc2d30556a57595e653972f400c61d26b204f9fa4baa3",
+      "staged_git_sha256": "e0796bd2f1da8ad2784cc2d30556a57595e653972f400c61d26b204f9fa4baa3"
+    },
+    {
+      "path": "tests/fixtures/core/native_callback_slot_compare.py",
+      "working_file_sha256": "ccc5d564b116b8b9700a61256d441b7d7db1a575b5cd2ac8dfd4f3a95f0caf1a",
+      "staged_git_sha256": "ccc5d564b116b8b9700a61256d441b7d7db1a575b5cd2ac8dfd4f3a95f0caf1a"
+    },
+    {
+      "path": "tests/fixtures/core/object_attribute_hooks.py",
+      "working_file_sha256": "63a5ae2d2668e095bb1fec808ca2021fa3bbef46117643092248f71e8a6c52ec",
+      "staged_git_sha256": "740940fa01e25858bcd16fe9378e88b36f4260acbe45819e295b10a9094b374d"
+    },
+    {
+      "path": "tests/fixtures/core/public_mro_tuple_identity.py",
+      "working_file_sha256": "b0ab9a67d3bb039a29e67fd6910db331041c5e664d73ebf45a13df9409b558f5",
+      "staged_git_sha256": "b0ab9a67d3bb039a29e67fd6910db331041c5e664d73ebf45a13df9409b558f5"
+    },
+    {
+      "path": "tests/fixtures/core/set_nested_namedtuple_hash.py",
+      "working_file_sha256": "58014cd9ff8b73d13fdcbe52dc705cb8a74a4b6c79f2f68898fb26bc21e3f328",
+      "staged_git_sha256": "58014cd9ff8b73d13fdcbe52dc705cb8a74a4b6c79f2f68898fb26bc21e3f328"
+    },
+    {
+      "path": "tests/fixtures/core/socket_large_send.py",
+      "working_file_sha256": "0364955b390c7b239a8d931f8a2b9d3b272a4f363f77bc23fe14f6d84f058e33",
+      "staged_git_sha256": "0364955b390c7b239a8d931f8a2b9d3b272a4f363f77bc23fe14f6d84f058e33"
+    },
+    {
+      "path": "tests/fixtures/core/sys_monitoring_all_events.py",
+      "working_file_sha256": "2be0a59f1176f74d411a58a14fb8adad58c5467fa834063488bb3c1a31c23965",
+      "staged_git_sha256": "d9b048ff8bf4366fb870eace76bc425a56939d1640720c271e4772473b9791b6"
+    },
+    {
+      "path": "tests/fixtures/core/weakref_module.py",
+      "working_file_sha256": "4d4bac44c92fc3d08422dfa370df457616a56738eeaeea302388f123dfa7e42a",
+      "staged_git_sha256": "27dd3aa8dd1c5587c6a56f3daa84f355be4f060e634bc51e1fbe8276f8ebd6a4"
+    },
+    {
+      "path": "tests/fixtures/expected/attribute_error_native_constructor.out",
+      "working_file_sha256": "f6bec092186e8694f3937589255fa90c450267d5161df1e35fe09298f48c9c22",
+      "staged_git_sha256": "f6bec092186e8694f3937589255fa90c450267d5161df1e35fe09298f48c9c22"
+    },
+    {
+      "path": "tests/fixtures/expected/call_ex_dict_subclass_kwargs.out",
+      "working_file_sha256": "0bd4e8b87883a8c8e41945c6218966e6f39c812091ea41735d07e19cce67c2e7",
+      "staged_git_sha256": "0bd4e8b87883a8c8e41945c6218966e6f39c812091ea41735d07e19cce67c2e7"
+    },
+    {
+      "path": "tests/fixtures/expected/call_ex_single_star_varargs_binding.out",
+      "working_file_sha256": "bedb55c97ca9f371459f70ca34a4c32a841427ed9e6a0becb4aa171ee44f4774",
+      "staged_git_sha256": "bedb55c97ca9f371459f70ca34a4c32a841427ed9e6a0becb4aa171ee44f4774"
+    },
+    {
+      "path": "tests/fixtures/expected/callsite_exact_positional_invalidation.out",
+      "working_file_sha256": "5c7768b96c1ef1ba731c600f94f87981297aee7553cf47170c3b4582ba0a85dd",
+      "staged_git_sha256": "5c7768b96c1ef1ba731c600f94f87981297aee7553cf47170c3b4582ba0a85dd"
+    },
+    {
+      "path": "tests/fixtures/expected/class_body_for_loop_namespace.out",
+      "working_file_sha256": "5f95bfc5d5e98c4725b69e0eb765924a1e9a7bf14c5e36e86cc528e9f8732cd6",
+      "staged_git_sha256": "5f95bfc5d5e98c4725b69e0eb765924a1e9a7bf14c5e36e86cc528e9f8732cd6"
+    },
+    {
+      "path": "tests/fixtures/expected/class_descriptor_cache.out",
+      "working_file_sha256": "78f31a4e20060c7efb8f4c26056ebb71b535ab32434f06bd2d4882b37dec1cea",
+      "staged_git_sha256": "78f31a4e20060c7efb8f4c26056ebb71b535ab32434f06bd2d4882b37dec1cea"
+    },
+    {
+      "path": "tests/fixtures/expected/class_future_annotations_live_mapping.out",
+      "working_file_sha256": "25e7e595a237338acad37c288f4fa367eebf0aecb1f7e87c7c4669df210be114",
+      "staged_git_sha256": "25e7e595a237338acad37c288f4fa367eebf0aecb1f7e87c7c4669df210be114"
+    },
+    {
+      "path": "tests/fixtures/expected/closure_arg_binary_inline.out",
+      "working_file_sha256": "050264cd373bf01729f6c6719669fbf58fa035156a8bf6341b7b35e1919c8766",
+      "staged_git_sha256": "050264cd373bf01729f6c6719669fbf58fa035156a8bf6341b7b35e1919c8766"
+    },
+    {
+      "path": "tests/fixtures/expected/closure_frame_reuse.out",
+      "working_file_sha256": "2170cec3e1b12176b2aad0792d328159fb9d8d809044b0ce1bf126ce4cd7e83e",
+      "staged_git_sha256": "2170cec3e1b12176b2aad0792d328159fb9d8d809044b0ce1bf126ce4cd7e83e"
+    },
+    {
+      "path": "tests/fixtures/expected/coverage_tracer_native.out",
+      "working_file_sha256": "b94fe9a5f3cb00bded12ab0110c32d47206ebba2a4704252d312c7e8598a3ec9",
+      "staged_git_sha256": "b94fe9a5f3cb00bded12ab0110c32d47206ebba2a4704252d312c7e8598a3ec9"
+    },
+    {
+      "path": "tests/fixtures/expected/dataclass_slots_weakref_field.out",
+      "working_file_sha256": "e1797249c2a573925f78d21fe0e461af27a613eaa402200e56511877863a75f0",
+      "staged_git_sha256": "e1797249c2a573925f78d21fe0e461af27a613eaa402200e56511877863a75f0"
+    },
+    {
+      "path": "tests/fixtures/expected/dict_custom_hash_equality.out",
+      "working_file_sha256": "b412ee9441e545db836674ab39f1a27ad3a59f95c335baa1d843cfe0cc0b2e99",
+      "staged_git_sha256": "23b2acb1860142b182baa5eb7e637ba08350f94a05c0bbb8807ed775906cd95f"
+    },
+    {
+      "path": "tests/fixtures/expected/dict_keys_mapping_format.out",
+      "working_file_sha256": "ea239a2cd3a0374531db2f7c85912d6930edb02585adc2f5ad0cf750669fc702",
+      "staged_git_sha256": "ea239a2cd3a0374531db2f7c85912d6930edb02585adc2f5ad0cf750669fc702"
+    },
+    {
+      "path": "tests/fixtures/expected/dynamic_builtins_lookup.out",
+      "working_file_sha256": "b1ba0e862e0e5e9a96f0d2a14b20c4aa1acde5a3a25d2a195bc0d7d81b5b0ba3",
+      "staged_git_sha256": "b1ba0e862e0e5e9a96f0d2a14b20c4aa1acde5a3a25d2a195bc0d7d81b5b0ba3"
+    },
+    {
+      "path": "tests/fixtures/expected/eval_live_namespaces.out",
+      "working_file_sha256": "ac40948dbf19d92b198fca831969c4c90214b7601c6dbe290bd72951da96659e",
+      "staged_git_sha256": "6475e6b029f1e423aefec9e4426c49e602e0e49d756d4cbf890a7c734cb516c9"
+    },
+    {
+      "path": "tests/fixtures/expected/generic_alias_callable.out",
+      "working_file_sha256": "2df9d2bf33102b84a46978e1d0dcd0cb96b877bb74cf67fad46253187b008cfc",
+      "staged_git_sha256": "2df9d2bf33102b84a46978e1d0dcd0cb96b877bb74cf67fad46253187b008cfc"
+    },
+    {
+      "path": "tests/fixtures/expected/getitem_int_attr_inline.out",
+      "working_file_sha256": "d53ba20c4de47d8781e8596442d1d3dd5197b02d067e3357ad85e55d421cbd7a",
+      "staged_git_sha256": "d53ba20c4de47d8781e8596442d1d3dd5197b02d067e3357ad85e55d421cbd7a"
+    },
+    {
+      "path": "tests/fixtures/expected/heapq_rich_compare_cache.out",
+      "working_file_sha256": "ee01db4c5b7cb6ffc77813332c3a2b4695357c217b8e690e0ae9683f13a83a9c",
+      "staged_git_sha256": "ee01db4c5b7cb6ffc77813332c3a2b4695357c217b8e690e0ae9683f13a83a9c"
+    },
+    {
+      "path": "tests/fixtures/expected/int_bytes_small_fastpaths.out",
+      "working_file_sha256": "64d2d3665a989b8ffa5986e6fd03454a70492a3a57516317ab1531d8b2c2ae08",
+      "staged_git_sha256": "64d2d3665a989b8ffa5986e6fd03454a70492a3a57516317ab1531d8b2c2ae08"
+    },
+    {
+      "path": "tests/fixtures/expected/isinstance_builtin_mro_fastpath.out",
+      "working_file_sha256": "eef40bc70c4ea715144453d53d781d11b24967c717cb81819ff9d8002bb92ec3",
+      "staged_git_sha256": "eef40bc70c4ea715144453d53d781d11b24967c717cb81819ff9d8002bb92ec3"
+    },
+    {
+      "path": "tests/fixtures/expected/multiprocessing_spawn_semlock.out",
+      "working_file_sha256": "717aff60f516a14b3e2fd196455e7b6e1de48a4eb0b12e248900081bfc575105",
+      "staged_git_sha256": "717aff60f516a14b3e2fd196455e7b6e1de48a4eb0b12e248900081bfc575105"
+    },
+    {
+      "path": "tests/fixtures/expected/native_callback_frame_cache_reuse.out",
+      "working_file_sha256": "b1c28e94f3d603bf854ee2ee5f14b22fb6bd569f2a521bb0b0df8ba78cebdbaa",
+      "staged_git_sha256": "b1c28e94f3d603bf854ee2ee5f14b22fb6bd569f2a521bb0b0df8ba78cebdbaa"
+    },
+    {
+      "path": "tests/fixtures/expected/native_callback_slot_compare.out",
+      "working_file_sha256": "38b872a131a6cce71b61654902702f1130a4a56eecc8c1267554000e3ef89b2e",
+      "staged_git_sha256": "38b872a131a6cce71b61654902702f1130a4a56eecc8c1267554000e3ef89b2e"
+    },
+    {
+      "path": "tests/fixtures/expected/object_attribute_hooks.out",
+      "working_file_sha256": "0e9a5c118fca29f8b70c1dd4a57d6513b596923ec0e0e17ebebf9d9ef1b9a3a9",
+      "staged_git_sha256": "743ac7cf77f8f76a5d0c38244869d2344f45755d3cb92543d1c100b5bc4b0adc"
+    },
+    {
+      "path": "tests/fixtures/expected/public_mro_tuple_identity.out",
+      "working_file_sha256": "0ce06885f9bca1948dbc2521993be760430ac6567d8c98d8728e2a14a109de3a",
+      "staged_git_sha256": "0ce06885f9bca1948dbc2521993be760430ac6567d8c98d8728e2a14a109de3a"
+    },
+    {
+      "path": "tests/fixtures/expected/set_nested_namedtuple_hash.out",
+      "working_file_sha256": "b2183224c8df62ff65205c4cef237b8eae69514a2caed3c9fecdb2422d48ad1e",
+      "staged_git_sha256": "b2183224c8df62ff65205c4cef237b8eae69514a2caed3c9fecdb2422d48ad1e"
+    },
+    {
+      "path": "tests/fixtures/expected/socket_large_send.out",
+      "working_file_sha256": "740a78dad71e95abbb6d7a5d7d24c92edea965aabe13e3102d90db623f148166",
+      "staged_git_sha256": "740a78dad71e95abbb6d7a5d7d24c92edea965aabe13e3102d90db623f148166"
+    },
+    {
+      "path": "tests/fixtures/expected/sys_monitoring_all_events.out",
+      "working_file_sha256": "91b02413b7cb6ccebd4d97ab3e574bcb3839359873405f27d6a264050abb90ff",
+      "staged_git_sha256": "91b02413b7cb6ccebd4d97ab3e574bcb3839359873405f27d6a264050abb90ff"
+    },
+    {
+      "path": "tests/fixtures/expected/weakref_module.out",
+      "working_file_sha256": "e426c826d0ef749e413a1ff0d4f3a8352fac30f09c1ecf9e4e7706d0e2a67ec3",
+      "staged_git_sha256": "c875a5cf661a1de5d12c1e1d30c3f8bae1de8bcf61fdedc04ed7a80d876c3204"
+    },
+    {
+      "path": "tests/run_fixtures.ps1",
+      "working_file_sha256": "670e20885f5fcc57a60e2da5a44d7857061de45e35cbe9dea12c079dc297ca4c",
+      "staged_git_sha256": "670e20885f5fcc57a60e2da5a44d7857061de45e35cbe9dea12c079dc297ca4c"
+    },
+    {
+      "path": "tests/run_fixtures.py",
+      "working_file_sha256": "bff9abfa1e5b814a71a3cdb16d70c6ea2a385230013c047b9796cd100aa20583",
+      "staged_git_sha256": "bff9abfa1e5b814a71a3cdb16d70c6ea2a385230013c047b9796cd100aa20583"
+    }
+  ],
+  "file_count": 139
+}

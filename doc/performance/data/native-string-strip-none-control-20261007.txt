@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "tests/fixtures/core/native_string_methods_unbound.py", line 65, in <module>
+    assert TrimToken(" \t abc \n").strip() == "abc"
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "tests/fixtures/core/native_string_methods_unbound.py", line 62, in strip
+    return self.lstrip(chars).rstrip(chars)
+           ~~~~~~~~~~~^^^^^^^
+  File "tests/fixtures/core/native_string_methods_unbound.py", line 56, in lstrip
+    return str.lstrip(self, chars)
+           ~~~~~~~~~~^^^^^^^^^^^^^
+TypeError: str.lstrip chars must be a string

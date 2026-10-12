@@ -1,0 +1,324 @@
+{
+  "purpose": "Correctness baseline for next native XML target; no timing score",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "source_base_commit": "0767451529c26f6a66edfb6e346a1bab92b1261d",
+  "probe_sha256": "dbdbb1e05b329d77eb738655de2a7e319fd18ab378673176408eebe9eebfc6ae",
+  "native_source_sha256": "0d0c8ec42f76a0c5edbdf0ae5ce76d07d56badf7f8dd8e9725cc9e0c94fffcb0",
+  "runtime_dll_sha256": "d425ba688e3a09896eb35f3bc3164af9f8d09fbf785484dab9bf5f357eee0d3a",
+  "cpython3147": {
+    "exit_code": 0,
+    "stdout": "{\"namespace_single\": {\"events\": [[\"namespace_start\", null, \"urn:default\"], [\"namespace_start\", \"p\", \"urn:prefix\"], [\"start\", \"urn:default|r\", {\"urn:prefix|a\": \"v\"}], [\"start\", \"urn:prefix|c\", {}], [\"end\", \"urn:prefix|c\"], [\"end\", \"urn:default|r\"], [\"namespace_end\", \"p\"], [\"namespace_end\", null]], \"error\": null}, \"namespace_final_empty\": {\"events\": [[\"namespace_start\", null, \"urn:default\"], [\"namespace_start\", \"p\", \"urn:prefix\"], [\"start\", \"urn:default|r\", {\"urn:prefix|a\": \"v\"}], [\"start\", \"urn:prefix|c\", {}], [\"end\", \"urn:prefix|c\"], [\"end\", \"urn:default|r\"], [\"namespace_end\", \"p\"], [\"namespace_end\", null]], \"error\": null}, \"plain_final_empty\": {\"events\": [[\"start\", \"r\", {}], [\"start\", \"c\", {}], [\"end\", \"c\"], [\"end\", \"r\"]], \"error\": null}, \"plain_split_token\": {\"events\": [[\"start\", \"r\", {}], [\"start\", \"c\", {}], [\"end\", \"c\"], [\"end\", \"r\"]], \"error\": null}}\n",
+    "stderr": "",
+    "result": {
+      "namespace_single": {
+        "events": [
+          [
+            "namespace_start",
+            null,
+            "urn:default"
+          ],
+          [
+            "namespace_start",
+            "p",
+            "urn:prefix"
+          ],
+          [
+            "start",
+            "urn:default|r",
+            {
+              "urn:prefix|a": "v"
+            }
+          ],
+          [
+            "start",
+            "urn:prefix|c",
+            {}
+          ],
+          [
+            "end",
+            "urn:prefix|c"
+          ],
+          [
+            "end",
+            "urn:default|r"
+          ],
+          [
+            "namespace_end",
+            "p"
+          ],
+          [
+            "namespace_end",
+            null
+          ]
+        ],
+        "error": null
+      },
+      "namespace_final_empty": {
+        "events": [
+          [
+            "namespace_start",
+            null,
+            "urn:default"
+          ],
+          [
+            "namespace_start",
+            "p",
+            "urn:prefix"
+          ],
+          [
+            "start",
+            "urn:default|r",
+            {
+              "urn:prefix|a": "v"
+            }
+          ],
+          [
+            "start",
+            "urn:prefix|c",
+            {}
+          ],
+          [
+            "end",
+            "urn:prefix|c"
+          ],
+          [
+            "end",
+            "urn:default|r"
+          ],
+          [
+            "namespace_end",
+            "p"
+          ],
+          [
+            "namespace_end",
+            null
+          ]
+        ],
+        "error": null
+      },
+      "plain_final_empty": {
+        "events": [
+          [
+            "start",
+            "r",
+            {}
+          ],
+          [
+            "start",
+            "c",
+            {}
+          ],
+          [
+            "end",
+            "c"
+          ],
+          [
+            "end",
+            "r"
+          ]
+        ],
+        "error": null
+      },
+      "plain_split_token": {
+        "events": [
+          [
+            "start",
+            "r",
+            {}
+          ],
+          [
+            "start",
+            "c",
+            {}
+          ],
+          [
+            "end",
+            "c"
+          ],
+          [
+            "end",
+            "r"
+          ]
+        ],
+        "error": null
+      }
+    }
+  },
+  "xlang3": {
+    "exit_code": 0,
+    "stdout": "{\"namespace_single\": {\"events\": [[\"start\", \"r\", {\"xmlns\": \"urn:default\", \"xmlns:p\": \"urn:prefix\", \"p:a\": \"v\"}], [\"start\", \"p:c\", {}], [\"end\", \"p:c\"], [\"end\", \"r\"]], \"error\": null}, \"namespace_final_empty\": {\"events\": [[\"start\", \"r\", {\"xmlns\": \"urn:default\", \"xmlns:p\": \"urn:prefix\", \"p:a\": \"v\"}], [\"start\", \"p:c\", {}], [\"end\", \"p:c\"], [\"end\", \"r\"], [\"start\", \"r\", {\"xmlns\": \"urn:default\", \"xmlns:p\": \"urn:prefix\", \"p:a\": \"v\"}], [\"start\", \"p:c\", {}], [\"end\", \"p:c\"], [\"end\", \"r\"]], \"error\": null}, \"plain_final_empty\": {\"events\": [[\"start\", \"r\", {}], [\"start\", \"c\", {}], [\"end\", \"c\"], [\"end\", \"r\"], [\"start\", \"r\", {}], [\"start\", \"c\", {}], [\"end\", \"c\"], [\"end\", \"r\"]], \"error\": null}, \"plain_split_token\": {\"events\": [[\"start\", \"r\", {}], [\"start\", \"r\", {}], [\"start\", \"c\", {}], [\"end\", \"c\"], [\"end\", \"r\"], [\"start\", \"r\", {}], [\"start\", \"c\", {}], [\"end\", \"c\"], [\"end\", \"r\"]], \"error\": null}}\n",
+    "stderr": "",
+    "result": {
+      "namespace_single": {
+        "events": [
+          [
+            "start",
+            "r",
+            {
+              "xmlns": "urn:default",
+              "xmlns:p": "urn:prefix",
+              "p:a": "v"
+            }
+          ],
+          [
+            "start",
+            "p:c",
+            {}
+          ],
+          [
+            "end",
+            "p:c"
+          ],
+          [
+            "end",
+            "r"
+          ]
+        ],
+        "error": null
+      },
+      "namespace_final_empty": {
+        "events": [
+          [
+            "start",
+            "r",
+            {
+              "xmlns": "urn:default",
+              "xmlns:p": "urn:prefix",
+              "p:a": "v"
+            }
+          ],
+          [
+            "start",
+            "p:c",
+            {}
+          ],
+          [
+            "end",
+            "p:c"
+          ],
+          [
+            "end",
+            "r"
+          ],
+          [
+            "start",
+            "r",
+            {
+              "xmlns": "urn:default",
+              "xmlns:p": "urn:prefix",
+              "p:a": "v"
+            }
+          ],
+          [
+            "start",
+            "p:c",
+            {}
+          ],
+          [
+            "end",
+            "p:c"
+          ],
+          [
+            "end",
+            "r"
+          ]
+        ],
+        "error": null
+      },
+      "plain_final_empty": {
+        "events": [
+          [
+            "start",
+            "r",
+            {}
+          ],
+          [
+            "start",
+            "c",
+            {}
+          ],
+          [
+            "end",
+            "c"
+          ],
+          [
+            "end",
+            "r"
+          ],
+          [
+            "start",
+            "r",
+            {}
+          ],
+          [
+            "start",
+            "c",
+            {}
+          ],
+          [
+            "end",
+            "c"
+          ],
+          [
+            "end",
+            "r"
+          ]
+        ],
+        "error": null
+      },
+      "plain_split_token": {
+        "events": [
+          [
+            "start",
+            "r",
+            {}
+          ],
+          [
+            "start",
+            "r",
+            {}
+          ],
+          [
+            "start",
+            "c",
+            {}
+          ],
+          [
+            "end",
+            "c"
+          ],
+          [
+            "end",
+            "r"
+          ],
+          [
+            "start",
+            "r",
+            {}
+          ],
+          [
+            "start",
+            "c",
+            {}
+          ],
+          [
+            "end",
+            "c"
+          ],
+          [
+            "end",
+            "r"
+          ]
+        ],
+        "error": null
+      }
+    }
+  },
+  "different_cases": [
+    "namespace_single",
+    "namespace_final_empty",
+    "plain_final_empty",
+    "plain_split_token"
+  ],
+  "status": "native_correctness_gaps_reproduced"
+}

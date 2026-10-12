@@ -1,0 +1,51 @@
+{
+  "schema": "two-argument-double-ir-plan-uncached-proposal-r2",
+  "status": "held_until_independent_review_CP_reference_and_eligibility",
+  "patch": "D:\\CantorAI\\xlang3\\scratch\\performance\\two-argument-double-ir-plan-proposed-20261009.patch",
+  "patch_sha256": "2dc36cef33be9b4db3ac0a6e382e23b2d0b89464acc306fc86cc48cecf0400eb",
+  "candidate_root": "D:\\CantorAI\\xlang3\\scratch\\performance\\two-argument-double-ir-plan-proposed-20261009-candidates",
+  "raw_input_root": "D:\\CantorAI\\xlang3\\scratch\\performance\\two-argument-double-ir-plan-proposed-20261009-raw-inputs",
+  "input_sha256": {
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "f6038df4eecca5e26c4eb8eef40b165e5bb082adf39735d6d7808bfdb36f13bf",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "263882e8ed1e41f60a0addd3df2370edad00655aa5d86f4d8611a53e5f5a7574"
+  },
+  "candidate_sha256": {
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "1e66b4c1b41d683dae8d14f8d4f750adcd50d64675a72fe9b12f9a1777caf25b",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "01ea85b9eeae6ba3266935fe88df72c7fe0b76dcaaa18f06be1430a70aefbbf5"
+  },
+  "design": "D:\\CantorAI\\xlang3\\scratch\\performance\\two-argument-double-ir-plan-proposed-20261009-design.md",
+  "design_sha256": "1b2baf21c7ece9a54ce3e1c8f2e329a1bc1ad638e68e506cc8984dc96ef33bf3",
+  "fixture": "scratch/performance/two-argument-double-ir-plan-fixture-r2-proposed-20261009.py",
+  "fixture_sha256": "201cd7c2ada28a95627c21cb7840b162dae83affbb88207b26321ff9d6c97811",
+  "proposed_expected_output": "scratch/performance/two-argument-double-ir-plan-fixture-r2-proposed-20261009.out",
+  "proposed_expected_sha256": "eb946542485ff0adfd3c5595a5a3e184c2b91a7bc894abfe01ea1d5e189f49ef",
+  "fixture_output_observed": false,
+  "fixture_groups": 7,
+  "runtime_observation": "scratch/performance/raytrace-original-worker-ir-20261009/receipt.json",
+  "runtime_observation_sha256": "d77f921ef071dce2e6c52b9fd7a66d13fd2df873c9cacd0bc91eb21444241a6e",
+  "dot_ir_sha256": "961328dcbb170793917ac5b84497732a6d68a4ba93fb850067c892957607228f",
+  "history_sha256": {
+    "doc/performance/double-arithmetic-fastpath-trial-20261006.md": "4137561eead9b433dbcce53cb8002fbd6a3f021a99e9f7eb9084448f3c447fc0",
+    "doc/performance/polymorphic-user-function-call-trial-20260930.md": "c82c5507a9dacd1fd84900701a4e5590535133338dd3e321d6fb7daec8f743da",
+    "doc/performance/raytrace-specialization-comparison-20261006.md": "b21da7652fa91ea911469f4b100513fa83f875a02e894f3e1e85e037e24a5702",
+    "doc/performance/generic-exact-call-trial-20261006.md": "65a5ce6c61ed1413dd629532109ca9722e1bc8905b4112852bd90357a263aab6",
+    "scratch/performance/inline-call-binding.patch": "820222ac691840ae4e8f4819d9cf2c15ff4dee3873c4bc2a9a0db3d55229195a",
+    "scratch/performance/inline-bound-forwarder.patch": "1c8500d0d707fb12eac26502c293120e5a376bd63f96fbc7e66033804dc0cd92",
+    "scratch/performance/polymorphic-python-call-cache-experiment.patch": "47ee399949cc7fefb29689f2fb562474737613404c2f2f1665cb7c7933283494"
+  },
+  "source_subset_only": true,
+  "new_cache_or_ABI_fields": false,
+  "persistent_user_owners_added": false,
+  "compiler_lowering_or_IR_changed": false,
+  "author_runtime_or_AST_or_build_execution": false,
+  "runtime_eligibility_observed": false,
+  "performance_claim": false,
+  "owned_paths": [
+    "src/executor/xlang_vm/xlang_vm_inline_call.h",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h"
+  ],
+  "live_owned_input_bytes_unchanged": true,
+  "preserved_r1_proof": "scratch/performance/two-argument-double-ir-plan-proposed-20261009-provenance.json",
+  "preserved_r1_proof_sha256": "e3cd47558feaaaac7b37b7e98914890aa522d124c3b0659b3eb2d77d8134e57f",
+  "fixture_delta": "Fresh eligible Triple objects for profile/trace; inherited class routes inside existing first group. Engine/expected7 lines unchanged."
+}

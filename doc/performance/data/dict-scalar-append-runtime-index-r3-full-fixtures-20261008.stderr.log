@@ -1,0 +1,22 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\tests\run_fixtures.py", line 130, in <module>
+    main()
+    ~~~~^^
+  File "D:\CantorAI\xlang3\tests\run_fixtures.py", line 121, in main
+    run_case(executable, root / "fixtures" / "core" / f"{name}.py", root / "fixtures" / "expected" / f"{name}.out", root)
+    ~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\tests\run_fixtures.py", line 104, in run_case
+    raise RuntimeError(f"{source.stem} output mismatch\n--- expected ---\n{expected}\n--- actual ---\n{actual}")
+RuntimeError: sys_startup_config output mismatch
+--- expected ---
+sys-hash-config True True True
+sys-stdlib-config True True True
+sys-single-displayhook True True
+sys-intern-identity True True True
+sys-runtime-details True True True True True
+--- actual ---
+sys-hash-config True True True
+sys-stdlib-config True True True
+sys-single-displayhook True True
+sys-intern-identity True True True
+sys-runtime-details True True False False True

@@ -1,0 +1,7 @@
+sorted-exact-int integer-shapes PASS
+sorted-exact-int stable-integer-keys PASS
+sorted-exact-int callback-order-and-snapshot PASS
+sorted-exact-int iteration-protocol PASS
+sorted-exact-int original-failures PASS
+sorted-exact-int numeric-fallbacks PASS
+sorted-exact-int user-comparison-fallback PASS

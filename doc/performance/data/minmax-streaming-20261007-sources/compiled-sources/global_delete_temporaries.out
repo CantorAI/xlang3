@@ -1,0 +1,4 @@
+global aliases keep their real owner until deletion: OK
+fused global attribute receiver does not survive loop deletion: OK
+dead native-call container temporaries release returned items: OK
+global binding is absent before finalizer reentry: OK

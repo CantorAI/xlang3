@@ -1,0 +1,32 @@
+diff --git a/scratch/performance/date-constructor-entry-child-proposed-20261009.py b/scratch/performance/date-constructor-entry-three-runtime-child-proposed-20261009.py
+index 48d8b90c..f7e12c3f 100644
+--- a/scratch/performance/date-constructor-entry-child-proposed-20261009.py
++++ b/scratch/performance/date-constructor-entry-three-runtime-child-proposed-20261009.py
+@@ -10,6 +10,7 @@ import time
+ 
+ CP = Path('C:/Python/Python314/python.exe')
+ X = Path('D:/CantorAI/xlang3/build-repro/main-verify-20261006/Release/xlang3.exe')
++CONTROL = Path('D:/CantorAI/xlang3/build-repro/controls/lambda-eager-comprehension-capture-accepted-r5-20261009/Release/xlang3.exe')
+ DATETIME = Path('C:/Python/Python314/Lib/datetime.py')
+ PYDATETIME = Path('C:/Python/Python314/Lib/_pydatetime.py')
+ DATETIME_SHA = '8262c677654011417ae08751ae9c38edc8ca802d21c65232452529248a17aae9'
+@@ -37,14 +38,16 @@ def metadata(fn):
+ 
+ def main():
+     parser = argparse.ArgumentParser(description=__doc__)
+-    parser.add_argument('--selection', choices=('cpython-python', 'xlang3-public'), required=True)
++    parser.add_argument('--selection', choices=('cpython-python', 'xlang3-control', 'xlang3-candidate'), required=True)
+     parser.add_argument('--case-order', required=True)
++    parser.add_argument('--runtime-executable', type=Path, required=True)
+     parser.add_argument('--exe-sha256', required=True)
+     parser.add_argument('--dll-sha256', required=True)
+     args = parser.parse_args()
+     cpython = args.selection == 'cpython-python'
+-    executable = CP if cpython else X
+-    dll = CP.with_name('python314.dll') if cpython else X.with_name('xlang3_runtime.dll')
++    executable = {'cpython-python': CP, 'xlang3-control': CONTROL, 'xlang3-candidate': X}[args.selection]
++    assert args.runtime_executable.resolve(strict=True) == executable.resolve(strict=True)
++    dll = CP.with_name('python314.dll') if cpython else executable.with_name('xlang3_runtime.dll')
+     assert sys.flags.optimize == 0 and sys.version_info[:3] == (3, 14, 7)
+     assert sys.implementation.name == ('cpython' if cpython else 'xlang3')
+     assert Path(sys.executable).resolve() == executable.resolve()

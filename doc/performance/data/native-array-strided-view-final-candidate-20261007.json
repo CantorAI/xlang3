@@ -1,0 +1,14 @@
+{
+  "diagnostic_only": true,
+  "timing": false,
+  "records": [
+    {
+      "step": 2,
+      "ok": true
+    },
+    {
+      "step": -2,
+      "ok": true
+    }
+  ]
+}

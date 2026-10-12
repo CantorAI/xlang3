@@ -1,0 +1,12 @@
+local_slots              pass         1.022x
+scalar_arithmetic        pass         0.967x
+range_for                pass         1.018x
+function_calls           pass         0.959x
+class_construct          pass         0.978x
+list_append              pass         0.988x
+property_access          pass         0.985x
+deepcopy_memo            pass         0.904x
+json_dumps               pass         0.988x
+gc_traversal             pass         1.001x
+subparsers               pass         0.949x
+Performance check: pass. Report: doc\performance\data\release-native-array-final-consumers-fixed-gate-20261007.json

@@ -1,0 +1,19 @@
+{
+  "status": "console_identity_observation_only_activity_must_be_revalidated",
+  "captured_utc": "2026-10-08T20:35:00.9578341Z",
+  "console": {
+    "Name": "conhost.exe",
+    "ProcessId": 9220,
+    "ParentProcessId": 30756,
+    "CreationDate": "2026-10-08T20:23:40.1065150Z",
+    "ExecutablePath": "C:\\WINDOWS\\system32\\conhost.exe",
+    "CommandLine": "\\??\\C:\\WINDOWS\\system32\\conhost.exe 0x4",
+    "KernelModeTime": 0,
+    "UserModeTime": 156250
+  },
+  "worker_ticks": {
+    "KernelModeTime": 2656250,
+    "UserModeTime": 5312500
+  },
+  "children": []
+}

@@ -1,0 +1,22 @@
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+@@ -410,7 +410,7 @@
+   Value continuation = Value::tuple(std::move(context));
+   const auto* tuple = value_as_tuple(continuation);
+   CallArgsView new_args;
+-  new_args.leading = tuple->items.data() + 1;
++  new_args.leading = tuple->items.begin() + 1;
+   new_args.leading_count = static_cast<uint32_t>(tuple->items.size() - 1);
+   return call_user_function(
+       function, new_args, module, module_owner, return_dst, ip, out,
+--- a/src/executor/xlang_vm/xlang_vm_loop.cpp
++++ b/src/executor/xlang_vm/xlang_vm_loop.cpp
+@@ -2081,7 +2081,7 @@
+           Value ignored;
+           const std::vector<std::pair<std::string, Value>> no_keywords;
+           if (!runtime_call_callable_kw(
+-                  runtime_, init, context->items.data() + 2,
++                  runtime_, init, context->items.begin() + 2,
+                   static_cast<uint32_t>(context->items.size() - 2),
+                   no_keywords, ignored, error)) {
+             return raise_constructor_error(error.empty() ? "__init__ failed" : error);

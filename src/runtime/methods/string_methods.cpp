@@ -98,7 +98,8 @@ bool string_getitem_method(Runtime& runtime, const Value* args, uint32_t argc, V
   if (sequence_get_item(target, args[1], out, error)) {
     return true;
   }
-  runtime.raise_class_error(error == "index out of range" ? "IndexError" : "TypeError", error);
+  runtime.raise_class_error(error == "index out of range" ? "IndexError" :
+      error == "slice step cannot be zero" ? "ValueError" : "TypeError", error);
   return false;
 }
 
@@ -646,6 +647,10 @@ bool trim_char_set_contains(std::string_view chars, uint32_t wanted) {
 }
 
 bool string_strip_body(const Value& value, const Value* chars_value, Value& out, std::string& error) {
+  // Python wrappers pass explicit None for default whitespace trimming. Normalize
+  // it once, outside the Unicode scan, so omitted and forwarded defaults share
+  // the same allocation-free character test in all native argument layouts.
+  if (chars_value != nullptr && chars_value->tag == ValueTag::None) chars_value = nullptr;
   memory::X3StringView text;
   if (!get_string_view_checked(value, "str.strip target", text, error)) {
     return false;
@@ -687,6 +692,7 @@ bool string_strip_body(const Value& value, const Value* chars_value, Value& out,
 }
 
 bool string_rstrip_body(const Value& value, const Value* chars_value, Value& out, std::string& error) {
+  if (chars_value != nullptr && chars_value->tag == ValueTag::None) chars_value = nullptr;
   memory::X3StringView text;
   if (!get_string_view_checked(value, "str.rstrip target", text, error)) {
     return false;
@@ -720,6 +726,7 @@ bool string_rstrip_body(const Value& value, const Value* chars_value, Value& out
 }
 
 bool string_lstrip_body(const Value& value, const Value* chars_value, Value& out, std::string& error) {
+  if (chars_value != nullptr && chars_value->tag == ValueTag::None) chars_value = nullptr;
   memory::X3StringView text;
   if (!get_string_view_checked(value, "str.lstrip target", text, error)) {
     return false;
@@ -773,9 +780,16 @@ bool string_index_arg(const Value& value, int64_t default_value, int64_t length,
   return true;
 }
 
-bool string_bounds_from_args(memory::X3StringView text, const Value* start_value, const Value* end_value, size_t& start, size_t& end, std::string& error) {
+bool string_bounds_from_args(const Value& value, memory::X3StringView text, const Value* start_value, const Value* end_value, size_t& start, size_t& end, bool& valid, std::string& error) {
   const auto view = as_view(text);
-  const int64_t length = static_cast<int64_t>(utf8_codepoint_count(view));
+  // Bounds and result positions must share the immutable string index. Walking
+  // the entire UTF-8 source here makes repeated str.index(..., pos) quadratic
+  // even when memchr searches only a few bytes (the Tomli parser exposed this).
+  // Exact strings use O(1) ASCII positions or sparse/bounded Unicode lookups;
+  // subclass extraction and dispatch retain their existing fallback semantics.
+  const auto* string = value_as_string(value);
+  const int64_t length = static_cast<int64_t>(string != nullptr
+      ? string_object_length(*string) : utf8_codepoint_count(view));
   int64_t start_i = 0;
   int64_t end_i = length;
   if (start_value != nullptr && !string_index_arg(*start_value, 0, length, start_i, error)) {
@@ -784,11 +798,14 @@ bool string_bounds_from_args(memory::X3StringView text, const Value* start_value
   if (end_value != nullptr && !string_index_arg(*end_value, length, length, end_i, error)) {
     return false;
   }
-  if (end_i < start_i) {
-    end_i = start_i;
-  }
-  start = utf8_byte_offset(view, static_cast<size_t>(start_i));
-  end = utf8_byte_offset(view, static_cast<size_t>(end_i));
+  // CPython rejects a start past the end even for an empty needle/prefix.
+  valid = !(start_value != nullptr && start_value->tag == ValueTag::Int64 && start_value->as.i64 > length)
+      && end_i >= start_i;
+  if (end_i < start_i) end_i = start_i;
+  start = string != nullptr ? string_object_byte_offset(*string, static_cast<size_t>(start_i))
+                            : utf8_byte_offset(view, static_cast<size_t>(start_i));
+  end = string != nullptr ? string_object_byte_offset(*string, static_cast<size_t>(end_i))
+                          : utf8_byte_offset(view, static_cast<size_t>(end_i));
   return true;
 }
 
@@ -805,7 +822,8 @@ bool string_startswith_body(
   }
   size_t start = 0;
   size_t end = text.size;
-  if (!string_bounds_from_args(text, start_value, end_value, start, end, error)) {
+  bool valid = true;
+  if (!string_bounds_from_args(value, text, start_value, end_value, start, end, valid, error)) {
     return false;
   }
   const size_t span = end - start;
@@ -816,7 +834,7 @@ bool string_startswith_body(
       if (!get_string_view_checked(tuple->items[i], "str.startswith prefix", prefix, error)) {
         return false;
       }
-      if (prefix.size <= span &&
+      if (valid && prefix.size <= span &&
           (prefix.size == 0 || std::memcmp(span_data, prefix.data, prefix.size) == 0)) {
         value_set_bool(out, true);
         return true;
@@ -829,7 +847,7 @@ bool string_startswith_body(
   if (!get_string_view_checked(prefix_value, "str.startswith prefix", prefix, error)) {
     return false;
   }
-  value_set_bool(out, prefix.size <= span &&
+  value_set_bool(out, valid && prefix.size <= span &&
                           (prefix.size == 0 || std::memcmp(span_data, prefix.data, prefix.size) == 0));
   return true;
 }
@@ -847,7 +865,8 @@ bool string_endswith_body(
   }
   size_t start = 0;
   size_t end = text.size;
-  if (!string_bounds_from_args(text, start_value, end_value, start, end, error)) {
+  bool valid = true;
+  if (!string_bounds_from_args(value, text, start_value, end_value, start, end, valid, error)) {
     return false;
   }
   const size_t span = end - start;
@@ -858,7 +877,7 @@ bool string_endswith_body(
       if (!get_string_view_checked(tuple->items[i], "str.endswith suffix", suffix, error)) {
         return false;
       }
-      if (suffix.size <= span &&
+      if (valid && suffix.size <= span &&
           (suffix.size == 0 ||
            std::memcmp(span_data + (span - suffix.size), suffix.data, suffix.size) == 0)) {
         value_set_bool(out, true);
@@ -872,10 +891,16 @@ bool string_endswith_body(
   if (!get_string_view_checked(suffix_value, "str.endswith suffix", suffix, error)) {
     return false;
   }
-  value_set_bool(out, suffix.size <= span &&
+  value_set_bool(out, valid && suffix.size <= span &&
                           (suffix.size == 0 ||
                            std::memcmp(span_data + (span - suffix.size), suffix.data, suffix.size) == 0));
   return true;
+}
+
+size_t string_search_character_index(const Value& value, memory::X3StringView text, size_t byte_offset) {
+  const auto* string = value_as_string(value);
+  return string != nullptr ? string_object_character_index(*string, byte_offset)
+                           : utf8_codepoint_count(as_view(text).substr(0, byte_offset));
 }
 
 bool string_find_body(
@@ -895,8 +920,13 @@ bool string_find_body(
   }
   size_t start = 0;
   size_t end = text.size;
-  if (!string_bounds_from_args(text, start_value, end_value, start, end, error)) {
+  bool valid = true;
+  if (!string_bounds_from_args(value, text, start_value, end_value, start, end, valid, error)) {
     return false;
+  }
+  if (!valid) {
+    value_set_int64(out, -1);
+    return true;
   }
   const auto span = memory::X3StringView{text.data == nullptr ? nullptr : text.data + start, static_cast<uint32_t>(end - start)};
   if (needle.size == 1) {
@@ -907,7 +937,7 @@ bool string_find_body(
     value_set_int64(
         out, byte_pos == std::string::npos
             ? -1
-            : static_cast<int64_t>(utf8_codepoint_count(as_view(text).substr(0, byte_pos))));
+            : static_cast<int64_t>(string_search_character_index(value, text, byte_pos)));
     return true;
   }
   const auto pos = as_view(span).find(as_view(needle));
@@ -915,7 +945,7 @@ bool string_find_body(
   value_set_int64(
       out, byte_pos == std::string::npos
           ? -1
-          : static_cast<int64_t>(utf8_codepoint_count(as_view(text).substr(0, byte_pos))));
+          : static_cast<int64_t>(string_search_character_index(value, text, byte_pos)));
   return true;
 }
 
@@ -936,8 +966,13 @@ bool string_rfind_body(
   }
   size_t start = 0;
   size_t end = text.size;
-  if (!string_bounds_from_args(text, start_value, end_value, start, end, error)) {
+  bool valid = true;
+  if (!string_bounds_from_args(value, text, start_value, end_value, start, end, valid, error)) {
     return false;
+  }
+  if (!valid) {
+    value_set_int64(out, -1);
+    return true;
   }
   const auto span = memory::X3StringView{text.data == nullptr ? nullptr : text.data + start, static_cast<uint32_t>(end - start)};
   const auto pos = as_view(span).rfind(as_view(needle));
@@ -945,7 +980,7 @@ bool string_rfind_body(
   value_set_int64(
       out, byte_pos == std::string::npos
           ? -1
-          : static_cast<int64_t>(utf8_codepoint_count(as_view(text).substr(0, byte_pos))));
+          : static_cast<int64_t>(string_search_character_index(value, text, byte_pos)));
   return true;
 }
 
@@ -966,13 +1001,20 @@ bool string_count_body(
   }
   size_t start_bound = 0;
   size_t end_bound = text.size;
-  if (!string_bounds_from_args(text, start_value, end_value, start_bound, end_bound, error)) {
+  bool valid = true;
+  if (!string_bounds_from_args(value, text, start_value, end_value, start_bound, end_bound, valid, error)) {
     return false;
+  }
+  if (!valid) {
+    value_set_int64(out, 0);
+    return true;
   }
   auto text_view = as_view(text).substr(start_bound, end_bound - start_bound);
   auto needle_view = as_view(needle);
   if (needle_view.empty()) {
-    value_set_int64(out, static_cast<int64_t>(utf8_codepoint_count(text_view) + 1));
+    const size_t characters = string_search_character_index(value, text, end_bound)
+        - string_search_character_index(value, text, start_bound);
+    value_set_int64(out, static_cast<int64_t>(characters + 1));
     return true;
   }
   if (needle.size == 1) {
@@ -1212,12 +1254,14 @@ bool string_startswith_fast_method(
     uint32_t register_arg_count,
     Value& out,
     std::string& error,
-    void*) {
+    void* user_data) {
   if (leading_count != 1 || register_arg_count < 1 || register_arg_count > 3 ||
       leading == nullptr || registers == nullptr || register_args == nullptr) {
-    error = "str.startswith expected 1 to 3 arguments";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    // Class descriptors supply self in register arguments. Keep bound
+    // receiver/register calls direct; adapt other layouts on the stack.
+    return builtin_fast_adapter<string_startswith_method, 4>(
+        runtime, leading, leading_count, registers, register_args,
+        register_arg_count, out, error, user_data);
   }
   const Value* start_value = register_arg_count >= 2 ? &registers[register_args[1]] : nullptr;
   const Value* end_value = register_arg_count >= 3 ? &registers[register_args[2]] : nullptr;
@@ -1228,18 +1272,23 @@ bool string_startswith_fast_method(
   return true;
 }
 
-bool string_endswith_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool string_endswith_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 4) {
     error = "str.endswith expected 1 to 3 arguments";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   const Value* start_value = argc >= 3 ? &args[2] : nullptr;
   const Value* end_value = argc >= 4 ? &args[3] : nullptr;
-  return string_endswith_body(args[0], args[1], start_value, end_value, out, error);
+  if (!string_endswith_body(args[0], args[1], start_value, end_value, out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
 }
 
 bool string_endswith_fast_method(
-    Runtime&,
+    Runtime& runtime,
     const Value* leading,
     uint32_t leading_count,
     const Value* registers,
@@ -1247,29 +1296,39 @@ bool string_endswith_fast_method(
     uint32_t register_arg_count,
     Value& out,
     std::string& error,
-    void*) {
+    void* user_data) {
   if (leading_count != 1 || register_arg_count < 1 || register_arg_count > 3 ||
       leading == nullptr || registers == nullptr || register_args == nullptr) {
-    error = "str.endswith expected 1 to 3 arguments";
-    return false;
+    return builtin_fast_adapter<string_endswith_method, 4>(
+        runtime, leading, leading_count, registers, register_args,
+        register_arg_count, out, error, user_data);
   }
   const Value* start_value = register_arg_count >= 2 ? &registers[register_args[1]] : nullptr;
   const Value* end_value = register_arg_count >= 3 ? &registers[register_args[2]] : nullptr;
-  return string_endswith_body(leading[0], registers[register_args[0]], start_value, end_value, out, error);
+  if (!string_endswith_body(leading[0], registers[register_args[0]], start_value, end_value, out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
 }
 
-bool string_find_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+bool string_find_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 2 || argc > 4) {
     error = "str.find expected 1 to 3 arguments";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
   const Value* start_value = argc >= 3 ? &args[2] : nullptr;
   const Value* end_value = argc >= 4 ? &args[3] : nullptr;
-  return string_find_body(args[0], args[1], start_value, end_value, out, error);
+  if (!string_find_body(args[0], args[1], start_value, end_value, out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
 }
 
 bool string_find_fast_method(
-    Runtime&,
+    Runtime& runtime,
     const Value* leading,
     uint32_t leading_count,
     const Value* registers,
@@ -1277,24 +1336,34 @@ bool string_find_fast_method(
     uint32_t register_arg_count,
     Value& out,
     std::string& error,
-    void*) {
+    void* user_data) {
   if (leading_count != 1 || register_arg_count < 1 || register_arg_count > 3 ||
       leading == nullptr || registers == nullptr || register_args == nullptr) {
-    error = "str.find expected 1 to 3 arguments";
-    return false;
+    return builtin_fast_adapter<string_find_method, 4>(
+        runtime, leading, leading_count, registers, register_args,
+        register_arg_count, out, error, user_data);
   }
   const Value* start_value = register_arg_count >= 2 ? &registers[register_args[1]] : nullptr;
   const Value* end_value = register_arg_count >= 3 ? &registers[register_args[2]] : nullptr;
-  return string_find_body(leading[0], registers[register_args[0]], start_value, end_value, out, error);
-}
-
-bool string_count_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
-  if (argc < 2 || argc > 4) {
-    error = "str.count expected 1 to 3 arguments";
+  if (!string_find_body(leading[0], registers[register_args[0]], start_value, end_value, out, error)) {
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
-  return string_count_body(args[0], args[1], argc >= 3 ? &args[2] : nullptr,
-                           argc >= 4 ? &args[3] : nullptr, out, error);
+  return true;
+}
+
+bool string_count_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc < 2 || argc > 4) {
+    error = "str.count expected 1 to 3 arguments";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (!string_count_body(args[0], args[1], argc >= 3 ? &args[2] : nullptr,
+                           argc >= 4 ? &args[3] : nullptr, out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
 }
 
 bool string_rfind_method(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -1348,7 +1417,7 @@ bool string_rindex_method(Runtime& runtime, const Value* args, uint32_t argc, Va
 }
 
 bool string_count_fast_method(
-    Runtime&,
+    Runtime& runtime,
     const Value* leading,
     uint32_t leading_count,
     const Value* registers,
@@ -1356,16 +1425,21 @@ bool string_count_fast_method(
     uint32_t register_arg_count,
     Value& out,
     std::string& error,
-    void*) {
+    void* user_data) {
   if (leading_count != 1 || register_arg_count < 1 || register_arg_count > 3 ||
       leading == nullptr || registers == nullptr || register_args == nullptr) {
-    error = "str.count expected 1 to 3 arguments";
-    return false;
+    return builtin_fast_adapter<string_count_method, 4>(
+        runtime, leading, leading_count, registers, register_args,
+        register_arg_count, out, error, user_data);
   }
-  return string_count_body(leading[0], registers[register_args[0]],
+  if (!string_count_body(leading[0], registers[register_args[0]],
                            register_arg_count >= 2 ? &registers[register_args[1]] : nullptr,
                            register_arg_count >= 3 ? &registers[register_args[2]] : nullptr,
-                           out, error);
+                           out, error)) {
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  return true;
 }
 
 bool string_replace_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -1410,12 +1484,14 @@ bool string_replace_fast_method(
     uint32_t register_arg_count,
     Value& out,
     std::string& error,
-    void*) {
+    void* user_data) {
   if (leading_count != 1 || (register_arg_count != 2 && register_arg_count != 3) ||
       leading == nullptr || registers == nullptr || register_args == nullptr) {
-    error = "str.replace expected 2 or 3 arguments";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    // Keep bound replacement allocation-free. Unbound/partial calls
+    // share ordinary native semantics through borrowed stack arguments.
+    return builtin_fast_adapter<string_replace_method, 4>(
+        runtime, leading, leading_count, registers, register_args,
+        register_arg_count, out, error, user_data);
   }
   memory::X3StringView text;
   if (!get_string_view_checked(leading[0], "str.replace target", text, error)) {
@@ -1493,11 +1569,11 @@ bool string_join_fast_method(
     uint32_t register_arg_count,
     Value& out,
     std::string& error,
-    void*) {
+    void* user_data) {
   if (leading_count != 1 || register_arg_count != 1 || leading == nullptr || registers == nullptr || register_args == nullptr) {
-    error = "str.join expected 1 argument";
-    runtime.raise_class_error("TypeError", error);
-    return false;
+    return builtin_fast_adapter<string_join_method, 2>(
+        runtime, leading, leading_count, registers, register_args,
+        register_arg_count, out, error, user_data);
   }
   memory::X3StringView sep;
   if (!get_string_view_checked(leading[0], "str.join separator", sep, error)) {
@@ -1894,14 +1970,8 @@ std::string format_replacement_value(
       if (!builtin_str_from_value(runtime, value, converted_value, error)) {
         return {};
       }
-    } else if (value_as_instance(value) != nullptr) {
-      Value repr_method;
-      if (!object_get_attr(value, "__repr__", repr_method, error) ||
-          !runtime_call_callable(runtime, repr_method, nullptr, 0, converted_value, error)) {
-        return {};
-      }
-    } else {
-      converted_value = Value::string(value_to_repr(value));
+    } else if (!runtime_repr(runtime, value, converted_value, error, conversion == 'a')) {
+      return {};
     }
     auto* converted_string = value_as_string(converted_value);
     if (converted_string == nullptr) {
@@ -2206,6 +2276,41 @@ bool string_format_map_method(
   return true;
 }
 
+bool is_common_utf8_encoding(std::string_view name) {
+  // Mirror the bounded ASCII normalization used by CPython's native shortcut,
+  // before canonical_encoding maps registry aliases such as u8/cp65001.
+  char normalized[11];
+  size_t size = 0;
+  bool separator = false;
+  for (unsigned char ch : name) {
+    if (ch == 0 || ch >= 0x80) return false;
+    const bool letter = (ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z');
+    const bool digit = ch >= '0' && ch <= '9';
+    if (letter || digit || ch == '.') {
+      if (separator && size != 0) {
+        if (size == sizeof(normalized) - 1) return false;
+        normalized[size++] = '_';
+      }
+      if (size == sizeof(normalized) - 1) return false;
+      normalized[size++] = ch >= 'A' && ch <= 'Z' ? static_cast<char>(ch + ('a' - 'A'))
+                                                : static_cast<char>(ch);
+      separator = false;
+    } else {
+      separator = true;
+    }
+  }
+  const std::string_view spelling(normalized, size);
+  return spelling == "utf8" || spelling == "utf_8";
+}
+
+bool is_native_utf8_error_mode(std::string_view name) {
+  // Error-handler names are case sensitive. Custom/unknown modes retain the
+  // original codec path; this shortcut does not broaden handler compatibility.
+  return name == "strict" || name == "surrogatepass" || name == "surrogateescape" ||
+      name == "ignore" || name == "replace" || name == "backslashreplace" ||
+      name == "xmlcharrefreplace" || name == "namereplace";
+}
+
 bool string_encode_method(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc < 1 || argc > 3) {
     error = "str.encode expected 0 to 2 arguments, got " + std::to_string(argc - 1);
@@ -2230,6 +2335,16 @@ bool string_encode_method(Runtime& runtime, const Value* args, uint32_t argc, Va
       return false;
     }
     errors = std::string(as_view(errors_ref));
+  }
+  // The existing native UTF-8 kernel already implements these error modes.
+  // Avoid importing/looking up the codec twice and allocating/counting its
+  // tuple result on the common str.encode path. Keep subclass validation,
+  // keyword merging and the ordinary native observer boundary unchanged.
+  if (value_as_string(args[0]) != nullptr &&
+      (argc < 2 || value_as_string(args[1]) != nullptr) &&
+      (argc < 3 || value_as_string(args[2]) != nullptr) &&
+      is_common_utf8_encoding(encoding) && is_native_utf8_error_mode(errors)) {
+    return runtime_encode_utf8(runtime, args[0], errors, out, error);
   }
   for (auto& ch : encoding) {
     ch = static_cast<char>(std::tolower(static_cast<unsigned char>(ch)));

@@ -1,0 +1,6 @@
+PASS property_callable_instance_and_attrgetter
+PASS property_callable_kinds_and_existing_paths
+PASS property_callable_lookup_mutation
+PASS property_callable_exception_identity_and_traceback
+PASS property_callable_selected_owner_lifetime
+PASS property_callable_observer_frames

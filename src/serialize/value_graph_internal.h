@@ -16,14 +16,16 @@
 
 namespace xlang3::serialize::graph {
 constexpr uint32_t magic = 0x47563358; // X3VG
-constexpr uint32_t version = 2;
+// Version 4 also preserves function code identity and replacement metadata;
+// version 3 adds live keyword-default aliases. The reader accepts versions 1-3.
+constexpr uint32_t version = 4;
 constexpr uint32_t max_nodes = 1000000;
 constexpr uint32_t max_fields = 16000000;
 constexpr uint64_t max_payload = 1024ull * 1024 * 1024;
 enum class Kind : uint8_t {
   String, Bytes, List, Tuple, Dict, Cell, Function, Globals, Module,
   Class, Instance, BoundMethod, StaticMethod, ClassMethod, Property,
-  Slot, Symbol, Expression, ByteArray, NativeInstance, BigInt
+  Slot, Symbol, Expression, ByteArray, NativeInstance, BigInt, Code
 };
 struct Reference {
   uint8_t tag = 0;

@@ -1,0 +1,12 @@
+local_slots              pass         0.980x
+scalar_arithmetic        pass         0.998x
+range_for                pass         1.004x
+function_calls           pass         0.974x
+class_construct          pass         1.014x
+list_append              pass         0.992x
+property_access          pass         0.983x
+deepcopy_memo            pass         0.925x
+json_dumps               pass         1.018x
+gc_traversal             pass         1.076x
+subparsers               pass         0.922x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\two-argument-double-ir-plan-r5-fixed-gate-20261010-fixed-gate.json

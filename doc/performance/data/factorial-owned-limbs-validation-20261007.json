@@ -1,0 +1,35 @@
+{
+  "status": "failed_fixture_environment",
+  "started_utc": "2026-10-07T20:14:05.124125+00:00",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "sha256_start": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "9c838947e6e6cd22a1035f6a427e90df7e9c67cea1f343fd9fec196a4f30a487"
+  },
+  "native_source_sha256": "c6ae3cf370d35f92eaf14ce195ba97a781a28f709c615edb7bb9200ddb39d62d",
+  "target_fixture": {
+    "cpython_exit": 0,
+    "xlang_exit": 0,
+    "output_matches_cpython_and_expected": true
+  },
+  "checks": [
+    {
+      "name": "fixtures",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "tests/run_fixtures.py",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe"
+      ],
+      "exit_code": 1,
+      "log": "factorial-owned-limbs-validation-20261007-fixtures.log",
+      "log_sha256": "42ce35596f4ef75f991b4d8d2c4a9660ddc7bd497c3de5d61441535660182343"
+    }
+  ],
+  "exit_code": 1,
+  "completed_utc": "2026-10-07T20:15:27.582574+00:00",
+  "failure_reason": "The validation driver set PYTHONPYCACHEPREFIX; standard_modules explicitly expects sys.pycache_prefix is None. The new factorial fixture matched CPython and the candidate engine is unchanged for the corrected rerun.",
+  "sha256_end": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "9c838947e6e6cd22a1035f6a427e90df7e9c67cea1f343fd9fec196a4f30a487"
+  }
+}

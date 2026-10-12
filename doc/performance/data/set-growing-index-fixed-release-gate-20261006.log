@@ -1,0 +1,12 @@
+local_slots              pass         0.992x
+scalar_arithmetic        pass         1.029x
+range_for                pass         1.035x
+function_calls           pass         1.007x
+class_construct          pass         0.990x
+list_append              pass         1.012x
+property_access          pass         0.961x
+deepcopy_memo            pass         0.874x
+json_dumps               pass         0.991x
+gc_traversal             pass         1.022x
+subparsers               pass         0.948x
+Performance check: pass. Report: doc\performance\data\set-growing-index-fixed-release-gate-20261006.json

@@ -1,0 +1,125 @@
+list
+  --           COPY_FREE_VARS           2
+               MAKE_CELL                1 (item)
+
+   4           RESUME                   0
+               LOAD_FAST_BORROW         0 (values)
+               GET_ITER
+               LOAD_FAST_AND_CLEAR      1 (item)
+               MAKE_CELL                2 (item)
+               SWAP                     2
+       L1:     BUILD_LIST               0
+               SWAP                     2
+       L2:     FOR_ITER                10 (to L3)
+               STORE_DEREF              2 (item)
+               LOAD_FAST_BORROW         2 (item)
+               LOAD_FAST_BORROW         3 (offset)
+               BUILD_TUPLE              2
+               LOAD_CONST               0 (<code object <lambda> at 0x000001D41FB87C90, file "D:\CantorAI\xlang3\scratch\performance\lambda-eager-comprehension-capture-r2-proposed-20261009-candidates\tests\fixtures\core\lambda_eager_comprehension_capture.py:escaping_factory_only", line 4>)
+               MAKE_FUNCTION
+               SET_FUNCTION_ATTRIBUTE   8 (closure)
+               LIST_APPEND              2
+               JUMP_BACKWARD           12 (to L2)
+       L3:     END_FOR
+               POP_ITER
+       L4:     SWAP                     2
+               STORE_FAST               1 (item)
+               LOAD_DEREF               2 (item)
+               BUILD_TUPLE              2
+               RETURN_VALUE
+
+  --   L5:     SWAP                     2
+               POP_TOP
+
+   4           SWAP                     2
+               STORE_FAST               1 (item)
+               RERAISE                  0
+ExceptionTable:
+  L1 to L4 -> L5 [2]
+
+set
+  --           COPY_FREE_VARS           2
+               MAKE_CELL                1 (item)
+
+   5           RESUME                   0
+               LOAD_FAST_BORROW         0 (values)
+               GET_ITER
+               LOAD_FAST_AND_CLEAR      1 (item)
+               MAKE_CELL                2 (item)
+               SWAP                     2
+       L1:     BUILD_SET                0
+               SWAP                     2
+       L2:     FOR_ITER                10 (to L3)
+               STORE_DEREF              2 (item)
+               LOAD_FAST_BORROW         2 (item)
+               LOAD_FAST_BORROW         3 (offset)
+               BUILD_TUPLE              2
+               LOAD_CONST               0 (<code object <lambda> at 0x000001D41FB879F0, file "D:\CantorAI\xlang3\scratch\performance\lambda-eager-comprehension-capture-r2-proposed-20261009-candidates\tests\fixtures\core\lambda_eager_comprehension_capture.py:escaping_factory_only", line 5>)
+               MAKE_FUNCTION
+               SET_FUNCTION_ATTRIBUTE   8 (closure)
+               SET_ADD                  2
+               JUMP_BACKWARD           12 (to L2)
+       L3:     END_FOR
+               POP_ITER
+       L4:     SWAP                     2
+               STORE_FAST               1 (item)
+               LOAD_DEREF               2 (item)
+               BUILD_TUPLE              2
+               RETURN_VALUE
+
+  --   L5:     SWAP                     2
+               POP_TOP
+
+   5           SWAP                     2
+               STORE_FAST               1 (item)
+               RERAISE                  0
+ExceptionTable:
+  L1 to L4 -> L5 [2]
+
+dict
+  --           COPY_FREE_VARS           2
+               MAKE_CELL                1 (item)
+
+   6           RESUME                   0
+
+   7           LOAD_FAST_BORROW         0 (values)
+               GET_ITER
+
+   6           LOAD_FAST_AND_CLEAR      1 (item)
+               MAKE_CELL                2 (item)
+               SWAP                     2
+       L1:     BUILD_MAP                0
+               SWAP                     2
+
+   7   L2:     FOR_ITER                11 (to L3)
+               STORE_DEREF              2 (item)
+
+   6           LOAD_DEREF               2 (item)
+               LOAD_FAST_BORROW         2 (item)
+               LOAD_FAST_BORROW         3 (offset)
+               BUILD_TUPLE              2
+               LOAD_CONST               0 (<code object <lambda> at 0x000001D41FB87AD0, file "D:\CantorAI\xlang3\scratch\performance\lambda-eager-comprehension-capture-r2-proposed-20261009-candidates\tests\fixtures\core\lambda_eager_comprehension_capture.py:escaping_factory_only", line 6>)
+               MAKE_FUNCTION
+               SET_FUNCTION_ATTRIBUTE   8 (closure)
+               MAP_ADD                  2
+               JUMP_BACKWARD           13 (to L2)
+
+   7   L3:     END_FOR
+               POP_ITER
+
+   6   L4:     SWAP                     2
+               STORE_FAST               1 (item)
+
+   7           LOAD_DEREF               2 (item)
+
+   6           BUILD_TUPLE              2
+               RETURN_VALUE
+
+  --   L5:     SWAP                     2
+               POP_TOP
+
+   6           SWAP                     2
+               STORE_FAST               1 (item)
+               RERAISE                  0
+ExceptionTable:
+  L1 to L4 -> L5 [2]

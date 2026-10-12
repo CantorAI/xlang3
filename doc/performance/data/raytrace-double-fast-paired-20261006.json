@@ -1,0 +1,87 @@
+{
+  "status": "pass",
+  "ratio": 0.986923629318159,
+  "ratio_interval_95": [
+    0.981489855680871,
+    1.0079826574443478
+  ],
+  "baseline_median_ms": 2354.6969664130456,
+  "candidate_median_ms": 2318.6633421263505,
+  "baseline_seconds": [
+    2.3766928510131824,
+    2.383825462532201,
+    2.340447087502059,
+    2.292456440532035,
+    2.259183600404266,
+    2.3546969664130457,
+    2.403226853849314
+  ],
+  "candidate_seconds": [
+    2.3350922805003402,
+    2.3147116819517395,
+    2.297125074141111,
+    2.285289065093158,
+    2.3186633421263503,
+    2.373493705681166,
+    2.371801368675826
+  ],
+  "measurement_method": "7 order-balanced paired samples; each measured pair runs both AB and BA orders",
+  "baseline": {
+    "executable": "D:\\CantorAI\\xlang3\\scratch\\performance-baselines\\event-poll-single-tls-20261006\\xlang3.exe",
+    "sha256": {
+      "xlang3.exe": "7fb9fd272f16d0374596da1149f61226f3011bb2ec80539f70900cdbb68b357d",
+      "xlang3_runtime.dll": "ccc5ec8dda34f0686799fcbef0080907b30f27d79f8e44d0c28b9a9ee4c33259"
+    }
+  },
+  "candidate": {
+    "executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "sha256": {
+      "xlang3.exe": "7fb9fd272f16d0374596da1149f61226f3011bb2ec80539f70900cdbb68b357d",
+      "xlang3_runtime-baseline-20261006.dll": "395bf96c94508a8e9e326d2c79c427489b729ac84cd244bacd4edc037f331b1e",
+      "xlang3_runtime-candidate-memview-20261006.dll": "ffddfe7612772c4c1ed1f5ee6dcafe46e81713ad40350145e407381db3b392aa",
+      "xlang3_runtime-candidate-valuecounter-20261006.dll": "1b78882bdb269086d3dc615205247aa0d3fcdc5e6e413234175b64a1fb10316b",
+      "xlang3_runtime.dll": "219edf32b5e72ea02b50076c6e48e559bc3c918e823c002f05162f05f48a7e83"
+    }
+  },
+  "source": "D:\\CantorAI\\xlang3\\scratch\\raytrace-pair-20261006.py",
+  "source_sha256": "3d7230a51ea0b8506c6816831810fda6eccd3b7383454f7ce6b3d99339274bf8",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "order_balanced_seconds": {
+    "baseline_first": [
+      2.3892215000087162,
+      2.328171700006351,
+      2.3690077000064775,
+      2.245115999990958,
+      2.245247600003495,
+      2.4061711999966064,
+      2.377991800007294
+    ],
+    "baseline_second": [
+      2.364229900005739,
+      2.44080959999701,
+      2.3122308000019984,
+      2.3407951000117464,
+      2.273206099998788,
+      2.304323899996234,
+      2.4287297000118997
+    ],
+    "candidate_first": [
+      2.300593199994182,
+      2.2711241000070004,
+      2.3284737000067253,
+      2.230692299999646,
+      2.3360439999960363,
+      2.3829326999984914,
+      2.4075889000087045
+    ],
+    "candidate_second": [
+      2.3701086999935796,
+      2.3591357999976026,
+      2.2661985000013374,
+      2.341222099988954,
+      2.3014120000007097,
+      2.3640921000042,
+      2.3365458000043873
+    ]
+  }
+}

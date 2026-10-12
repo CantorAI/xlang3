@@ -10,6 +10,7 @@ import ctypes
 import ctypes.wintypes
 import fnmatch
 import os
+import re
 import subprocess
 import sys
 import time
@@ -18,6 +19,8 @@ from pathlib import Path
 import pyperformance.cli as cli
 import pyperformance.run as perf_run
 from pyperformance import _benchmark, _utils
+
+from preserve_pyperformance_partial import preserve_partial_output
 
 
 parser = argparse.ArgumentParser(description=__doc__)
@@ -42,6 +45,15 @@ parser.add_argument("--case-timeout-override", action="append", default=[],
                     help="Override the full-case cap; glob patterns allowed, last match wins")
 parser.add_argument("--dependency-site", action="append", default=[], type=Path,
                     help="Existing CPython benchmark site-packages directory; repeatable")
+def worker_environment_name(value):
+    if re.fullmatch(r"[A-Za-z_][A-Za-z0-9_]*", value) is None:
+        raise argparse.ArgumentTypeError("use a single environment-variable name")
+    return value
+
+
+parser.add_argument("--inherit-worker-env", action="append", default=[],
+                    type=worker_environment_name,
+                    help="Additional variable to inherit in timed workers (for explicit diagnostics)")
 args = parser.parse_args()
 if args.case_timeout <= 0:
     parser.error("--case-timeout must be positive")
@@ -53,10 +65,13 @@ for path in dependency_sites:
     if not Path(path).is_dir():
         parser.error(f"dependency site is not a directory: {path}")
 if dependency_sites:
-    # Keep compatibility hooks first, then expose the same Python package
-    # sources as the reference run. XLang3's native loader accepts its own
-    # .x3pkg packages; adding this path does not install CPython extensions.
-    paths = [os.environ.get("PYTHONPATH", ""), *dependency_sites]
+    # Install the cross-runtime pyperf compatibility hooks explicitly. Relying
+    # on an ambient PYTHONPATH made benchmark workers attempt unsupported
+    # Windows priority/metadata APIs when the caller's shell had no PYTHONPATH.
+    # Keep caller paths next, then expose the same pure-Python dependency
+    # sources as the reference run; this does not install CPython extensions.
+    compat_path = str((Path(__file__).parent / "pyperf_compat").resolve())
+    paths = [compat_path, os.environ.get("PYTHONPATH", ""), *dependency_sites]
     os.environ["PYTHONPATH"] = os.pathsep.join(path for path in paths if path)
     print("Benchmark dependency sites: " + os.pathsep.join(dependency_sites), flush=True)
 
@@ -153,6 +168,18 @@ def run_named_benchmark(benchmark, *positional, **keywords):
 _benchmark.Benchmark.run = run_named_benchmark
 
 
+def preserve_failed_output(argv, exit_code):
+    # This runs only after failure/worker cleanup, never inside a timed body.
+    # Upstream deletes --output's temporary file when Benchmark.run raises.
+    try:
+        record = preserve_partial_output(argv, output, current_benchmark, exit_code)
+    except Exception as error:
+        print(f"Could not preserve partial benchmark output: {error}", flush=True)
+    else:
+        if record is not None:
+            print(f"Preserved partial failed-definition output: {record['partial_output']}", flush=True)
+
+
 def run_with_timeout(argv, *, env=None, capture=None, verbose=True):
     global current_benchmark_timeout_reported
     if os.path.normcase(os.path.abspath(argv[0])) != os.path.normcase(runtime):
@@ -164,6 +191,7 @@ def run_with_timeout(argv, *, env=None, capture=None, verbose=True):
         if current_benchmark and not current_benchmark_timeout_reported:
             print(f"Full-case timeout: {current_benchmark} exceeded {current_benchmark_timeout_seconds} seconds", flush=True)
             current_benchmark_timeout_reported = True
+        preserve_failed_output(argv, 124)
         return 124, "", ""
     child_env = dict(os.environ if env is None else env)
     if current_benchmark in {"python_startup", "python_startup_no_site"} and "-c" in argv:
@@ -226,10 +254,13 @@ def run_with_timeout(argv, *, env=None, capture=None, verbose=True):
                 for stream in (process.stdout, process.stderr):
                     if stream is not None:
                         stream.close()
+        preserve_failed_output(argv, 124)
         return 124, stdout, stderr
     finally:
         if kill_job:
             kill_job[0].CloseHandle(kill_job[1])
+    if process.returncode != 0:
+        preserve_failed_output(argv, process.returncode)
     return process.returncode, stdout, stderr
 
 
@@ -237,11 +268,16 @@ _utils.run_cmd = run_with_timeout
 if args.case_timeout_override:
     print("Full-case timeout overrides: " + ", ".join(
         f"{pattern}={seconds}s" for pattern, seconds in args.case_timeout_override), flush=True)
+if args.inherit_worker_env:
+    print("Explicit worker environment variables: " + ", ".join(
+        dict.fromkeys(args.inherit_worker_env)), flush=True)
 mode_args = {"fast": ["--fast"], "rigorous": ["--rigorous"],
              "debug": ["--debug-single-value"]}[args.mode]
 sys.argv = ["pyperformance", "run", *mode_args, "--benchmarks", args.benchmarks,
             "--python", runtime, "--inherit-environ",
-            "PYTHONPATH,PYTHONPYCACHEPREFIX,XLANG3_PYTHON_LIB", "--output", output]
+            ",".join(dict.fromkeys([
+                "PYTHONPATH", "PYTHONPYCACHEPREFIX", "XLANG3_PYTHON_LIB",
+                *args.inherit_worker_env])), "--output", output]
 parser, options = cli.parse_args()
 benchmarks = cli._benchmarks_from_options(options)
 cli.cmd_run(options, benchmarks)

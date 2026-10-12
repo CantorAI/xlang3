@@ -1,0 +1,6 @@
+
+# Preserve rejected L9 evidence bytes; engine changes and binary controls are excluded.
+/doc/performance/data/native-entry-layout-l9-* -text
+/doc/performance/data/native-entry-layout-l9-rejected-inspection-20261008/** -text
+/doc/performance/data/native-entry-layout-l9-rejected-20261008-publication-manifest.json -text
+/doc/performance/native-entry-layout-l9-rejected-20261008.md text eol=lf

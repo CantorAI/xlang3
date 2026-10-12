@@ -1,0 +1,31 @@
+[
+  {
+    "check": "string_subclass_repr",
+    "ok": false,
+    "error": "SyntaxError",
+    "detail": "line 1, column 2: expected expression"
+  },
+  {
+    "check": "class_mapping_loop",
+    "ok": false,
+    "error": "KeyError",
+    "detail": "\"format mapping key 'parens' not found\""
+  },
+  {
+    "check": "unbound_append",
+    "ok": false,
+    "error": "RuntimeError",
+    "detail": "list.append expected 1 argument"
+  },
+  {
+    "check": "native_array_slice",
+    "ok": false,
+    "error": "TypeError",
+    "detail": "object cannot be interpreted as an integer"
+  },
+  {
+    "check": "attribute_named_of",
+    "ok": true,
+    "detail": "valid identifier and comparison"
+  }
+]

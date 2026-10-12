@@ -18,6 +18,7 @@ limitations under the License.
 #include "../xlang_vm_op_switch.h"
 
 #include "xlang3/generator.h"
+#include "xlang3/native_trace_hook.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/builtins.h"
 
@@ -156,7 +157,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
           ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
     if (!emit_monitoring_event(frame, kSysMonitoringEventPyYield, &yielded_or_returned) ||
-        !emit_trace_event(frame, "return", yielded_or_returned) ||
+        !emit_trace_event(frame, "return", yielded_or_returned, kNativeTraceSuspended) ||
         !emit_profile_event(frame, "return", yielded_or_returned)) {
       return XlangVMOpFlow::ReturnResult;
     }
@@ -249,7 +250,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
       Value child_value;
       value_assign_fast(child_value, regs[in.a]);
       ++ip;
-      if (!push_frame(*child_module, child_function->function_id, child_args,
+      if (!push_frame(*child_module, child_function->function_id, child_args.with_keyword_defaults(*child_function),
                       child_function->closure, child_function->defaults,
                       child_function->globals_module, std::move(child_module_owner), in.dst,
                       FrameReturnMode::StoreReturnValue, Value::invalid(), true)) {
@@ -317,7 +318,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     if (!emit_monitoring_event(frame, kSysMonitoringEventPyYield, &yielded_or_returned)) {
       return XlangVMOpFlow::ReturnResult;
     }
-    if (!emit_trace_event(frame, "return", yielded_or_returned) ||
+    if (!emit_trace_event(frame, "return", yielded_or_returned, kNativeTraceSuspended) ||
         !emit_profile_event(frame, "return", yielded_or_returned)) {
       return XlangVMOpFlow::ReturnResult;
     }
@@ -377,7 +378,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
           ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
     if (!emit_monitoring_event(frame, kSysMonitoringEventPyYield, &yielded_or_returned) ||
-        !emit_trace_event(frame, "return", yielded_or_returned) ||
+        !emit_trace_event(frame, "return", yielded_or_returned, kNativeTraceSuspended) ||
         !emit_profile_event(frame, "return", yielded_or_returned)) {
       return XlangVMOpFlow::ReturnResult;
     }
@@ -546,7 +547,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow yield_from(
     return XlangVMOpFlow::Next;
   }
   if (!emit_monitoring_event(frame, kSysMonitoringEventPyYield, &yielded_or_returned) ||
-      !emit_trace_event(frame, "return", yielded_or_returned) ||
+      !emit_trace_event(frame, "return", yielded_or_returned, kNativeTraceSuspended) ||
       !emit_profile_event(frame, "return", yielded_or_returned)) {
     return XlangVMOpFlow::ReturnResult;
   }

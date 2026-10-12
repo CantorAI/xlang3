@@ -1,0 +1,36 @@
+{
+  "status": "semantic_repro_only_unscored",
+  "python_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "fixture_sha256": "2132af02bf00bdf2d9a7e132a2f7937a19fe607e78485a86f0dba22f73799d58",
+  "runs": [
+    {
+      "role": "cpython3147",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "-I",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sorted-exact-int-fixture-proposed-20261008.py"
+      ],
+      "exit_code": 0,
+      "matched": true,
+      "stdout_path": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\sorted-exact-int-s8-before-capture-20261008-cpython3147.stdout.log",
+      "stdout_sha256": "141030e2acb698dc9f9efc6cb3b4963a4de22c2f79544fa820a66631254bfba4",
+      "stderr_path": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\sorted-exact-int-s8-before-capture-20261008-cpython3147.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "role": "xlang3_r7",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\sorted-exact-int-fixture-proposed-20261008.py"
+      ],
+      "exit_code": 0,
+      "matched": true,
+      "stdout_path": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\sorted-exact-int-s8-before-capture-20261008-xlang3_r7.stdout.log",
+      "stdout_sha256": "141030e2acb698dc9f9efc6cb3b4963a4de22c2f79544fa820a66631254bfba4",
+      "stderr_path": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\sorted-exact-int-s8-before-capture-20261008-xlang3_r7.stderr.log",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "terminal": true,
+  "all_passed": true
+}

@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\scratch\performance\coverage-original-body-allocation-child-r2-proposed-20261010.py", line 140, in <module>
+    main()
+    ~~~~^^
+  File "D:\CantorAI\xlang3\scratch\performance\coverage-original-body-allocation-child-r2-proposed-20261010.py", line 62, in main
+    assert 0 < length < len(buffer)
+                        ~~~^^^^^^^^
+TypeError: object has no len()

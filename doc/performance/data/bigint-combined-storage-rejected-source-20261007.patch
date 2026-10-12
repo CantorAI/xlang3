@@ -1,0 +1,65 @@
+diff --git a/src/runtime/bigint.cpp b/src/runtime/bigint.cpp
+index 0c0191d8..8490cdbf 100644
+--- a/src/runtime/bigint.cpp
++++ b/src/runtime/bigint.cpp
+@@ -21,10 +21,12 @@ limitations under the License.
+ 
+ #include <algorithm>
+ #include <cctype>
++#include <cstddef>
+ #include <cstring>
+ #include <functional>
+ #include <limits>
+ #include <string>
++#include <type_traits>
+ 
+ namespace xlang3 {
+ 
+@@ -38,6 +40,17 @@ struct BigIntPayload {
+   size_t limb_bytes = 0;
+ };
+ 
++// Keep the SDK-facing BigIntObject prefix and its opaque impl pointer unchanged.
++// A nonempty bigint's header and payload have one lifetime, so allocate them in
++// one private block instead of paying two heap allocations for every result.
++// Limb storage remains independently owned by the payload and may be resized.
++struct BigIntStorage {
++  BigIntObject object;
++  BigIntPayload data;
++};
++static_assert(std::is_standard_layout_v<BigIntStorage>);
++static_assert(offsetof(BigIntStorage, object) == 0);
++
+ // Operand views never own, resize, normalize or release their limbs. Keeping
+ // them distinct from BigIntPayload prevents borrowed input storage from being
+ // passed accidentally to an owned-payload cleanup or compaction operation.
+@@ -172,10 +185,11 @@ bool payload_to_i64(const BigIntPayload& value, int64_t& out) {
+ }
+ 
+ BigIntObject* allocate_bigint_object(BigIntPayload& source) {
+-  auto* object = new BigIntObject();
++  auto* storage = new BigIntStorage();
++  auto* object = &storage->object;
+   object->header.kind = ObjectKind::BigInt;
+   object->header.refcnt = 1;
+-  object->impl = new BigIntPayload();
++  object->impl = &storage->data;
+   move_assign_payload(*payload(object), source);
+   xlang_perf_count_object_alloc(ObjectKind::BigInt);
+   return object;
+@@ -807,8 +821,14 @@ void value_bigint_destroy(BigIntObject* value) {
+   BigIntPayload* p = payload(value);
+   if (p != nullptr) {
+     release_limbs(*p);
+-    delete p;
++    // Every nonempty payload comes from allocate_bigint_object. The object is
++    // the first member of its standard-layout storage block; never separately
++    // delete its embedded payload. Ordinary new/delete keeps destruction safe
++    // after the creating thread exits, without a TLS object-cache dependency.
++    delete reinterpret_cast<BigIntStorage*>(value);
++    return;
+   }
++  // Preserve the public helper's null/default-empty object behavior.
+   delete value;
+ }
+ 

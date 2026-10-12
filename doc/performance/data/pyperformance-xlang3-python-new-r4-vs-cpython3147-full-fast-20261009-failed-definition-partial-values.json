@@ -1,0 +1,68 @@
+{
+  "scope": "Failed-definition samples are raw evidence only; no speed ratios or aggregate contribution.",
+  "subtests": [
+    {
+      "file": "pyperformance-xlang3-python-new-r4-full-fast-r3-20261009-partial/base64-a7c4e7583d240288.json",
+      "subtest": "base64_small",
+      "sample_count": 20,
+      "seconds": 0.002824911562447596,
+      "scored": false
+    },
+    {
+      "file": "pyperformance-xlang3-python-new-r4-full-fast-r3-20261009-partial/base64-a7c4e7583d240288.json",
+      "subtest": "base64_large",
+      "sample_count": 20,
+      "seconds": 0.014355555624570115,
+      "scored": false
+    },
+    {
+      "file": "pyperformance-xlang3-python-new-r4-full-fast-r3-20261009-partial/base64-a7c4e7583d240288.json",
+      "subtest": "urlsafe_base64_small",
+      "sample_count": 20,
+      "seconds": 0.005899173125089874,
+      "scored": false
+    },
+    {
+      "file": "pyperformance-xlang3-python-new-r4-full-fast-r3-20261009-partial/base64-a7c4e7583d240288.json",
+      "subtest": "base32_small",
+      "sample_count": 20,
+      "seconds": 0.04043795749967103,
+      "scored": false
+    },
+    {
+      "file": "pyperformance-xlang3-python-new-r4-full-fast-r3-20261009-partial/base64-a7c4e7583d240288.json",
+      "subtest": "base32_large",
+      "sample_count": 20,
+      "seconds": 1.7903743099974236,
+      "scored": false
+    },
+    {
+      "file": "pyperformance-xlang3-python-new-r4-full-fast-r3-20261009-partial/base64-a7c4e7583d240288.json",
+      "subtest": "base16_small",
+      "sample_count": 20,
+      "seconds": 0.0035946553126450453,
+      "scored": false
+    },
+    {
+      "file": "pyperformance-xlang3-python-new-r4-full-fast-r3-20261009-partial/base64-a7c4e7583d240288.json",
+      "subtest": "base16_large",
+      "sample_count": 20,
+      "seconds": 0.040760014997795226,
+      "scored": false
+    },
+    {
+      "file": "pyperformance-xlang3-python-new-r4-full-fast-r3-20261009-partial/base64-a7c4e7583d240288.json",
+      "subtest": "ascii85_small",
+      "sample_count": 20,
+      "seconds": 0.10529220499884104,
+      "scored": false
+    },
+    {
+      "file": "pyperformance-xlang3-python-new-r4-full-fast-r3-20261009-partial/xml_etree-6c6e8ab8515c13d6.json",
+      "subtest": "xml_etree_pure_python_parse",
+      "sample_count": 20,
+      "seconds": 8.087947814993095,
+      "scored": false
+    }
+  ]
+}

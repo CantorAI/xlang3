@@ -135,6 +135,61 @@ pattern = (
       continued_triple_regex.errors.empty(),
       "comment trimming should preserve # and quotes inside a joined raw triple string");
 
+  auto check_joined_literals = [&](const std::string& source,
+                                   const std::vector<std::string>& expected,
+                                   const std::string& label) {
+    auto parsed = xlang3::parse_source(source);
+    xlang3::test::expect_true(result, parsed.errors.empty(), label + " should parse");
+    if (!parsed.errors.empty()) return;
+    auto* assignment = parsed.module.body.size() == 1
+        ? dynamic_cast<xlang3::ast::AssignStmt*>(parsed.module.body[0].get()) : nullptr;
+    auto* call = assignment ? dynamic_cast<xlang3::ast::CallExpr*>(assignment->value.get()) : nullptr;
+    xlang3::test::expect_true(result, call && call->args.size() == expected.size(),
+        label + " should retain all call arguments");
+    if (!call || call->args.size() != expected.size()) return;
+    for (size_t index = 0; index < expected.size(); ++index) {
+      auto* literal = dynamic_cast<xlang3::ast::LiteralExpr*>(call->args[index].get());
+      xlang3::test::expect_true(result, literal && literal->kind == xlang3::ast::LiteralExpr::Kind::String &&
+          literal->text == expected[index], label + " should preserve exact literal contents");
+    }
+  };
+  const std::string joined_body = "alpha\n# interior hash, \"double\" and 'single'\nomega";
+  const char joined_quotes[] = {'"', '\''};
+  const bool joined_choices[] = {false, true};
+  for (char quote : joined_quotes) {
+    const std::string delimiter(3, quote);
+    for (bool raw_prefix : joined_choices) {
+      for (bool suffix_comment : joined_choices) {
+        const std::string source = "result = keep(\n    " + std::string(raw_prefix ? "r" : "") +
+            delimiter + joined_body + delimiter + "," +
+            (suffix_comment ? " # real closing-line comment" : "") + "\n)\n";
+        check_joined_literals(source, {joined_body},
+            std::string(quote == '"' ? "double" : "single") +
+            (raw_prefix ? " raw" : " normal") + (suffix_comment ? " closing comment" : " no comment"));
+      }
+      const std::string escaped_body = "alpha\n\\" + delimiter + " still literal\nomega";
+      const std::string escaped_expected = raw_prefix ? escaped_body :
+          "alpha\n" + delimiter + " still literal\nomega";
+      check_joined_literals("result = keep(\n    " + std::string(raw_prefix ? "r" : "") + delimiter +
+          escaped_body + delimiter + ", # real comment after actual close\n)\n",
+          {escaped_expected}, std::string(quote == '"' ? "double" : "single") +
+          (raw_prefix ? " raw escaped close" : " normal escaped close"));
+    }
+  }
+  check_joined_literals("result = keep(\n    \"\"\"" + joined_body +
+      "\"\"\", \"suffix # remains literal\", # real comment after second string\n)\n",
+      {joined_body, "suffix # remains literal"}, "closed triple followed by quoted suffix");
+  const std::string malformed_joined[] = {
+      "result = keep(\n    \"\"\"alpha\n# literal hash\n)\n",
+      "result = keep(\n    \"\"\"alpha\nomega\"\"\", # real comment\n",
+      "result = keep(\n    \"\"\"alpha\nomega''', # remains inside unclosed double string\n)\n",
+  };
+  for (const auto& source : malformed_joined) {
+    auto parsed = xlang3::parse_source(source);
+    xlang3::test::expect_true(result, !parsed.errors.empty(),
+        "comment handling must still reject malformed strings or missing call delimiters");
+  }
+
   auto statements = xlang3::parse_source(
       "class Box[T](Base):\n"
       "    pass\n"
