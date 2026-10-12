@@ -99,6 +99,15 @@ struct HeapAccess {
   // and owner retirement: same-size replacement is permitted by _heapq.
   bool less(Value left, Value right, bool retire_right_first, bool& result) {
     Value comparison;
+    // Asyncio's timer heap compares TimerHandle objects repeatedly while
+    // sifting. This native callback does not pass through a VM CALL site, so
+    // __lt__ cannot reuse that site's adaptive cache. The rich-compare path
+    // may cache the raw Python method and, for the exact guarded
+    // isinstance(other, Class) / slot-double pattern, its global/class/slot
+    // proof. It skips the Python frame only while code, namespace, class,
+    // observer, receiver, descriptor, and value guards prove that body has no
+    // user-visible work left; every miss still calls the ordinary Python
+    // method and preserves comparison fallback and exception behavior.
     const bool ok = runtime_value_compare(runtime, "<", left, right, comparison, error) &&
         runtime_truthy(runtime, comparison, result, error);
     if (!ok) failure.capture(error);

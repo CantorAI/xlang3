@@ -87,7 +87,6 @@ int main() {
                             "None should be falsey");
   xlang3::test::expect_true(result, xlang3::value_to_string(xlang3::Value::tuple({xlang3::Value::int64(1)})) == "(1,)",
                             "single item tuple should print with trailing comma");
-
   {
     std::ostringstream output;
     xlang3::Runtime runtime(output);

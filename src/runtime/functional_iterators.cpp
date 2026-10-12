@@ -370,6 +370,21 @@ bool runtime_call_callable(
         if (cell != nullptr && mapping_get_intrinsic_item_if_present(
                 cell->value, args[item_spec.argument], out)) return true;
       }
+      // Native comparison callbacks do not pass through a VM CALL site. Keep
+      // a narrowly proven, current-IR slot/double comparison inlineable there;
+      // do not replace asyncio or heapq semantics, and retain the interpreter
+      // for hooks, tracing, class/global changes, non-slot values, and all
+      // shapes outside the exact isinstance/NotImplemented pattern.
+      XlangVMIsinstanceSlotDoubleCompareSpec compare_spec;
+      if (argc == 2 && target.code.size() == 12 &&
+          xlang_vm_analyze_isinstance_slot_double_compare(
+              *function->module, *function, compare_spec) &&
+          interpreter_pending_events() == 0 &&
+          xlang_vm_try_isinstance_slot_double_compare(
+              runtime, *function->module, *function, call_args,
+              compare_spec, out)) {
+        return true;
+      }
     }
     Interpreter interpreter(runtime);
     RuntimeResult result = interpreter.run_function_value(function, call_args);

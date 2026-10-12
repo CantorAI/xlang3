@@ -8,6 +8,7 @@ def mutate():
     return 0
 namespace['mutate'] = mutate
 print('live callback', eval(compile('mutate() + x', '<live>', 'eval'), namespace, {}))
+print('keyword arguments', eval(source='x + 1', globals={'x': 4}, locals={}))
 print('identity', eval('globals()', namespace, {}) is namespace)
 print('builtins inserted', namespace['__builtins__'] is builtins.__dict__)
 callback = eval('lambda: x', namespace, {})
@@ -62,6 +63,14 @@ class LocalsMapping:
         raise KeyError(name)
 mapping = LocalsMapping()
 print('dynamic locals', eval('dynamic + dynamic + x', namespace, mapping), mapping.reads)
+
+class DictLocals(dict):
+    def __getitem__(self, name):
+        if name == 'x':
+            return 77
+        return super().__getitem__(name)
+
+print('dict subclass locals', eval('x', namespace, DictLocals(x=3)))
 
 try:
     eval('1 / 0', namespace, {})

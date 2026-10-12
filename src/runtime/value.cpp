@@ -1486,9 +1486,16 @@ void frame_materialize_locals(FrameObject& frame) {
       }
     }
   }
-  frame.locals = Value::dict(std::move(entries));
-  frame.local_snapshot.clear();
+  // Publish the complete mapping and lazy-state transition before dropping any
+  // old local owners. Their finalizers can re-enter and inspect this frame.
+  Value materialized = Value::dict(std::move(entries));
+  Value retired_locals;
+  value_move_assign_fast(retired_locals, frame.locals);
+  value_move_assign_fast(frame.locals, materialized);
+  std::vector<Value> retired_snapshot;
+  retired_snapshot.swap(frame.local_snapshot);
   frame.has_lazy_locals = false;
+  frame.trace_locals_materialized = true;
 }
 
 Value Value::native_function(

@@ -2,6 +2,10 @@ Dyn Base True 7 5
 missing:abc
 True 8
 99 12
+{'value': 31} True
+custom-dict
+True
+{'value': 42}
 6
 x
 annotated (8,) int

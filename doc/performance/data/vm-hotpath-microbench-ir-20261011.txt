@@ -1,0 +1,248 @@
+entry: #5
+
+module_slots: %0=__name__ %1=__doc__ %2=__file__ %3=__package__ %4=__path__ %5=time %6=identity %7=integer_loop %8=call_loop %9=dict_loop %10=name %11=body %12=count %13=times %14=_ %15=start
+
+function #0 identity
+  first_line: 3
+  generator: false
+  async: false
+  coroutine: false
+  params: %0=value
+  signature: %0=value/poskw/d4294967295
+  locals: %0=value
+  cells:
+  free_vars:
+  registers: 2
+  constants: 1
+  names:
+  0: ReturnLocal line=4 pos=4:5-4:17 dst=0 a=0 b=0 c=0
+  1: ReturnConst line=0 pos=0:0-0:0 dst=0 a=0 b=0 c=0
+
+function #1 integer_loop
+  first_line: 6
+  generator: false
+  async: false
+  coroutine: false
+  params: %0=count
+  signature: %0=count/poskw/d4294967295
+  locals: %0=count %1=value %2=_
+  cells:
+  free_vars:
+  registers: 8
+  constants: 3
+  names: #0=range
+  call_args #0: r2
+  0: LoadConst line=7 pos=7:13-7:14 dst=0 a=0 b=0 c=0
+  1: StoreLocal line=7 pos=7:13-7:14 dst=1 a=0 b=0 c=0
+  2: LoadGlobalLocal line=8 pos=8:14-8:26 dst=1 a=0 b=2 c=0
+  3: Call line=8 pos=8:14-8:26 dst=3 a=1 b=0 c=0
+  4: GetIter line=8 pos=8:5-10:5 dst=4 a=3 b=0 c=0
+  5: IterNextLocal line=8 pos=8:5-10:5 dst=2 a=4 b=8 c=5
+  6: InplaceAddLocalConst line=9 pos=9:9-9:19 dst=1 a=1 b=1 c=0
+  7: Jump line=8 pos=8:5-10:5 dst=5 a=0 b=0 c=0
+  8: ReturnLocal line=10 pos=10:5-10:17 dst=0 a=1 b=0 c=0
+  9: ReturnConst line=0 pos=0:0-0:0 dst=0 a=2 b=0 c=0
+
+function #2 call_loop
+  first_line: 12
+  generator: false
+  async: false
+  coroutine: false
+  params: %0=count
+  signature: %0=count/poskw/d4294967295
+  locals: %0=count %1=value %2=_
+  cells:
+  free_vars:
+  registers: 11
+  constants: 2
+  names: #0=range
+  call_args #0: r2
+  call_args #1: r7
+  0: LoadConst line=13 pos=13:13-13:14 dst=0 a=0 b=0 c=0
+  1: StoreLocal line=13 pos=13:13-13:14 dst=1 a=0 b=0 c=0
+  2: LoadGlobalLocal line=14 pos=14:14-14:26 dst=1 a=0 b=2 c=0
+  3: Call line=14 pos=14:14-14:26 dst=3 a=1 b=0 c=0
+  4: GetIter line=14 pos=14:5-16:5 dst=4 a=3 b=0 c=0
+  5: IterNextLocal line=14 pos=14:5-16:5 dst=2 a=4 b=11 c=5
+  6: LoadModuleSlot line=15 pos=15:17-15:32 dst=6 a=6 b=0 c=0
+  7: LoadLocal line=15 pos=15:17-15:32 dst=7 a=1 b=0 c=0
+  8: Call line=15 pos=15:17-15:32 dst=8 a=6 b=1 c=0
+  9: StoreLocal line=15 pos=15:17-15:32 dst=1 a=8 b=0 c=0
+  10: Jump line=14 pos=14:5-16:5 dst=5 a=0 b=0 c=0
+  11: ReturnLocal line=16 pos=16:5-16:17 dst=0 a=1 b=0 c=0
+  12: ReturnConst line=0 pos=0:0-0:0 dst=0 a=1 b=0 c=0
+
+function #3 dict_loop
+  first_line: 18
+  generator: false
+  async: false
+  coroutine: false
+  params: %0=count
+  signature: %0=count/poskw/d4294967295
+  locals: %0=count %1=data %2=_
+  cells:
+  free_vars:
+  registers: 19
+  constants: 7
+  names: #0=range
+  call_args #0: r4
+  dict_items #0: (r0: r1)
+  0: LoadConstPair line=19 pos=19:12-19:24 dst=0 a=0 b=1 c=1
+  1: MakeDict line=19 pos=19:12-19:24 dst=2 a=0 b=0 c=0
+  2: StoreLocal line=19 pos=19:12-19:24 dst=1 a=2 b=0 c=0
+  3: LoadGlobalLocal line=20 pos=20:14-20:26 dst=3 a=0 b=4 c=0
+  4: Call line=20 pos=20:14-20:26 dst=5 a=3 b=0 c=0
+  5: GetIter line=20 pos=20:5-22:5 dst=6 a=5 b=0 c=0
+  6: IterNextLocal line=20 pos=20:5-22:5 dst=2 a=6 b=14 c=7
+  7: LoadLocalConst line=21 pos=21:25-21:42 dst=8 a=1 b=9 c=2
+  8: LoadLocalConst line=21 pos=21:25-21:38 dst=10 a=1 b=11 c=3
+  9: GetItem line=21 pos=21:25-21:38 dst=12 a=10 b=11 c=0
+  10: LoadConst line=21 pos=21:25-21:42 dst=13 a=4 b=0 c=0
+  11: Add line=21 pos=21:25-21:42 dst=14 a=12 b=13 c=0
+  12: SetItem line=21 pos=21:25-21:42 dst=8 a=9 b=14 c=0
+  13: Jump line=20 pos=20:5-22:5 dst=6 a=0 b=0 c=0
+  14: LoadLocalConst line=22 pos=22:12-22:25 dst=15 a=1 b=16 c=5
+  15: GetItem line=22 pos=22:12-22:25 dst=17 a=15 b=16 c=0
+  16: Return line=22 pos=22:5-22:25 dst=0 a=17 b=0 c=0
+  17: ReturnConst line=0 pos=0:0-0:0 dst=0 a=6 b=0 c=0
+
+function #4 #genexpr
+  first_line: 0
+  generator: true
+  async: false
+  coroutine: false
+  params: %0=#genexpr.iterable0
+  signature:
+  locals: %0=#genexpr.iterable0 %1=#comp.0.value
+  cells:
+  free_vars:
+  registers: 11
+  constants: 4
+  names: #0=__xlang3_fstring_format__
+  call_args #0: r3 r4
+  0: LoadLocal line=0 pos=0:0-0:0 dst=0 a=0 b=0 c=0
+  1: GetIter line=0 pos=0:0-0:0 dst=1 a=0 b=0 c=0
+  2: IterNext line=0 pos=0:0-0:0 dst=2 a=1 b=10 c=0
+  3: StoreLocalLoadLocal line=0 pos=0:0-0:0 dst=1 a=2 b=3 c=1
+  4: LoadConst line=0 pos=0:0-0:0 dst=4 a=0 b=0 c=0
+  5: CallGlobal line=0 pos=0:0-0:0 dst=6 a=0 b=0 c=0
+  6: LoadConst line=0 pos=0:0-0:0 dst=7 a=1 b=0 c=0
+  7: Add line=0 pos=0:0-0:0 dst=8 a=6 b=7 c=0
+  8: Yield line=0 pos=0:0-0:0 dst=0 a=8 b=0 c=0
+  9: Jump line=0 pos=0:0-0:0 dst=2 a=0 b=0 c=0
+  10: LoadConst line=0 pos=0:0-0:0 dst=9 a=2 b=0 c=0
+  11: StoreLocal line=0 pos=0:0-0:0 dst=1 a=9 b=0 c=0
+  12: DeleteLocal line=0 pos=0:0-0:0 dst=1 a=0 b=0 c=0
+  13: ReturnConst line=0 pos=0:0-0:0 dst=0 a=3 b=0 c=0
+
+function #5 <module>
+  first_line: 1
+  generator: false
+  async: false
+  coroutine: false
+  params:
+  signature:
+  locals:
+  cells:
+  free_vars:
+  registers: 63
+  constants: 12
+  names: #0=time #1=range #2=perf_counter #3=append #4=print #5=__xlang3_fstring_str__ #6=join
+  call_args #0: r24
+  call_args #1: r28
+  call_args #2:
+  call_args #3: r35
+  call_args #4:
+  call_args #5: r41
+  call_args #6: r44
+  call_args #7: r49
+  call_args #8: r56
+  call_args #9: r58
+  call_args #10: r60
+  tuple_items #0: r5 r6 r7
+  tuple_items #1: r9 r10 r11
+  tuple_items #2: r13 r14 r15
+  list_items #0: r8 r12 r16
+  list_items #1:
+  function_closure #0:
+  function_closure #1:
+  function_closure #2:
+  function_closure #3:
+  function_closure #4:
+  0: ImportModule line=1 pos=1:1-1:12 dst=0 a=0 b=0 c=0
+  1: StoreModuleSlot line=1 pos=1:1-1:12 dst=5 a=0 b=0 c=0
+  2: MakeFunction line=3 pos=3:1-6:1 dst=1 a=0 b=0 c=4294967295
+  3: StoreModuleSlot line=3 pos=3:1-6:1 dst=6 a=1 b=0 c=0
+  4: MakeFunction line=6 pos=6:1-12:1 dst=2 a=1 b=1 c=4294967295
+  5: StoreModuleSlot line=6 pos=6:1-12:1 dst=7 a=2 b=0 c=0
+  6: MakeFunction line=12 pos=12:1-18:1 dst=3 a=2 b=2 c=4294967295
+  7: StoreModuleSlot line=12 pos=12:1-18:1 dst=8 a=3 b=0 c=0
+  8: MakeFunction line=18 pos=18:1-24:1 dst=4 a=3 b=3 c=4294967295
+  9: StoreModuleSlot line=18 pos=18:1-24:1 dst=9 a=4 b=0 c=0
+  10: LoadConst line=24 pos=24:1-32:1 dst=5 a=0 b=0 c=0
+  11: LoadModuleSlot line=24 pos=24:1-32:1 dst=6 a=7 b=0 c=0
+  12: LoadConst line=24 pos=24:1-32:1 dst=7 a=1 b=0 c=0
+  13: MakeTuple line=24 pos=24:1-32:1 dst=8 a=0 b=0 c=0
+  14: LoadConst line=24 pos=24:1-32:1 dst=9 a=2 b=0 c=0
+  15: LoadModuleSlot line=24 pos=24:1-32:1 dst=10 a=8 b=0 c=0
+  16: LoadConst line=24 pos=24:1-32:1 dst=11 a=3 b=0 c=0
+  17: MakeTuple line=24 pos=24:1-32:1 dst=12 a=1 b=0 c=0
+  18: LoadConst line=24 pos=24:1-32:1 dst=13 a=4 b=0 c=0
+  19: LoadModuleSlot line=24 pos=24:1-32:1 dst=14 a=9 b=0 c=0
+  20: LoadConst line=24 pos=24:1-32:1 dst=15 a=5 b=0 c=0
+  21: MakeTuple line=24 pos=24:1-32:1 dst=16 a=2 b=0 c=0
+  22: MakeList line=24 pos=24:1-32:1 dst=17 a=0 b=0 c=0
+  23: GetIter line=24 pos=24:1-32:1 dst=18 a=17 b=0 c=0
+  24: IterNext line=24 pos=24:1-32:1 dst=19 a=18 b=75 c=0
+  25: UnpackSequence line=24 pos=24:1-32:1 dst=20 a=19 b=3 c=0
+  26: StoreModuleSlot line=24 pos=24:1-32:1 dst=10 a=20 b=0 c=0
+  27: StoreModuleSlot line=24 pos=24:1-32:1 dst=11 a=21 b=0 c=0
+  28: StoreModuleSlot line=24 pos=24:1-32:1 dst=12 a=22 b=0 c=0
+  29: LoadModuleSlot line=25 pos=25:5-25:14 dst=23 a=11 b=0 c=0
+  30: LoadConst line=25 pos=25:5-25:14 dst=24 a=6 b=0 c=0
+  31: Call line=25 pos=25:5-25:14 dst=25 a=23 b=0 c=0
+  32: Pop line=25 pos=25:5-25:14 dst=0 a=25 b=0 c=0
+  33: MakeList line=26 pos=26:13-26:15 dst=26 a=1 b=0 c=0
+  34: StoreModuleSlot line=26 pos=26:13-26:15 dst=13 a=26 b=0 c=0
+  35: LoadGlobal line=27 pos=27:14-27:22 dst=27 a=1 b=0 c=0
+  36: LoadConst line=27 pos=27:14-27:22 dst=28 a=7 b=0 c=0
+  37: Call line=27 pos=27:14-27:22 dst=29 a=27 b=1 c=0
+  38: GetIter line=27 pos=27:5-31:5 dst=30 a=29 b=0 c=0
+  39: IterNext line=27 pos=27:5-31:5 dst=31 a=30 b=56 c=0
+  40: StoreModuleSlot line=27 pos=27:5-31:5 dst=14 a=31 b=0 c=0
+  41: LoadModuleSlot line=28 pos=28:17-28:36 dst=32 a=5 b=0 c=0
+  42: CallMethod line=28 pos=28:17-28:36 dst=33 a=32 b=2 c=2
+  43: StoreModuleSlot line=28 pos=28:17-28:36 dst=15 a=33 b=0 c=0
+  44: LoadModuleSlot line=29 pos=29:9-29:20 dst=34 a=11 b=0 c=0
+  45: LoadModuleSlot line=29 pos=29:9-29:20 dst=35 a=12 b=0 c=0
+  46: Call line=29 pos=29:9-29:20 dst=36 a=34 b=3 c=0
+  47: Pop line=29 pos=29:9-29:20 dst=0 a=36 b=0 c=0
+  48: LoadModuleSlot line=30 pos=30:9-30:50 dst=37 a=13 b=0 c=0
+  49: LoadModuleSlot line=30 pos=30:22-30:41 dst=38 a=5 b=0 c=0
+  50: CallMethod line=30 pos=30:22-30:41 dst=39 a=38 b=2 c=4
+  51: LoadModuleSlot line=30 pos=30:9-30:50 dst=40 a=15 b=0 c=0
+  52: Sub line=30 pos=30:9-30:50 dst=41 a=39 b=40 c=0
+  53: CallMethod line=30 pos=30:9-30:50 dst=42 a=37 b=3 c=5
+  54: Pop line=30 pos=30:9-30:50 dst=0 a=42 b=0 c=0
+  55: Jump line=27 pos=27:5-31:5 dst=39 a=0 b=0 c=0
+  56: LoadGlobal line=31 pos=31:5-31:81 dst=43 a=4 b=0 c=0
+  57: LoadModuleSlot line=31 pos=31:5-31:81 dst=44 a=10 b=0 c=0
+  58: CallGlobal line=31 pos=31:5-31:81 dst=46 a=5 b=6 c=0
+  59: LoadConst line=31 pos=31:5-31:81 dst=47 a=8 b=0 c=0
+  60: Add line=31 pos=31:5-31:81 dst=48 a=46 b=47 c=0
+  61: LoadModuleSlot line=31 pos=31:5-31:81 dst=49 a=12 b=0 c=0
+  62: CallGlobal line=31 pos=31:5-31:81 dst=51 a=5 b=7 c=0
+  63: Add line=31 pos=31:5-31:81 dst=52 a=48 b=51 c=0
+  64: LoadConst line=31 pos=31:5-31:81 dst=53 a=9 b=0 c=0
+  65: Add line=31 pos=31:5-31:81 dst=54 a=52 b=53 c=0
+  66: LoadConst line=31 pos=31:35-31:80 dst=55 a=10 b=0 c=0
+  67: LoadModuleSlot line=31 pos=31:35-31:80 dst=56 a=13 b=0 c=0
+  68: MakeFunction line=31 pos=31:35-31:80 dst=57 a=4 b=4 c=4294967295
+  69: Call line=31 pos=31:35-31:80 dst=58 a=57 b=8 c=0
+  70: CallMethod line=31 pos=31:35-31:80 dst=59 a=55 b=6 c=9
+  71: Add line=31 pos=31:5-31:81 dst=60 a=54 b=59 c=0
+  72: Call line=31 pos=31:5-31:81 dst=61 a=43 b=10 c=0
+  73: Pop line=31 pos=31:5-31:81 dst=0 a=61 b=0 c=0
+  74: Jump line=24 pos=24:1-32:1 dst=24 a=0 b=0 c=0
+  75: ReturnConst line=0 pos=0:0-0:0 dst=0 a=11 b=0 c=0
+

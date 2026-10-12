@@ -337,6 +337,15 @@ bool get_builtin_method(const Value& object, const std::string& name, Value& out
 } // namespace
 
 bool attribute_get(const Value& object, const std::string& name, Value& out, std::string& error) {
+  // Python instance/class lookups are common in every pure-Python workload.
+  // They already have complete semantics in object_get_attr; dispatch them
+  // before probing unrelated builtin kinds so a normal LOAD_ATTR does not pay
+  // for the full generic-object type chain on every access.
+  if (value_as_instance(object) != nullptr || value_as_class(object) != nullptr) {
+    const bool ok = object_get_attr(object, name, out, error);
+    if (!ok) emit_missing_attr_diagnostic(object, name);
+    return ok;
+  }
   if (auto* slice = value_as_slice(object)) {
     if (name == "start") {
       value_assign_fast(out, slice->start);

@@ -55,7 +55,7 @@ static CanonicalSlotPromotion try_promote_canonical_slot_read(
   if (index >= instance_slot_count(&instance) ||
       instance_slot_at(&instance, index).tag == ValueTag::Invalid)
     return CanonicalSlotPromotion::Retry;
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   std::string error;
   if (!class_get_mro_values(&klass, mro, error)) return CanonicalSlotPromotion::Retry;
   uint32_t declarations = 0;

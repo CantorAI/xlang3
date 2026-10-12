@@ -559,7 +559,15 @@ bool generator_close(Value& generator, Value& out, std::string& error) {
     obj->running = false;
     if (!result.errors.empty()) {
       if (result.errors.front().find("GeneratorExit") == std::string::npos) {
+        Runtime* const runtime = obj->runtime;
         clear_generator_vm_states(*obj);
+        // VM-state/output retirement can reenter Python. The RuntimeResult
+        // owns the original exception and traceback through that cleanup;
+        // publish them afterward, without rereading the generator payload.
+        if (result.exception.tag != ValueTag::Invalid) {
+          value_assign_fast(out, result.exception);
+          runtime->set_pending_exception(result.exception);
+        }
         error = result.errors.front();
         return false;
       }
@@ -1157,7 +1165,14 @@ bool generator_close_method(Runtime& runtime, const Value* args, uint32_t argc, 
   }
   Value generator = args[0];
   if (!generator_close(generator, out, error)) {
-    runtime.raise_class_error("RuntimeError", error);
+    // Preserve Python cleanup/callback exceptions from close(), just as the
+    // ordinary callable boundary does. Synthesize only for string-only errors.
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      runtime.set_pending_exception(std::move(pending));
+    } else {
+      runtime.raise_class_error("RuntimeError", error);
+    }
     return false;
   }
   return true;

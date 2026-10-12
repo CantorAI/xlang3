@@ -849,6 +849,55 @@ bool body_contains_yield(const std::vector<ast::StmtPtr>& body) {
   return false;
 }
 
+bool class_stmt_contains_for(const ast::Stmt& stmt);
+
+bool class_body_contains_for(const std::vector<ast::StmtPtr>& body) {
+  for (const auto& stmt : body) {
+    if (class_stmt_contains_for(*stmt)) return true;
+  }
+  return false;
+}
+
+bool class_stmt_contains_for(const ast::Stmt& stmt) {
+  if (dynamic_cast<const ast::ForStmt*>(&stmt) != nullptr) return true;
+  if (auto* branch = dynamic_cast<const ast::IfStmt*>(&stmt)) {
+    return class_body_contains_for(branch->then_body) ||
+        class_body_contains_for(branch->else_body);
+  }
+  if (auto* block = dynamic_cast<const ast::WithStmt*>(&stmt))
+    return class_body_contains_for(block->body);
+  // A loop inside a method or nested class belongs to that inner scope and
+  // must not force the enclosing class to use an executed namespace. Other
+  // compound class statements are not lowered by this class-body dispatcher.
+  return false;
+}
+
+bool class_stmt_contains_annotation(const ast::Stmt& stmt);
+
+bool class_body_contains_annotation(const std::vector<ast::StmtPtr>& body) {
+  for (const auto& stmt : body) {
+    if (class_stmt_contains_annotation(*stmt)) return true;
+  }
+  return false;
+}
+
+bool class_stmt_contains_annotation(const ast::Stmt& stmt) {
+  if (dynamic_cast<const ast::AnnotatedAssignStmt*>(&stmt) != nullptr)
+    return true;
+  if (auto* branch = dynamic_cast<const ast::IfStmt*>(&stmt)) {
+    return class_body_contains_annotation(branch->then_body) ||
+        class_body_contains_annotation(branch->else_body);
+  }
+  if (auto* loop = dynamic_cast<const ast::ForStmt*>(&stmt)) {
+    return class_body_contains_annotation(loop->body) ||
+        class_body_contains_annotation(loop->else_body);
+  }
+  if (auto* block = dynamic_cast<const ast::WithStmt*>(&stmt))
+    return class_body_contains_annotation(block->body);
+  // Method and nested-class annotations are stored in their own namespaces.
+  return false;
+}
+
 bool stmt_contains_yield(const ast::Stmt& stmt) {
   if (auto* expr = dynamic_cast<const ast::ExprStmt*>(&stmt)) {
     return expr_contains_yield(*expr->expr);
@@ -4608,6 +4657,12 @@ private:
         break;
       }
     }
+    if (class_body_contains_for(klass.body)) {
+      // A class-body for-loop writes names repeatedly at runtime. Keep one
+      // live namespace so each iteration's target and body assignments remain
+      // visible to later class statements and to the final type constructor.
+      use_dynamic_namespace = true;
+    }
     {
       const auto module_reg = new_reg();
       emit(ir::Op::LoadGlobal, module_reg, add_name("__name__"));
@@ -4981,6 +5036,20 @@ private:
     const auto annotation_active_reg = new_reg();
     emit(ir::Op::MakeDict, annotation_active_reg, add_dict_items({}));
     store_named_value(annotation_active_name, annotation_active_reg);
+    uint32_t future_class_annotations_reg = UINT32_MAX;
+    if (future_annotations_ && class_body_contains_annotation(klass.body)) {
+      // Under future annotations CPython exposes the live class annotation
+      // dict to later class-body statements (for example
+      // `__slots__ = tuple(__annotations__)`). Build it before executing the
+      // body and update it at each annotation statement, rather than
+      // synthesizing it only after the body has finished.
+      future_class_annotations_reg = new_reg();
+      emit(ir::Op::MakeDict, future_class_annotations_reg, add_dict_items({}));
+      attrs.push_back(std::make_pair("__annotations__",
+                                     future_class_annotations_reg));
+      bind_class_attr_alias("__annotations__",
+                            future_class_annotations_reg);
+    }
     std::string class_cell_name;
     std::unordered_map<std::string, std::string> class_method_aliases;
 
@@ -5151,6 +5220,14 @@ private:
                add_const(Value::int64(static_cast<int64_t>(occurrence))));
           emit(ir::Op::DictSet, annotation_active_reg, annotation_key,
                annotation_occurrence);
+          if (future_class_annotations_reg != UINT32_MAX) {
+            const auto annotation_value = new_reg();
+            emit(ir::Op::LoadConst, annotation_value,
+                 add_const(Value::string(
+                     annotation_expr_to_string(*assign->annotation))));
+            emit(ir::Op::DictSet, future_class_annotations_reg,
+                 annotation_key, annotation_value);
+          }
         }
         if (assign->value != nullptr) {
           if (auto* name = dynamic_cast<const ast::NameExpr*>(assign->target.get())) {
@@ -5216,6 +5293,44 @@ private:
           self(self, *child);
         }
         patch_jump(jend, static_cast<uint32_t>(fn_.code.size()));
+      } else if (auto* loop = dynamic_cast<const ast::ForStmt*>(&stmt)) {
+        // Unlike function locals, a class-loop target is part of the class
+        // mapping. Assign through the same alias/namespace path as a direct
+        // class assignment on every iteration, then lower the loop body in
+        // class scope so reads observe the current target.
+        if (loop->is_async) {
+          lower_async_for_loop(*loop);
+          return;
+        }
+        const auto iterable_reg = lower_expr(*loop->iterable);
+        const auto iterator_reg = new_reg();
+        emit(ir::Op::GetIter, iterator_reg, iterable_reg);
+        const auto start = static_cast<uint32_t>(fn_.code.size());
+        const auto item_reg = new_reg();
+        emit(ir::Op::IterNext, item_reg, iterator_reg, 0);
+        const auto iter_next = fn_.code.size() - 1;
+        if (loop->target_expr != nullptr) {
+          assign_class_target(assign_class_target, *loop->target_expr,
+                              item_reg);
+        } else {
+          const auto name = mangle_private_identifier(loop->target);
+          attrs.push_back(std::make_pair(name, item_reg));
+          bind_class_attr_alias(loop->target, item_reg);
+        }
+        push_loop_control(start);
+        for (const auto& child : loop->body) self(self, *child);
+        auto break_jumps = pop_loop_control();
+        emit(ir::Op::Jump, start);
+        patch_iter_done(iter_next, static_cast<uint32_t>(fn_.code.size()));
+        for (const auto& child : loop->else_body) self(self, *child);
+        for (const auto jump : break_jumps) {
+          patch_jump(jump, static_cast<uint32_t>(fn_.code.size()));
+        }
+      } else if (dynamic_cast<const ast::BreakStmt*>(&stmt) != nullptr ||
+                 dynamic_cast<const ast::ContinueStmt*>(&stmt) != nullptr) {
+        // Class-body loop control uses the same loop stack and jump patching
+        // as function-body control flow.
+        lower_stmt(stmt);
       } else if (auto* with = dynamic_cast<const ast::WithStmt*>(&stmt)) {
         lower_with_custom(
             *with,
@@ -5275,29 +5390,7 @@ private:
 
     if (!class_annotations.empty()) {
       if (future_annotations_) {
-        const auto annotations_reg = new_reg();
-        emit(ir::Op::MakeDict, annotations_reg, add_dict_items({}));
-        for (const auto& item : class_annotations) {
-          const auto key_reg = new_reg();
-          emit(ir::Op::LoadConst, key_reg, add_const(Value::string(item.name)));
-          const auto get_method = new_reg();
-          emit(ir::Op::LoadAttr, get_method, annotation_active_reg,
-               add_name("get"));
-          const auto missing_reg = new_reg();
-          emit(ir::Op::LoadConst, missing_reg, add_const(Value::int64(-1)));
-          const auto active_reg = emit_call_value(
-              get_method, {key_reg, missing_reg});
-          const auto occurrence_reg = new_reg();
-          emit(ir::Op::LoadConst, occurrence_reg,
-               add_const(Value::int64(static_cast<int64_t>(item.occurrence))));
-          const auto matches_reg = new_reg();
-          emit_compare_op("==", matches_reg, active_reg, occurrence_reg);
-          const auto skip = emit_jump(ir::Op::JumpIfFalse, matches_reg);
-          const auto value_reg = new_reg();
-          emit(ir::Op::LoadConst, value_reg, add_const(Value::string(item.source)));
-          emit(ir::Op::DictSet, annotations_reg, key_reg, value_reg);
-          patch_jump(skip, static_cast<uint32_t>(fn_.code.size()));
-        }
+        const auto annotations_reg = future_class_annotations_reg;
         attrs.push_back(std::make_pair("__annotations__", annotations_reg));
         bind_class_attr_alias("__annotations__", annotations_reg);
       } else {

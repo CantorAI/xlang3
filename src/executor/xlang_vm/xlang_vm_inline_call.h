@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang_vm_arithmetic.h"
 
 #include "xlang3/interpreter.h"
+#include "xlang3/interpreter_events.h"
 #include "xlang3/builtins.h"
 #include "xlang3/object_model.h"
 
@@ -72,6 +73,13 @@ struct XlangVMArgBinaryFunctionSpec {
   Value next_constant;
   bool has_next = false;
   bool next_is_constant = false;
+};
+
+struct XlangVMClosureArgBinaryFunctionSpec {
+  uint32_t argument = 0;
+  uint32_t free_slot = 0;
+  ir::Op op = ir::Op::Add;
+  bool free_is_lhs = false;
 };
 
 XLANG3_HOT_INLINE bool xlang_vm_arg_binary_inline_value_supported(const Value& value) {
@@ -229,6 +237,395 @@ struct XlangVMClassMethodAttrIntCompareSpec {
   uint32_t attribute_name = 0;
   ir::CompareOp compare = ir::CompareOp::Lt;
 };
+
+struct XlangVMIsinstanceSlotDoubleCompareSpec {
+  uint32_t expected_class_global = 0;
+  uint32_t attribute_name = 0;
+};
+
+// Native algorithms such as _heapq call Python comparison methods without a
+// VM CALL site, so the normal call-site cache cannot remove the frame cost.
+// Recognize only `if isinstance(other, Class): return self.slot < other.slot;
+// return NotImplemented`. The executor below still checks the live builtin,
+// global class, exact receiver types, slot descriptor, observer state, and
+// exact double payloads on every call; all other cases use the Python frame.
+inline bool xlang_vm_analyze_isinstance_slot_double_compare(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    XlangVMIsinstanceSlotDoubleCompareSpec& spec) {
+  const ir::Module* function_module = fn_obj.module != nullptr
+      ? fn_obj.module.get() : &current_module;
+  if (fn_obj.function_id >= function_module->functions.size()) return false;
+  const auto& function = function_module->functions[fn_obj.function_id];
+  if (function.is_generator || function.is_async || function.is_coroutine ||
+      !xlang_vm_has_direct_positional_signature(function, 2) ||
+      !function.free_vars.empty() || !function.cell_slots.empty() ||
+      function.code.size() != 12 || function.names.empty() ||
+      function.code[0].op != ir::Op::LoadGlobalLocal ||
+      function.code[0].a >= function.names.size() ||
+      function.names[function.code[0].a] != "isinstance" ||
+      function.code[0].c != 1 ||
+      function.code[1].op != ir::Op::LoadModuleSlot ||
+      function.code[2].op != ir::Op::Call || function.code[2].a != 0 ||
+      function.call_args.empty() || function.call_args[0].size() != 2 ||
+      function.call_args[0][0] != function.code[0].b ||
+      function.call_args[0][1] != function.code[1].dst ||
+      function.code[3].op != ir::Op::JumpIfFalse ||
+      function.code[3].a != function.code[2].dst || function.code[3].dst != 9 ||
+      function.code[4].op != ir::Op::LoadLocalAttr || function.code[4].a != 0 ||
+      function.code[4].b >= function.names.size() ||
+      function.code[5].op != ir::Op::LoadLocalAttr || function.code[5].a != 1 ||
+      function.code[5].b != function.code[4].b ||
+      function.code[6].op != ir::Op::Compare ||
+      function.code[6].a != function.code[4].dst ||
+      function.code[6].b != function.code[5].dst ||
+      function.code[6].c != static_cast<uint32_t>(ir::CompareOp::Lt) ||
+      function.code[7].op != ir::Op::Return ||
+      function.code[7].a != function.code[6].dst ||
+      function.code[8].op != ir::Op::Jump || function.code[8].dst != 9 ||
+      function.code[9].op != ir::Op::LoadGlobal ||
+      function.code[9].a >= function.names.size() ||
+      function.names[function.code[9].a] != "NotImplemented" ||
+      function.code[10].op != ir::Op::Return ||
+      function.code[10].a != function.code[9].dst ||
+      function.code[11].op != ir::Op::ReturnConst ||
+      function.code[11].a >= function.constants.size() ||
+      function.constants[function.code[11].a].tag != ValueTag::None) {
+    return false;
+  }
+  spec.expected_class_global = function.code[1].a;
+  spec.attribute_name = function.code[4].b;
+  return true;
+}
+
+inline const Value* xlang_vm_find_module_binding(
+    const ModuleObject& module, const std::string& name) {
+  const auto slot = module.name_to_slot.find(name);
+  if (slot != module.name_to_slot.end() && slot->second < module.slots.size() &&
+      module.slots[slot->second].tag != ValueTag::Invalid) {
+    return &module.slots[slot->second];
+  }
+  for (const auto& item : module.extra_globals) {
+    const auto* key = value_as_string(item.first);
+    if (key != nullptr && string_object_view(*key) == name &&
+        item.second.tag != ValueTag::Invalid) {
+      return &item.second;
+    }
+  }
+  return nullptr;
+}
+
+// Recognize the callback-free integer branch of a Python `__getitem__` whose
+// body is `if isinstance(index, tuple): ...; return self.data[index]`. This
+// stays generic: it recognizes live function IR and never assumes a benchmark
+// class name or replaces Python library code.
+struct XlangVMIntAttrGetItemSpec {
+  uint32_t data_name = UINT32_MAX;
+  uint32_t isinstance_name = UINT32_MAX;
+  uint32_t tuple_name = UINT32_MAX;
+};
+
+inline bool xlang_vm_analyze_int_attr_getitem(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    ClassObject& receiver_class,
+    XlangVMIntAttrGetItemSpec& spec) {
+  const ir::Module* fn_module = fn_obj.module != nullptr
+      ? fn_obj.module.get() : &current_module;
+  if (fn_obj.function_id >= fn_module->functions.size()) return false;
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (function.is_generator || function.is_async || function.is_coroutine ||
+      !function.free_vars.empty() || !function.cell_slots.empty() ||
+      !xlang_vm_has_direct_positional_signature(function, 2) ||
+      function.code.size() != 20 || function.names.empty() ||
+      function.code[0].op != ir::Op::LoadGlobalLocal ||
+      function.code[0].a >= function.names.size() ||
+      function.names[function.code[0].a] != "isinstance" ||
+      function.code[0].c != 1 ||
+      function.code[1].op != ir::Op::LoadGlobal ||
+      function.code[1].a >= function.names.size() ||
+      function.names[function.code[1].a] != "tuple" ||
+      function.code[2].op != ir::Op::Call || function.code[2].a != 0 ||
+      function.call_args.empty() || function.call_args[0].size() != 2 ||
+      function.call_args[0][0] != function.code[0].b ||
+      function.call_args[0][1] != function.code[1].dst ||
+      function.code[3].op != ir::Op::JumpIfFalse ||
+      function.code[3].a != function.code[2].dst || function.code[3].dst != 15 ||
+      function.code[13].op != ir::Op::Return ||
+      function.code[14].op != ir::Op::Jump || function.code[14].dst != 19 ||
+      function.code[15].op != ir::Op::LoadLocalAttr || function.code[15].a != 0 ||
+      function.code[15].b >= function.names.size() ||
+      function.code[16].op != ir::Op::LoadLocal || function.code[16].a != 1 ||
+      function.code[17].op != ir::Op::GetItem ||
+      function.code[17].a != function.code[15].dst ||
+      function.code[17].b != function.code[16].dst ||
+      function.code[18].op != ir::Op::Return ||
+      function.code[18].a != function.code[17].dst ||
+      function.code[19].op != ir::Op::ReturnConst ||
+      function.code[19].a >= function.constants.size() ||
+      function.constants[function.code[19].a].tag != ValueTag::None) {
+    return false;
+  }
+
+  // The fast branch reads `self.data`. A class-level descriptor or custom
+  // attribute hook can run arbitrary Python, so retain the normal method frame.
+  if (receiver_class.has_getattribute_hook || receiver_class.has_getattr_hook) return false;
+  Value receiver_class_value;
+  receiver_class_value.tag = ValueTag::Object;
+  // This is a borrowed view: object_lookup_class_attr must not let the
+  // temporary decrement the class's owned reference when this analyzer exits.
+  receiver_class_value.flags = kXlangValueBorrowedRefFlag;
+  receiver_class_value.as.obj = &receiver_class.header;
+  Value class_value;
+  std::string lookup_error;
+  const auto& data_name = function.names[function.code[15].b];
+  if (object_lookup_class_attr(receiver_class_value, data_name, class_value, lookup_error) ||
+      !lookup_error.empty()) {
+    return false;
+  }
+  spec.data_name = function.code[15].b;
+  spec.isinstance_name = function.code[0].a;
+  spec.tuple_name = function.code[1].a;
+  return true;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_try_isinstance_slot_double_compare(
+    Runtime& runtime,
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    CallArgsView args,
+    const XlangVMIsinstanceSlotDoubleCompareSpec& spec,
+    Value& out) {
+  if (args.size() != 2 || args.has_keywords() || args.has_expansion() ||
+      runtime.trace_event_may_dispatch() || runtime.profile_event_may_dispatch() ||
+      !xlang_vm_inline_python_function_allowed(runtime, current_module, fn_obj)) {
+    return false;
+  }
+  const ir::Module* function_module = fn_obj.module != nullptr
+      ? fn_obj.module.get() : &current_module;
+  if (fn_obj.function_id >= function_module->functions.size() ||
+      spec.expected_class_global >= function_module->global_slots.size()) return false;
+  const auto* globals = value_as_module(fn_obj.globals_module);
+  if (globals == nullptr) return false;
+  const auto* expected_value = xlang_vm_find_module_binding(
+      *globals, function_module->global_slots[spec.expected_class_global]);
+  auto* expected_class = expected_value == nullptr ? nullptr : value_as_class(*expected_value);
+  auto* lhs = value_as_instance(args.get(0));
+  auto* rhs = value_as_instance(args.get(1));
+  if (expected_class == nullptr || lhs == nullptr || rhs == nullptr ||
+      value_as_class(lhs->klass) != expected_class ||
+      value_as_class(rhs->klass) != expected_class ||
+      expected_class->has_getattribute_hook || expected_class->has_getattr_hook ||
+      lhs->native_get_attr != nullptr || rhs->native_get_attr != nullptr) {
+    return false;
+  }
+
+  // `isinstance` is skipped only if this function currently resolves that
+  // name to the canonical builtin and the expected class still uses the
+  // unmodified builtin `type` metaclass check. Its exact receiver-class match
+  // then proves the true arm, while preserving all subclass/hook cases through
+  // the regular function frame.
+  const Value* canonical_isinstance = runtime.find_builtin("isinstance");
+  const auto& function = function_module->functions[fn_obj.function_id];
+  const auto* global_override = xlang_vm_find_module_binding(*globals, "isinstance");
+  const Value* resolved_isinstance = global_override;
+  Value resolved_builtin;
+  if (resolved_isinstance == nullptr) {
+    if (auto* builtins = value_as_module(fn_obj.builtins)) {
+      resolved_isinstance = xlang_vm_find_module_binding(*builtins, "isinstance");
+    } else if (mapping_is_dict(fn_obj.builtins)) {
+      std::string ignored;
+      if (mapping_get_string_item(fn_obj.builtins, "isinstance", resolved_builtin, ignored)) {
+        resolved_isinstance = &resolved_builtin;
+      }
+    }
+  }
+  const Value* builtin_type_value = runtime.find_builtin("type");
+  auto* builtin_type = builtin_type_value == nullptr
+      ? nullptr : value_as_class(*builtin_type_value);
+  if (canonical_isinstance == nullptr || resolved_isinstance == nullptr ||
+      !value_is(*resolved_isinstance, *canonical_isinstance) ||
+      builtin_type == nullptr || !value_is(expected_class->metaclass, *builtin_type_value) ||
+      builtin_type->version != builtin_type->builtin_type_check_version ||
+      spec.attribute_name >= function.names.size()) {
+    return false;
+  }
+
+  // LoadLocalAttr uses this same raw-slot path for a live matching member
+  // descriptor. Verify the descriptor and both initialized exact-float slots
+  // before skipping the interpreter; this makes the committed compare
+  // non-failing and avoids replaying any Python code on rejection.
+  const auto slot = expected_class->instance_slot_indices.find(
+      function.names[spec.attribute_name]);
+  if (slot == expected_class->instance_slot_indices.end() ||
+      slot->second >= instance_slot_count(lhs) ||
+      slot->second >= instance_slot_count(rhs)) return false;
+  Value descriptor;
+  std::string ignored;
+  if (!object_lookup_class_attr(lhs->klass,
+                                function.names[spec.attribute_name], descriptor, ignored)) {
+    return false;
+  }
+  const auto* slot_descriptor = value_as_slot_descriptor(descriptor);
+  if (slot_descriptor == nullptr || slot_descriptor->name != function.names[spec.attribute_name] ||
+      slot_descriptor->index != slot->second ||
+      (value_as_class(slot_descriptor->owner_class) != nullptr &&
+       !class_is_subclass(expected_class, value_as_class(slot_descriptor->owner_class)))) {
+    return false;
+  }
+  const auto& lhs_value = instance_slot_at(lhs, slot->second);
+  const auto& rhs_value = instance_slot_at(rhs, slot->second);
+  if (lhs_value.tag != ValueTag::Double || rhs_value.tag != ValueTag::Double) return false;
+  value_set_bool(out, lhs_value.as.f64 < rhs_value.as.f64);
+  return true;
+}
+
+// Native _heapq enters rich comparison without an IR CALL site. Re-running
+// the shape analyzer, global/builtin lookups, class-slot map lookup, and
+// descriptor/MRO validation for every TimerHandle comparison costs more than
+// the two slot loads. Cache that proof on the receiver class, whose version
+// changes on method/layout mutation. Module versions guard rebinding of
+// `isinstance` and the expected class; code_version guards __code__ changes.
+// The record is lazy and owns no Values, so it cannot extend Python lifetimes.
+XLANG3_HOT_INLINE bool xlang_vm_try_cached_slot_double_compare(
+    Runtime& runtime,
+    const ir::Module& current_module,
+    FunctionObject& fn_obj,
+    ClassObject& receiver_class,
+    const Value& lhs_value,
+    const Value& rhs_value,
+    ClassRichCompareFunctionCache& method_cache,
+    Value& out) {
+  if (runtime.trace_event_may_dispatch() || runtime.profile_event_may_dispatch() ||
+      interpreter_pending_events() != 0 ||
+      !xlang_vm_inline_python_function_allowed(runtime, current_module, fn_obj)) {
+    return false;
+  }
+  const ir::Module* function_module = fn_obj.module != nullptr
+      ? fn_obj.module.get() : &current_module;
+  if (fn_obj.function_id >= function_module->functions.size()) return false;
+  auto* globals = value_as_module(fn_obj.globals_module);
+  auto* builtins = value_as_module(fn_obj.builtins);
+  if (globals == nullptr || builtins == nullptr || method_cache.function != &fn_obj) {
+    return false;
+  }
+
+  auto& cache = method_cache.slot_double_compare;
+  if (cache != nullptr && cache->state != 0 &&
+      cache->function_code_version == fn_obj.code_version &&
+      cache->globals_version == globals->version &&
+      cache->builtins_version == builtins->version &&
+      cache->receiver_class_version == receiver_class.version) {
+    if (cache->state != 2) return false;
+    // The class and module generations above prove the runtime-owned builtin
+    // target is live. The receiver class itself owns this cache, while a global
+    // rebind invalidates its module version before a different class is used.
+    auto* expected_class = &receiver_class;
+    auto* builtin_type = reinterpret_cast<ClassObject*>(cache->builtin_type);
+    if (builtin_type == nullptr ||
+        expected_class->version != cache->receiver_class_version ||
+        builtin_type->version != cache->builtin_type_version ||
+        builtin_type->version != builtin_type->builtin_type_check_version) {
+      return false;
+    }
+    auto* lhs = value_as_instance(lhs_value);
+    auto* rhs = value_as_instance(rhs_value);
+    if (lhs == nullptr || rhs == nullptr ||
+        value_as_class(lhs->klass) != expected_class ||
+        value_as_class(rhs->klass) != expected_class ||
+        lhs->native_get_attr != nullptr || rhs->native_get_attr != nullptr ||
+        cache->slot_index >= instance_slot_count(lhs) ||
+        cache->slot_index >= instance_slot_count(rhs)) {
+      return false;
+    }
+    const auto& lhs_slot = instance_slot_at(lhs, cache->slot_index);
+    const auto& rhs_slot = instance_slot_at(rhs, cache->slot_index);
+    if (lhs_slot.tag != ValueTag::Double || rhs_slot.tag != ValueTag::Double) return false;
+    value_set_bool(out, lhs_slot.as.f64 < rhs_slot.as.f64);
+    return true;
+  }
+
+  // Reject ordinary comparison methods with a few cheap opcode-shape checks
+  // before allocating the lazy per-class record. Only the candidate idiom
+  // below pays the full analyzer and cache-allocation cost.
+  const auto& candidate = function_module->functions[fn_obj.function_id];
+  if (candidate.code.size() != 12 ||
+      candidate.code[0].op != ir::Op::LoadGlobalLocal ||
+      candidate.code[1].op != ir::Op::LoadModuleSlot ||
+      candidate.code[4].op != ir::Op::LoadLocalAttr ||
+      candidate.code[5].op != ir::Op::LoadLocalAttr ||
+      candidate.code[6].op != ir::Op::Compare ||
+      candidate.code[11].op != ir::Op::ReturnConst) {
+    return false;
+  }
+  XlangVMIsinstanceSlotDoubleCompareSpec spec;
+  if (!xlang_vm_analyze_isinstance_slot_double_compare(
+          *function_module, fn_obj, spec) ||
+      spec.expected_class_global >= function_module->global_slots.size()) {
+    return false;
+  }
+
+  if (cache == nullptr) cache = std::make_unique<ClassRichCompareFunctionCache::SlotDoubleCompare>();
+  cache->function_code_version = fn_obj.code_version;
+  cache->globals_version = globals->version;
+  cache->builtins_version = builtins->version;
+  cache->receiver_class_version = receiver_class.version;
+  cache->builtin_type = nullptr;
+  cache->state = 1;
+
+  const auto* expected_value = xlang_vm_find_module_binding(
+      *globals, function_module->global_slots[spec.expected_class_global]);
+  auto* expected_class = expected_value == nullptr ? nullptr : value_as_class(*expected_value);
+  const Value* canonical_isinstance = runtime.find_builtin("isinstance");
+  const auto* resolved_isinstance = xlang_vm_find_module_binding(*globals, "isinstance");
+  if (resolved_isinstance == nullptr) {
+    resolved_isinstance = xlang_vm_find_module_binding(*builtins, "isinstance");
+  }
+  const Value* builtin_type_value = runtime.find_builtin("type");
+  auto* builtin_type = builtin_type_value == nullptr
+      ? nullptr : value_as_class(*builtin_type_value);
+  if (expected_class == nullptr || expected_class != &receiver_class ||
+      expected_class->has_getattribute_hook || expected_class->has_getattr_hook ||
+      canonical_isinstance == nullptr || resolved_isinstance == nullptr ||
+      !value_is(*resolved_isinstance, *canonical_isinstance) ||
+      builtin_type == nullptr || !value_is(expected_class->metaclass, *builtin_type_value) ||
+      builtin_type->version != builtin_type->builtin_type_check_version ||
+      spec.attribute_name >= function_module->functions[fn_obj.function_id].names.size()) {
+    return false;
+  }
+  const auto& function = function_module->functions[fn_obj.function_id];
+  const std::string& attribute_name = function.names[spec.attribute_name];
+  const auto slot = expected_class->instance_slot_indices.find(attribute_name);
+  if (slot == expected_class->instance_slot_indices.end()) return false;
+  auto* lhs = value_as_instance(lhs_value);
+  if (lhs == nullptr) return false;
+  Value descriptor_value;
+  std::string ignored;
+  if (!object_lookup_class_attr(lhs->klass, attribute_name, descriptor_value, ignored)) return false;
+  auto* descriptor = value_as_slot_descriptor(descriptor_value);
+  if (descriptor == nullptr || descriptor->name != attribute_name ||
+      descriptor->index != slot->second) return false;
+  auto* descriptor_owner = value_as_class(descriptor->owner_class);
+  if (descriptor_owner != nullptr && !class_is_subclass(expected_class, descriptor_owner)) return false;
+
+  cache->builtin_type = &builtin_type->header;
+  cache->builtin_type_version = builtin_type->version;
+  cache->slot_index = slot->second;
+  cache->state = 2;
+
+  auto* rhs = value_as_instance(rhs_value);
+  if (lhs == nullptr || rhs == nullptr ||
+      value_as_class(lhs->klass) != expected_class ||
+      value_as_class(rhs->klass) != expected_class ||
+      lhs->native_get_attr != nullptr || rhs->native_get_attr != nullptr ||
+      slot->second >= instance_slot_count(lhs) ||
+      slot->second >= instance_slot_count(rhs)) return false;
+  const auto& lhs_slot = instance_slot_at(lhs, slot->second);
+  const auto& rhs_slot = instance_slot_at(rhs, slot->second);
+  if (lhs_slot.tag != ValueTag::Double || rhs_slot.tag != ValueTag::Double) return false;
+  value_set_bool(out, lhs_slot.as.f64 < rhs_slot.as.f64);
+  return true;
+}
 
 inline bool xlang_vm_analyze_classmethod_attr_int_compare(
     const ir::Module& current_module,
@@ -1034,6 +1431,77 @@ inline bool xlang_vm_analyze_arg_binary_function(
   return true;
 }
 
+// A tiny closure call still pays for a full VM frame and copies its captured
+// cell into that frame on every invocation. Specialize only the exact
+// one-argument/one-free-cell binary-expression body; the call site re-reads
+// the live cell each time and only executes immediate scalar operands. Custom
+// objects, empty cells, tracing, and every other shape keep normal call
+// semantics and frame visibility.
+inline bool xlang_vm_analyze_closure_arg_binary_function(
+    const ir::Module& current_module,
+    const FunctionObject& fn_obj,
+    uint32_t argc,
+    XlangVMClosureArgBinaryFunctionSpec& spec) {
+  const ir::Module* function_module = fn_obj.module != nullptr
+      ? fn_obj.module.get() : &current_module;
+  if (fn_obj.function_id >= function_module->functions.size()) return false;
+  const auto& function = function_module->functions[fn_obj.function_id];
+  if (function.is_generator || !function.cell_slots.empty() ||
+      function.free_vars.size() != 1 ||
+      !xlang_vm_has_direct_positional_signature(function, argc) ||
+      function.code.size() != 5) return false;
+
+  const auto& first = function.code[0];
+  const auto& second = function.code[1];
+  const auto& binary = function.code[2];
+  const auto& ret = function.code[3];
+  const auto& implicit_return = function.code[4];
+  if (ret.op != ir::Op::Return || ret.a != binary.dst ||
+      implicit_return.op != ir::Op::ReturnConst ||
+      implicit_return.a >= function.constants.size() ||
+      function.constants[implicit_return.a].tag != ValueTag::None ||
+      !xlang_vm_is_inline_binary_op(binary.op)) return false;
+
+  if (first.op == ir::Op::LoadLocal && first.a < argc &&
+      second.op == ir::Op::LoadFree && second.a == 0 &&
+      binary.a == first.dst && binary.b == second.dst) {
+    spec.argument = first.a;
+    spec.free_slot = second.a;
+    spec.op = binary.op;
+    spec.free_is_lhs = false;
+    return true;
+  }
+  if (first.op == ir::Op::LoadFree && first.a == 0 &&
+      second.op == ir::Op::LoadLocal && second.a < argc &&
+      binary.a == first.dst && binary.b == second.dst) {
+    spec.argument = second.a;
+    spec.free_slot = first.a;
+    spec.op = binary.op;
+    spec.free_is_lhs = true;
+    return true;
+  }
+  return false;
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_execute_closure_arg_binary_function(
+    CallArgsView args,
+    const std::vector<Value>& closure,
+    const XlangVMClosureArgBinaryFunctionSpec& spec,
+    Value& out,
+    std::string& error) {
+  if (spec.argument >= args.size() || spec.free_slot >= closure.size()) return false;
+  const auto* cell = value_as_cell(closure[spec.free_slot]);
+  if (cell == nullptr || !xlang_vm_arg_binary_inline_value_supported(cell->value) ||
+      !xlang_vm_arg_binary_inline_value_supported(args.get(spec.argument))) {
+    // A cleared cell or user-defined arithmetic must go through LoadFree and
+    // normal Python dispatch so exception timing and __add__/__radd__ remain.
+    return false;
+  }
+  const Value& lhs = spec.free_is_lhs ? cell->value : args.get(spec.argument);
+  const Value& rhs = spec.free_is_lhs ? args.get(spec.argument) : cell->value;
+  return xlang_vm_execute_binary_op(spec.op, lhs, rhs, out, error);
+}
+
 inline bool xlang_vm_analyze_slot_constructor(
     const ir::Module& current_module,
     const FunctionObject& fn_obj,
@@ -1477,7 +1945,7 @@ XLANG3_NOINLINE inline bool xlang_vm_prepare_own_canonical_slot_constructor(
   const auto& function = function_module->functions[function_object.function_id];
   if (function.is_generator || function.is_async || function.is_coroutine ||
       function.params.size() < 2) return false;
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   std::string error;
   if (!class_get_mro_values(klass, mro, error) ||
       mro == nullptr || mro->size() != 2 || value_as_class((*mro)[0]) != klass ||
@@ -1566,8 +2034,8 @@ XLANG3_NOINLINE inline void xlang_vm_remember_class_canonical_slot_constructor(
       value_as_class(klass->metaclass) != metaclass ||
       klass->native_type_constructor != nullptr || initializer.module == nullptr ||
       object_class->name != "object" || metaclass->name != "type" || slots.empty()) return;
-  const std::vector<Value>* type_mro = nullptr;
-  const std::vector<Value>* object_mro = nullptr;
+  const ClassMroValues* type_mro = nullptr;
+  const ClassMroValues* object_mro = nullptr;
   std::string error;
   if (!class_get_mro_values(metaclass, type_mro, error) || type_mro == nullptr ||
       type_mro->size() != 2 || value_as_class((*type_mro)[0]) != metaclass ||
@@ -1728,6 +2196,7 @@ XLANG3_HOT_INLINE bool xlang_vm_execute_self_binary_method(
 
 using SelfBinaryMethodSpec = XlangVMSelfBinaryMethodSpec;
 using ArgBinaryFunctionSpec = XlangVMArgBinaryFunctionSpec;
+using ClosureArgBinaryFunctionSpec = XlangVMClosureArgBinaryFunctionSpec;
 using SlotConstructorSpec = XlangVMSlotConstructorSpec;
 
 inline bool analyze_self_binary_method(

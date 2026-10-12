@@ -62,6 +62,9 @@ struct DictObject {
 
 // Includes Python dict subclasses while excluding other mapping protocols.
 bool mapping_is_dict(const Value& value);
+// Return the built-in storage for a dict or dict subclass. Keyword expansion
+// follows dict storage semantics and intentionally bypasses subclass overrides.
+DictObject* mapping_dict_storage(const Value& value);
 
 struct MappingProxyObject {
   Object header;

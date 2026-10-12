@@ -29,9 +29,11 @@ limitations under the License.
 #include "xlang3/set_object.h"
 #include "xlang3/value.h"
 #include "xlang3/value_hash.h"
+#include "../executor/xlang_vm/xlang_vm_inline_call.h"
 
 #include <algorithm>
 #include <cctype>
+#include <cstring>
 #include <iomanip>
 #include <mutex>
 #include <sstream>
@@ -461,6 +463,7 @@ void recycle_instance_object(InstanceObject* instance) {
   instance->native_get_attr = nullptr;
   instance->native_set_attr = nullptr;
   instance->native_delete_attr = nullptr;
+  instance->native_trace_hook = nullptr;
   instance->finalizer_started = false;
   for (uint32_t i = 0; i < instance->slot_count && i < 8; ++i) {
     value_set_invalid(instance->inline_slots[i]);
@@ -559,6 +562,7 @@ void invalidate_class_lookup_caches(ClassObject* klass, std::unordered_set<Class
   }
   klass->mro_cache.clear();
   klass->mro_cache_version = 0;
+  klass->mro_values_view.clear();
   klass->version = next_class_version_tag();
   for (auto* subclass : klass->subclasses) {
     invalidate_class_lookup_caches(subclass, visited);
@@ -568,6 +572,32 @@ void invalidate_class_lookup_caches(ClassObject* klass, std::unordered_set<Class
 void invalidate_class_lookup_caches(ClassObject* klass) {
   std::unordered_set<ClassObject*> visited;
   invalidate_class_lookup_caches(klass, visited);
+}
+
+void invalidate_public_mro_caches(ClassObject* klass) {
+  if (klass == nullptr) return;
+  // Pin the affected hierarchy first and move every old tuple aside before
+  // releasing any owner. A tuple destructor can retire class values, so all
+  // caches and hierarchy links must already describe the new MRO then.
+  std::vector<ClassObject*> pending{klass};
+  std::unordered_set<ClassObject*> visited;
+  std::vector<Value> owners;
+  while (!pending.empty()) {
+    auto* current = pending.back();
+    pending.pop_back();
+    if (current == nullptr || !visited.insert(current).second) continue;
+    current->mro_values_view.clear();
+    owners.push_back(class_value(current));
+    pending.insert(pending.end(), current->subclasses.begin(), current->subclasses.end());
+  }
+  std::vector<Value> retired;
+  retired.reserve(owners.size());
+  for (const auto& owner : owners) {
+    auto* current = value_as_class(owner);
+    if (current != nullptr && current->public_mro_cache.tag != ValueTag::Invalid) {
+      retired.push_back(std::move(current->public_mro_cache));
+    }
+  }
 }
 
 void invalidate_descriptor_client_caches(ClassObject* descriptor_class, const std::string& name) {
@@ -604,6 +634,7 @@ void invalidate_descriptor_client_caches(ClassObject* descriptor_class, const st
       current->has_descriptors = true;
       current->mro_cache.clear();
       current->mro_cache_version = 0;
+      current->mro_values_view.clear();
       current->version = next_class_version_tag();
       descendants.insert(descendants.end(), current->subclasses.begin(), current->subclasses.end());
     }
@@ -640,7 +671,7 @@ bool contains_class(const std::vector<const ClassObject*>& classes, const ClassO
 
 bool build_class_mro_classes(const ClassObject* klass, std::vector<const ClassObject*>& out, std::string& error);
 
-bool class_mro_values(ClassObject* klass, const std::vector<Value>*& out, std::string& error);
+bool class_mro_values(ClassObject* klass, const ClassMroValues*& out, std::string& error);
 bool class_lookup_attr(ClassObject* klass, const std::string& name, Value& out, std::string& error);
 
 bool attr_truthy_marker(ClassObject* klass, const std::string& name) {
@@ -809,7 +840,7 @@ bool finalize_enum_class(ClassObject& klass) {
 }
 
 bool class_mro_classes(ClassObject* klass, std::vector<const ClassObject*>& out, std::string& error) {
-  const std::vector<Value>* values = nullptr;
+  const ClassMroValues* values = nullptr;
   if (!class_mro_values(klass, values, error)) {
     return false;
   }
@@ -889,9 +920,15 @@ bool build_class_mro_classes(const ClassObject* klass, std::vector<const ClassOb
   return true;
 }
 
-bool class_mro_values(ClassObject* klass, const std::vector<Value>*& out, std::string& error) {
+bool class_mro_values(ClassObject* klass, const ClassMroValues*& out, std::string& error) {
+  if (auto* public_mro = value_as_tuple(klass->public_mro_cache)) {
+    klass->mro_values_view.bind(&public_mro->items);
+    out = &klass->mro_values_view;
+    return true;
+  }
   if (klass->mro_cache_version == klass->version && !klass->mro_cache.empty()) {
-    out = &klass->mro_cache;
+    klass->mro_values_view.bind(&klass->mro_cache);
+    out = &klass->mro_values_view;
     return true;
   }
 
@@ -914,7 +951,8 @@ bool class_mro_values(ClassObject* klass, const std::vector<Value>*& out, std::s
   }
   klass->mro_cache = std::move(values);
   klass->mro_cache_version = klass->version;
-  out = &klass->mro_cache;
+  klass->mro_values_view.bind(&klass->mro_cache);
+  out = &klass->mro_values_view;
   return true;
 }
 
@@ -964,7 +1002,7 @@ bool class_has_builtin_base_name_impl(ClassObject* klass, std::string_view name)
   // Instance creation asks this for several builtin container bases. Read the
   // cached Value MRO directly instead of materializing a temporary vector of
   // class pointers for each query (and each new instance).
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   std::string ignored;
   if (!class_mro_values(klass, mro, ignored)) {
     return false;
@@ -979,7 +1017,7 @@ bool class_has_builtin_base_name_impl(ClassObject* klass, std::string_view name)
 }
 
 bool class_lookup_attr(ClassObject* klass, const std::string& name, Value& out, std::string& error) {
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   if (!class_mro_values(klass, mro, error)) {
     return false;
   }
@@ -1123,7 +1161,7 @@ bool object_model_inherited_concrete_attr(ClassObject& klass, const std::string&
     if (base_class == nullptr) {
       continue;
     }
-    const std::vector<Value>* mro = nullptr;
+    const ClassMroValues* mro = nullptr;
     std::string ignored;
     if (!class_mro_values(base_class, mro, ignored)) {
       auto it = base_class->attrs.find(name);
@@ -1976,7 +2014,7 @@ uint8_t class_instance_container_traits(ClassObject* klass) {
     return klass->instance_container_traits;
   }
   uint8_t traits = 0;
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   std::string ignored;
   if (class_mro_values(klass, mro, ignored)) {
     for (const auto& value : *mro) {
@@ -2218,33 +2256,101 @@ bool runtime_value_compare(
     if (instance == nullptr || method_name == nullptr) return true;
     auto* klass = value_as_class(instance->klass);
     bool invert_result = false;
-    Value overridden_eq;
-    Value overridden_ne;
-    std::string lookup_error;
-    const bool has_overridden_eq = klass != nullptr &&
-        object_lookup_class_attr_before_base(instance->klass, "__eq__",
-                                             "object", overridden_eq,
-                                             lookup_error);
-    lookup_error.clear();
-    const bool has_overridden_ne = klass != nullptr &&
-        object_lookup_class_attr_before_base(instance->klass, "__ne__",
-                                             "object", overridden_ne,
-                                             lookup_error);
+    // Only != may fall back from __ne__ to __eq__. Ordering operations such as
+    // __lt__ are common in native heap algorithms and must not walk the class
+    // hierarchy for equality methods on every comparison.
+    bool has_overridden_eq = false;
+    bool has_overridden_ne = false;
+    if (op == "!=" && klass != nullptr) {
+      Value overridden_eq;
+      Value overridden_ne;
+      std::string lookup_error;
+      has_overridden_eq = object_lookup_class_attr_before_base(
+          instance->klass, "__eq__", "object", overridden_eq, lookup_error);
+      lookup_error.clear();
+      has_overridden_ne = object_lookup_class_attr_before_base(
+          instance->klass, "__ne__", "object", overridden_ne, lookup_error);
+    }
     if (op == "!=" && !has_overridden_ne && has_overridden_eq) {
       method_name = "__eq__";
       invert_result = true;
     }
+    const bool has_direct_comparison =
+        klass != nullptr && klass->attrs.find(method_name) != klass->attrs.end();
+    // Builtin-base checks matter only when lookup would inherit the comparison.
+    // Check the common direct-method case first so rich comparisons from native
+    // algorithms do not scan the MRO four times for an answer already known.
     const bool inherited_numeric_comparison =
-        klass != nullptr &&
+        klass != nullptr && !has_direct_comparison &&
         (class_has_builtin_base_name(klass, "int") ||
-         class_has_builtin_base_name(klass, "float")) &&
-        klass->attrs.find(method_name) == klass->attrs.end();
+         class_has_builtin_base_name(klass, "float"));
     const bool inherited_container_comparison =
-        klass != nullptr &&
+        klass != nullptr && !has_direct_comparison &&
         (class_has_builtin_base_name(klass, "list") ||
-         class_has_builtin_base_name(klass, "dict")) &&
-        klass->attrs.find(method_name) == klass->attrs.end();
+         class_has_builtin_base_name(klass, "dict"));
     if (inherited_numeric_comparison || inherited_container_comparison) return true;
+
+    // Native algorithms such as _heapq enter rich comparison from C++ rather
+    // than an IR CALL instruction, so per-callsite caches cannot help here.
+    // For ordering, cache only raw Python __lt__/__gt__ functions on the live
+    // receiver class and invoke them with the explicit receiver. This skips a
+    // repeated MRO walk and temporary bound-method allocation while retaining
+    // the ordinary Python frame, monitoring, exceptions, and NotImplemented
+    // fallback. The class version is checked before touching the weak pointer;
+    // descriptor and native-method cases stay on the generic path.
+    if (op == "<" && method_name != nullptr) {
+      auto* instance = value_as_instance(target);
+      auto* receiver_class = instance == nullptr ? nullptr : value_as_class(instance->klass);
+      ClassRichCompareFunctionCache* cache = nullptr;
+      if (receiver_class != nullptr) {
+        if (std::strcmp(method_name, "__lt__") == 0) {
+          cache = &receiver_class->rich_compare_lt_cache;
+        } else if (std::strcmp(method_name, "__gt__") == 0) {
+          cache = &receiver_class->rich_compare_gt_cache;
+        }
+      }
+
+      Value raw_function;
+      if (cache != nullptr && cache->class_version == receiver_class->version &&
+          cache->function != nullptr) {
+        raw_function.tag = ValueTag::Object;
+        raw_function.as.obj = &cache->function->header;
+        retain(raw_function);
+      } else if (receiver_class != nullptr && cache != nullptr) {
+        Value resolved;
+        std::string lookup_error;
+        if (class_lookup_attr(receiver_class, method_name, resolved, lookup_error)) {
+          if (auto* function = value_as_function(resolved)) {
+            cache->function = function;
+            cache->class_version = receiver_class->version;
+            raw_function = std::move(resolved);
+          }
+        }
+      }
+
+      if (raw_function.tag != ValueTag::Invalid) {
+        // The operands remain owned by the comparison caller through this
+        // synchronous call. Borrowing avoids two refcount retain/release pairs
+        // per native rich-comparison callback; a normal Python frame takes
+        // ownership when it binds the arguments.
+        if (cache != nullptr && cache->class_version == receiver_class->version &&
+            cache->function != nullptr && cache->function->module != nullptr &&
+            xlang_vm_try_cached_slot_double_compare(
+                runtime, *cache->function->module, *cache->function,
+                *receiver_class, target, argument, *cache, out)) {
+          handled = true;
+          return true;
+        }
+        Value call_args[2];
+        value_borrow_assign_fast(call_args[0], target);
+        value_borrow_assign_fast(call_args[1], argument);
+        if (!runtime_call_callable(runtime, raw_function, call_args, 2, out, error)) return false;
+        const Value* not_implemented = runtime.find_builtin("NotImplemented");
+        handled = not_implemented == nullptr || !value_is(out, *not_implemented);
+        return true;
+      }
+    }
+
     Value method;
     std::string ignored;
     if (!object_get_special_method(runtime, target, method_name, method, ignored)) return true;
@@ -2759,7 +2865,10 @@ bool runtime_value_contains(
         }
       }
       size_t raw = 0;
-      if (!value_hash_key(value, raw, error)) return false;
+      // Set insertion records hashes through runtime_value_hash_key. Use the
+      // same recursive path here so tuples containing user-hashable values
+      // probe the bucket chosen at insertion rather than an identity hash.
+      if (!runtime_value_hash_key(runtime, value, raw, error)) return false;
       hash = static_cast<int64_t>(raw);
       return true;
     };
@@ -3004,7 +3113,7 @@ bool slot_descriptor_validate_receiver_owner(
 
 bool class_allows_raw_instance_slot_fallback(
     ClassObject* klass, const std::string& name, std::string* owner_error) {
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   std::string ignored;
   if (klass == nullptr || !class_mro_values(klass, mro, ignored)) return true;
   bool explicit_name = false;
@@ -3424,7 +3533,7 @@ bool lookup_super_attribute(
     }
   } else if (auto* self_klass = value_as_class(super.self)) {
     lookup_klass = self_klass;
-    const std::vector<Value>* self_mro = nullptr;
+    const ClassMroValues* self_mro = nullptr;
     std::string self_mro_error;
     if (class_mro_values(self_klass, self_mro, self_mro_error)) {
       const bool target_in_class_mro = std::any_of(
@@ -3437,7 +3546,7 @@ bool lookup_super_attribute(
       }
     }
   }
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   if (!class_mro_values(lookup_klass, mro, error)) {
     return false;
   }
@@ -4649,11 +4758,22 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       return true;
     }
     if (name == "__mro__") {
-      const std::vector<Value>* mro = nullptr;
+      if (klass->public_mro_cache.tag != ValueTag::Invalid) {
+        value_assign_fast(out, klass->public_mro_cache);
+        return true;
+      }
+      const ClassMroValues* mro = nullptr;
       if (!class_mro_values(klass, mro, error)) {
         return false;
       }
-      out = Value::tuple(*mro);
+      out = Value::tuple(mro->to_vector());
+      value_assign_fast(klass->public_mro_cache, out);
+      auto* public_tuple = value_as_tuple(klass->public_mro_cache);
+      klass->mro_values_view.bind(&public_tuple->items);
+      // The published tuple now owns the canonical MRO references. Release
+      // the duplicate lookup vector only after replacing its storage view.
+      std::vector<Value> retired_mro = std::move(klass->mro_cache);
+      klass->mro_cache_version = 0;
       return true;
     }
     if (name == "__flags__") {
@@ -4684,6 +4804,17 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
     if (name == "__dict__") {
       out = mapping_proxy(object);
       return true;
+    }
+    if (name == "__weakref__") {
+      // A class-body value takes precedence over the implicit weakref
+      // descriptor. dataclasses.field(init=False) uses this to declare its
+      // generated weakref slot, so hiding the value makes it look like a
+      // defaulted constructor argument during dataclass processing.
+      const auto explicit_weakref = klass->attrs.find(name);
+      if (explicit_weakref != klass->attrs.end()) {
+        value_assign_fast(out, explicit_weakref->second);
+        return true;
+      }
     }
     if (name == "__weakref__" && klass->allow_weakref) {
       out = slot_descriptor(klass->name, "__weakref__", UINT32_MAX);
@@ -4906,7 +5037,7 @@ bool object_get_attr(const Value& object, const std::string& name, Value& out, s
       }
     }
     if (name == "__text_signature__") {
-      const std::vector<Value>* mro = nullptr;
+      const ClassMroValues* mro = nullptr;
       if (!class_mro_values(klass, mro, error)) {
         return false;
       }
@@ -5428,6 +5559,10 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
 
       const auto previous_bases = klass->bases;
       const Value previous_base = klass->base;
+      // Validate against the prospective hierarchy, but retain the old public
+      // tuple so failed C3 validation can restore its stable identity.
+      Value previous_public_mro = std::move(klass->public_mro_cache);
+      klass->mro_values_view.clear();
       for (const auto& previous : klass->bases) {
         class_unregister_subclass(value_as_class(previous), klass);
       }
@@ -5438,7 +5573,7 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
       }
       invalidate_class_lookup_caches(klass);
 
-      const std::vector<Value>* validated_mro = nullptr;
+      const ClassMroValues* validated_mro = nullptr;
       if (!class_mro_values(klass, validated_mro, error)) {
         for (const auto& requested : klass->bases) {
           class_unregister_subclass(value_as_class(requested), klass);
@@ -5449,8 +5584,10 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
           class_register_subclass(value_as_class(previous), klass);
         }
         invalidate_class_lookup_caches(klass);
+        klass->public_mro_cache = std::move(previous_public_mro);
         return false;
       }
+      invalidate_public_mro_caches(klass);
       return true;
     }
     if (name == "__isabstractmethod__") {
@@ -5672,6 +5809,10 @@ static bool class_set_base_impl(
   // SDK/native base mutation cannot certify the historical layout. Python
   // construction alone preserves metadata captured before descriptor dedup.
   if (!construction) klass_obj->own_instance_slot_declarations_known = false;
+  // Do not let a previously exposed tuple describe the prospective hierarchy.
+  // Keep its owner alive through the change; successful invalidation retires it.
+  [[maybe_unused]] Value previous_public_mro = std::move(klass_obj->public_mro_cache);
+  klass_obj->mro_values_view.clear();
   invalidate_class_lookup_caches(klass_obj);
   std::vector<std::string> own_slots;
   for (const auto& attr : klass_obj->attrs) {
@@ -5703,6 +5844,7 @@ static bool class_set_base_impl(
   klass_obj->bases.push_back(base);
   if (auto* base_class = added_base_class) {
     if (!choose_compatible_metaclass(klass_obj->metaclass, base_class->metaclass, error)) {
+      invalidate_public_mro_caches(klass_obj);
       return false;
     }
     klass_obj->has_descriptors = klass_obj->has_descriptors || class_or_bases_have_descriptors(base_class);
@@ -5758,10 +5900,12 @@ static bool class_set_base_impl(
   update_abc_abstract_methods_for_class(*klass_obj);
   if (!finalize_enum_class(*klass_obj)) {
     error = "enum class finalization failed";
+    invalidate_public_mro_caches(klass_obj);
     return false;
   }
   class_register_subclass(added_base_class, klass_obj);
   invalidate_class_lookup_caches(klass_obj);
+  invalidate_public_mro_caches(klass_obj);
   return true;
 }
 
@@ -5790,7 +5934,7 @@ bool class_get_subclasses(const Value& klass, Value& out, std::string& error) {
   return true;
 }
 
-bool class_get_mro_values(ClassObject* klass, const std::vector<Value>*& out, std::string& error) {
+bool class_get_mro_values(ClassObject* klass, const ClassMroValues*& out, std::string& error) {
   return class_mro_values(klass, out, error);
 }
 
@@ -5802,7 +5946,7 @@ XLANG3_NOINLINE bool class_is_subclass(const ClassObject* klass, const ClassObje
   // classes. Reading the version-guarded Value MRO directly avoids allocating
   // a temporary pointer vector for every query. Class/base mutations
   // invalidate the same MRO cache, so dynamic inheritance remains observable.
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   std::string error;
   if (!class_mro_values(const_cast<ClassObject*>(klass), mro, error)) {
     return false;
@@ -6026,7 +6170,7 @@ bool object_lookup_class_attr_before_base(
     error = "object is not a class";
     return false;
   }
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   if (!class_mro_values(klass_obj, mro, error)) return false;
   for (const auto& class_value : *mro) {
     auto* candidate = value_as_class(class_value);
@@ -6051,7 +6195,7 @@ bool object_lookup_inherited_class_attr(
     error = "object is not a class";
     return false;
   }
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   if (!class_mro_values(klass_obj, mro, error)) {
     return false;
   }
@@ -6139,6 +6283,7 @@ bool instance_set_native_owner(Value instance, std::string native_type, void* na
   instance_obj->native_get_attr = nullptr;
   instance_obj->native_set_attr = nullptr;
   instance_obj->native_delete_attr = nullptr;
+  instance_obj->native_trace_hook = nullptr;
   return true;
 }
 

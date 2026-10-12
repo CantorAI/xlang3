@@ -51,22 +51,31 @@ struct EvalLocalsContext {
   Runtime* runtime;
   const ir::Function* function;
   Value locals;
+
+  EvalLocalsContext(Runtime* owner, const ir::Function* entry, const Value& mapping)
+      : runtime(owner), function(entry), locals(mapping) {}
 };
-thread_local std::vector<EvalLocalsContext> eval_locals_stack;
+thread_local std::vector<std::weak_ptr<EvalLocalsContext>> eval_locals_stack;
 } // namespace
 
-void push_eval_locals(Runtime& runtime, const ir::Function* function, const Value& locals) {
-  eval_locals_stack.push_back({&runtime, function, locals});
-}
-
-void pop_eval_locals(Runtime& runtime) {
-  if (!eval_locals_stack.empty() && eval_locals_stack.back().runtime == &runtime)
-    eval_locals_stack.pop_back();
+std::shared_ptr<void> push_eval_locals(
+    Runtime& runtime, const ir::Function* function, const Value& locals) {
+  auto context = std::make_shared<EvalLocalsContext>(&runtime, function, locals);
+  eval_locals_stack.erase(
+      std::remove_if(eval_locals_stack.begin(), eval_locals_stack.end(),
+                     [](const std::weak_ptr<EvalLocalsContext>& candidate) {
+                       return candidate.expired();
+                     }),
+      eval_locals_stack.end());
+  eval_locals_stack.push_back(context);
+  return context;
 }
 
 const Value* current_eval_locals(Runtime& runtime, const ir::Function* function) {
   for (auto it = eval_locals_stack.rbegin(); it != eval_locals_stack.rend(); ++it) {
-    if (it->runtime == &runtime && it->function == function) return &it->locals;
+    auto context = it->lock();
+    if (context != nullptr && context->runtime == &runtime && context->function == function)
+      return &context->locals;
   }
   return nullptr;
 }
@@ -2003,6 +2012,12 @@ bool run_code_object(Runtime& runtime, CodeObject& code, Value globals_module, V
     runtime.raise_class_error("RuntimeError", error);
     return false;
   }
+  // Genshi repeatedly evaluates already-compiled expressions through this
+  // path. The cost is the nested interpreter/VM entry, not IR compilation;
+  // optimize it only by continuing on the active VM stack with eval locals,
+  // exceptions, and observers scoped to the pushed frame. Reusing a code or
+  // call-site cache alone does not remove that entry cost (see the measured
+  // call-cache trial in doc/performance/eval-callsite-cache-investigation-20261010.md).
   Interpreter interpreter(runtime);
   Value target_globals = std::move(globals_module);
   RuntimeResult result = interpreter.run_module(*code.module, target_globals, code.module, false);
@@ -2046,6 +2061,53 @@ const DictObject* namespace_dict_storage(const Value& value) {
   }
   return nullptr;
 }
+
+} // namespace
+
+CompiledEvalFramePreparation prepare_compiled_eval_frame(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    CompiledEvalFrameRequest& request, std::string& error) {
+  // Keep decline paths side-effect-free. The VM may invoke builtin_eval once
+  // synchronously when this exact shape is not eligible.
+  if (args == nullptr || argc != 3) return CompiledEvalFramePreparation::Ineligible;
+  auto* code = value_as_code(args[0]);
+  auto* globals = value_as_dict(args[1]);
+  auto* locals = value_as_dict(args[2]);
+  if (code == nullptr || code->mode != "eval" || code->module == nullptr ||
+      code->function_id >= code->module->functions.size() ||
+      code->function_id != code->module->entry || globals == nullptr || locals == nullptr) {
+    return CompiledEvalFramePreparation::Ineligible;
+  }
+  const auto& entry = code->module->functions[code->function_id];
+  if (!entry.params.empty() || !entry.free_vars.empty() || entry.is_generator ||
+      entry.is_async || entry.is_coroutine) {
+    return CompiledEvalFramePreparation::Ineligible;
+  }
+
+  // Match builtin_eval's live-dict behavior: install builtins only after the
+  // call is proven eligible, and propagate any installation error once.
+  Value builtins;
+  std::string lookup_error;
+  if (!mapping_get_string_item(args[1], "__builtins__", builtins, lookup_error)) {
+    lookup_error.clear();
+    Value builtins_module;
+    if (!mapping_get_string_item(
+            runtime.module_registry_dict(), "builtins", builtins_module, error)) {
+      return CompiledEvalFramePreparation::Error;
+    }
+    builtins = module_namespace_dict(builtins_module);
+    Value live_globals = args[1];
+    if (!mapping_set_item(live_globals, Value::string("__builtins__"), builtins, error))
+      return CompiledEvalFramePreparation::Error;
+  }
+  request.module = code->module;
+  request.function_id = code->function_id;
+  value_assign_fast(request.globals, args[1]);
+  value_assign_fast(request.locals, args[2]);
+  return CompiledEvalFramePreparation::Ready;
+}
+
+namespace {
 
 bool copy_dict_to_module(const Value& dict_value, Value& module, std::string& error) {
   auto* dict = namespace_dict_storage(dict_value);
@@ -2208,7 +2270,14 @@ bool builtin_identity(
   return true;
 }
 
-bool value_is_callable(Runtime&, const Value& value) {
+bool value_is_callable(Runtime& runtime, const Value& value) {
+  if (auto* alias = value_as_generic_alias(value)) {
+    // GenericAlias call dispatch forwards construction to its origin, so
+    // callable() must report the origin's callability as well. In particular,
+    // functools.partial(HeapSet[T], ...) relies on this CPython-compatible
+    // distinction between callable class aliases and union aliases.
+    return !alias->is_union && value_is_callable(runtime, alias->origin);
+  }
   if (value_as_function(value) != nullptr ||
       value_as_native_function(value) != nullptr ||
       value_as_bound_method(value) != nullptr ||
@@ -4441,11 +4510,8 @@ bool builtin_eval(
         !object_get_attr(eval_locals, "__getitem__", getitem, lookup_error)) {
       return raise_type_error(runtime, "locals must be a mapping", error);
     }
-    struct LiveEvalLocalsGuard {
-      Runtime& runtime;
-      ~LiveEvalLocalsGuard() { pop_eval_locals(runtime); }
-    } guard{runtime};
-    push_eval_locals(runtime, &eval_code->module->functions[eval_code->function_id], eval_locals);
+    auto eval_locals_scope = push_eval_locals(
+        runtime, &eval_code->module->functions[eval_code->function_id], eval_locals);
     return run_code_object(runtime, *eval_code, args[1], out, error);
   }
 
@@ -4475,11 +4541,8 @@ bool builtin_eval(
       !object_get_attr(args[2], "__getitem__", getitem, attribute_error)) {
     return raise_type_error(runtime, "locals must be a mapping", error);
   }
-  struct EvalLocalsGuard {
-    Runtime& runtime;
-    ~EvalLocalsGuard() { pop_eval_locals(runtime); }
-  } guard{runtime};
-  push_eval_locals(runtime, &code->module->functions[code->function_id], args[2]);
+  auto eval_locals_scope = push_eval_locals(
+      runtime, &code->module->functions[code->function_id], args[2]);
   return run_code_object(runtime, *code, std::move(globals_module), out, error);
 }
 
@@ -5907,7 +5970,13 @@ void register_functional_builtins(Runtime& runtime) {
   runtime.register_native_builtin("globals", builtin_globals, builtin_fast_adapter<builtin_globals, 1>);
   runtime.register_native_builtin("locals", builtin_locals, builtin_fast_adapter<builtin_locals, 1>);
   runtime.register_native_builtin("compile", builtin_compile, nullptr, false, builtin_compile_kw);
-  runtime.register_native_builtin("eval", builtin_eval, nullptr, false, builtin_eval_kw);
+  // Template engines commonly call eval(compiled_code, globals, locals) for
+  // every expression. Keep that positional hot path on the VM's stack-backed
+  // fast-call adapter so it avoids materializing a temporary argument vector;
+  // builtin_eval remains the single implementation, and keyword calls retain
+  // the existing binder below.
+  runtime.register_native_builtin(
+      "eval", builtin_eval, builtin_fast_adapter<builtin_eval, 3>, false, builtin_eval_kw);
   runtime.register_native_builtin("exec", builtin_exec);
 }
 

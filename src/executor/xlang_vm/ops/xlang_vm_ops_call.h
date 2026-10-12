@@ -28,6 +28,7 @@ limitations under the License.
 #include "xlang3/attribute.h"
 #include "xlang3/builtin_methods.h"
 #include "xlang3/builtins.h"
+#include "xlang3/eval_locals.h"
 #include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
@@ -127,6 +128,61 @@ XLANG3_HOT_INLINE bool inline_calls_allowed(Runtime& runtime) {
       !active_hook(runtime.profile_function());
 }
 
+XLANG3_HOT_INLINE bool inline_builtin_isinstance_allowed(Runtime& runtime) {
+  const auto active_hook = [](const Value& hook) {
+    return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
+  };
+  return inline_calls_allowed(runtime) && !runtime.debug_poll_needed() &&
+      !active_hook(runtime.debug_hook()) &&
+      !active_hook(runtime.thread_trace_function()) &&
+      !active_hook(runtime.thread_profile_function()) &&
+      !runtime.trace_event_may_dispatch() &&
+      !runtime.profile_event_may_dispatch() &&
+      !runtime.native_trace_event_may_dispatch() &&
+      interpreter_pending_events() == 0;
+}
+
+// A guarded Call-site shortcut for the exact builtin check used by matrix
+// indexing. tuple objects are exact positive matches and tagged integer
+// indexes are exact negatives while builtin type's check hook and both class
+// hierarchies are unchanged. All other values, classinfo shapes, or observer
+// modes use the canonical native builtin.
+XLANG3_HOT_INLINE bool try_inline_builtin_isinstance_tuple(
+    Runtime& runtime, const CallSiteCache& cache, const CallArgsView& args,
+    Value& out) {
+  if (!inline_builtin_isinstance_allowed(runtime) || args.size() != 2 ||
+      args.has_keywords() || args.has_expansion() ||
+      args.get(1).tag != ValueTag::Object ||
+      args.get(1).as.obj != cache.arg1_object) {
+    return false;
+  }
+  // These class pointers are borrowed from Runtime's canonical builtin table;
+  // do not wrap them in owning Values, which would incorrectly decref them.
+  auto* int_class = reinterpret_cast<ClassObject*>(cache.arg0_object);
+  auto* tuple_class = reinterpret_cast<ClassObject*>(cache.arg1_object);
+  auto* type_class = reinterpret_cast<ClassObject*>(cache.arg2_object);
+  if (int_class == nullptr || tuple_class == nullptr || type_class == nullptr ||
+      int_class->version != cache.class_version ||
+      tuple_class->version != cache.secondary_class_version ||
+      type_class->version != cache.tertiary_class_version ||
+      type_class->builtin_type_check_version != cache.tertiary_class_version ||
+      int_class->metaclass.tag != ValueTag::Object ||
+      int_class->metaclass.as.obj != cache.arg2_object ||
+      tuple_class->metaclass.tag != ValueTag::Object ||
+      tuple_class->metaclass.as.obj != cache.arg2_object) {
+    return false;
+  }
+  if (value_as_tuple(args.get(0)) != nullptr) {
+    out = Value::boolean(true);
+    return true;
+  }
+  if (args.get(0).tag == ValueTag::Int64) {
+    out = Value::boolean(false);
+    return true;
+  }
+  return false;
+}
+
 XLANG3_HOT_INLINE bool inline_python_function_allowed(
     Runtime& runtime,
     const ir::Module& current_module,
@@ -160,6 +216,38 @@ XLANG3_HOT_INLINE bool inline_cached_arg_function_allowed(
   }
   // Cache the expensive code/event eligibility test until monitoring changes;
   // trace/profile/debug switches remain live and are still checked per call.
+  cache.inline_function_id = function.function_id;
+  cache.class_version = generation;
+  cache.fast_method_id = may_dispatch ? 1u : 0u;
+  return !may_dispatch;
+}
+
+XLANG3_HOT_INLINE bool inline_cached_trivial_function_allowed(
+    Runtime& runtime,
+    const ir::Module& current_module,
+    const FunctionObject& function,
+    CallSiteCache& cache) {
+  const auto active_hook = [](const Value& hook) {
+    return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
+  };
+  if (runtime.debug_step_active() || active_hook(runtime.trace_function()) ||
+      active_hook(runtime.profile_function())) return false;
+  const uint64_t generation = sys_monitoring_configuration_generation();
+  if (cache.inline_function_id == function.function_id &&
+      cache.class_version == generation) {
+    return cache.fast_method_id == 0;
+  }
+  const ir::Module* target_module = function.module != nullptr
+      ? function.module.get() : &current_module;
+  const bool may_dispatch = sys_monitoring_function_may_dispatch(
+      target_module, function.function_id);
+  if (generation != sys_monitoring_configuration_generation()) {
+    cache.inline_function_id = UINT32_MAX;
+    return false;
+  }
+  // Trivial call sites use these cache fields exclusively for monitoring
+  // eligibility. Keep trace/profile/debug hooks live, and repeat the function
+  // event query only after sys.monitoring's configuration generation changes.
   cache.inline_function_id = function.function_id;
   cache.class_version = generation;
   cache.fast_method_id = may_dispatch ? 1u : 0u;
@@ -485,7 +573,7 @@ XLANG3_HOT_INLINE bool xlang_vm_call_class_new_then_init_sync(
       if (raise_runtime_error("** argument is invalid")) return false;
       return false;
     }
-    auto* dict = value_as_dict(call_args.registers[kw_star_reg]);
+    auto* dict = mapping_dict_storage(call_args.registers[kw_star_reg]);
     if (dict == nullptr) {
       std::string callable_name = klass == nullptr ? "function" : klass->name;
       if (klass != nullptr) {
@@ -780,9 +868,10 @@ XLANG3_HOT_INLINE const Value* materialize_native_call_ex(
     }
   }
   auto expand_kw_star_arg = [&](uint32_t kw_star_reg) -> bool {
-    auto* dict = value_as_dict(values.registers[kw_star_reg]);
+    auto* dict = mapping_dict_storage(values.registers[kw_star_reg]);
     if (dict == nullptr) {
-      error = "** argument must be dict";
+      error = "** argument after ** must be a mapping, not " +
+          std::string(value_binary_type_name(values.registers[kw_star_reg]));
       runtime.raise_class_error("TypeError", error);
       return false;
     }
@@ -1016,7 +1105,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
         xlang_vm_has_direct_positional_signature(call_function, arg_count);
   };
   const bool allow_inline_calls = inline_calls_allowed(runtime);
-
   if (auto* instance = value_as_instance(regs[in.a])) {
     auto* klass = value_as_class(instance->klass);
     if (klass && klass->has_getattribute_hook) {
@@ -1188,6 +1276,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
       return pushed_frame ? XlangVMOpFlow::SwitchFrame : XlangVMOpFlow::Next;
     }
   }
+
   bool receiver_has_direct_method_attr = false;
   if (auto* instance = value_as_instance(regs[in.a])) {
     auto* klass = value_as_class(instance->klass);
@@ -1331,7 +1420,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
             return XlangVMOpFlow::Next;
           }
           const bool allow_cached_python_inline = cache.function != nullptr &&
-          cache.function_code_version == cache.function->code_version &&
+              cache.function_code_version == cache.function->code_version &&
               inline_python_function_allowed(runtime, module, *cache.function);
           if (allow_cached_python_inline &&
               cache.kind == CallSiteKind::InlineSelfSlotNormalizeMethod &&
@@ -3244,9 +3333,91 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
   }
   const auto& callee = *callee_value;
   bool pushed_frame = false;
-    if (!instr_cache.empty() && callee.tag == ValueTag::Object && callee.as.obj != nullptr) {
+
+  // Reused compiled eval code currently re-enters a fresh Interpreter for
+  // every call. For the exact live-dict shape, continue its entry function on
+  // this VM stack; keep observer-enabled calls on the synchronous native path
+  // until C-call/return event bracketing is represented by frame continuations.
+  if (call_args.size() == 3 && !call_args.has_keywords() && !call_args.has_expansion()) {
+    // Most three-argument calls are not eval. Filter by the native function's
+    // registered name before paying for a builtin-map lookup; keep
+    // canonical object identity as the authority for enabling this fast path.
+    const auto* native_callee = value_as_native_function(callee);
+    if (native_callee != nullptr && native_callee->name == "eval") {
+      const Value* canonical_eval = runtime.find_builtin("eval");
+      if (canonical_eval != nullptr && value_is(callee, *canonical_eval)) {
+        // Keep observer probes behind the identity check: ordinary three-arg
+        // calls must not pay eval-specific tracing/monitoring checks.
+        const auto active_hook = [](const Value& hook) {
+          return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
+        };
+        const bool eval_observed = runtime.debug_step_active() ||
+            runtime.debug_poll_needed() || active_hook(runtime.debug_hook()) ||
+            active_hook(runtime.trace_function()) || active_hook(runtime.thread_trace_function()) ||
+            active_hook(runtime.profile_function()) || active_hook(runtime.thread_profile_function()) ||
+            runtime.trace_event_may_dispatch() || runtime.profile_event_may_dispatch() ||
+            runtime.native_trace_event_may_dispatch() ||
+            sys_monitoring_event_may_dispatch(kSysMonitoringEventAll) ||
+            interpreter_pending_events() != 0;
+        if (!eval_observed) {
+          std::array<Value, 3> eval_args;
+          for (size_t index = 0; index < eval_args.size(); ++index)
+            value_assign_fast(eval_args[index], call_args.get(index));
+          CompiledEvalFrameRequest request;
+          std::string error;
+          const auto prepared = prepare_compiled_eval_frame(
+              runtime, eval_args.data(), static_cast<uint32_t>(eval_args.size()), request, error);
+          if (prepared == CompiledEvalFramePreparation::Error) {
+            Value pending;
+            if (runtime.take_pending_exception(pending))
+              return raise_exception_value(std::move(pending))
+                  ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+            return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop
+                                              : XlangVMOpFlow::ReturnResult;
+          }
+          if (prepared == CompiledEvalFramePreparation::Ready) {
+            auto eval_scope = push_eval_locals(
+                runtime, &request.module->functions[request.function_id], request.locals);
+            static const std::vector<Value> no_closure;
+            static const std::vector<Value> no_defaults;
+            const CallArgsView no_arguments{};
+            ++ip;
+            if (!push_frame(
+                    *request.module, request.function_id, no_arguments,
+                    no_closure, no_defaults, request.globals, request.module,
+                    in.dst, FrameReturnMode::StoreReturnValue, Value::invalid(),
+                    false, UINT32_MAX, std::move(eval_scope))) {
+              if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+              return XlangVMOpFlow::ContinueLoop;
+            }
+            return XlangVMOpFlow::SwitchFrame;
+          }
+        }
+      }
+    }
+  }
+  if (!instr_cache.empty() && callee.tag == ValueTag::Object && callee.as.obj != nullptr) {
       auto& cache = instr_cache[ip].call;
       if (cache.callee_object == callee.as.obj) {
+      // Identity/constant functions are common in tight call loops. Once the
+      // exact callee and code version are guarded, return before testing the
+      // unrelated constructor/native call plans below. Monitoring generations
+      // and live trace/profile/debug hooks remain checked on every hit; if an
+      // observer is active, the ordinary frame path still runs exactly once.
+      if (cache.kind == CallSiteKind::InlineTrivialFunction &&
+          cache.function != nullptr &&
+          cache.function_code_version == cache.function->code_version &&
+          inline_cached_trivial_function_allowed(runtime, module, *cache.function, cache)) {
+        XlangVMTrivialFunctionSpec spec;
+        spec.returns_argument = cache.has_next;
+        spec.argument = cache.lhs_slot;
+        value_assign_fast(spec.constant, cache.inline_const);
+        if (!xlang_vm_execute_trivial_function(call_args, spec, regs[in.dst])) {
+          return raise_runtime_error("invalid inline function argument")
+              ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        }
+        return XlangVMOpFlow::Next;
+      }
       if (cache.kind == CallSiteKind::UserFunction) {
         if (!xlang3::xlang_vm::ops::call_user_function(cache.function, call_args, module, module_owner, in.dst, ip, regs[in.dst], pushed_frame, make_generator_if_needed, push_frame,
                 FrameReturnMode::StoreReturnValue, Value::invalid(), &runtime)) {
@@ -3281,6 +3452,21 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
       }
       if (cache.kind == CallSiteKind::NativeFunction) {
         if (!xlang3::xlang_vm::ops::call_native_function(runtime, cache.native, call_args, native_call_args, execution_lock, regs[in.dst], raise_runtime_error, raise_exception_value)) {
+          if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+          return XlangVMOpFlow::ContinueLoop;
+        }
+        return XlangVMOpFlow::Next;
+      }
+      if (cache.kind == CallSiteKind::InlineBuiltinIsInstanceTuple) {
+        if (try_inline_builtin_isinstance_tuple(
+                runtime, cache, call_args, regs[in.dst])) {
+          return XlangVMOpFlow::Next;
+        }
+        if (cache.native != nullptr &&
+            !xlang3::xlang_vm::ops::call_native_function(
+                runtime, cache.native, call_args, native_call_args,
+                execution_lock, regs[in.dst], raise_runtime_error,
+                raise_exception_value)) {
           if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
           return XlangVMOpFlow::ContinueLoop;
         }
@@ -3330,12 +3516,19 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
       }
       const bool is_cached_arg_inline =
           cache.kind == CallSiteKind::InlineArgBinaryFunction;
+      const bool is_cached_closure_arg_inline =
+          cache.kind == CallSiteKind::InlineClosureArgBinaryFunction;
+      const bool is_cached_trivial_inline =
+          cache.kind == CallSiteKind::InlineTrivialFunction;
       const bool allow_cached_python_inline = cache.function != nullptr &&
           cache.function_code_version == cache.function->code_version &&
-          (is_cached_arg_inline
+          (is_cached_arg_inline || is_cached_closure_arg_inline
                ? inline_cached_arg_function_allowed(
                      runtime, module, *cache.function, cache)
-               : inline_python_function_allowed(runtime, module, *cache.function));
+               : is_cached_trivial_inline
+                   ? inline_cached_trivial_function_allowed(
+                         runtime, module, *cache.function, cache)
+                   : inline_python_function_allowed(runtime, module, *cache.function));
       if (allow_cached_python_inline && is_cached_arg_inline) {
         if (locals != nullptr &&
             xlang_vm_try_cached_call_local_accumulate(
@@ -3366,6 +3559,26 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
               : XlangVMOpFlow::Next;
         }
       }
+      if (allow_cached_python_inline && is_cached_closure_arg_inline &&
+          cache.function != nullptr) {
+        ClosureArgBinaryFunctionSpec spec;
+        spec.argument = cache.lhs_slot;
+        spec.free_slot = cache.rhs_slot;
+        spec.op = cache.inline_op;
+        spec.free_is_lhs = cache.has_next;
+        std::string error;
+        if (xlang_vm_execute_closure_arg_binary_function(
+                call_args, cache.function->closure, spec, regs[in.dst], error)) {
+          return regs[in.dst].tag == ValueTag::Object
+              ? XlangVMOpFlow::Next : XlangVMOpFlow::NextNoMonitoringRefresh;
+        }
+        if (!error.empty()) {
+          if (raise_runtime_error(error)) return XlangVMOpFlow::ContinueLoop;
+          return XlangVMOpFlow::ReturnResult;
+        }
+        // If the captured cell now contains a non-scalar or is empty, keep
+        // the specialization but execute the ordinary Python function below.
+      }
       if (allow_cached_python_inline &&
           cache.kind == CallSiteKind::InlineConditionalArgFunction &&
           cache.cached_values.size() == 3) {
@@ -3384,17 +3597,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
                 call_args, spec, regs[in.dst], inline_error)) {
           return XlangVMOpFlow::Next;
         }
-      }
-      if (allow_cached_python_inline && cache.kind == CallSiteKind::InlineTrivialFunction) {
-        XlangVMTrivialFunctionSpec spec;
-        spec.returns_argument = cache.has_next;
-        spec.argument = cache.lhs_slot;
-        value_assign_fast(spec.constant, cache.inline_const);
-        if (!xlang_vm_execute_trivial_function(call_args, spec, regs[in.dst])) {
-          return raise_runtime_error("invalid inline function argument")
-              ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
-        }
-        return XlangVMOpFlow::Next;
       }
       // Cached Python-function specializations use their narrower per-function
       // monitoring guard above; defer the global inline gate to constructor paths.
@@ -3477,6 +3679,40 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
     }
   }
   if (auto* fn_obj = value_as_function(callee)) {
+    ClosureArgBinaryFunctionSpec closure_spec;
+    if (!call_args.has_keywords() && !call_args.has_expansion() &&
+        inline_python_function_allowed(runtime, module, *fn_obj) &&
+        xlang_vm_analyze_closure_arg_binary_function(
+            module, *fn_obj, static_cast<uint32_t>(call_args.size()), closure_spec)) {
+      std::string inline_error;
+      if (xlang_vm_execute_closure_arg_binary_function(
+              call_args, fn_obj->closure, closure_spec, regs[in.dst], inline_error)) {
+        if (!instr_cache.empty() && callee.tag == ValueTag::Object) {
+          // The callee guard plus code-version and monitoring checks prove the
+          // exact body. Keep only scalar operand indexes; reread the closure
+          // cell each time so nonlocal writes remain immediately visible.
+          auto& cache = instr_cache[ip].call;
+          cache.callee_object = callee.as.obj;
+          value_assign_fast(cache.retained_callee, callee);
+          cache.kind = CallSiteKind::InlineClosureArgBinaryFunction;
+          cache.function = fn_obj;
+          cache.function_code_version = fn_obj->code_version;
+          cache.inline_function_id = UINT32_MAX;
+          cache.native = nullptr;
+          cache.class_version = 0;
+          cache.lhs_slot = closure_spec.argument;
+          cache.rhs_slot = closure_spec.free_slot;
+          cache.inline_op = closure_spec.op;
+          cache.has_next = closure_spec.free_is_lhs;
+        }
+        return regs[in.dst].tag == ValueTag::Object
+            ? XlangVMOpFlow::Next : XlangVMOpFlow::NextNoMonitoringRefresh;
+      }
+      if (!inline_error.empty()) {
+        if (raise_runtime_error(inline_error)) return XlangVMOpFlow::ContinueLoop;
+        return XlangVMOpFlow::ReturnResult;
+      }
+    }
     XlangVMConditionalArgFunctionSpec conditional_spec;
     if (inline_python_function_allowed(runtime, module, *fn_obj) &&
         xlang_vm_analyze_conditional_arg_function(
@@ -4063,14 +4299,57 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
       value_assign_fast(regs[in.dst], instance);
     }
   } else if (auto* native = value_as_native_function(callee)) {
+    bool cached_builtin_isinstance = false;
+    Value retired_cached_callee;
     if (!instr_cache.empty() && callee.tag == ValueTag::Object) {
       auto& cache = instr_cache[ip].call;
       cache.callee_object = callee.as.obj;
-      value_assign_fast(cache.retained_callee, callee);
-      cache.kind = CallSiteKind::NativeFunction;
+      const bool possible_tuple_check = native->name == "isinstance" &&
+          call_args.size() == 2 &&
+          !call_args.has_keywords() && !call_args.has_expansion() &&
+          (value_as_tuple(call_args.get(0)) != nullptr ||
+           call_args.get(0).tag == ValueTag::Int64);
+      const Value* canonical_isinstance = possible_tuple_check
+          ? runtime.find_builtin("isinstance") : nullptr;
+      const Value* canonical_int = possible_tuple_check
+          ? runtime.find_builtin("int") : nullptr;
+      const Value* canonical_tuple = possible_tuple_check
+          ? runtime.find_builtin("tuple") : nullptr;
+      const Value* canonical_type = possible_tuple_check
+          ? runtime.find_builtin("type") : nullptr;
+      auto* int_class = canonical_int == nullptr ? nullptr : value_as_class(*canonical_int);
+      auto* tuple_class = canonical_tuple == nullptr ? nullptr : value_as_class(*canonical_tuple);
+      auto* type_class = canonical_type == nullptr ? nullptr : value_as_class(*canonical_type);
+      const bool exact_tuple_check = possible_tuple_check &&
+          canonical_isinstance != nullptr && value_is(callee, *canonical_isinstance) &&
+          canonical_tuple != nullptr && value_is(call_args.get(1), *canonical_tuple) &&
+          int_class != nullptr && tuple_class != nullptr && type_class != nullptr &&
+          value_is(int_class->metaclass, *canonical_type) &&
+          value_is(tuple_class->metaclass, *canonical_type) &&
+          type_class->version == type_class->builtin_type_check_version;
+      if (exact_tuple_check) {
+        value_move_assign_fast(retired_cached_callee, cache.retained_callee);
+        cache.kind = CallSiteKind::InlineBuiltinIsInstanceTuple;
+        cache.native = native;
+        cache.arg0_object = &int_class->header;
+        cache.arg1_object = &tuple_class->header;
+        cache.arg2_object = &type_class->header;
+        cache.class_version = int_class->version;
+        cache.secondary_class_version = tuple_class->version;
+        cache.tertiary_class_version = type_class->version;
+        cached_builtin_isinstance = true;
+      } else {
+        value_assign_fast(cache.retained_callee, callee);
+        cache.kind = CallSiteKind::NativeFunction;
+        cache.native = native;
+        cache.class_version = 0;
+      }
       cache.function = nullptr;
-      cache.native = native;
-      cache.class_version = 0;
+    }
+    if (cached_builtin_isinstance &&
+        try_inline_builtin_isinstance_tuple(
+            runtime, instr_cache[ip].call, call_args, regs[in.dst])) {
+      return XlangVMOpFlow::Next;
     }
     if (!xlang3::xlang_vm::ops::call_native_function(runtime, native, call_args, native_call_args, execution_lock, regs[in.dst], raise_runtime_error, raise_exception_value)) {
       if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
@@ -4086,6 +4365,31 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
       return XlangVMOpFlow::Next;
     }
     if (value_as_instance(callee) != nullptr) {
+      // Keep this guard at the original instance-callee site: after special
+      // method lookup the generic dispatcher only sees the bound __call__.
+      // Exact type and class-version checks leave subclasses and mutations on
+      // normal dispatch; weakref_get_target preserves target-liveness semantics.
+      if (call_args.size() == 0 && !call_args.has_keywords() &&
+          !call_args.has_expansion() &&
+          weakref_reference_call_fast_eligible(callee)) {
+        const auto active_hook = [](const Value& hook) {
+          return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
+        };
+        const bool call_observed = runtime.debug_step_active() ||
+            active_hook(runtime.debug_hook()) || active_hook(runtime.trace_function()) ||
+            active_hook(runtime.thread_trace_function()) ||
+            active_hook(runtime.profile_function()) ||
+            active_hook(runtime.thread_profile_function()) ||
+            runtime.trace_event_may_dispatch() || runtime.profile_event_may_dispatch() ||
+            runtime.native_trace_event_may_dispatch() ||
+            sys_monitoring_event_may_dispatch(kSysMonitoringEventAll);
+        if (!call_observed) {
+          Value target;
+          if (weakref_get_target(callee, target)) value_assign_fast(regs[in.dst], target);
+          else value_set_none(regs[in.dst]);
+          return XlangVMOpFlow::Next;
+        }
+      }
       Value call_attr;
       std::string attr_error;
       if (object_get_special_method(runtime, callee, "__call__", call_attr, attr_error)) {
@@ -5495,6 +5799,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_local(
                "cannot access local variable '" + name + "' where it is not associated with a value")
         ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
   }
+
   value_borrow_assign_fast(regs[in.dst], locals[in.a]);
   const ir::Instr call_in{ir::Op::Call, in.dst, in.dst, in.b, 0};
   return call(

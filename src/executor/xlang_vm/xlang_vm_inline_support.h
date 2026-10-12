@@ -1729,7 +1729,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       }
     }
     auto expand_kw_star_arg = [&](uint32_t kw_star_reg) -> bool {
-      auto* kwargs = value_as_dict(args.registers[kw_star_reg]);
+      auto* kwargs = mapping_dict_storage(args.registers[kw_star_reg]);
       if (kwargs == nullptr) {
         error = "** argument must be dict";
         return false;

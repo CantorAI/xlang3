@@ -924,8 +924,12 @@ bool mapping_get_item_identity_key(
   return mapping_get_item(object, key, out, error);
 }
 
+DictObject* mapping_dict_storage(const Value& value) {
+  return dict_storage_from_value(value);
+}
+
 bool mapping_is_dict(const Value& value) {
-  return dict_storage_from_value(value) != nullptr;
+  return mapping_dict_storage(value) != nullptr;
 }
 
 bool mapping_get_string_item(

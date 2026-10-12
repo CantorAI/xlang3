@@ -1,0 +1,18 @@
+{
+  "loops": 20000,
+  "purpose": "diagnostic only; includes Python call overhead",
+  "executable": "build-repro/main-verify-20261006/Release/xlang3.exe",
+  "results": {
+    "weakref_ref_cached_seconds": 0.0253401,
+    "inspect_shadowed_dict_seconds": 0.0787412,
+    "inspect_check_instance_seconds": 0.0389929,
+    "inspect_check_class_seconds": 0.213512,
+    "inspect_getattr_static_instance_seconds": 0.4204127,
+    "inspect_getattr_static_missing_seconds": 0.4232844,
+    "object_getattribute_dict_seconds": 0.0191288,
+    "dict_get_instance_key_seconds": 0.0166921,
+    "type_dict_descriptor_seconds": 0.0120163,
+    "mappingproxy_contains_seconds": 0.0085226,
+    "mappingproxy_getitem_seconds": 0.0133296
+  }
+}

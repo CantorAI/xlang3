@@ -1,0 +1,58 @@
+integer loop n=50000: 0.001410s, 0.001405s, 0.001388s
+call loop n=50000: 0.004592s, 0.004346s, 0.004382s
+dict loop n=10000: 0.001241s, 0.001247s, 0.001231s
+perf: native_calls=42 fast=39 cached_fast=12
+perf: native print slow=3 fast=0
+perf: store_local moves=150115 copies=9
+perf: call argument register transfers=9
+perf: CALL_FUNCTION_EX varargs+kwonly direct bindings=0
+perf: frame_snapshots calls=0 frames=0 locals=0 refresh_calls=0 refresh_items=0
+perf: opcode 0 30150
+perf: opcode 2 150103
+perf: opcode 3 150115
+perf: opcode 13 6
+perf: opcode 15 3
+perf: opcode 18 150169
+perf: opcode 19 31
+perf: opcode 20 1
+perf: opcode 31 7
+perf: opcode 35 3
+perf: opcode 36 4
+perf: opcode 37 4
+perf: opcode 47 30104
+perf: opcode 48 30100
+perf: opcode 50 3
+perf: opcode 51 19
+perf: opcode 52 16
+perf: opcode 54 30121
+perf: opcode 55 9
+perf: opcode 76 330321
+perf: opcode 90 30
+perf: opcode 93 150133
+perf: opcode 95 9
+perf: opcode 97 24
+perf: opcode 98 4
+perf: opcode 102 150100
+perf: opcode 106 60204
+perf: opcode 107 4
+perf: opcode 108 9
+perf: opcode 118 4
+perf: opcode 119 8
+perf: opcode 121 12
+perf: opcode 122 15
+perf: opcode 125 12
+perf: objects kind alloc final_release incref decref
+perf: String 53 45 57 100
+perf: Tuple 3 3 6 9
+perf: List 4 3 19 22
+perf: Dict 5 4 6 10
+perf: Range 15 15 0 15
+perf: RangeIterator 15 15 0 15
+perf: SequenceIterator 4 4 0 4
+perf: Generator 3 3 3 6
+perf: Module 1 0 87 76
+perf: Function 7 3 42 44
+perf: NativeFunction 0 0 22 22
+perf: Class 0 0 24 23
+perf: Instance 1 0 10 10
+perf: BoundMethod 3 3 0 3

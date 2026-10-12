@@ -65,10 +65,13 @@ for path in dependency_sites:
     if not Path(path).is_dir():
         parser.error(f"dependency site is not a directory: {path}")
 if dependency_sites:
-    # Keep compatibility hooks first, then expose the same Python package
-    # sources as the reference run. XLang3's native loader accepts its own
-    # .x3pkg packages; adding this path does not install CPython extensions.
-    paths = [os.environ.get("PYTHONPATH", ""), *dependency_sites]
+    # Install the cross-runtime pyperf compatibility hooks explicitly. Relying
+    # on an ambient PYTHONPATH made benchmark workers attempt unsupported
+    # Windows priority/metadata APIs when the caller's shell had no PYTHONPATH.
+    # Keep caller paths next, then expose the same pure-Python dependency
+    # sources as the reference run; this does not install CPython extensions.
+    compat_path = str((Path(__file__).parent / "pyperf_compat").resolve())
+    paths = [compat_path, os.environ.get("PYTHONPATH", ""), *dependency_sites]
     os.environ["PYTHONPATH"] = os.pathsep.join(path for path in paths if path)
     print("Benchmark dependency sites: " + os.pathsep.join(dependency_sites), flush=True)
 

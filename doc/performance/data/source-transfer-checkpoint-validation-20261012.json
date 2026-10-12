@@ -1,0 +1,60 @@
+{
+  "recorded_utc": "2026-10-12T22:40:25.559459+00:00",
+  "python_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "host": "Windows-11-10.0.26200-SP0",
+  "goal_status": "paused by user for write-up and source handoff",
+  "source_manifest": "doc/performance/data/source-transfer-checkpoint-source-manifest-20261012.json",
+  "binary_sha256": {
+    "xlang3.exe": "5731c010c761f1cd7d784ee6a9671e7ad923f3f2789cc9359f046176cb67d9ce",
+    "xlang3_runtime.dll": "7ca4686aad1e1d17f2a5d97d3aa1672bb5e8adb9ea6ea980455ae078fd498e83"
+  },
+  "release_build": {
+    "exit_code": 0,
+    "exit_code_source": "Observed completed terminal command",
+    "command": "cmd.exe /c doc\\performance\\data\\vm-active-code-view-reproduction-build-command-20261009.cmd",
+    "log": "source-transfer-checkpoint-build-20261012.log"
+  },
+  "python_fixtures": {
+    "exit_code": 0,
+    "exit_code_source": "Observed completed terminal command; not inferred from the silent log",
+    "command": "C:\\Python\\Python314\\python.exe tests\\run_fixtures.py build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "core_cases": 432,
+    "compatibility_sections": 11,
+    "expected_failure_checks": 3,
+    "log": "source-transfer-checkpoint-fixtures-20261012.log"
+  },
+  "ctest": {
+    "exit_code": 0,
+    "passed": 55,
+    "failed": 0,
+    "log": "source-transfer-checkpoint-ctest-20261012.log"
+  },
+  "performance_gate": {
+    "status": "pass",
+    "cases": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1,
+    "report": "source-transfer-checkpoint-fixed-release-gate-20261012.json",
+    "case_statuses": {
+      "local_slots": "pass",
+      "scalar_arithmetic": "pass",
+      "range_for": "pass",
+      "function_calls": "pass",
+      "class_construct": "pass",
+      "list_append": "pass",
+      "property_access": "pass",
+      "deepcopy_memo": "pass",
+      "json_dumps": "pass",
+      "gc_traversal": "pass",
+      "subparsers": "pass"
+    }
+  },
+  "fresh_full_pyperformance_run": false,
+  "logs_sha256": {
+    "source-transfer-checkpoint-build-20261012.log": "fb659771365e7e99d6beadd6a8dbea2e207bebafb96abbcf9edb9624a9601970",
+    "source-transfer-checkpoint-fixtures-20261012.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "source-transfer-checkpoint-ctest-20261012.log": "b55d1a07db5987999753ca36b99d208b2c9a56d4a916c1079a27301ecae5fcd7",
+    "source-transfer-checkpoint-fixed-release-gate-20261012.log": "2ee00fe9f219bd28f6119f718de365f9ad143330d679c74455d87f4e42226098"
+  }
+}

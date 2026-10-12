@@ -60,6 +60,10 @@ bool gc_kind_may_be_tracked(ObjectKind kind) {
 
 } // namespace
 
+// This registry lock is paid on each newly tracked allocation and final
+// untrack, so it is a potential hot-path cost in allocation-heavy workloads.
+// Any batching or sharding optimization must keep objects visible to collector
+// snapshots and preserve the index encoded in gc_tracking_state.
 void gc_track_object(Object* object) {
   if (object == nullptr || !gc_kind_may_be_tracked(object->kind)) return;
   // Recycled cached objects remain indexed with refcount zero; reuse can
@@ -312,6 +316,7 @@ bool gc_object_references_any(Runtime& runtime, const Value& source,
     edge(value->globals_module);
     for (const auto& item : value->bases) edge(item);
     for (const auto& item : value->mro_cache) edge(item);
+    edge(value->public_mro_cache);
     for (const auto& item : value->attrs) edge(item.second);
   } else if (auto* value = value_as_instance(source)) {
     edge(value->klass);

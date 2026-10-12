@@ -2437,7 +2437,7 @@ std::string_view native_ast_node_kind(const Value& node, bool class_value, void*
   // Normal nodes take one identity lookup. User subclasses take the cached
   // MRO path, selecting their actual canonical node base without importing a
   // module, calling Python, or accepting an unrelated class with that name.
-  const std::vector<Value>* mro = nullptr;
+  const ClassMroValues* mro = nullptr;
   std::string error;
   if (!class_get_mro_values(klass, mro, error)) return {};
   for (const auto& base : *mro) {

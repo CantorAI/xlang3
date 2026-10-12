@@ -1,0 +1,202 @@
+{
+  "probe": "profile_inspect_static_primitives.py 10000",
+  "samples": {
+    "xlang3": [
+      {
+        "object_getattribute_dict": 0.009412799961864948,
+        "dict_get": 0.010870300000533462,
+        "inspect_check_instance": 0.01918400003341958,
+        "inspect_check_class": 0.1095117999939248,
+        "inspect_getattr_static": 0.2127242999849841,
+        "inspect_shadowed_dict": 0.04311750002671033,
+        "class_dict_proxy_getter": 0.010202799981925637,
+        "class_dict_contains_fresh_proxy": 0.011178200016729534,
+        "class_dict_contains_cached_proxy": 0.004496200010180473,
+        "class_dict_get_fresh_proxy": 0.013848400034476072,
+        "class_dict_get_cached_proxy": 0.0076200999901629984,
+        "inspect_static_getmro": 0.008353599987458438
+      },
+      {
+        "object_getattribute_dict": 0.009553200041409582,
+        "dict_get": 0.010393499978818,
+        "inspect_check_instance": 0.019272100005764514,
+        "inspect_check_class": 0.10915490001207218,
+        "inspect_getattr_static": 0.20987379999132827,
+        "inspect_shadowed_dict": 0.04295790003379807,
+        "class_dict_proxy_getter": 0.010265499993693084,
+        "class_dict_contains_fresh_proxy": 0.011376000009477139,
+        "class_dict_contains_cached_proxy": 0.00439150002785027,
+        "class_dict_get_fresh_proxy": 0.013790600001811981,
+        "class_dict_get_cached_proxy": 0.006773600005544722,
+        "inspect_static_getmro": 0.008113100018817931
+      },
+      {
+        "object_getattribute_dict": 0.009464100003242493,
+        "dict_get": 0.010371700045652688,
+        "inspect_check_instance": 0.019053000025451183,
+        "inspect_check_class": 0.10942450002767146,
+        "inspect_getattr_static": 0.2126245999825187,
+        "inspect_shadowed_dict": 0.04350450000492856,
+        "class_dict_proxy_getter": 0.010084499954245985,
+        "class_dict_contains_fresh_proxy": 0.011237300001084805,
+        "class_dict_contains_cached_proxy": 0.004416200041305274,
+        "class_dict_get_fresh_proxy": 0.01384120003785938,
+        "class_dict_get_cached_proxy": 0.006773300003260374,
+        "inspect_static_getmro": 0.008271300001069903
+      },
+      {
+        "object_getattribute_dict": 0.00946299999486655,
+        "dict_get": 0.010520000010728836,
+        "inspect_check_instance": 0.020553899987135082,
+        "inspect_check_class": 0.11119090003194287,
+        "inspect_getattr_static": 0.2101249999832362,
+        "inspect_shadowed_dict": 0.04394340002909303,
+        "class_dict_proxy_getter": 0.010500500036869198,
+        "class_dict_contains_fresh_proxy": 0.01162320002913475,
+        "class_dict_contains_cached_proxy": 0.0046381999854929745,
+        "class_dict_get_fresh_proxy": 0.0142236000392586,
+        "class_dict_get_cached_proxy": 0.00699620001250878,
+        "inspect_static_getmro": 0.008425600011833012
+      },
+      {
+        "object_getattribute_dict": 0.009402099996805191,
+        "dict_get": 0.010752900037914515,
+        "inspect_check_instance": 0.019258800020907074,
+        "inspect_check_class": 0.11278980004135519,
+        "inspect_getattr_static": 0.21213770000031218,
+        "inspect_shadowed_dict": 0.04348469997057691,
+        "class_dict_proxy_getter": 0.010478099982719868,
+        "class_dict_contains_fresh_proxy": 0.01146920002065599,
+        "class_dict_contains_cached_proxy": 0.004466200014576316,
+        "class_dict_get_fresh_proxy": 0.013994799985084683,
+        "class_dict_get_cached_proxy": 0.006820900016464293,
+        "inspect_static_getmro": 0.008211500011384487
+      }
+    ],
+    "cpython3147": [
+      {
+        "object_getattribute_dict": 0.0007814000127837062,
+        "dict_get": 0.0006699999794363976,
+        "inspect_check_instance": 0.0013092000153847039,
+        "inspect_check_class": 0.006761700031347573,
+        "inspect_getattr_static": 0.011713799962308258,
+        "inspect_shadowed_dict": 0.002410800021607429,
+        "class_dict_proxy_getter": 0.0005620999727398157,
+        "class_dict_contains_fresh_proxy": 0.0006361000123433769,
+        "class_dict_contains_cached_proxy": 0.0003491000388748944,
+        "class_dict_get_fresh_proxy": 0.0006417999975383282,
+        "class_dict_get_cached_proxy": 0.000348400033544749,
+        "inspect_static_getmro": 0.000609499984420836
+      },
+      {
+        "object_getattribute_dict": 0.0006545999785885215,
+        "dict_get": 0.0006220000213943422,
+        "inspect_check_instance": 0.001269300002604723,
+        "inspect_check_class": 0.006792899977881461,
+        "inspect_getattr_static": 0.011710799997672439,
+        "inspect_shadowed_dict": 0.00244309997651726,
+        "class_dict_proxy_getter": 0.0005317000322975218,
+        "class_dict_contains_fresh_proxy": 0.000623099971562624,
+        "class_dict_contains_cached_proxy": 0.00034139998024329543,
+        "class_dict_get_fresh_proxy": 0.0006271000020205975,
+        "class_dict_get_cached_proxy": 0.00035360001493245363,
+        "inspect_static_getmro": 0.0005978000117465854
+      },
+      {
+        "object_getattribute_dict": 0.000678399985190481,
+        "dict_get": 0.0006528000230900943,
+        "inspect_check_instance": 0.001290599990170449,
+        "inspect_check_class": 0.006759800016880035,
+        "inspect_getattr_static": 0.01211499999044463,
+        "inspect_shadowed_dict": 0.0027481999713927507,
+        "class_dict_proxy_getter": 0.0005608000210486352,
+        "class_dict_contains_fresh_proxy": 0.0006415999960154295,
+        "class_dict_contains_cached_proxy": 0.0003619000199250877,
+        "class_dict_get_fresh_proxy": 0.0006376999663189054,
+        "class_dict_get_cached_proxy": 0.00034989998675882816,
+        "inspect_static_getmro": 0.0005743000074289739
+      },
+      {
+        "object_getattribute_dict": 0.0006625000387430191,
+        "dict_get": 0.000633200048469007,
+        "inspect_check_instance": 0.0012676999904215336,
+        "inspect_check_class": 0.006715299969073385,
+        "inspect_getattr_static": 0.011630100023467094,
+        "inspect_shadowed_dict": 0.002393700007814914,
+        "class_dict_proxy_getter": 0.0005421999958343804,
+        "class_dict_contains_fresh_proxy": 0.0006319000385701656,
+        "class_dict_contains_cached_proxy": 0.0003420999855734408,
+        "class_dict_get_fresh_proxy": 0.0006276000058278441,
+        "class_dict_get_cached_proxy": 0.0003352999920025468,
+        "inspect_static_getmro": 0.0005978000117465854
+      },
+      {
+        "object_getattribute_dict": 0.000673400005325675,
+        "dict_get": 0.0006522000185213983,
+        "inspect_check_instance": 0.0013082000077702105,
+        "inspect_check_class": 0.007070399995427579,
+        "inspect_getattr_static": 0.012237099988851696,
+        "inspect_shadowed_dict": 0.002419200027361512,
+        "class_dict_proxy_getter": 0.0005931999767199159,
+        "class_dict_contains_fresh_proxy": 0.0007241000421345234,
+        "class_dict_contains_cached_proxy": 0.0003638999769464135,
+        "class_dict_get_fresh_proxy": 0.0006352000054903328,
+        "class_dict_get_cached_proxy": 0.0003512999974191189,
+        "inspect_static_getmro": 0.0005957999965175986
+      }
+    ]
+  },
+  "medians_seconds": {
+    "xlang3": {
+      "object_getattribute_dict": 0.00946299999486655,
+      "dict_get": 0.010520000010728836,
+      "inspect_check_instance": 0.019258800020907074,
+      "inspect_check_class": 0.1095117999939248,
+      "inspect_getattr_static": 0.21213770000031218,
+      "inspect_shadowed_dict": 0.04348469997057691,
+      "class_dict_proxy_getter": 0.010265499993693084,
+      "class_dict_contains_fresh_proxy": 0.011376000009477139,
+      "class_dict_contains_cached_proxy": 0.004466200014576316,
+      "class_dict_get_fresh_proxy": 0.013848400034476072,
+      "class_dict_get_cached_proxy": 0.006820900016464293,
+      "inspect_static_getmro": 0.008271300001069903
+    },
+    "cpython3147": {
+      "object_getattribute_dict": 0.000673400005325675,
+      "dict_get": 0.0006522000185213983,
+      "inspect_check_instance": 0.001290599990170449,
+      "inspect_check_class": 0.006761700031347573,
+      "inspect_getattr_static": 0.011713799962308258,
+      "inspect_shadowed_dict": 0.002419200027361512,
+      "class_dict_proxy_getter": 0.0005608000210486352,
+      "class_dict_contains_fresh_proxy": 0.0006361000123433769,
+      "class_dict_contains_cached_proxy": 0.0003491000388748944,
+      "class_dict_get_fresh_proxy": 0.0006352000054903328,
+      "class_dict_get_cached_proxy": 0.00034989998675882816,
+      "inspect_static_getmro": 0.0005978000117465854
+    }
+  },
+  "xlang3_over_cpython": {
+    "object_getattribute_dict": 14.052568933809228,
+    "dict_get": 16.130021024192413,
+    "inspect_check_instance": 14.922361822088323,
+    "inspect_check_class": 16.19589740541916,
+    "inspect_getattr_static": 18.110066817165407,
+    "inspect_shadowed_dict": 17.974826173428607,
+    "class_dict_proxy_getter": 18.305099159050872,
+    "class_dict_contains_fresh_proxy": 17.883980174073937,
+    "class_dict_contains_cached_proxy": 12.793467537185954,
+    "class_dict_get_fresh_proxy": 21.801637145431087,
+    "class_dict_get_cached_proxy": 19.493856172008552,
+    "inspect_static_getmro": 13.836232583709295
+  },
+  "previous_xlang3_medians_seconds": {
+    "class_dict_proxy_getter": 0.010263600037433207,
+    "class_dict_contains_fresh_proxy": 0.011275299999397248,
+    "class_dict_contains_cached_proxy": 0.004334700002800673,
+    "class_dict_get_fresh_proxy": 0.01399359997594729,
+    "class_dict_get_cached_proxy": 0.006921099964529276,
+    "inspect_check_class": 0.10854059999110177,
+    "inspect_getattr_static": 0.20951369998510927
+  }
+}

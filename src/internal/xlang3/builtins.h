@@ -18,6 +18,26 @@ limitations under the License.
 
 namespace xlang3 {
 
+struct CompiledEvalFrameRequest {
+  std::shared_ptr<const ir::Module> module;
+  uint32_t function_id = 0;
+  Value globals;
+  Value locals;
+};
+
+enum class CompiledEvalFramePreparation : uint8_t {
+  Ineligible,
+  Ready,
+  Error,
+};
+
+// Prepare the narrow, live-dictionary eval shape for entry on the current VM
+// stack. Ineligible calls must have no side effects; errors after preparation
+// begins are reported to the caller and must not fall back to eval again.
+CompiledEvalFramePreparation prepare_compiled_eval_frame(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    CompiledEvalFrameRequest& request, std::string& error);
+
 // Let _winapi.CloseHandle release the native completion-port registry too.
 bool close_overlapped_iocp_port(int64_t handle);
 
@@ -139,6 +159,7 @@ void register_random_module(Runtime& runtime);
 void register_weakref_module(Runtime& runtime);
 Value make_weakref_ref(Runtime& runtime, const Value& target);
 bool weakref_get_target(const Value& ref, Value& out);
+bool weakref_reference_call_fast_eligible(const Value& ref);
 bool weakref_cached_hash(const Value& ref, size_t& out);
 bool weakref_find_ref(const Value& target, Value& out);
 void weakref_invalidate_target(Object* target);

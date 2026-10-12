@@ -1,0 +1,10 @@
+integer [20, 21]
+repeated-object-results True True
+tuple 11
+negative [20, 21]
+out-of-range IndexError
+shadowed-builtin [10, 11] True
+descriptor [30, 31] ['get']
+custom-getattribute [40, 41] ['data']
+code-replacement [20, 21]
+trace-frame [20, 21] True

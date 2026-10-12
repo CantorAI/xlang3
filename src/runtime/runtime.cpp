@@ -87,6 +87,7 @@ struct RuntimeCurrentFrameState {
   const Value* local_values = nullptr;
   size_t local_count = 0;
   Value trace_function;
+  bool native_trace_delivery = false;
   bool trace_dispatch_active = false;
   Value profile_function;
   bool profile_dispatch_active = false;
@@ -1041,6 +1042,11 @@ const Value* Runtime::find_builtin(const std::string& name) const {
   return &it->second;
 }
 
+const Value* Runtime::find_module(const std::string& name) const {
+  const auto it = modules_.find(name);
+  return it == modules_.end() ? nullptr : &it->second;
+}
+
 bool Runtime::resolve_builtin(const std::string& name, Value& out) const {
   // Dict-backed dynamic execution supplies its own builtins namespace. Do not
   // fall through an explicitly empty/custom namespace to the global builtins.
@@ -1120,6 +1126,15 @@ bool Runtime::publish_sys_path(std::string& error) {
 #endif
 
 void Runtime::set_trace_function(Value trace_function) {
+  set_trace_function_mode(std::move(trace_function), false);
+}
+
+void Runtime::set_native_trace_function(Value trace_function) {
+  set_trace_function_mode(std::move(trace_function), true);
+}
+
+void Runtime::set_trace_function_mode(Value trace_function, bool native_delivery) {
+  if (native_delivery) native_trace_possible_.store(true, std::memory_order_relaxed);
   if (trace_function.tag != ValueTag::Invalid && trace_function.tag != ValueTag::None) {
     trace_possible_.store(true, std::memory_order_relaxed);
   }
@@ -1136,14 +1151,21 @@ void Runtime::set_trace_function(Value trace_function) {
   retired_traces.push_back(std::move(state.trace_function));
   for (auto& saved : saved_frames)
     retired_traces.push_back(std::move(saved.trace_function));
+  state.native_trace_delivery = native_delivery && next.tag != ValueTag::None && next.tag != ValueTag::Invalid;
   value_assign_fast(state.trace_function, next);
-  for (auto& saved : saved_frames)
+  for (auto& saved : saved_frames) {
+    saved.native_trace_delivery = state.native_trace_delivery;
     value_assign_fast(saved.trace_function, next);
+  }
 }
 
 const Value& Runtime::trace_function() const {
   const auto& state = current_frame_state(*this);
   return state.trace_function.tag == ValueTag::Invalid ? trace_function_ : state.trace_function;
+}
+
+bool Runtime::native_trace_delivery() const {
+  return current_frame_state(*this).native_trace_delivery;
 }
 
 bool Runtime::trace_dispatch_active() const {

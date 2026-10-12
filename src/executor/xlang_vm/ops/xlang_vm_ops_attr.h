@@ -31,9 +31,32 @@ limitations under the License.
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace xlang3::xlang_vm::ops {
+
+XLANG3_HOT_INLINE bool xlang_vm_class_attr_cacheable_name(
+    std::string_view name) {
+  // These names have explicit type-object behavior before ordinary class-map
+  // lookup; keep their identity, lazy creation, and layout semantics live.
+  return name != "__class__" && name != "__name__" && name != "__base__" &&
+      name != "__bases__" && name != "__mro__" && name != "__flags__" &&
+      name != "__dictoffset__" && name != "__weakrefoffset__" &&
+      name != "__dict__" && name != "__weakref__" &&
+      name != "__annotations__" && name != "__annotate__" &&
+      name != "__doc__" && name != "__text_signature__";
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_class_attr_cacheable_value(
+    const Value& value) {
+  if (value_as_static_method(value) != nullptr ||
+      value_as_class_method(value) != nullptr) return false;
+  // Class access unwraps these descriptor wrappers. Descriptor instances can
+  // also run custom __get__ logic; leave both shapes on ordinary lookup.
+  return value_as_instance(value) == nullptr ||
+      !object_value_is_descriptor(value);
+}
 
 XLANG3_HOT_INLINE Value xlang_vm_attribute_error(
     Runtime& runtime,
@@ -494,7 +517,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
     // base changes, metaclass descriptors, or pointer reuse. Dunder names and
     // custom metaclass hooks stay on the generic semantics path below.
     if (metaclass != nullptr && !metaclass->has_getattribute_hook &&
-        attr_name.rfind("__", 0) != 0) {
+        xlang_vm_class_attr_cacheable_name(attr_name)) {
       auto& cache = instr_cache[ip].attr;
       if (cache.kind == AttrSiteKind::ClassValue &&
           cache.owner == &metaclass->header &&
@@ -619,11 +642,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
   if (auto* receiver_class = value_as_class(regs[in.a])) {
     auto* metaclass = value_as_class(receiver_class->metaclass);
     if (metaclass != nullptr && !metaclass->has_getattribute_hook &&
-        attr_name.rfind("__", 0) != 0) {
+        xlang_vm_class_attr_cacheable_name(attr_name)) {
       const auto direct_attr = receiver_class->attrs.find(attr_name);
       if (direct_attr != receiver_class->attrs.end() &&
           direct_attr->second.tag != ValueTag::Invalid &&
-          !object_value_is_descriptor(direct_attr->second)) {
+          xlang_vm_class_attr_cacheable_value(direct_attr->second)) {
         Value meta_descriptor;
         std::string meta_error;
         const bool meta_data_descriptor =
@@ -634,6 +657,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
         if (!meta_data_descriptor) {
           auto& cache = instr_cache[ip].attr;
           cache = AttrSiteCache{};
+          // Class access returns functions and method descriptors as their raw
+          // class-dictionary values. Cache that pointer too, but only after
+          // proving the metaclass has no data descriptor with precedence.
+          // Static/class-method wrappers and descriptor instances that are
+          // transformed by class lookup stay on the generic path.
           cache.kind = AttrSiteKind::ClassValue;
           cache.owner = &metaclass->header;
           cache.version = metaclass->version;

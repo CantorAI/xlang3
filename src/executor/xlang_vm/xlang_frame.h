@@ -71,8 +71,10 @@ enum class CallSiteKind : uint8_t {
   InlineSelfAttrBooleanExprMethod,
   InlineArgBinaryFunction,
   InlineConditionalArgFunction,
+  InlineClosureArgBinaryFunction,
   InlineTrivialFunction,
   InlineBuiltinTypeValue,
+  InlineBuiltinIsInstanceTuple,
   InlineConstMethod,
   InlineSmallSelfMethod,
   InlineSelfSlotMethod,
@@ -112,6 +114,7 @@ struct CallSiteCache {
   void* native_user_data = nullptr;
   Object* arg0_object = nullptr;
   Object* arg1_object = nullptr;
+  Object* arg2_object = nullptr;
   uint64_t class_version = 0;
   uint32_t lhs_slot = 0;
   uint32_t rhs_slot = 0;
@@ -123,6 +126,7 @@ struct CallSiteCache {
     uint64_t inline_globals_version = 0;
     uint64_t secondary_class_version;
   };
+  uint64_t tertiary_class_version = 0;
   ir::Op inline_op = ir::Op::Add;
   uint32_t inline_function_id = UINT32_MAX;
   uint32_t fast_method_id = 0;
@@ -170,13 +174,32 @@ struct GlobalSiteCache {
   Value value;
   uint32_t slot = 0;
   uint64_t version = 0;
+  Object* owner = nullptr;
+  uint64_t secondary_version = 0;
+  Object* secondary_owner = nullptr;
   uint8_t kind = 0;
+};
+
+inline void xlang_vm_clear_global_cache_on_return(GlobalSiteCache& cache) {
+  // Kind 3 contains only a canonical Runtime-owned builtin value and scalar
+  // module identity/version guards. Keep that proof warm across short function
+  // frames; all globals/locals-derived owning Values still clear at frame exit.
+  if (cache.kind != 3) cache = GlobalSiteCache{};
+}
+
+struct DictStringGetItemCache {
+  // Non-owning owner/index only. The hit path checks the live entry and key,
+  // so mutation, deletion, and allocator address reuse cannot return stale data.
+  Object* owner = nullptr;
+  size_t entry_index = 0;
+  bool valid = false;
 };
 
 struct XlangVMInstrCache : XlangVMInstrCacheCore {
   GlobalSiteCache global;
   CallSiteCache call;
   AttrSiteCache attr;
+  DictStringGetItemCache dict_string_getitem;
 };
 
 struct XlangVMMonitoringSiteState {
@@ -198,8 +221,14 @@ class XlangVMInstrCacheStorage {
 
   void reset(size_t instruction_count,
              const std::vector<uint32_t>& cached_instruction_ips) {
+    // This storage is rebuilt per frame activation. The dense cache-slot map
+    // costs 4 bytes per IR instruction, including uncached opcodes; monitoring
+    // state adds 16 bytes per instruction only after an event is observed.
+    // Async workloads with many suspended frames multiply this footprint, so
+    // keep monitoring state lazy. Any sharing with function code must preserve
+    // disable semantics and cache-value ownership/reentrancy.
     cache_slot_by_ip_.assign(instruction_count, kNoCacheSlot);
-    monitoring_by_ip_.assign(instruction_count, {});
+    monitoring_by_ip_.clear();
     cache_sites_.clear();
     cache_sites_.resize(cached_instruction_ips.size());
     for (size_t slot = 0; slot < cached_instruction_ips.size(); ++slot) {
@@ -212,7 +241,11 @@ class XlangVMInstrCacheStorage {
   size_t size() const { return cache_slot_by_ip_.size(); }
   size_t cached_site_count() const { return cache_sites_.size(); }
   bool empty() const { return cache_slot_by_ip_.empty(); }
-  XlangVMMonitoringSiteState& monitoring_at(size_t ip) { return monitoring_by_ip_[ip]; }
+  XlangVMMonitoringSiteState& monitoring_at(size_t ip) {
+    if (monitoring_by_ip_.size() != cache_slot_by_ip_.size())
+      monitoring_by_ip_.resize(cache_slot_by_ip_.size());
+    return monitoring_by_ip_[ip];
+  }
   void clear_monitoring() {
     std::fill(monitoring_by_ip_.begin(), monitoring_by_ip_.end(),
               XlangVMMonitoringSiteState{});
@@ -287,6 +320,11 @@ struct XlangVMFrame {
   // keep their existing fast path and incur no additional object refcounts.
   Value captured_builtins;
   std::shared_ptr<const ir::Module> module_owner;
+  // The outer interpreter pool may keep an ownerless instruction-cache vector
+  // warm across native callback activations. A weak module identity proves
+  // that its function/IP layout is still alive without rooting the code.
+  std::weak_ptr<const ir::Module> pooled_module_owner;
+  uint32_t pooled_function_id = UINT32_MAX;
   uint32_t function_id = 0;
   uint64_t activation_id = 0;
   GeneratorObject* coroutine_owner = nullptr;
@@ -296,6 +334,9 @@ struct XlangVMFrame {
   bool has_caller = false;
   FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue;
   Value continuation_value;
+  // The VM continuation owns explicit eval locals until this entry frame
+  // returns or unwinds; moving the frame into a debugger pause preserves scope.
+  std::shared_ptr<void> eval_locals_scope;
   Value monitoring_code;
   Value trace_function;
   Value trace_frame_object;
@@ -337,7 +378,13 @@ struct XlangVMFrame {
       static const std::vector<Value> empty_closure;
       closure = &empty_closure;
     } else {
-      closure_owner = std::make_unique<std::vector<Value>>(frame_closure);
+      // Frames are recycled at the same VM stack depth. Reuse the owning
+      // closure vector and its capacity instead of allocating a new vector
+      // object and backing array on every closure call; copied Values still
+      // keep captured cells alive independently of the FunctionObject.
+      if (closure_owner == nullptr)
+        closure_owner = std::make_unique<std::vector<Value>>();
+      *closure_owner = frame_closure;
       closure = closure_owner.get();
     }
   }
@@ -364,7 +411,8 @@ struct XlangVMFrame {
       bool frame_has_caller,
       FrameReturnMode frame_return_mode = FrameReturnMode::StoreReturnValue,
       Value frame_continuation_value = Value::invalid(),
-      bool frame_args_are_moved = false)
+      bool frame_args_are_moved = false,
+      std::shared_ptr<void> frame_eval_locals_scope = {})
       : module(&frame_module),
         fn(&frame_module.functions[function_id]),
         globals_module(std::move(frame_globals_module)),
@@ -374,6 +422,7 @@ struct XlangVMFrame {
         has_caller(frame_has_caller),
         return_mode(frame_return_mode),
         continuation_value(std::move(frame_continuation_value)),
+        eval_locals_scope(std::move(frame_eval_locals_scope)),
         locals(fn->locals.size(), Value::invalid()),
         cells(fn->cell_slots.size(), Value::invalid()),
         regs(fn->register_count, Value::invalid()) {
@@ -402,10 +451,27 @@ struct XlangVMFrame {
       bool frame_has_caller,
       FrameReturnMode frame_return_mode = FrameReturnMode::StoreReturnValue,
       Value frame_continuation_value = Value::invalid(),
-      bool frame_args_are_moved = false) {
-    const ir::Module* old_module = module;
-    const uint32_t old_function_id = this->function_id;
-    const ir::Function* old_fn = fn;
+      bool frame_args_are_moved = false,
+      std::shared_ptr<void> frame_eval_locals_scope = {}) {
+    const bool was_pooled = module == nullptr && fn == nullptr;
+    const std::shared_ptr<const ir::Module> pooled_owner =
+        was_pooled ? pooled_module_owner.lock() : nullptr;
+    // A cache survives the outer frame-pool boundary only when the exact
+    // immutable module/function pair is still alive. Otherwise, discard its
+    // metadata and rebuild every per-site guard from current IR.
+    const bool same_pooled_function = pooled_owner != nullptr &&
+        pooled_owner.get() == &frame_module && pooled_function_id == function_id &&
+        function_id < frame_module.functions.size();
+    const ir::Module* old_module = was_pooled
+        ? (same_pooled_function ? pooled_owner.get() : nullptr)
+        : module;
+    const uint32_t old_function_id = was_pooled
+        ? (same_pooled_function ? pooled_function_id : UINT32_MAX)
+        : this->function_id;
+    const ir::Function* old_fn = was_pooled
+        ? (same_pooled_function ? &pooled_owner->functions[pooled_function_id] : nullptr)
+        : fn;
+    if (was_pooled && !same_pooled_function) execution_metadata.reset();
     const ir::Function* next_fn = &frame_module.functions[function_id];
     if (old_fn != nullptr && old_fn != next_fn) {
       auto prepared = prepared_functions.find(old_fn);
@@ -422,6 +488,8 @@ struct XlangVMFrame {
     }
     module = &frame_module;
     fn = next_fn;
+    pooled_module_owner.reset();
+    pooled_function_id = UINT32_MAX;
     set_closure(frame_closure);
     globals_module = std::move(frame_globals_module);
     capture_execution_builtins(args);
@@ -434,6 +502,7 @@ struct XlangVMFrame {
     has_caller = frame_has_caller;
     return_mode = frame_return_mode;
     continuation_value = std::move(frame_continuation_value);
+    eval_locals_scope = std::move(frame_eval_locals_scope);
     if (old_module != &frame_module || old_function_id != function_id) {
       value_set_invalid(monitoring_code);
     }
@@ -490,6 +559,7 @@ struct XlangVMFrame {
     value_set_invalid(captured_builtins);
     value_set_invalid(globals_module);
     value_set_invalid(continuation_value);
+    eval_locals_scope.reset();
     coroutine_owner = nullptr;
     inline_coroutine_parent = nullptr;
     inline_coroutine_entry = false;
@@ -539,10 +609,10 @@ private:
     }
     switch (domain) {
       case XlangVMCacheDomain::Global:
-        cache.global = GlobalSiteCache{};
+        xlang_vm_clear_global_cache_on_return(cache.global);
         break;
       case XlangVMCacheDomain::Attr: {
-        cache.global = GlobalSiteCache{};
+        xlang_vm_clear_global_cache_on_return(cache.global);
         // CPython keeps guarded attribute caches with the code object. Keep
         // XLang3's equally non-owning index caches warm across frame reuse;
         // globally unique class versions prevent a freed class at a reused
@@ -582,13 +652,13 @@ private:
         break;
       }
       case XlangVMCacheDomain::Call:
-        cache.global = GlobalSiteCache{};
-        // Short wrappers often execute one expanded class call then return.
-        // Retain only the dedicated CallEx proof, whose consumer checks the
-        // currently live class/metaclass generations before its weak target.
-        // Every owning payload must stay empty; other Call/constructor kinds
-        // still release completely. No weak pointer is dereferenced here.
-        if (cache.call.kind == CallSiteKind::GuardedUserConstructorEx &&
+        xlang_vm_clear_global_cache_on_return(cache.global);
+        // Short wrappers often execute one expanded class call then return;
+        // retain only scalar proofs whose consumers validate live class/type
+        // generations and whose targets are owned by the runtime. Every
+        // owning payload stays empty, and no weak pointer is dereferenced here.
+        if ((cache.call.kind == CallSiteKind::GuardedUserConstructorEx ||
+             cache.call.kind == CallSiteKind::InlineBuiltinIsInstanceTuple) &&
             cache.call.retained_callee.tag == ValueTag::Invalid &&
             cache.call.inline_const.tag == ValueTag::Invalid &&
             cache.call.slot_constructor_args.empty() &&
@@ -598,7 +668,7 @@ private:
         cache.call = CallSiteCache{};
         break;
       case XlangVMCacheDomain::CallMethod: {
-        cache.global = GlobalSiteCache{};
+        xlang_vm_clear_global_cache_on_return(cache.global);
         // The common method cache points into the receiver class's attrs.
         // That class owns the function, and its process-wide version tag
         // invalidates the raw pointer on mutation or class destruction. Copy
@@ -653,8 +723,20 @@ private:
         break;
       }
       case XlangVMCacheDomain::GetItem:
-        // GetItem's Python-method guard has raw class/function pointers; those
-        // must not survive return even though its scalar core can be reused.
+        // Retain only a native special-method target whose class-version guard
+        // is checked against the live receiver before use. Numeric kernels
+        // execute array.array.__getitem__ in fresh Python frames for each
+        // element, so rebuilding this class-attribute lookup per activation
+        // would erase the GetItem specialization on every scalar access.
+        // Python function targets still clear: their frame/code ownership has
+        // different lifetime and observability requirements.
+        if (cache.call.kind == CallSiteKind::GetItemNativeFunction &&
+            cache.call.retained_callee.tag == ValueTag::Invalid &&
+            cache.call.inline_const.tag == ValueTag::Invalid &&
+            cache.call.slot_constructor_args.empty() &&
+            cache.call.cached_values.empty()) {
+          break;
+        }
         cache.call = CallSiteCache{};
         break;
       case XlangVMCacheDomain::Len:

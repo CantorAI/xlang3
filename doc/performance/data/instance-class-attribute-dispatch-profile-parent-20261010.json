@@ -1,0 +1,18 @@
+{
+  "loops": 20000,
+  "purpose": "diagnostic only; includes Python call overhead",
+  "executable": "build-repro/weakref-slot-parent-20261010/Release/xlang3.exe",
+  "results": {
+    "weakref_ref_cached_seconds": 0.026082,
+    "inspect_shadowed_dict_seconds": 0.0803721,
+    "inspect_check_instance_seconds": 0.0432854,
+    "inspect_check_class_seconds": 0.2194459,
+    "inspect_getattr_static_instance_seconds": 0.4417765,
+    "inspect_getattr_static_missing_seconds": 0.4378706,
+    "object_getattribute_dict_seconds": 0.0231397,
+    "dict_get_instance_key_seconds": 0.0175911,
+    "type_dict_descriptor_seconds": 0.0123954,
+    "mappingproxy_contains_seconds": 0.0087077,
+    "mappingproxy_getitem_seconds": 0.013984
+  }
+}

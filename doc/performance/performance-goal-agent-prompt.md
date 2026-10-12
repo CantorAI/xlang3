@@ -5,6 +5,11 @@ performance goal and instructions, intended to start or continue the job on
 another computer. Paths and historical timings below describe the original
 machine; establish the new machine's own setup and measurements.
 
+The user paused optimization to complete the write-up and source handoff.
+Read the [complete source checkpoint](source-transfer-checkpoint-20261012.md).
+This prompt describes the job to resume when the user authorizes continuation;
+it does not override a current pause.
+
 ## Prompt to give the agent
 
 Work on the CantorAI/XLang Foundation XLang3 repository:
@@ -181,10 +186,12 @@ website. No webpage implementation is requested in this job.
   attributing aggregate working-build results to a source subset.
 - [Existing IR execution / AsmJit proposal](../ir_execution_performance_asmjit.md).
 
-The original computer still had additional uncommitted source experiments when
-this prompt was saved. A new clone contains committed checkpoints only. Inspect
-what actually exists on `main`; do not assume those local experiments or saved
-Windows binaries have transferred to the new computer.
+The subsequent [complete source checkpoint](source-transfer-checkpoint-20261012.md)
+includes the remaining live engine source, required build dependencies, tests
+and linked trial evidence. A new clone can build that source state. The original
+Windows binaries, build directories, package caches and unlinked scratch
+artifacts are not transferred; inspect and rebuild the actual committed sources
+on the new computer.
 
 ## Short launch message
 

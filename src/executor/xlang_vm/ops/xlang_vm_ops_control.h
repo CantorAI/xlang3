@@ -1482,7 +1482,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow yield_op(
   if (!emit_monitoring_event(frame, kSysMonitoringEventPyYield, &yielded_value)) {
     return XlangVMOpFlow::ReturnResult;
   }
-  if (!emit_trace_event(frame, "return", yielded_value) ||
+  if (!emit_trace_event(frame, "return", yielded_value, kNativeTraceSuspended) ||
       !emit_profile_event(frame, "return", yielded_value)) {
     return XlangVMOpFlow::ReturnResult;
   }

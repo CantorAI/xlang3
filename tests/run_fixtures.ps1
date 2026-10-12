@@ -38,7 +38,10 @@ $cases = @(
     "synchronous_class_argument_lifetime",
     "nested_profile_setting",
     "nested_trace_setting",
+    "sys_monitoring_all_events",
+    "multiprocessing_spawn_semlock",
     "frame_f_code_cache",
+    "coverage_tracer_native",
     "trace_disable_local_events",
     "class_namespace_lifetime",
     "class_method_annotation_capture",
@@ -50,6 +53,9 @@ $cases = @(
     "call_ex_cross_activation_constructor",
     "sqlite_statement_cache",
     "native_bound_zero_args",
+    "native_callback_frame_cache_reuse",
+    "call_ex_dict_subclass_kwargs",
+    "getitem_int_attr_inline",
     "identity_last_use",
     "hash_exception_preservation",
     "sqlite_cursor_completion",
@@ -108,6 +114,7 @@ $cases = @(
     "default_object_repr",
     "code_traceback_model",
     "mro_model",
+    "public_mro_tuple_identity",
     "property_descriptor",
     "property_callable_getter",
     "lambda_eager_comprehension_capture",
@@ -122,6 +129,7 @@ $cases = @(
     "tuples",
     "tuple_methods",
     "dict_views",
+    "dict_iterator_ownership",
     "slices",
     "string_slice_offsets",
     "regex_borrowed_ascii_match",
@@ -334,6 +342,7 @@ $cases = @(
     "finally_blocks",
     "classes",
     "class_dynamic_attrs",
+    "class_descriptor_cache",
     "context_managers",
     "context_manager_exception_traceback",
     "with_assignment_targets",
@@ -370,11 +379,17 @@ $cases = @(
     "ctypes_cast_errcheck_array",
     "itertools_zip_longest_shared",
     "minmax_custom_key",
+    "heapq_rich_compare_cache",
+    "native_callback_slot_compare",
     "math_combinatorics",
     "try_loop_exception_scope",
     "native_module_function_binding",
     "classmethod_attr_int_compare"
 )
+
+if ($env:OS -ne 'Windows_NT') {
+    $cases = @($cases | Where-Object { $_ -ne "multiprocessing_spawn_semlock" })
+}
 
 foreach ($case in $cases) {
     $source = Join-Path $root "fixtures/core/$case.py"

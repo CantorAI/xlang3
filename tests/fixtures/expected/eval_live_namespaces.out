@@ -1,4 +1,5 @@
 live callback 2
+keyword arguments 5
 identity True
 builtins inserted True
 returned function 3 True
@@ -16,5 +17,6 @@ callee before arguments 4
 walrus result 18
 walrus target 1 9
 dynamic locals 6 ['dynamic', 'dynamic', 'x']
+dict subclass locals 77
 failure unwinds locals
 after failure 11

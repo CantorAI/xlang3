@@ -1,0 +1,13 @@
+& 'C:\Python\Python314\python.exe' -m pyperf compare_to --table `
+  doc\performance\data\dict-string-getitem-isolated-control-20261011.pyperf.json `
+  doc\performance\data\dict-string-getitem-isolated-candidate-20261011.pyperf.json
+
++----------------+------------------------------------------------------+--------------------------------------------------------+
+| Benchmark      | dict-string-getitem-isolated-control-20261011.pyperf | dict-string-getitem-isolated-candidate-20261011.pyperf |
++================+======================================================+========================================================+
+| richards       | 346 ms                                               | 337 ms: 1.03x faster                                   |
++----------------+------------------------------------------------------+--------------------------------------------------------+
+| Geometric mean | (ref)                                                | 1.01x faster                                           |
++----------------+------------------------------------------------------+--------------------------------------------------------+
+
+Benchmark hidden because not significant (1): typing_runtime_protocols

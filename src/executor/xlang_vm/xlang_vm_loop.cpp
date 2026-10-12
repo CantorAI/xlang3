@@ -45,6 +45,7 @@ limitations under the License.
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
+#include "xlang3/native_trace_hook.h"
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 
@@ -367,17 +368,18 @@ RuntimeResult Interpreter::run_function(
         return true;
       }
     }
-    // `asyncio.gather(*new_list)` expands one temporary exact list into a
-    // function shaped as `(*args, keyword_only=default)`. The generic binder
-    // first copies list elements into expanded_positional, then copies them
-    // again into extra_positional before building args. Preserve CPython's
-    // observable tuple identity rules, but build that one final tuple directly
-    // and copy the live keyword-only defaults. Subclasses, iterators, multiple
-    // stars, keywords, and mutable/invalid defaults retain generic binding.
+    // `asyncio.gather(*coroutines)` is a hot exact one-star call to a
+    // varargs-only Python function. The generic binder copies each item into
+    // expanded_positional and then extra_positional before building `args`.
+    // Build the new tuple once instead. A tuple input still produces a distinct
+    // tuple for non-empty expansion, matching CPython's CALL_FUNCTION_EX
+    // identity behavior; exact empty-tuple identity and fixed keyword-only
+    // defaults keep their existing handling. Subclasses, iterators, multiple
+    // stars, keywords, and dynamic defaults retain the generic binder.
     if (!dynamic_positional_defaults && !dynamic_keyword_defaults && values.size() == 0 &&
         !values.has_keywords() && values.kw_star_arg == UINT32_MAX &&
         (values.kw_star_args == nullptr || values.kw_star_args->empty()) &&
-        target_fn.params.size() == signature.size() && signature.size() >= 2 &&
+        target_fn.params.size() == signature.size() && !signature.empty() &&
         signature.front().kind == ir::ParamKind::VarArgs) {
       bool fixed_keyword_only_defaults = true;
       for (size_t index = 1; index < signature.size(); ++index) {
@@ -414,7 +416,7 @@ RuntimeResult Interpreter::run_function(
           for (size_t index = 1; index < signature.size(); ++index) {
             value_assign_fast(bound[index], defaults[signature[index].default_reg]);
           }
-          xlang_perf_count_call_ex_varargs_kwonly_binding();
+          xlang_perf_count_call_ex_single_star_varargs_binding();
           return true;
         }
       }
@@ -542,6 +544,8 @@ RuntimeResult Interpreter::run_function(
       }
     }
 
+    const bool has_keyword_expansion = values.kw_star_arg != UINT32_MAX ||
+        (values.kw_star_args != nullptr && !values.kw_star_args->empty());
     auto bind_keyword = [&](const std::string& name, const Value& value) -> bool {
       bool matched_positional_only = false;
       for (size_t i = 0; i < signature.size(); ++i) {
@@ -565,6 +569,17 @@ RuntimeResult Interpreter::run_function(
         return true;
       }
       if (kwargs_index >= 0) {
+        if (has_keyword_expansion) {
+          for (const auto& existing : extra_keywords) {
+            auto* existing_name = value_as_string(existing.first);
+            if (existing_name != nullptr &&
+                string_object_to_string(*existing_name) == name) {
+              return bind_error(
+                  callable_display_name(target_fn, values) +
+                  "() got multiple values for keyword argument '" + name + "'");
+            }
+          }
+        }
         extra_keywords.push_back(std::make_pair(Value::string(name), value));
         return true;
       }
@@ -584,7 +599,7 @@ RuntimeResult Interpreter::run_function(
     auto expand_kw_star_arg = [&](uint32_t kw_star_reg) -> bool {
       const Value& mapping = values.registers[kw_star_reg];
       std::vector<std::pair<Value, Value>> entries;
-      if (auto* dict = value_as_dict(mapping)) {
+      if (auto* dict = mapping_dict_storage(mapping)) {
         entries = dict->entries;
       } else {
         Value keys_method;
@@ -794,13 +809,23 @@ RuntimeResult Interpreter::run_function(
       if (retain) {
         // Keep only reusable storage: a pooled slot must not pin a code
         // module, closure, adaptive-cache object, or function from a finished
-        // interpreter activation. VMFrame::reset rebuilds its function-bound
-        // state on the next use while preserving the backing allocations.
+        // interpreter activation. Retain sanitized, ownerless inline caches
+        // only behind a weak module identity; reset() discards them when that
+        // module/function changes or expires. This lets repeated native
+        // callbacks reuse warmed VM sites without extending Python function,
+        // globals, closure, or module lifetimes.
         for (auto& frame : frames) {
+          if (frame.fn != nullptr && frame.module_owner != nullptr) {
+            frame.pooled_module_owner = frame.module_owner;
+            frame.pooled_function_id = frame.function_id;
+          } else {
+            frame.pooled_module_owner.reset();
+            frame.pooled_function_id = UINT32_MAX;
+            frame.execution_metadata.reset();
+          }
           frame.closure_owner.reset();
           frame.closure = nullptr;
           frame.module_owner.reset();
-          frame.execution_metadata.reset();
           frame.prepared_functions.clear();
           frame.module = nullptr;
           frame.fn = nullptr;
@@ -831,6 +856,11 @@ RuntimeResult Interpreter::run_function(
       runtime.pop_current_frame_state();
     }
   } current_frame_guard(runtime_);
+  // The saved host-frame depth changes only when a nested Interpreter enters
+  // or leaves this invocation. Those calls suspend this dispatch loop and take
+  // their own snapshot, so keep the recursion guard's base depth here instead
+  // of hashing and rescanning Runtime TLS for every Python frame push.
+  const size_t saved_python_frame_depth = runtime_.saved_python_frame_depth();
   struct ActiveExceptionGuard {
     Runtime& runtime;
     Value previous;
@@ -969,6 +999,7 @@ RuntimeResult Interpreter::run_function(
   };
 
   Value deferred_frame_exception;
+  bool deferred_frame_exception_preserve_traceback = false;
   size_t active_dispatch_ip = std::numeric_limits<size_t>::max();
   bool allow_call_argument_transfer = false;
   auto push_frame = [&](const ir::Module& call_module,
@@ -982,7 +1013,9 @@ RuntimeResult Interpreter::run_function(
                         FrameReturnMode return_mode = FrameReturnMode::StoreReturnValue,
                         Value continuation_value = Value::invalid(),
                         bool call_args_are_bound = false,
-                        uint32_t leading_argument_register = UINT32_MAX) -> bool {
+                        uint32_t leading_argument_register = UINT32_MAX,
+                        std::shared_ptr<void> eval_locals_scope = {},
+                        bool call_args_are_direct_positional = false) -> bool {
     // Keep ordinary Python calls on this VM frame stack and return to the same
     // dispatch loop. CPython 3.14's CALL_PY_EXACT_ARGS follows the same shape:
     // transfer positional arguments into a compact interpreter frame, then
@@ -997,7 +1030,7 @@ RuntimeResult Interpreter::run_function(
     constexpr size_t kSafeHostFrameLimit = 1024;
     const size_t effective_recursion_limit = std::min(
         static_cast<size_t>(runtime_.recursion_limit()), kSafeHostFrameLimit);
-    if (frame_count + runtime_.saved_python_frame_depth() >= effective_recursion_limit) {
+    if (frame_count + saved_python_frame_depth >= effective_recursion_limit) {
       deferred_frame_exception = runtime_.make_exception(
           "RecursionError", "maximum recursion depth exceeded");
       return false;
@@ -1013,7 +1046,8 @@ RuntimeResult Interpreter::run_function(
     CallArgsView frame_args = call_args;
     if (call_args_are_bound) {
       if (call_args.has_keywords() || call_args.has_expansion() ||
-          call_args.size() != call_fn.params.size()) {
+          (!call_args_are_direct_positional &&
+           call_args.size() != call_fn.params.size())) {
         result.errors.push_back("invalid bound coroutine arguments");
         return false;
       }
@@ -1049,7 +1083,8 @@ RuntimeResult Interpreter::run_function(
     // proof. Debug/monitoring frames and unusual argument layouts keep copies.
     std::array<Value, 8> moved_call_args;
     bool moved_call_arguments = false;
-    const bool can_transfer_unbound_register_args = !call_args_are_bound &&
+    const bool can_transfer_unbound_register_args =
+        (!call_args_are_bound || call_args_are_direct_positional) &&
         call_args.leading_count == 0;
     const bool can_transfer_bound_method_args = call_args_are_bound &&
         call_args.leading_count == 1 && leading_argument_register != UINT32_MAX;
@@ -1067,7 +1102,8 @@ RuntimeResult Interpreter::run_function(
         call_args.register_args != nullptr && call_args.registers != nullptr &&
         call_args.size() != 0 &&
         call_args.size() <= moved_call_args.size() &&
-        call_args.size() == call_fn.params.size() && simple_signature(call_fn) &&
+        (call_args_are_direct_positional ||
+         (call_args.size() == call_fn.params.size() && simple_signature(call_fn))) &&
         !has_dynamic_positional_defaults(call_fn, defaults) && frame_count != 0) {
       auto& caller = frames[frame_count - 1];
       const auto& last_use = caller.execution_metadata->register_last_use;
@@ -1153,11 +1189,13 @@ RuntimeResult Interpreter::run_function(
     if (frame_count < frames.size()) {
       frames[frame_count].reset(call_module, call_function_id, frame_args, closure, std::move(call_globals_module),
                                 std::move(call_module_owner), return_dst, true, return_mode,
-                                std::move(continuation_value), moved_call_arguments);
+                                std::move(continuation_value), moved_call_arguments,
+                                std::move(eval_locals_scope));
     } else {
       frames.emplace_back(call_module, call_function_id, frame_args, closure, std::move(call_globals_module),
                           std::move(call_module_owner), return_dst, true, return_mode,
-                          std::move(continuation_value), moved_call_arguments);
+                          std::move(continuation_value), moved_call_arguments,
+                          std::move(eval_locals_scope));
     }
     if (bound_args != nullptr) {
       // emplace_back may relocate the frame vector, so reacquire the caller by
@@ -1276,10 +1314,11 @@ RuntimeResult Interpreter::run_function(
     }
   });
 
-  auto emit_trace_event = [&](VMFrame& trace_frame, const char* event_name, const Value& arg) -> bool {
+  auto emit_trace_event = [&](VMFrame& trace_frame, const char* event_name, const Value& arg, uint8_t delivery_flags = 0) -> bool {
     const bool is_call_event = std::string_view(event_name) == std::string_view("call");
+    const bool native_delivery = runtime_.native_trace_delivery();
     const Value& thread_hook = runtime_.trace_function();
-    const Value& borrowed_hook = is_call_event ? thread_hook : trace_frame.trace_function;
+    const Value& borrowed_hook = native_delivery || is_call_event ? thread_hook : trace_frame.trace_function;
     // sys.settrace(None) suspends every trace event, including existing local
     // hooks. Keep local hooks intact for reactivation, but never dispatch them
     // after global tracing is disabled (Coverage relies on balanced returns).
@@ -1324,13 +1363,54 @@ RuntimeResult Interpreter::run_function(
       return Value::dict(std::move(local_entries));
     };
 
+    // Native Coverage line callbacks usually read only f_lineno. Keep an
+    // owning locals snapshot for retained-frame correctness, but defer string
+    // key and dict allocation until a callback actually asks for f_locals.
+    // Complex frames stay eager because their cell/free-variable and logical
+    // projection rules need the full visible mapping.
+    const bool lazy_native_trace_locals = native_delivery && trace_frame.fn != nullptr &&
+        trace_frame.module != nullptr && trace_frame.function_id != trace_frame.module->entry &&
+        !trace_frame.fn->is_generator && trace_frame.fn->cell_slots.empty() &&
+        trace_frame.fn->free_vars.empty() && trace_frame.fn->logical_frame_ranges.empty();
+    auto trace_local_snapshot = [&]() {
+      std::vector<Value> snapshot(trace_frame.fn->locals.size(), Value::invalid());
+      const size_t count = std::min(trace_frame.fn->locals.size(), trace_frame.locals.size());
+      for (size_t index = 0; index < count; ++index) {
+        const auto& name = trace_frame.fn->locals[index];
+        if (name.empty() || name[0] == '#') continue;
+        // Value's owning copy is required: a callback may retain the frame
+        // after this VM activation advances or returns.
+        snapshot[index] = trace_frame.locals[index];
+      }
+      return snapshot;
+    };
+    auto publish_lazy_trace_locals = [&](FrameObject& frame) {
+      auto fresh_snapshot = trace_local_snapshot();
+      std::vector<Value> retired_snapshot;
+      retired_snapshot.swap(frame.local_snapshot);
+      frame.local_snapshot.swap(fresh_snapshot);
+      frame.instruction_index = static_cast<uint32_t>(trace_frame.ip);
+      frame.has_lazy_locals = true;
+      // Retire old owners only after the complete new snapshot is visible.
+    };
+
     Value visible_frame_value;
     auto* cached_frame = value_as_frame(trace_frame.trace_frame_object);
     if (cached_frame != nullptr && cached_frame->module.get() == trace_frame.module_owner.get() &&
         cached_frame->function_id == trace_frame.function_id) {
-      cached_frame->instruction_index = static_cast<uint32_t>(trace_frame.ip);
-      Value refreshed_locals = trace_locals();
-      value_move_assign_fast(cached_frame->locals, refreshed_locals);
+      if (lazy_native_trace_locals && !cached_frame->trace_locals_materialized) {
+        publish_lazy_trace_locals(*cached_frame);
+      } else {
+        Value refreshed_locals = trace_locals();
+        Value retired_locals;
+        value_move_assign_fast(retired_locals, cached_frame->locals);
+        value_move_assign_fast(cached_frame->locals, refreshed_locals);
+        std::vector<Value> retired_snapshot;
+        retired_snapshot.swap(cached_frame->local_snapshot);
+        cached_frame->instruction_index = static_cast<uint32_t>(trace_frame.ip);
+        cached_frame->has_lazy_locals = false;
+        cached_frame->trace_locals_materialized = true;
+      }
       value_assign_fast(visible_frame_value, trace_frame.trace_frame_object);
     } else {
       Value back = Value::none();
@@ -1350,6 +1430,13 @@ RuntimeResult Interpreter::run_function(
           std::move(back),
           Value::dict({}),
           trace_frame.activation_id);
+      if (lazy_native_trace_locals) {
+        if (auto* frame = value_as_frame(visible_frame_value)) {
+          publish_lazy_trace_locals(*frame);
+        }
+      } else if (auto* frame = value_as_frame(visible_frame_value)) {
+        frame->trace_locals_materialized = true;
+      }
       value_assign_fast(trace_frame.trace_frame_object, visible_frame_value);
     }
     Value trace_args_storage[3] = {
@@ -1371,13 +1458,29 @@ RuntimeResult Interpreter::run_function(
     } trace_guard{runtime_};
     Value trace_result;
     std::string trace_error;
-    const bool trace_ok = runtime_call_callable(
-        runtime_, hook, trace_args.leading, trace_args.leading_count, trace_result, trace_error);
+    const bool trace_ok = runtime_call_trace_hook(
+        runtime_, hook, trace_args.leading, trace_args.leading_count, native_delivery,
+        delivery_flags, trace_result, trace_error);
     if (visible_frame != nullptr) {
       visible_frame->allow_line_jump = false;
       visible_frame->source_line_is_current = false;
     }
     if (!trace_ok) {
+      if (native_delivery) {
+        // Native C tracing preserves its installed hook on callback failure.
+        // Own the exact pending Python exception, then leave this emitter so
+        // TraceDispatchGuard retires before normal caller-handler dispatch.
+        // Reuse the existing deferred exception/frame-switch path: invoking
+        // dispatch_exception here would recursively trace its own unwind.
+        Value pending;
+        if (!runtime_.take_pending_exception(pending)) {
+          pending = runtime_.make_exception(
+              "RuntimeError", trace_error.empty() ? "trace callback failed" : trace_error);
+        }
+        value_move_assign_fast(deferred_frame_exception, pending);
+        deferred_frame_exception_preserve_traceback = true;
+        throw VMUnwind{};
+      }
       result.errors.push_back(trace_error.empty() ? "trace callback failed" : trace_error);
       return false;
     }
@@ -1482,9 +1585,19 @@ RuntimeResult Interpreter::run_function(
   auto refresh_monitoring_configuration = [&](VMFrame& monitoring_frame) {
     const uint64_t generation = sys_monitoring_configuration_generation();
     if (monitoring_frame.monitoring_configuration_generation == generation) return;
+    const int64_t previous_events = monitoring_frame.monitoring_events;
     monitoring_frame.monitoring_configuration_generation = generation;
     monitoring_frame.monitoring_events =
         sys_monitoring_code_events(monitoring_frame.module, monitoring_frame.function_id);
+    // Enabling line monitoring from inside a running frame starts delivery at
+    // the next source line. Mark the current call-site line as already entered
+    // so resuming the caller does not report it retroactively.
+    if (monitoring_frame.ip != 0 &&
+        (previous_events & kSysMonitoringEventLine) == 0 &&
+        (monitoring_frame.monitoring_events & kSysMonitoringEventLine) != 0) {
+      monitoring_frame.last_monitoring_line = source_line_for_frame(monitoring_frame);
+      monitoring_frame.trace_call_emitted = true;
+    }
   };
 
   auto emit_monitoring_event = [&](VMFrame& monitoring_frame, int64_t event, const Value* arg) -> bool {
@@ -1924,6 +2037,12 @@ RuntimeResult Interpreter::run_function(
       if (!emit_monitoring_event(frames[frame_count - 1], kSysMonitoringEventPyUnwind, &current_exception)) {
         return false;
       }
+      // Native CTracer ignores exception events and needs a balanced return
+      // for each unwound Python frame. Keep ordinary Python hook policy intact.
+      if (runtime_.native_trace_delivery() && !runtime_.trace_dispatch_active() &&
+          !emit_trace_event(frames[frame_count - 1], "return", Value::none())) {
+        return false;
+      }
       while (!active_exception_handler_frames.empty() && active_exception_handler_frames.back() == frame_count) {
         value_assign_fast(previous_exception, previous_exceptions.back());
         previous_exceptions.pop_back();
@@ -1973,7 +2092,7 @@ RuntimeResult Interpreter::run_function(
         return false;
       }
     }
-    if (hook_is_active(finished.trace_function)) {
+    if (runtime_.native_trace_delivery() || hook_is_active(finished.trace_function)) {
       if (!emit_trace_event(finished, "return", owned_return_value)) {
         return false;
       }
@@ -2170,11 +2289,17 @@ RuntimeResult Interpreter::run_function(
     // already carry frames from the awaited operation (for example a Future
     // completed by a worker thread).  Keep that traceback tail while adding
     // the frames crossed by the resumed await chain.
-    if (!dispatch_exception(std::move(generator_resume_exception), true)) {
-      if (generator != nullptr) {
-        generator->done = true;
+    try {
+      if (!dispatch_exception(std::move(generator_resume_exception), true)) {
+        if (generator != nullptr) {
+          generator->done = true;
+        }
+        return result;
       }
-      return result;
+    } catch (const VMUnwind&) {
+      // Initial generator throw delivery precedes the ordinary opcode try.
+      // A failed native unwind hook has queued its replacement exception;
+      // enter the same deferred-dispatch loop without replaying throw().
     }
   }
 
@@ -2334,7 +2459,9 @@ RuntimeResult Interpreter::run_function(
       if (deferred_frame_exception.tag != ValueTag::Invalid) {
         Value exception = std::move(deferred_frame_exception);
         value_set_invalid(deferred_frame_exception);
-        if (!dispatch_exception(std::move(exception))) {
+        const bool preserve_traceback = deferred_frame_exception_preserve_traceback;
+        deferred_frame_exception_preserve_traceback = false;
+        if (!dispatch_exception(std::move(exception), preserve_traceback)) {
           return result;
         }
         goto switch_frame;
@@ -2364,8 +2491,12 @@ RuntimeResult Interpreter::run_function(
       bool trace_dispatch_active = false;
       constexpr int64_t kPerInstructionMonitoringEvents =
           kSysMonitoringEventLine | kSysMonitoringEventInstruction;
+      // Native C tracing also delivers lines in an already running caller.
+      // A cold capability hint avoids TLS lookup in never-native-traced runs.
+      const bool native_trace_active = runtime_.native_trace_event_may_dispatch() &&
+          runtime_.native_trace_delivery();
       const bool frame_observability_active =
-          !frame.trace_call_emitted || resumed_generator ||
+          native_trace_active || !frame.trace_call_emitted || resumed_generator ||
           (frame.monitoring_events & kPerInstructionMonitoringEvents) != 0 ||
           hook_is_active(frame.trace_function);
       active_dispatch_ip = ip;
@@ -2376,7 +2507,7 @@ RuntimeResult Interpreter::run_function(
         // recursively inside that trace function. Avoid a TLS runtime-state
         // lookup on every ordinary opcode.
         trace_dispatch_active =
-            hook_is_active(frame.trace_function) && runtime_.trace_dispatch_active();
+            (native_trace_active || hook_is_active(frame.trace_function)) && runtime_.trace_dispatch_active();
       }
       if (XLANG3_UNLIKELY(frame_observability_active && !trace_dispatch_active)) {
         if (!frame.trace_call_emitted) {
@@ -2405,15 +2536,15 @@ RuntimeResult Interpreter::run_function(
             return result;
           }
           if ((runtime_.trace_event_may_dispatch() &&
-               !emit_trace_event(frame, "call", Value::none())) ||
+               !emit_trace_event(frame, "call", Value::none(), kNativeTraceResume)) ||
               (runtime_.profile_event_may_dispatch() &&
                !emit_profile_event(frame, "call", Value::none()))) {
             return result;
           }
         }
         uint32_t source_line = 0;
-        const bool trace_lines_active = frame.trace_function.tag != ValueTag::Invalid &&
-            frame.trace_function.tag != ValueTag::None && frame.trace_lines;
+        const bool trace_lines_active = (native_trace_active ||
+            (frame.trace_function.tag != ValueTag::Invalid && frame.trace_function.tag != ValueTag::None)) && frame.trace_lines;
         if ((frame.monitoring_events & kSysMonitoringEventLine) != 0 || trace_lines_active) {
           source_line = source_line_for_frame(frame);
         }

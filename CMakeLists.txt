@@ -144,6 +144,7 @@ set(XLANG3_RUNTIME_SOURCES
   src/runtime/value.cpp
   src/runtime/value_hash.cpp
   src/runtime/object_model.cpp
+  src/runtime/native_trace_hook.cpp
   src/runtime/sequence.cpp
   src/runtime/mapping.cpp
   src/runtime/set_object.cpp
@@ -213,6 +214,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/functools_module.cpp
     src/runtime/modules/system/gc_module.cpp
     src/runtime/modules/system/lsprof_module.cpp
+    src/runtime/modules/system/coverage_tracer_module.cpp
     src/runtime/modules/system/array_module.cpp
   src/runtime/modules/system/imp_module.cpp
   src/runtime/modules/system/importlib_module.cpp

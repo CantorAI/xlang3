@@ -899,6 +899,21 @@ bool class_tuple_matches(
     }
   }
 
+  const Value* builtin_type = runtime.find_builtin("type");
+  const auto* builtin_type_class = builtin_type == nullptr
+      ? nullptr
+      : value_as_class(*builtin_type);
+  if (builtin_type != nullptr && builtin_type_class != nullptr &&
+      value_is(expected->metaclass, *builtin_type) &&
+      builtin_type_class->version == builtin_type_class->builtin_type_check_version) {
+    // With the exact, unmodified builtin type metaclass, these hooks are the
+    // native MRO test itself. Avoid resolving and calling type's descriptor
+    // for every isinstance/issubclass; any mutation advances type.version and
+    // falls through to the fully observable custom-hook path above.
+    out = class_is_subclass(actual, expected);
+    return true;
+  }
+
   const char* hook_name = subclass_check ? "__subclasscheck__" : "__instancecheck__";
   const Value& hook_arg = subclass_check ? actual_type : check_subject;
   bool hook_applied = false;
@@ -4261,7 +4276,11 @@ void register_object_type_builtins(Runtime& runtime) {
   object_attrs.push_back({"__reduce__", Value::native_function(0, "object.__reduce__", builtin_object_reduce)});
   object_attrs.push_back({"__reduce_ex__", Value::native_function(0, "object.__reduce_ex__", builtin_object_reduce_ex)});
   object_attrs.push_back({"__getstate__", Value::native_function(0, "object.__getstate__", builtin_object_getstate)});
-  object_attrs.push_back({"__getattribute__", Value::native_function(0, "object.__getattribute__", builtin_object_getattribute)});
+  // inspect.getattr_static repeatedly calls object.__getattribute__(obj,
+  // "__dict__"); keep this ordinary positional builtin call stack-backed.
+  object_attrs.push_back({"__getattribute__", Value::native_function(
+      0, "object.__getattribute__", builtin_object_getattribute, nullptr,
+      nullptr, builtin_fast_adapter<builtin_object_getattribute, 2>)});
   object_attrs.push_back({"__setattr__", Value::native_function(
       0, "object.__setattr__", builtin_object_setattr, nullptr, nullptr,
       builtin_fast_adapter<builtin_object_setattr, 3>, true)});
@@ -4335,6 +4354,11 @@ void register_object_type_builtins(Runtime& runtime) {
     slot_descriptor_set_owner_class(type_class->attrs["__mro__"], type_type);
     slot_descriptor_set_owner_class(type_class->attrs["__dict__"], type_type);
     slot_descriptor_set_owner_class(type_class->attrs["__annotations__"], type_type);
+    // Any later write to type.__instancecheck__ or type.__subclasscheck__
+    // advances the class version and returns generic hook dispatch to the
+    // observable path. While unchanged, those exact builtin hooks are just
+    // native MRO checks and need no repeated descriptor lookup/call.
+    type_class->builtin_type_check_version = type_class->version;
   }
   runtime.register_builtin("type", type_type);
   // Keep keyword literals immediate in the VM, but expose their canonical

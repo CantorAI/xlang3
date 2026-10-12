@@ -1,0 +1,48 @@
+{
+  "benchmark": "pyperformance 1.14 bm_typing_runtime_protocols/run_benchmark.py representative checks",
+  "loops": 20000,
+  "repeats": 5,
+  "order": "XLang3 then CPython on odd repeats; CPython then XLang3 on even repeats",
+  "xlang3_executable": "build-repro/main-verify-20261006/Release/xlang3.exe",
+  "cpython_executable": "C:/Python/Python314/python.exe",
+  "cpython_version": "3.14.7",
+  "medians_seconds": {
+    "xlang3": {
+      "nominal_single_data": 0.09677679999731481,
+      "structural_class_data": 0.09727809997275472,
+      "structural_instance_data": 0.6347168000065722,
+      "structural_property": 0.09825340000679716,
+      "structural_missing": 0.9494714000029489,
+      "structural_single_method": 0.0982676999992691,
+      "structural_many_methods": 0.09742010000627488,
+      "structural_many_data": 9.731569900002796,
+      "structural_mixed": 0.48645759996725246
+    },
+    "cpython3147": {
+      "nominal_single_data": 0.004134199989493936,
+      "structural_class_data": 0.004065599991008639,
+      "structural_instance_data": 0.0320266000344418,
+      "structural_property": 0.004191800020635128,
+      "structural_missing": 0.03804800001671538,
+      "structural_single_method": 0.004012499994132668,
+      "structural_many_methods": 0.003944900003261864,
+      "structural_many_data": 0.12947109999367967,
+      "structural_mixed": 0.003915600012987852
+    }
+  },
+  "xlang3_over_cpython": {
+    "nominal_single_data": 23.40883369049623,
+    "structural_class_data": 23.927120274471687,
+    "structural_instance_data": 19.818425912335055,
+    "structural_property": 23.439429248323282,
+    "structural_missing": 24.954567903328005,
+    "structural_single_method": 24.490392558993737,
+    "structural_many_methods": 24.695201380446267,
+    "structural_many_data": 75.16403197684933,
+    "structural_mixed": 124.23577442887338
+  },
+  "limitations": [
+    "Representative diagnostic loops are not official pyperformance score values.",
+    "The profile times entire Python helper calls and does not attribute C++ self-time within runtime primitives."
+  ]
+}

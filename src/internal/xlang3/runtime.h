@@ -138,6 +138,7 @@ public:
       bool fast_releases_vm_lock = false,
       NativeKeywordFunctionCallback keyword_callback = nullptr);
   const Value* find_builtin(const std::string& name) const;
+  const Value* find_module(const std::string& name) const;
   bool resolve_builtin(const std::string& name, Value& out) const;
   const Value* find_native_symbol(const std::string& name) const;
   bool register_native_codec(std::shared_ptr<NativeSerializationCodec> codec);
@@ -218,6 +219,12 @@ public:
   bool set_sys_argv(const std::vector<std::string>& argv, std::string& error);
   bool decode_python_source(std::string_view bytes, std::string& source, std::string& error) const;
   void set_trace_function(Value trace_function);
+  // Native C-hook installation differs from sys.settrace's callable trampoline.
+  void set_native_trace_function(Value trace_function);
+  bool native_trace_delivery() const;
+  bool native_trace_event_may_dispatch() const {
+    return native_trace_possible_.load(std::memory_order_relaxed);
+  }
   const Value& trace_function() const;
   bool trace_event_may_dispatch() const {
     return trace_possible_.load(std::memory_order_relaxed);
@@ -300,6 +307,7 @@ public:
   bool finalizing() const { return finalizing_; }
 
 private:
+  void set_trace_function_mode(Value trace_function, bool native_delivery);
   void initialize();
   void refresh_debug_poll_needed();
 
@@ -313,6 +321,7 @@ private:
   Value trace_function_;
   Value thread_trace_function_;
   std::atomic_bool trace_possible_{false};
+  std::atomic_bool native_trace_possible_{false};
   Value profile_function_;
   Value thread_profile_function_;
   std::atomic_bool profile_possible_{false};

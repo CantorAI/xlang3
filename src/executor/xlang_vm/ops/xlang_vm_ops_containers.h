@@ -15,6 +15,7 @@ limitations under the License.
 #pragma once
 
 #include "../xlang_frame.h"
+#include "../xlang_vm_inline_call.h"
 #include "../xlang_vm_op_switch.h"
 #include "xlang_vm_ops_variables.h"
 
@@ -1217,6 +1218,113 @@ XLANG3_HOT_INLINE void maybe_specialize_get_item_int(
   }
 }
 
+// The ordinary GetItemUserFunction cache already resolves raw __getitem__
+// functions without allocating a bound method. For a proven integer
+// `return self.data[index]` branch, skip the nested Python frame only when its
+// live globals, receiver storage, and observer state make that body equivalent
+// to an exact instance-string lookup followed by an in-range exact-list read.
+XLANG3_HOT_INLINE bool try_cached_int_attr_getitem(
+    Runtime& runtime,
+    const ir::Module& current_module,
+    FunctionObject& fn_obj,
+    ClassObject& receiver_class,
+    const Value& receiver,
+    const Value& index,
+    CallSiteCache& call_cache,
+    Value& out) {
+  const auto active_hook = [](const Value& hook) {
+    return hook.tag != ValueTag::Invalid && hook.tag != ValueTag::None;
+  };
+  if (index.tag != ValueTag::Int64 || index.as.i64 < 0 ||
+      runtime.debug_step_active() || runtime.debug_poll_needed() ||
+      active_hook(runtime.debug_hook()) || active_hook(runtime.trace_function()) ||
+      active_hook(runtime.profile_function()) ||
+      active_hook(runtime.thread_trace_function()) ||
+      active_hook(runtime.thread_profile_function()) ||
+      runtime.trace_event_may_dispatch() || runtime.profile_event_may_dispatch() ||
+      runtime.native_trace_event_may_dispatch() || interpreter_pending_events() != 0 ||
+      !xlang_vm_inline_python_function_allowed(runtime, current_module, fn_obj)) {
+    return false;
+  }
+
+  if (call_cache.function_code_version != fn_obj.code_version) {
+    call_cache.function_code_version = fn_obj.code_version;
+    call_cache.inline_function_id = 0;  // 0 unknown, 1 recognized, 2 rejected
+  }
+  if (call_cache.inline_function_id == 0) {
+    XlangVMIntAttrGetItemSpec spec;
+    if (!xlang_vm_analyze_int_attr_getitem(
+            current_module, fn_obj, receiver_class, spec)) {
+      call_cache.inline_function_id = 2;
+      return false;
+    }
+    call_cache.inline_slots[0] = spec.data_name;
+    call_cache.inline_slots[1] = spec.isinstance_name;
+    call_cache.inline_slots[2] = spec.tuple_name;
+    call_cache.inline_function_id = 1;
+  }
+  if (call_cache.inline_function_id != 1) return false;
+
+  const ir::Module* fn_module = fn_obj.module != nullptr
+      ? fn_obj.module.get() : &current_module;
+  if (fn_obj.function_id >= fn_module->functions.size()) return false;
+  const auto& function = fn_module->functions[fn_obj.function_id];
+  if (call_cache.inline_slots[0] >= function.names.size() ||
+      call_cache.inline_slots[1] >= function.names.size() ||
+      call_cache.inline_slots[2] >= function.names.size()) return false;
+  auto* globals = value_as_module(fn_obj.globals_module);
+  auto* builtins = value_as_module(fn_obj.builtins);
+  if (globals == nullptr || builtins == nullptr) return false;
+
+  // Exact integer input takes the false arm only if both names still resolve
+  // to canonical builtins. Recheck on every call so global or builtins rebinding
+  // immediately returns to the authoritative Python frame.
+  const auto* canonical_isinstance = runtime.find_builtin("isinstance");
+  const auto* canonical_tuple = runtime.find_builtin("tuple");
+  const auto* canonical_type = runtime.find_builtin("type");
+  if (canonical_isinstance == nullptr || canonical_tuple == nullptr ||
+      canonical_type == nullptr) return false;
+  auto resolves_canonical = [&](uint32_t name_index, const Value& canonical) {
+    const auto& name = function.names[name_index];
+    const auto* binding = xlang_vm_find_module_binding(*globals, name);
+    if (binding == nullptr) binding = xlang_vm_find_module_binding(*builtins, name);
+    return binding != nullptr && value_is(*binding, canonical);
+  };
+  if (!resolves_canonical(call_cache.inline_slots[1], *canonical_isinstance) ||
+      !resolves_canonical(call_cache.inline_slots[2], *canonical_tuple)) {
+    return false;
+  }
+  auto* tuple_class = value_as_class(*canonical_tuple);
+  auto* type_class = value_as_class(*canonical_type);
+  if (tuple_class == nullptr || type_class == nullptr ||
+      !value_is(tuple_class->metaclass, *canonical_type) ||
+      type_class->version != type_class->builtin_type_check_version) {
+    return false;
+  }
+
+  auto* instance = value_as_instance(receiver);
+  if (instance == nullptr || value_as_class(instance->klass) != &receiver_class ||
+      receiver_class.has_getattribute_hook || receiver_class.has_getattr_hook ||
+      instance->native_get_attr != nullptr) {
+    return false;
+  }
+  const auto& data_name = function.names[call_cache.inline_slots[0]];
+  const Value* data_value = nullptr;
+  for (const auto& entry : instance->attrs) {
+    if (entry.first == data_name) {
+      data_value = &entry.second;
+      break;
+    }
+  }
+  auto* list = data_value == nullptr ? nullptr : value_as_list(*data_value);
+  if (list == nullptr || static_cast<uint64_t>(index.as.i64) >= list->items.size()) {
+    return false;
+  }
+  // Use Value's ownership-aware copy assignment because a list owns this item.
+  out = list->items[static_cast<size_t>(index.as.i64)];
+  return true;
+}
+
 template <typename MakeGeneratorIfNeeded, typename PushFrame,
           typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow get_item(
@@ -1240,11 +1348,38 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
     xlang_vm_cache_note_hit(cache);
     return XlangVMOpFlow::Next;
   }
-  if (value_as_dict(regs[in.a]) != nullptr && value_as_string(regs[in.b]) != nullptr) {
-    std::string error;
-    if (mapping_get_item(regs[in.a], regs[in.b], regs[in.dst], error)) {
-      xlang_vm_cache_note_hit(cache);
-      return XlangVMOpFlow::Next;
+  if (auto* dict = value_as_dict(regs[in.a])) {
+    if (auto* key = value_as_string(regs[in.b])) {
+      auto& string_cache = cache.dict_string_getitem;
+      if (string_cache.valid && string_cache.owner == &dict->header &&
+          string_cache.entry_index < dict->entries.size()) {
+        const auto& entry = dict->entries[string_cache.entry_index];
+        auto* entry_key = value_as_string(entry.first);
+        if (entry_key != nullptr &&
+            string_object_view(*entry_key) == string_object_view(*key)) {
+          // Pin the value before replacing the output: releasing the old output
+          // can run finalizers that mutate this dictionary and its entry vector.
+          Value result = entry.second;
+          value_assign_fast(regs[in.dst], result);
+          xlang_vm_cache_note_hit(cache);
+          return XlangVMOpFlow::Next;
+        }
+      }
+      std::string error;
+      size_t found_index = static_cast<size_t>(-1);
+      if (mapping_get_string_item(
+              regs[in.a], string_object_view(*key), regs[in.dst], error,
+              &found_index)) {
+        // Only cache a real string-index hit. A fallback match against a custom
+        // non-string key must keep using generic equality and hashing rules.
+        if (found_index < dict->entries.size()) {
+          string_cache.owner = &dict->header;
+          string_cache.entry_index = found_index;
+          string_cache.valid = true;
+        }
+        xlang_vm_cache_note_hit(cache);
+        return XlangVMOpFlow::Next;
+      }
     }
   }
   if (regs[in.b].tag == ValueTag::Int64 && regs[in.a].tag == ValueTag::Object && regs[in.a].as.obj != nullptr) {
@@ -1403,6 +1538,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
         // methods. Counter previously allocated a bound method and argument
         // vector for every read. Cache only raw functions, never descriptors;
         // base mutations invalidate subclass version tags before decref.
+        // This removes lookup/allocation overhead, but a Python __getitem__
+        // still enters its normal frame below. Any future body inline must be
+        // derived from the current function IR and guard code/global/class
+        // versions, observers, and operand types; a class-name special case
+        // or skipped user lookup would change Python semantics.
         getitem = method == nullptr ? nullptr : value_as_function(*method);
         if (getitem != nullptr) {
           // Special-method lookup binds a plain class function to the object.
@@ -1414,6 +1554,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
           method_cache.function = getitem;
           method_cache.native = nullptr;
           method_cache.class_version = klass->version;
+          method_cache.inline_function_id = 0;
+          method_cache.function_code_version = getitem->code_version;
         } else if (method != nullptr) {
           native_getitem = value_as_native_function(*method);
           if (native_getitem != nullptr && native_getitem->bind_as_descriptor &&
@@ -1429,6 +1571,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow get_item(
         }
       }
       if (getitem != nullptr) {
+        if (try_cached_int_attr_getitem(
+                runtime, module, *getitem, *klass, regs[in.a], regs[in.b],
+                method_cache, regs[in.dst])) {
+          xlang_vm_cache_note_hit(cache);
+          return XlangVMOpFlow::Next;
+        }
         Value method_arguments[2];
         value_borrow_assign_fast(method_arguments[0], regs[in.a]);
         value_borrow_assign_fast(method_arguments[1], regs[in.b]);

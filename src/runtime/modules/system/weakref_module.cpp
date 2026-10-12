@@ -41,6 +41,7 @@ namespace {
 
 static constexpr const char* kWeakrefCallbackAttr = "__xlang3_weakref_callback__";
 static constexpr const char* kWeakrefHashAttr = "__xlang3_weakref_hash__";
+static constexpr const char* kWeakrefInlineTargetNativeType = "_weakref.ref";
 Value weakref_reference_type_value = Value::invalid();
 std::atomic_uint64_t weakref_reference_type_version{0};
 
@@ -167,6 +168,25 @@ void register_weakref_instance(const Value& ref, const Value& target) {
   auto& refs = weakref_registry();
   Object* ref_pointer = ref.tag == ValueTag::Object ? ref.as.obj : nullptr;
   Object* target_pointer = target.tag == ValueTag::Object ? target.as.obj : nullptr;
+  auto* ref_instance = value_as_instance(ref);
+  const bool exact_builtin_reference = ref_instance != nullptr &&
+      weakref_reference_type_value.tag != ValueTag::Invalid &&
+      value_is(ref_instance->klass, weakref_reference_type_value);
+  const bool has_inline_target = exact_builtin_reference &&
+      ref_instance->native_type == kWeakrefInlineTargetNativeType;
+  const bool can_install_inline_target = exact_builtin_reference &&
+      (has_inline_target || (ref_instance->native_type.empty() &&
+          ref_instance->native_data == nullptr &&
+          ref_instance->native_data_cast == nullptr &&
+          ref_instance->native_data_cleanup == nullptr));
+  if (can_install_inline_target) {
+    // Exact builtin refs have no other native payload. Keeping their borrowed
+    // referent pointer in the instance avoids a hash lookup on every ref().
+    // Access and invalidation remain under weakref_registry_mutex so retaining
+    // the target cannot race its final release; subclasses keep the map path.
+    ref_instance->native_type = kWeakrefInlineTargetNativeType;
+    ref_instance->native_data = target_pointer;
+  }
   if (ref_pointer != nullptr)
     ref_pointer->gc_tracking_state.fetch_or(
         kObjectWeakrefReferenceFlag, std::memory_order_release);
@@ -239,7 +259,8 @@ bool weakref_reference_new(Runtime& runtime, const Value* args, uint32_t argc, V
       if (instance == nullptr || !value_is(instance->klass, args[0])) continue;
       Value callback;
       std::string ignored;
-      if (object_get_attr(candidate, kWeakrefCallbackAttr, callback, ignored) && callback.tag == ValueTag::None) {
+      if (object_get_attr(candidate, kWeakrefCallbackAttr, callback, ignored) &&
+          callback.tag == ValueTag::None) {
         value_assign_fast(out, candidate);
         return true;
       }
@@ -537,18 +558,20 @@ bool weakref_ref(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
       if (instance == nullptr || !value_is(instance->klass, reference_type)) continue;
       Value callback;
       std::string ignored;
-      if (object_get_attr(candidate, kWeakrefCallbackAttr, callback, ignored) && callback.tag == ValueTag::None) {
+      if (object_get_attr(candidate, kWeakrefCallbackAttr, callback, ignored) &&
+          callback.tag == ValueTag::None) {
         value_assign_fast(out, candidate);
         return true;
       }
     }
   }
   out = make_weakref_ref(runtime, args[0]);
-  if (argc == 2) {
-    return object_set_attr(out, kWeakrefCallbackAttr, args[1], error);
-  } else {
-    return object_set_attr(out, kWeakrefCallbackAttr, Value::none(), error);
-  }
+  // make_weakref_ref initializes the callback slot to None before publishing
+  // the reference. Keep the common weakref.ref(obj) path off generic attribute
+  // dispatch; only replace that default when the caller supplied a callback.
+  return argc == 2 && args[1].tag != ValueTag::None
+      ? object_set_attr(out, kWeakrefCallbackAttr, args[1], error)
+      : true;
 }
 
 bool weakref_proxy_getattr(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
@@ -983,6 +1006,20 @@ bool weakref_cached_hash(const Value& ref, size_t& out) {
   return true;
 }
 
+bool weakref_reference_call_fast_eligible(const Value& ref) {
+  auto* instance = value_as_instance(ref);
+  // This proof deliberately covers only the exact builtin and an unchanged
+  // class dictionary. Subclasses and monkey-patched __call__ stay on normal
+  // special-method dispatch, preserving Python's override semantics.
+  if (instance == nullptr || weakref_reference_type_value.tag == ValueTag::Invalid ||
+      !value_is(instance->klass, weakref_reference_type_value)) {
+    return false;
+  }
+  auto* klass = value_as_class(instance->klass);
+  return klass != nullptr && klass->version ==
+      weakref_reference_type_version.load(std::memory_order_relaxed);
+}
+
 Value make_weakref_ref(Runtime& runtime, const Value& target) {
   Value ref = Value::instance(weakref_reference_type(runtime));
   std::string ignored;
@@ -994,6 +1031,14 @@ Value make_weakref_ref(Runtime& runtime, const Value& target) {
 bool weakref_get_target(const Value& ref, Value& out) {
   if (ref.tag != ValueTag::Object) return false;
   std::lock_guard lock(weakref_registry_mutex());
+  auto* instance = value_as_instance(ref);
+  if (instance != nullptr &&
+      instance->native_type == kWeakrefInlineTargetNativeType &&
+      weakref_reference_type_value.tag != ValueTag::Invalid &&
+      value_is(instance->klass, weakref_reference_type_value)) {
+    return weakref_retain_if_alive(
+        static_cast<Object*>(instance->native_data), out);
+  }
   const auto& index = weakref_target_by_reference();
   const auto found = index.find(ref.as.obj);
   return found != index.end() && weakref_retain_if_alive(found->second, out);
@@ -1036,6 +1081,15 @@ void weakref_invalidate_target(Object* target) {
         }
         entry->target = nullptr;
         weakref_target_by_reference()[entry->ref] = nullptr;
+        if (entry->ref != nullptr && entry->ref->kind == ObjectKind::Instance) {
+          auto* ref_instance = reinterpret_cast<InstanceObject*>(entry->ref);
+          if (ref_instance->native_type == kWeakrefInlineTargetNativeType) {
+            // Clear the borrowed address before target storage is reclaimed;
+            // removing the marker restores ordinary instance GC classification.
+            ref_instance->native_data = nullptr;
+            ref_instance->native_type.clear();
+          }
+        }
       }
       weakref_references_by_target().erase(target);
     }
@@ -1167,6 +1221,12 @@ void visit_strong_object_edges(Object* object, Object* cycle_root, Visit visit) 
     edge(value->metaclass);
     for (const auto& base : value->bases) edge(base);
     for (const auto& member : value->mro_cache) edge(member);
+    // This field is either invalid or an owning tuple Value. Skip the generic
+    // borrowed-reference test on the GC hot path; the tuple remains a required
+    // Class -> tuple -> Class edge for collecting isolated class cycles.
+    const Value& public_mro = value->public_mro_cache;
+    if (public_mro.tag == ValueTag::Object && public_mro.as.obj != nullptr)
+      visit(public_mro.as.obj);
     for (const auto& item : value->attrs) edge(item.second);
   } else if (auto* value = value_as_instance(borrowed)) {
     if (value->klass.tag == ValueTag::Object &&
@@ -1322,7 +1382,12 @@ uint64_t collect_isolated_class_component(Runtime& runtime, ClassObject* klass) 
         const auto found = item.tag == ValueTag::Object ? indices.find(item.as.obj) : indices.end();
         return found != indices.end() && reaches_class[found->second];
       });
-  if (cyclic_attributes.empty() && !cyclic_mro) return 0;
+  const auto public_mro_position = klass->public_mro_cache.tag == ValueTag::Object
+      ? indices.find(klass->public_mro_cache.as.obj)
+      : indices.end();
+  const bool cyclic_public_mro = public_mro_position != indices.end() &&
+      reaches_class[public_mro_position->second];
+  if (cyclic_attributes.empty() && !cyclic_mro && !cyclic_public_mro) return 0;
   Value borrowed;
   borrowed.tag = ValueTag::Object;
   borrowed.flags = kXlangValueBorrowedRefFlag;
@@ -1337,6 +1402,8 @@ uint64_t collect_isolated_class_component(Runtime& runtime, ClassObject* klass) 
     klass->mro_cache.clear();
     klass->mro_cache_version = 0;
   }
+  if (cyclic_public_mro) value_set_invalid(klass->public_mro_cache);
+  if (cyclic_mro || cyclic_public_mro) klass->mro_values_view.clear();
   const uint64_t collected = static_cast<uint64_t>(pending.size());
   value_set_invalid(keep_alive);
   return collected;

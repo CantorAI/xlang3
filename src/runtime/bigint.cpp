@@ -718,6 +718,28 @@ bool value_bigint_from_bytes(
     bool signed_value,
     Value& out,
     std::string& error) {
+  // The common fixed-width conversions used by Python codecs fit in a machine
+  // word. Decode them directly so int.from_bytes does not allocate BigInt
+  // limbs only to compact the result back into Value::Int64. Preserve the
+  // limb path for wider values and unsigned 64-bit values above INT64_MAX.
+  if (size <= sizeof(uint64_t)) {
+    uint64_t bits = 0;
+    for (size_t i = 0; i < size; ++i) {
+      const size_t index = is_big ? size - 1u - i : i;
+      bits |= static_cast<uint64_t>(bytes[index]) << (8u * i);
+    }
+    if (signed_value && size != 0 && size < sizeof(uint64_t) &&
+        (bits & (uint64_t{1} << (size * 8u - 1u))) != 0) {
+      bits |= (~uint64_t{0}) << (size * 8u);
+    }
+    if (signed_value || bits <= static_cast<uint64_t>((std::numeric_limits<int64_t>::max)())) {
+      int64_t decoded = 0;
+      std::memcpy(&decoded, &bits, sizeof(decoded));
+      out = Value::int64(decoded);
+      return true;
+    }
+  }
+
   const size_t limb_count = size / 4u + (size % 4u != 0);
   if (limb_count > std::numeric_limits<uint32_t>::max()) {
     error = "int.from_bytes input is too large";

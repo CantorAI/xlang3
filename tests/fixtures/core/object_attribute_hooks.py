@@ -60,6 +60,35 @@ override = Override()
 print(override.special, override.value)
 
 
+class DictView:
+    pass
+
+
+dict_view = DictView()
+dict_view.value = 31
+dict_view_result = object.__getattribute__(dict_view, "__dict__")
+print(dict_view_result, dict_view_result is object.__getattribute__(dict_view, "__dict__"))
+
+
+class DictProperty:
+    @property
+    def __dict__(self):
+        return "custom-dict"
+
+
+print(object.__getattribute__(DictProperty(), "__dict__"))
+print(DictProperty.__dict__["__dict__"] is DictProperty.__dict__["__dict__"])
+
+
+class SlotDict:
+    __slots__ = ("__dict__",)
+
+
+slot_dict = SlotDict()
+slot_dict.value = 42
+print(object.__getattribute__(slot_dict, "__dict__"))
+
+
 class Setter:
     def __setattr__(self, name, value):
         object.__setattr__(self, "seen_" + name, value + 1)

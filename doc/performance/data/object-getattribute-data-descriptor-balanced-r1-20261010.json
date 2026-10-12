@@ -1,0 +1,1137 @@
+{
+  "benchmark": "profile_inspect_static_lookup.py",
+  "purpose": "diagnostic only",
+  "loops": 20000,
+  "pairs": 8,
+  "order": "alternating candidate-parent/parent-candidate",
+  "candidate_sha256": "5A69B9D801BBFF1CE590930207DDC341EF5402F337FE3AC647AC39D47012D508",
+  "parent_sha256": "5A69B9D801BBFF1CE590930207DDC341EF5402F337FE3AC647AC39D47012D508",
+  "candidate_runtime_sha256": "63DEC75650E2144BABE35A4F3409901EEC6CA9AB83CE2516A20644493E5225D5",
+  "parent_runtime_sha256": "F72D9A06CAB3DC5DB16ABE6A024E1EE4E419EEF9AB67FFB12A20255395239227",
+  "samples": [
+    {
+      "pair": 1,
+      "role": "candidate",
+      "case": "weakref_ref_cached",
+      "seconds": 0.027279699977952987
+    },
+    {
+      "pair": 1,
+      "role": "candidate",
+      "case": "inspect_shadowed_dict",
+      "seconds": 0.08257120003690943
+    },
+    {
+      "pair": 1,
+      "role": "candidate",
+      "case": "inspect_check_instance",
+      "seconds": 0.04262269998434931
+    },
+    {
+      "pair": 1,
+      "role": "candidate",
+      "case": "inspect_check_class",
+      "seconds": 0.2211195999989286
+    },
+    {
+      "pair": 1,
+      "role": "candidate",
+      "case": "inspect_getattr_static_instance",
+      "seconds": 0.4409274000208825
+    },
+    {
+      "pair": 1,
+      "role": "candidate",
+      "case": "inspect_getattr_static_missing",
+      "seconds": 0.4421516999718733
+    },
+    {
+      "pair": 1,
+      "role": "candidate",
+      "case": "object_getattribute_dict",
+      "seconds": 0.021024800022132695
+    },
+    {
+      "pair": 1,
+      "role": "candidate",
+      "case": "dict_get_instance_key",
+      "seconds": 0.017045199987478554
+    },
+    {
+      "pair": 1,
+      "role": "candidate",
+      "case": "type_dict_descriptor",
+      "seconds": 0.012520199990831316
+    },
+    {
+      "pair": 1,
+      "role": "candidate",
+      "case": "mappingproxy_contains",
+      "seconds": 0.009266099950764328
+    },
+    {
+      "pair": 1,
+      "role": "candidate",
+      "case": "mappingproxy_getitem",
+      "seconds": 0.014328100020065904
+    },
+    {
+      "pair": 1,
+      "role": "parent",
+      "case": "weakref_ref_cached",
+      "seconds": 0.025269500038120896
+    },
+    {
+      "pair": 1,
+      "role": "parent",
+      "case": "inspect_shadowed_dict",
+      "seconds": 0.08062919997610152
+    },
+    {
+      "pair": 1,
+      "role": "parent",
+      "case": "inspect_check_instance",
+      "seconds": 0.03995180001948029
+    },
+    {
+      "pair": 1,
+      "role": "parent",
+      "case": "inspect_check_class",
+      "seconds": 0.21995250001782551
+    },
+    {
+      "pair": 1,
+      "role": "parent",
+      "case": "inspect_getattr_static_instance",
+      "seconds": 0.42566280002938583
+    },
+    {
+      "pair": 1,
+      "role": "parent",
+      "case": "inspect_getattr_static_missing",
+      "seconds": 0.4357222000253387
+    },
+    {
+      "pair": 1,
+      "role": "parent",
+      "case": "object_getattribute_dict",
+      "seconds": 0.020519699959550053
+    },
+    {
+      "pair": 1,
+      "role": "parent",
+      "case": "dict_get_instance_key",
+      "seconds": 0.017883499967865646
+    },
+    {
+      "pair": 1,
+      "role": "parent",
+      "case": "type_dict_descriptor",
+      "seconds": 0.012634899991098791
+    },
+    {
+      "pair": 1,
+      "role": "parent",
+      "case": "mappingproxy_contains",
+      "seconds": 0.009146799973677844
+    },
+    {
+      "pair": 1,
+      "role": "parent",
+      "case": "mappingproxy_getitem",
+      "seconds": 0.013916199968662113
+    },
+    {
+      "pair": 2,
+      "role": "parent",
+      "case": "weakref_ref_cached",
+      "seconds": 0.025350700016133487
+    },
+    {
+      "pair": 2,
+      "role": "parent",
+      "case": "inspect_shadowed_dict",
+      "seconds": 0.082016600004863
+    },
+    {
+      "pair": 2,
+      "role": "parent",
+      "case": "inspect_check_instance",
+      "seconds": 0.04005820001475513
+    },
+    {
+      "pair": 2,
+      "role": "parent",
+      "case": "inspect_check_class",
+      "seconds": 0.2150621999753639
+    },
+    {
+      "pair": 2,
+      "role": "parent",
+      "case": "inspect_getattr_static_instance",
+      "seconds": 0.4265889000380412
+    },
+    {
+      "pair": 2,
+      "role": "parent",
+      "case": "inspect_getattr_static_missing",
+      "seconds": 0.4360015999991447
+    },
+    {
+      "pair": 2,
+      "role": "parent",
+      "case": "object_getattribute_dict",
+      "seconds": 0.020541599951684475
+    },
+    {
+      "pair": 2,
+      "role": "parent",
+      "case": "dict_get_instance_key",
+      "seconds": 0.01746950001688674
+    },
+    {
+      "pair": 2,
+      "role": "parent",
+      "case": "type_dict_descriptor",
+      "seconds": 0.012617799977306277
+    },
+    {
+      "pair": 2,
+      "role": "parent",
+      "case": "mappingproxy_contains",
+      "seconds": 0.009107300022151321
+    },
+    {
+      "pair": 2,
+      "role": "parent",
+      "case": "mappingproxy_getitem",
+      "seconds": 0.013834099983796477
+    },
+    {
+      "pair": 2,
+      "role": "candidate",
+      "case": "weakref_ref_cached",
+      "seconds": 0.02685440005734563
+    },
+    {
+      "pair": 2,
+      "role": "candidate",
+      "case": "inspect_shadowed_dict",
+      "seconds": 0.08135579997906461
+    },
+    {
+      "pair": 2,
+      "role": "candidate",
+      "case": "inspect_check_instance",
+      "seconds": 0.040851400000974536
+    },
+    {
+      "pair": 2,
+      "role": "candidate",
+      "case": "inspect_check_class",
+      "seconds": 0.22430080000776798
+    },
+    {
+      "pair": 2,
+      "role": "candidate",
+      "case": "inspect_getattr_static_instance",
+      "seconds": 0.5766229999717325
+    },
+    {
+      "pair": 2,
+      "role": "candidate",
+      "case": "inspect_getattr_static_missing",
+      "seconds": 0.4432551999925636
+    },
+    {
+      "pair": 2,
+      "role": "candidate",
+      "case": "object_getattribute_dict",
+      "seconds": 0.020248700049705803
+    },
+    {
+      "pair": 2,
+      "role": "candidate",
+      "case": "dict_get_instance_key",
+      "seconds": 0.017114599992055446
+    },
+    {
+      "pair": 2,
+      "role": "candidate",
+      "case": "type_dict_descriptor",
+      "seconds": 0.012388100032694638
+    },
+    {
+      "pair": 2,
+      "role": "candidate",
+      "case": "mappingproxy_contains",
+      "seconds": 0.009135900007095188
+    },
+    {
+      "pair": 2,
+      "role": "candidate",
+      "case": "mappingproxy_getitem",
+      "seconds": 0.014164899999741465
+    },
+    {
+      "pair": 3,
+      "role": "candidate",
+      "case": "weakref_ref_cached",
+      "seconds": 0.027222300006542355
+    },
+    {
+      "pair": 3,
+      "role": "candidate",
+      "case": "inspect_shadowed_dict",
+      "seconds": 0.08221640001283959
+    },
+    {
+      "pair": 3,
+      "role": "candidate",
+      "case": "inspect_check_instance",
+      "seconds": 0.04121060000034049
+    },
+    {
+      "pair": 3,
+      "role": "candidate",
+      "case": "inspect_check_class",
+      "seconds": 0.2215273999609053
+    },
+    {
+      "pair": 3,
+      "role": "candidate",
+      "case": "inspect_getattr_static_instance",
+      "seconds": 0.4354013999691233
+    },
+    {
+      "pair": 3,
+      "role": "candidate",
+      "case": "inspect_getattr_static_missing",
+      "seconds": 0.44131639995612204
+    },
+    {
+      "pair": 3,
+      "role": "candidate",
+      "case": "object_getattribute_dict",
+      "seconds": 0.021312199998646975
+    },
+    {
+      "pair": 3,
+      "role": "candidate",
+      "case": "dict_get_instance_key",
+      "seconds": 0.01804300001822412
+    },
+    {
+      "pair": 3,
+      "role": "candidate",
+      "case": "type_dict_descriptor",
+      "seconds": 0.012590400001499802
+    },
+    {
+      "pair": 3,
+      "role": "candidate",
+      "case": "mappingproxy_contains",
+      "seconds": 0.00914739997824654
+    },
+    {
+      "pair": 3,
+      "role": "candidate",
+      "case": "mappingproxy_getitem",
+      "seconds": 0.014410800009500235
+    },
+    {
+      "pair": 3,
+      "role": "parent",
+      "case": "weakref_ref_cached",
+      "seconds": 0.02591170003870502
+    },
+    {
+      "pair": 3,
+      "role": "parent",
+      "case": "inspect_shadowed_dict",
+      "seconds": 0.08027899998705834
+    },
+    {
+      "pair": 3,
+      "role": "parent",
+      "case": "inspect_check_instance",
+      "seconds": 0.03966229996876791
+    },
+    {
+      "pair": 3,
+      "role": "parent",
+      "case": "inspect_check_class",
+      "seconds": 0.21699320001062006
+    },
+    {
+      "pair": 3,
+      "role": "parent",
+      "case": "inspect_getattr_static_instance",
+      "seconds": 0.438425800006371
+    },
+    {
+      "pair": 3,
+      "role": "parent",
+      "case": "inspect_getattr_static_missing",
+      "seconds": 0.43370920000597835
+    },
+    {
+      "pair": 3,
+      "role": "parent",
+      "case": "object_getattribute_dict",
+      "seconds": 0.020737599988933653
+    },
+    {
+      "pair": 3,
+      "role": "parent",
+      "case": "dict_get_instance_key",
+      "seconds": 0.0179954000050202
+    },
+    {
+      "pair": 3,
+      "role": "parent",
+      "case": "type_dict_descriptor",
+      "seconds": 0.012710500042885542
+    },
+    {
+      "pair": 3,
+      "role": "parent",
+      "case": "mappingproxy_contains",
+      "seconds": 0.0093073999742046
+    },
+    {
+      "pair": 3,
+      "role": "parent",
+      "case": "mappingproxy_getitem",
+      "seconds": 0.013936500006821007
+    },
+    {
+      "pair": 4,
+      "role": "parent",
+      "case": "weakref_ref_cached",
+      "seconds": 0.02560479997191578
+    },
+    {
+      "pair": 4,
+      "role": "parent",
+      "case": "inspect_shadowed_dict",
+      "seconds": 0.08082450000802055
+    },
+    {
+      "pair": 4,
+      "role": "parent",
+      "case": "inspect_check_instance",
+      "seconds": 0.04067119996761903
+    },
+    {
+      "pair": 4,
+      "role": "parent",
+      "case": "inspect_check_class",
+      "seconds": 0.2175279000075534
+    },
+    {
+      "pair": 4,
+      "role": "parent",
+      "case": "inspect_getattr_static_instance",
+      "seconds": 0.42957419995218515
+    },
+    {
+      "pair": 4,
+      "role": "parent",
+      "case": "inspect_getattr_static_missing",
+      "seconds": 0.43194839998614043
+    },
+    {
+      "pair": 4,
+      "role": "parent",
+      "case": "object_getattribute_dict",
+      "seconds": 0.020210199989378452
+    },
+    {
+      "pair": 4,
+      "role": "parent",
+      "case": "dict_get_instance_key",
+      "seconds": 0.017403499979991466
+    },
+    {
+      "pair": 4,
+      "role": "parent",
+      "case": "type_dict_descriptor",
+      "seconds": 0.01244839996797964
+    },
+    {
+      "pair": 4,
+      "role": "parent",
+      "case": "mappingproxy_contains",
+      "seconds": 0.009074999950826168
+    },
+    {
+      "pair": 4,
+      "role": "parent",
+      "case": "mappingproxy_getitem",
+      "seconds": 0.013927299994975328
+    },
+    {
+      "pair": 4,
+      "role": "candidate",
+      "case": "weakref_ref_cached",
+      "seconds": 0.027795400004833937
+    },
+    {
+      "pair": 4,
+      "role": "candidate",
+      "case": "inspect_shadowed_dict",
+      "seconds": 0.08599700004560873
+    },
+    {
+      "pair": 4,
+      "role": "candidate",
+      "case": "inspect_check_instance",
+      "seconds": 0.04404999996768311
+    },
+    {
+      "pair": 4,
+      "role": "candidate",
+      "case": "inspect_check_class",
+      "seconds": 0.22709850000683218
+    },
+    {
+      "pair": 4,
+      "role": "candidate",
+      "case": "inspect_getattr_static_instance",
+      "seconds": 0.44353209994733334
+    },
+    {
+      "pair": 4,
+      "role": "candidate",
+      "case": "inspect_getattr_static_missing",
+      "seconds": 0.44096039998112246
+    },
+    {
+      "pair": 4,
+      "role": "candidate",
+      "case": "object_getattribute_dict",
+      "seconds": 0.020668799988925457
+    },
+    {
+      "pair": 4,
+      "role": "candidate",
+      "case": "dict_get_instance_key",
+      "seconds": 0.01697159995092079
+    },
+    {
+      "pair": 4,
+      "role": "candidate",
+      "case": "type_dict_descriptor",
+      "seconds": 0.012312299979384989
+    },
+    {
+      "pair": 4,
+      "role": "candidate",
+      "case": "mappingproxy_contains",
+      "seconds": 0.008975800010375679
+    },
+    {
+      "pair": 4,
+      "role": "candidate",
+      "case": "mappingproxy_getitem",
+      "seconds": 0.014115599973592907
+    },
+    {
+      "pair": 5,
+      "role": "candidate",
+      "case": "weakref_ref_cached",
+      "seconds": 0.027043199981562793
+    },
+    {
+      "pair": 5,
+      "role": "candidate",
+      "case": "inspect_shadowed_dict",
+      "seconds": 0.08325829997193068
+    },
+    {
+      "pair": 5,
+      "role": "candidate",
+      "case": "inspect_check_instance",
+      "seconds": 0.04298580001341179
+    },
+    {
+      "pair": 5,
+      "role": "candidate",
+      "case": "inspect_check_class",
+      "seconds": 0.22465879999799654
+    },
+    {
+      "pair": 5,
+      "role": "candidate",
+      "case": "inspect_getattr_static_instance",
+      "seconds": 0.43957960000261664
+    },
+    {
+      "pair": 5,
+      "role": "candidate",
+      "case": "inspect_getattr_static_missing",
+      "seconds": 0.4485030999640003
+    },
+    {
+      "pair": 5,
+      "role": "candidate",
+      "case": "object_getattribute_dict",
+      "seconds": 0.022107699944172055
+    },
+    {
+      "pair": 5,
+      "role": "candidate",
+      "case": "dict_get_instance_key",
+      "seconds": 0.018236700037959963
+    },
+    {
+      "pair": 5,
+      "role": "candidate",
+      "case": "type_dict_descriptor",
+      "seconds": 0.013337699987459928
+    },
+    {
+      "pair": 5,
+      "role": "candidate",
+      "case": "mappingproxy_contains",
+      "seconds": 0.0094066999736242
+    },
+    {
+      "pair": 5,
+      "role": "candidate",
+      "case": "mappingproxy_getitem",
+      "seconds": 0.014881700044497848
+    },
+    {
+      "pair": 5,
+      "role": "parent",
+      "case": "weakref_ref_cached",
+      "seconds": 0.025426200008951128
+    },
+    {
+      "pair": 5,
+      "role": "parent",
+      "case": "inspect_shadowed_dict",
+      "seconds": 0.08065890002762899
+    },
+    {
+      "pair": 5,
+      "role": "parent",
+      "case": "inspect_check_instance",
+      "seconds": 0.04083640000317246
+    },
+    {
+      "pair": 5,
+      "role": "parent",
+      "case": "inspect_check_class",
+      "seconds": 0.21974500000942498
+    },
+    {
+      "pair": 5,
+      "role": "parent",
+      "case": "inspect_getattr_static_instance",
+      "seconds": 0.4358930999878794
+    },
+    {
+      "pair": 5,
+      "role": "parent",
+      "case": "inspect_getattr_static_missing",
+      "seconds": 0.44532399997115135
+    },
+    {
+      "pair": 5,
+      "role": "parent",
+      "case": "object_getattribute_dict",
+      "seconds": 0.020561300043482333
+    },
+    {
+      "pair": 5,
+      "role": "parent",
+      "case": "dict_get_instance_key",
+      "seconds": 0.017823400034103543
+    },
+    {
+      "pair": 5,
+      "role": "parent",
+      "case": "type_dict_descriptor",
+      "seconds": 0.012548999977298081
+    },
+    {
+      "pair": 5,
+      "role": "parent",
+      "case": "mappingproxy_contains",
+      "seconds": 0.009303599945269525
+    },
+    {
+      "pair": 5,
+      "role": "parent",
+      "case": "mappingproxy_getitem",
+      "seconds": 0.014175199961755425
+    },
+    {
+      "pair": 6,
+      "role": "parent",
+      "case": "weakref_ref_cached",
+      "seconds": 0.026180999993812293
+    },
+    {
+      "pair": 6,
+      "role": "parent",
+      "case": "inspect_shadowed_dict",
+      "seconds": 0.09564929996849969
+    },
+    {
+      "pair": 6,
+      "role": "parent",
+      "case": "inspect_check_instance",
+      "seconds": 0.041836599993985146
+    },
+    {
+      "pair": 6,
+      "role": "parent",
+      "case": "inspect_check_class",
+      "seconds": 0.23793119995389134
+    },
+    {
+      "pair": 6,
+      "role": "parent",
+      "case": "inspect_getattr_static_instance",
+      "seconds": 0.41970309999305755
+    },
+    {
+      "pair": 6,
+      "role": "parent",
+      "case": "inspect_getattr_static_missing",
+      "seconds": 0.45339290000265464
+    },
+    {
+      "pair": 6,
+      "role": "parent",
+      "case": "object_getattribute_dict",
+      "seconds": 0.02067449997412041
+    },
+    {
+      "pair": 6,
+      "role": "parent",
+      "case": "dict_get_instance_key",
+      "seconds": 0.017455200024414808
+    },
+    {
+      "pair": 6,
+      "role": "parent",
+      "case": "type_dict_descriptor",
+      "seconds": 0.012758700002450496
+    },
+    {
+      "pair": 6,
+      "role": "parent",
+      "case": "mappingproxy_contains",
+      "seconds": 0.00921880005626008
+    },
+    {
+      "pair": 6,
+      "role": "parent",
+      "case": "mappingproxy_getitem",
+      "seconds": 0.013821300002746284
+    },
+    {
+      "pair": 6,
+      "role": "candidate",
+      "case": "weakref_ref_cached",
+      "seconds": 0.026802600012160838
+    },
+    {
+      "pair": 6,
+      "role": "candidate",
+      "case": "inspect_shadowed_dict",
+      "seconds": 0.08275709999725223
+    },
+    {
+      "pair": 6,
+      "role": "candidate",
+      "case": "inspect_check_instance",
+      "seconds": 0.0414257999509573
+    },
+    {
+      "pair": 6,
+      "role": "candidate",
+      "case": "inspect_check_class",
+      "seconds": 0.22251729998970404
+    },
+    {
+      "pair": 6,
+      "role": "candidate",
+      "case": "inspect_getattr_static_instance",
+      "seconds": 0.44186369999079034
+    },
+    {
+      "pair": 6,
+      "role": "candidate",
+      "case": "inspect_getattr_static_missing",
+      "seconds": 0.44254439999349415
+    },
+    {
+      "pair": 6,
+      "role": "candidate",
+      "case": "object_getattribute_dict",
+      "seconds": 0.020407100033480674
+    },
+    {
+      "pair": 6,
+      "role": "candidate",
+      "case": "dict_get_instance_key",
+      "seconds": 0.017052799987141043
+    },
+    {
+      "pair": 6,
+      "role": "candidate",
+      "case": "type_dict_descriptor",
+      "seconds": 0.012386699963826686
+    },
+    {
+      "pair": 6,
+      "role": "candidate",
+      "case": "mappingproxy_contains",
+      "seconds": 0.00908530002925545
+    },
+    {
+      "pair": 6,
+      "role": "candidate",
+      "case": "mappingproxy_getitem",
+      "seconds": 0.01437150000128895
+    },
+    {
+      "pair": 7,
+      "role": "candidate",
+      "case": "weakref_ref_cached",
+      "seconds": 0.02697710000211373
+    },
+    {
+      "pair": 7,
+      "role": "candidate",
+      "case": "inspect_shadowed_dict",
+      "seconds": 0.08387450000736862
+    },
+    {
+      "pair": 7,
+      "role": "candidate",
+      "case": "inspect_check_instance",
+      "seconds": 0.04138519999105483
+    },
+    {
+      "pair": 7,
+      "role": "candidate",
+      "case": "inspect_check_class",
+      "seconds": 0.2220328999683261
+    },
+    {
+      "pair": 7,
+      "role": "candidate",
+      "case": "inspect_getattr_static_instance",
+      "seconds": 0.44226520002121106
+    },
+    {
+      "pair": 7,
+      "role": "candidate",
+      "case": "inspect_getattr_static_missing",
+      "seconds": 0.4449872000259347
+    },
+    {
+      "pair": 7,
+      "role": "candidate",
+      "case": "object_getattribute_dict",
+      "seconds": 0.021679400000721216
+    },
+    {
+      "pair": 7,
+      "role": "candidate",
+      "case": "dict_get_instance_key",
+      "seconds": 0.017664399987552315
+    },
+    {
+      "pair": 7,
+      "role": "candidate",
+      "case": "type_dict_descriptor",
+      "seconds": 0.01225139998132363
+    },
+    {
+      "pair": 7,
+      "role": "candidate",
+      "case": "mappingproxy_contains",
+      "seconds": 0.00910889997612685
+    },
+    {
+      "pair": 7,
+      "role": "candidate",
+      "case": "mappingproxy_getitem",
+      "seconds": 0.014138699974864721
+    },
+    {
+      "pair": 7,
+      "role": "parent",
+      "case": "weakref_ref_cached",
+      "seconds": 0.02540949999820441
+    },
+    {
+      "pair": 7,
+      "role": "parent",
+      "case": "inspect_shadowed_dict",
+      "seconds": 0.08202960004564375
+    },
+    {
+      "pair": 7,
+      "role": "parent",
+      "case": "inspect_check_instance",
+      "seconds": 0.04034419998060912
+    },
+    {
+      "pair": 7,
+      "role": "parent",
+      "case": "inspect_check_class",
+      "seconds": 0.21895660000154749
+    },
+    {
+      "pair": 7,
+      "role": "parent",
+      "case": "inspect_getattr_static_instance",
+      "seconds": 0.4422490999568254
+    },
+    {
+      "pair": 7,
+      "role": "parent",
+      "case": "inspect_getattr_static_missing",
+      "seconds": 0.4414773000171408
+    },
+    {
+      "pair": 7,
+      "role": "parent",
+      "case": "object_getattribute_dict",
+      "seconds": 0.020838099997490644
+    },
+    {
+      "pair": 7,
+      "role": "parent",
+      "case": "dict_get_instance_key",
+      "seconds": 0.0178029999951832
+    },
+    {
+      "pair": 7,
+      "role": "parent",
+      "case": "type_dict_descriptor",
+      "seconds": 0.012607600016053766
+    },
+    {
+      "pair": 7,
+      "role": "parent",
+      "case": "mappingproxy_contains",
+      "seconds": 0.009164499992039055
+    },
+    {
+      "pair": 7,
+      "role": "parent",
+      "case": "mappingproxy_getitem",
+      "seconds": 0.013839799968991429
+    },
+    {
+      "pair": 8,
+      "role": "parent",
+      "case": "weakref_ref_cached",
+      "seconds": 0.026303700054995716
+    },
+    {
+      "pair": 8,
+      "role": "parent",
+      "case": "inspect_shadowed_dict",
+      "seconds": 0.0814138000132516
+    },
+    {
+      "pair": 8,
+      "role": "parent",
+      "case": "inspect_check_instance",
+      "seconds": 0.04124750004848465
+    },
+    {
+      "pair": 8,
+      "role": "parent",
+      "case": "inspect_check_class",
+      "seconds": 0.22317369998199865
+    },
+    {
+      "pair": 8,
+      "role": "parent",
+      "case": "inspect_getattr_static_instance",
+      "seconds": 0.43287770001916215
+    },
+    {
+      "pair": 8,
+      "role": "parent",
+      "case": "inspect_getattr_static_missing",
+      "seconds": 0.4437151000020094
+    },
+    {
+      "pair": 8,
+      "role": "parent",
+      "case": "object_getattribute_dict",
+      "seconds": 0.021383400016929954
+    },
+    {
+      "pair": 8,
+      "role": "parent",
+      "case": "dict_get_instance_key",
+      "seconds": 0.018212899973150343
+    },
+    {
+      "pair": 8,
+      "role": "parent",
+      "case": "type_dict_descriptor",
+      "seconds": 0.012863699987065047
+    },
+    {
+      "pair": 8,
+      "role": "parent",
+      "case": "mappingproxy_contains",
+      "seconds": 0.009825700020883232
+    },
+    {
+      "pair": 8,
+      "role": "parent",
+      "case": "mappingproxy_getitem",
+      "seconds": 0.014590999984648079
+    },
+    {
+      "pair": 8,
+      "role": "candidate",
+      "case": "weakref_ref_cached",
+      "seconds": 0.027232299966271967
+    },
+    {
+      "pair": 8,
+      "role": "candidate",
+      "case": "inspect_shadowed_dict",
+      "seconds": 0.08311099995626137
+    },
+    {
+      "pair": 8,
+      "role": "candidate",
+      "case": "inspect_check_instance",
+      "seconds": 0.041371500003151596
+    },
+    {
+      "pair": 8,
+      "role": "candidate",
+      "case": "inspect_check_class",
+      "seconds": 0.22592970001278445
+    },
+    {
+      "pair": 8,
+      "role": "candidate",
+      "case": "inspect_getattr_static_instance",
+      "seconds": 0.43559229996753857
+    },
+    {
+      "pair": 8,
+      "role": "candidate",
+      "case": "inspect_getattr_static_missing",
+      "seconds": 0.44963250000728294
+    },
+    {
+      "pair": 8,
+      "role": "candidate",
+      "case": "object_getattribute_dict",
+      "seconds": 0.020959899993613362
+    },
+    {
+      "pair": 8,
+      "role": "candidate",
+      "case": "dict_get_instance_key",
+      "seconds": 0.017279400024563074
+    },
+    {
+      "pair": 8,
+      "role": "candidate",
+      "case": "type_dict_descriptor",
+      "seconds": 0.012800799973774701
+    },
+    {
+      "pair": 8,
+      "role": "candidate",
+      "case": "mappingproxy_contains",
+      "seconds": 0.00906000001123175
+    },
+    {
+      "pair": 8,
+      "role": "candidate",
+      "case": "mappingproxy_getitem",
+      "seconds": 0.014181599952280521
+    }
+  ],
+  "summary": [
+    {
+      "case": "weakref_ref_cached",
+      "candidate_median_seconds": 0.027222300006542355,
+      "parent_median_seconds": 0.02560479997191578,
+      "candidate_over_parent": 1.0631717504686895
+    },
+    {
+      "case": "inspect_shadowed_dict",
+      "candidate_median_seconds": 0.08311099995626137,
+      "parent_median_seconds": 0.0814138000132516,
+      "candidate_over_parent": 1.0208465879584727
+    },
+    {
+      "case": "inspect_check_instance",
+      "candidate_median_seconds": 0.0414257999509573,
+      "parent_median_seconds": 0.04067119996761903,
+      "candidate_over_parent": 1.0185536690321173
+    },
+    {
+      "case": "inspect_check_class",
+      "candidate_median_seconds": 0.22430080000776798,
+      "parent_median_seconds": 0.21974500000942498,
+      "candidate_over_parent": 1.0207322123285971
+    },
+    {
+      "case": "inspect_getattr_static_instance",
+      "candidate_median_seconds": 0.44186369999079034,
+      "parent_median_seconds": 0.43287770001916215,
+      "candidate_over_parent": 1.020758750037783
+    },
+    {
+      "case": "inspect_getattr_static_missing",
+      "candidate_median_seconds": 0.4432551999925636,
+      "parent_median_seconds": 0.4414773000171408,
+      "candidate_over_parent": 1.004027160570552
+    },
+    {
+      "case": "object_getattribute_dict",
+      "candidate_median_seconds": 0.021024800022132695,
+      "parent_median_seconds": 0.02067449997412041,
+      "candidate_over_parent": 1.0169435801809368
+    },
+    {
+      "case": "dict_get_instance_key",
+      "candidate_median_seconds": 0.017279400024563074,
+      "parent_median_seconds": 0.017823400034103543,
+      "candidate_over_parent": 0.969478325768396
+    },
+    {
+      "case": "type_dict_descriptor",
+      "candidate_median_seconds": 0.012520199990831316,
+      "parent_median_seconds": 0.012634899991098791,
+      "candidate_over_parent": 0.9909219700711298
+    },
+    {
+      "case": "mappingproxy_contains",
+      "candidate_median_seconds": 0.009135900007095188,
+      "parent_median_seconds": 0.00921880005626008,
+      "candidate_over_parent": 0.9910075011217325
+    },
+    {
+      "case": "mappingproxy_getitem",
+      "candidate_median_seconds": 0.014328100020065904,
+      "parent_median_seconds": 0.013927299994975328,
+      "candidate_over_parent": 1.0287780133432305
+    }
+  ]
+}

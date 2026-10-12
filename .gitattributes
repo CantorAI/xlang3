@@ -408,6 +408,14 @@
 /doc/performance/data/heapq-cold-metadata-checkpoint-20261008-sources/compiled/tests/run_fixtures.py -text
 /doc/performance/data/heapq-cold-metadata-checkpoint-20261008-publication-manifest.json -text
 
+/doc/performance/data/pprint-c1-native-cpu-* -text
+
+/doc/performance/data/ordinary-canonical-slot-constructor-c3-* -text
+
+/doc/performance/data/pprint-canonical-constructor-c3-* -text
+
+/doc/performance/data/source-transfer-checkpoint-* -text
+
 /doc/performance/data/class-canonical-publication-c4-diagnostic-20261008.json -text
 /doc/performance/data/class-canonical-publication-c4-diagnostic-20261008.stderr.log -text
 /doc/performance/data/class-canonical-publication-c4-diagnostic-20261008.stdout.log -text

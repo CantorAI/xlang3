@@ -629,6 +629,9 @@ struct FrameObject {
   // f_locals dict only if code actually asks for it.
   std::vector<Value> local_snapshot;
   bool has_lazy_locals = false;
+  // Once trace callbacks materialize f_locals, keep refreshing its eager dict:
+  // callbacks may retain that mapping and expect it to stay current.
+  bool trace_locals_materialized = false;
   Value back;
   Value builtins;
   Value trace;

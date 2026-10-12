@@ -1642,8 +1642,17 @@ bool socket_send_impl(Runtime& runtime, const Value* args, uint32_t argc, Value&
 
   size_t total = 0;
   while (total < data.size()) {
-    const int chunk = static_cast<int>(std::min<size_t>(data.size() - total, 65536));
-    const int sent = without_runtime_execution_lock(
+    // Match CPython's single-send contract: pass the caller's remaining buffer
+    // to the OS and let send() report a genuine partial write. Windows accepts
+    // an int length, so clamp only to INT_MAX there. An arbitrary 64 KiB cap
+    // can force extra send/selector calls in bulk asyncio/TLS transfers.
+#ifdef _WIN32
+    const int chunk = static_cast<int>(std::min<size_t>(
+        data.size() - total, static_cast<size_t>(std::numeric_limits<int>::max())));
+#else
+    const size_t chunk = data.size() - total;
+#endif
+    const auto sent = without_runtime_execution_lock(
         [&] { return ::send(fd, data.data() + total, chunk, flags); });
     if (sent < 0) {
       return raise_socket_os_error(runtime, send_all ? "sendall" : "send", error);
