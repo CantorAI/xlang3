@@ -241,6 +241,87 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
         value_assign_fast(temp_regs[op.dst], slot);
         break;
       }
+      case ir::Op::LoadLocalAttr: {
+        if (op.a != 0 || op.b >= function.names.size() ||
+            op.c >= temp_regs.size() || op.c == op.dst) {
+          supported = false;
+          return false;
+        }
+        auto* instance = value_as_instance(self);
+        auto* klass = instance != nullptr ? value_as_class(instance->klass) : nullptr;
+        if (instance == nullptr || klass == nullptr ||
+            instance->native_get_attr != nullptr ||
+            instance->native_set_attr != nullptr ||
+            instance->native_delete_attr != nullptr ||
+            klass->has_getattribute_hook || klass->has_getattr_hook) {
+          supported = false;
+          return false;
+        }
+
+        const auto& name = function.names[op.b];
+        const Value* stored = nullptr;
+        Value class_value;
+        std::string lookup_error;
+        // This is the hot shape in ordinary Python methods like
+        // `def get(self): return self.value`: after proving the exact instance
+        // has no attribute hooks or class descriptor, read its live instance
+        // storage directly and avoid both a general LOAD_ATTR lookup and the
+        // callee VM frame. Re-resolve every execution so mutations stay visible.
+        if (object_lookup_inherited_class_attr(
+                instance->klass, name, class_value, lookup_error)) {
+          // Explicit __slots__ methods retain LoadLocalAttr because type
+          // creation finalizes their layout. Inline only the exact built-in
+          // member descriptor that owns this slot; properties and all other
+          // descriptors continue through the ordinary Python function.
+          auto* descriptor = value_as_slot_descriptor(class_value);
+          const auto slot = klass->instance_slot_indices.find(name);
+          if (descriptor == nullptr || descriptor->name != name ||
+              slot == klass->instance_slot_indices.end() ||
+              slot->second != descriptor->index ||
+              descriptor->index >= instance_slot_count(instance)) {
+            supported = false;
+            return false;
+          }
+          const auto& value = instance_slot_at(instance, descriptor->index);
+          if (value.tag == ValueTag::Invalid) {
+            supported = false;
+            return false;
+          }
+          stored = &value;
+        } else {
+          if (!lookup_error.empty()) {
+            supported = false;
+            return false;
+          }
+          for (const auto& attr : instance->attrs) {
+            if (attr.first == name) {
+              stored = &attr.second;
+              break;
+            }
+          }
+          if (stored == nullptr) {
+            if (auto* dict = value_as_dict(instance_attribute_storage(*instance))) {
+              for (const auto& entry : dict->entries) {
+                const auto* key = value_as_string(entry.first);
+                if (key != nullptr && string_object_view(*key) == name) {
+                  stored = &entry.second;
+                  break;
+                }
+              }
+            }
+          }
+          if (stored == nullptr || stored->tag == ValueTag::Invalid) {
+            supported = false;
+            return false;
+          }
+        }
+
+        // Mirror LOAD_LOCAL_ATTR's receiver scratch register before returning
+        // the direct value. This preserves the IR's declared register effects.
+        value_assign_fast(temp_regs[op.c], self);
+        value_assign_fast(temp_regs[op.dst], *stored);
+        break;
+      }
       case ir::Op::LoadAttr: {
         if (op.a >= temp_regs.size() || op.b >= function.names.size()) {
           supported = false;
