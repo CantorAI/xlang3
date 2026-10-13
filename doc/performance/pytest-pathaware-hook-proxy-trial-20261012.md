@@ -65,3 +65,10 @@ The complete xlang3 CLI fixture suite passed after the AST change. The required
 11-case Release performance comparison also passed against the preserved
 pre-change executable; its 21-pair report is
 `scratch/performance/pytest-alias-source-locations-20261013.json`.
+
+The TestProj API suite was rerun on branch tip `b3ec9bf4` after syncing with
+`origin/main` at `f0c425cf`: xlang3 3.14 ran pytest 8.4.2 with Pydantic 2.14.1
+and the native Pydantic Core 2.50.1 facade. All **9 tests passed** in 3.58
+seconds. The only warning is Starlette's upstream AnyIO `BlockingPortal` alias
+deprecation. Exact sanitized invocation and result:
+[`pytest-testproj-current-branch-20261013.json`](pytest-testproj-current-branch-20261013.json).
