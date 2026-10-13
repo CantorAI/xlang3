@@ -49,6 +49,15 @@ expect(InvalidTag, lambda: zero.decrypt(bytes(12), b"short", None))
 expect(TypeError, lambda: zero.encrypt(bytes(12), "text", None))
 expect(TypeError, lambda: zero.encrypt(bytes(12), b"data", "text"))
 expect(TypeError, lambda: zero.encrypt(bytes(12), b"data", None, unknown=True))
+# Rejected buffers must preserve Python's exception type in constructors and
+# both operations, including warmed call sites and optional associated data.
+for invalid in (None, "text", 1, [0, 1]):
+    expect(TypeError, lambda: AESGCM(key=invalid))
+    for operation in (zero.encrypt, zero.decrypt):
+        expect(TypeError, lambda: operation(invalid, bytes(16), None))
+        expect(TypeError, lambda: operation(bytes(12), invalid, None))
+        if invalid is not None:
+            expect(TypeError, lambda: operation(bytes(12), bytes(16), invalid))
 for bits in [128, 192, 256]:
     key = AESGCM.generate_key(bit_length=bits)
     assert isinstance(key, bytes) and len(key) == bits // 8

@@ -59,7 +59,10 @@ X3Status initialize(X3CallContext* call, X3Runtime* runtime, void* context,
   auto* state = static_cast<CryptographyNativeState*>(context);
   if (argc != 2) return state->host->raise_class_error(call, "TypeError", "AESGCM requires a key");
   Buffer key(state->host);
-  if (!key.acquire(runtime, args[1])) return X3_STATUS_ERROR;
+  // The buffer ABI reports failure through runtime last_error, not a Python
+  // exception in this call context. Convert rejected AESGCM inputs explicitly.
+  if (!key.acquire(runtime, args[1]))
+    return state->host->raise_class_error(call, "TypeError", "key must be bytes-like");
   if (key.info.size != 16 && key.info.size != 24 && key.info.size != 32)
     return state->host->raise_class_error(call, "ValueError", "AESGCM key must be 128, 192, or 256 bits");
   auto secret = std::make_unique<Secret>();
@@ -78,8 +81,12 @@ X3Status crypt(X3CallContext* call, X3Runtime* runtime, void* context,
   auto* key = static_cast<Secret*>(state->host->instance_get_native_data(args[0], kType));
   if (!key) return state->host->raise_class_error(call, "TypeError", "expected initialized AESGCM instance");
   Buffer nonce(state->host), input(state->host), aad(state->host);
-  if (!nonce.acquire(runtime, args[1]) || !input.acquire(runtime, args[2])) return X3_STATUS_ERROR;
-  if (args[3].tag != X3_TAG_NONE && !aad.acquire(runtime, args[3])) return X3_STATUS_ERROR;
+  if (!nonce.acquire(runtime, args[1]))
+    return state->host->raise_class_error(call, "TypeError", "nonce must be bytes-like");
+  if (!input.acquire(runtime, args[2]))
+    return state->host->raise_class_error(call, "TypeError", "data must be bytes-like");
+  if (args[3].tag != X3_TAG_NONE && !aad.acquire(runtime, args[3]))
+    return state->host->raise_class_error(call, "TypeError", "associated_data must be bytes-like");
   if (nonce.info.size < 8 || nonce.info.size > 128)
     return state->host->raise_class_error(call, "ValueError", "Nonce must be between 8 and 128 bytes");
   constexpr uint64_t limit = static_cast<uint64_t>(std::numeric_limits<int>::max());
