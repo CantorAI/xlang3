@@ -22,6 +22,21 @@ print(incoming.pending, incoming.read(2), incoming.pending, incoming.eof)
 incoming.write_eof()
 print(incoming.read(), incoming.eof)
 
+class BIOReader:
+    def __init__(self, incoming):
+        self._incoming = incoming
+
+    def read_size(self):
+        return self._incoming.pending
+
+reader = BIOReader(ssl.MemoryBIO())
+for index in range(20):
+    assert reader.read_size() == 0
+    reader._incoming.write(b"abc")
+    assert reader.read_size() == 3
+    assert reader._incoming.read() == b"abc"
+print("memory-bio-method-property True")
+
 server_auth = _ssl.txt2obj("1.3.6.1.5.5.7.3.1", name=False)
 print(server_auth[0], server_auth[1], server_auth[3])
 print(len(_ssl.RAND_bytes(16)), _ssl.RAND_status())

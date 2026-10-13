@@ -341,6 +341,17 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
                 break;
               }
             }
+            // object_get_attr returns the raw class property. A native or
+            // otherwise unproved getter must run through the ordinary Python
+            // frame so descriptor invocation, exceptions and tracing survive.
+            // In particular, MemoryBIO.pending must yield its integer value,
+            // not the property object, inside asyncio's small read-size method.
+            supported = false;
+            return false;
+          }
+          if (object_value_has_descriptor_get(descriptor)) {
+            supported = false;
+            return false;
           }
         }
         if (!object_get_attr(temp_regs[op.a], function.names[op.b], temp_regs[op.dst], error)) {
