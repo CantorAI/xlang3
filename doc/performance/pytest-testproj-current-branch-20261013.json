@@ -3,7 +3,7 @@
   "result": "passed",
   "scope": "TestProj Model Zoo API tests on the xlang3 pytest-compatibility branch",
   "branch": "fix/pytest-pathaware-hook-proxy",
-  "revision": "d876c281",
+  "revision": "1b5a408b",
   "mainBase": "f0c425cf",
   "runtime": "xlang3 3.14",
   "command": "xlang3.exe -m pytest -q",
