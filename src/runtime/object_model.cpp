@@ -2999,7 +2999,11 @@ Value Value::instance(Value klass) {
   Value v;
   v.tag = ValueTag::Object;
   auto* obj = allocate_instance_object();
-  obj->klass = klass;
+  // The by-value argument already owns the class and is unused after this
+  // assignment. Transfer it instead of retaining and dropping another owner
+  // for every instance. The helper still promotes a moved borrowed argument
+  // to ownership; a plain std::move would leave that instance unprotected.
+  value_move_assign_fast(obj->klass, klass);
   if (auto* klass_obj = value_as_class(obj->klass)) {
     obj->slot_count = static_cast<uint32_t>(klass_obj->instance_slot_names.size());
     if (obj->slot_count > 8) {

@@ -20,6 +20,7 @@ limitations under the License.
 #include "bigint_division_working_buffer_cases.h"
 #include "bigint_add_compare_operand_view_cases.h"
 #include "bigint_storage_lifetime_cases.h"
+#include "instance_class_ownership_cases.h"
 #include <atomic>
 #include <chrono>
 #include <thread>
@@ -54,6 +55,7 @@ int main() {
   xlang3::test::check_bigint_division_working_buffers(result);
   xlang3::test::check_bigint_add_compare_operand_views(result);
   xlang3::test::check_bigint_storage_lifetime(result);
+  xlang3::test::check_instance_class_ownership(result);
 
   {
     xlang3::Value escaped_set, escaped_iterator;
