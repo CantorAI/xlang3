@@ -329,7 +329,9 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
         }
         Value descriptor;
         std::string descriptor_error;
-        if (object_get_class_attr_for_instance(temp_regs[op.a], function.names[op.b], descriptor, descriptor_error)) {
+        if (object_get_class_attr_for_instance(
+                temp_regs[op.a], function.names[op.b], descriptor,
+                descriptor_error)) {
           if (auto* property = value_as_property(descriptor)) {
             if (auto* getter = value_as_function(property->fget)) {
               auto* instance = value_as_instance(temp_regs[op.a]);
@@ -341,6 +343,15 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
                 break;
               }
             }
+          }
+          // The inline method interpreter only implements proven property
+          // getter shapes above. Returning object_get_attr's raw class value
+          // for any other descriptor skips its __get__ behavior (for example,
+          // importlib.metadata.Distribution.entry_points). Resume the regular
+          // method call so the normal LOAD_ATTR descriptor path runs.
+          if (object_value_has_descriptor_get(descriptor)) {
+            supported = false;
+            return false;
           }
         }
         if (!object_get_attr(temp_regs[op.a], function.names[op.b], temp_regs[op.dst], error)) {

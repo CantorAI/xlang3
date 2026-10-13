@@ -2655,25 +2655,46 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method_ex(
     if (runtime.take_pending_exception(pending)) {
       return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
-    // A fused keyword call must perform the same PEP 562 lookup as LoadAttr.
-    // Keep the hook on the miss path only: existing indexed/cached calls pay
-    // no extra lookup, and a lazy export is recomputed on every missing access
-    // rather than cached as if it were a stable module slot.
-    Value module_getattr;
-    std::string getattr_error;
-    if (value_as_module(regs[in.a]) == nullptr ||
-        !module_get_attr(regs[in.a], "__getattr__", module_getattr, getattr_error)) {
-      return raise_exception_value(runtime.make_exception("AttributeError", error))
-          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    // A fused keyword call must preserve instance-level __getattr__ just like
+    // CallMethod and LOAD_ATTR. Proxies such as pytest's PathAwareHookProxy
+    // expose hook callers lazily and commonly invoke them with keyword args.
+    if (auto* instance = value_as_instance(regs[in.a])) {
+      Value instance_getattr;
+      std::string getattr_error;
+      if (object_get_class_attr_for_instance(
+              regs[in.a], "__getattr__", instance_getattr, getattr_error)) {
+        Value lookup_args[] = {regs[in.a], Value::string(fn.names[in.b])};
+        if (!runtime_call_callable(runtime, instance_getattr, lookup_args, 2,
+                                   method, error)) {
+          if (runtime.take_pending_exception(pending)) {
+            return raise_exception_value(std::move(pending))
+                ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+          }
+          return raise_runtime_error(error)
+              ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        }
+      }
     }
-    Value attr_arg = Value::string(fn.names[in.b]);
-    if (!runtime_call_callable(runtime, module_getattr, &attr_arg, 1, method, error)) {
-      if (runtime.take_pending_exception(pending)) {
-        return raise_exception_value(std::move(pending))
+    if (method.tag == ValueTag::Invalid) {
+      // A fused keyword call must perform the same PEP 562 lookup as
+      // LoadAttr. Keep the hook on the miss path only: indexed module hits
+      // retain their direct fast path and lazy exports are never cached.
+      Value module_getattr;
+      std::string getattr_error;
+      if (value_as_module(regs[in.a]) == nullptr ||
+          !module_get_attr(regs[in.a], "__getattr__", module_getattr, getattr_error)) {
+        return raise_exception_value(runtime.make_exception("AttributeError", error))
             ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
       }
-      return raise_runtime_error(error)
-          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      Value attr_arg = Value::string(fn.names[in.b]);
+      if (!runtime_call_callable(runtime, module_getattr, &attr_arg, 1, method, error)) {
+        if (runtime.take_pending_exception(pending)) {
+          return raise_exception_value(std::move(pending))
+              ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+        }
+        return raise_runtime_error(error)
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
     }
   }
   std::vector<NativeKeywordArg> native_keyword_args;

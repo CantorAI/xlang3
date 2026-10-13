@@ -1,6 +1,7 @@
 Dyn Base True 7 5
 missing:abc
 True 8
+hook:config
 99 12
 {'value': 31} True
 custom-dict
