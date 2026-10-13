@@ -47,3 +47,21 @@ case. Per-case results are recorded in
 The keyword-call fix adds work only on missing method lookups; supported
 descriptor inlining keeps its fast path, while unsupported descriptor shapes
 fall back to normal execution.
+
+## Follow-up native compatibility validation — 2026-10-13
+
+The branch now includes the native Pydantic Core 2.50.1 facade. On the
+unchanged TestProj backend, xlang3 pip installed the pure-Python Pydantic
+2.14.1 wheel into an isolated target, then the branch's native Core package
+was selected ahead of the prior project-local facade. pytest 8.4.2 with its
+default assertion rewriting passed all 9 API tests. This exposed that
+`ast.alias` accepted pytest's source-location keywords only as deprecated
+arbitrary attributes. Its `_attributes` now declares the four standard
+location fields, and `ast_alias_source_locations` covers their constructor
+values with deprecation warnings treated as errors. The only remaining pytest
+warning is an unrelated Starlette/AnyIO deprecation.
+
+The complete xlang3 CLI fixture suite passed after the AST change. The required
+11-case Release performance comparison also passed against the preserved
+pre-change executable; its 21-pair report is
+`scratch/performance/pytest-alias-source-locations-20261013.json`.

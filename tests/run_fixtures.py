@@ -88,6 +88,8 @@ trace_local_and_exception debug_trace_profile_edges sys_command_path sys_startup
 any_generator_consume_fastpath sum_generator_consume_fastpath closure_arg_binary_inline
 """.split()
 
+CORE_CASES.append("ast_alias_source_locations")
+
 
 if sys.platform != "win32":
     CORE_CASES.remove("multiprocessing_spawn_semlock")
