@@ -79,7 +79,8 @@ if(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
       xlang_yaml_native_package xlang_device_native_package xlang_net_native_package
       xlang_ssl_native_package xlang_hashlib_native_package xlang_blake2_native_package
       xlang_pydantic_core_native_package xlang_argon2_cffi_native_package
-      xlang_cffi_backend_native_package xlang_httptools_url_native_package
+      xlang_cffi_backend_native_package xlang_cryptography_rust_native_package
+      xlang_httptools_url_native_package
       xlang_httptools_parser_native_package
       xlang_zstd_native_package xlang_zstandard_native_package
       xlang_brotli_native_package xlang_mmap_native_package)
