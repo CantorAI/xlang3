@@ -31,3 +31,19 @@ with tempfile.TemporaryFile() as file:
             memory.write(b"no")
         except TypeError as exc:
             print(type(exc).__name__)
+
+memory = mmap.mmap(-1, 4)
+view = memoryview(memory)
+print(view.obj is memory, view.readonly, view.nbytes)
+view[0] = ord("A")
+memory.seek(0)
+print(memory.read(1))
+derived = view[:2]
+view.release()
+try:
+    memory.close()
+except BufferError as exc:
+    print(type(exc).__name__)
+derived.release()
+memory.close()
+print(memory.closed)

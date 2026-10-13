@@ -3156,9 +3156,19 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       out = Value::memoryview(source, 0, view->size, view->readonly);
       return true;
     }
-    if (value_as_instance(source) != nullptr) {
+    if (source.tag == ValueTag::Object) {
       Value payload;
       std::string ignored;
+      auto get_exporter_attr = [&](const char* attr_name, Value& value) {
+        if (!object_get_attr(source, attr_name, value, ignored)) return false;
+        if (auto* property = value_as_property(value);
+            property != nullptr && property->fget.tag != ValueTag::None &&
+            property->fget.tag != ValueTag::Invalid) {
+          Value getter_args[] = {source};
+          return runtime_call_callable(runtime, property->fget, getter_args, 1, value, ignored);
+        }
+        return true;
+      };
       Value pickle_buffer;
       if (object_get_attr(source, "__xlang3_pickle_buffer__", pickle_buffer, ignored) &&
           pickle_buffer.tag == ValueTag::None) {
@@ -3169,7 +3179,7 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
       const bool native_array = instance_get_native_data(source, "array.array") != nullptr;
       const bool have_payload = native_array && source_instance->native_get_attr != nullptr
           ? source_instance->native_get_attr(source, "__xlang3_bytes_value__", payload, ignored)
-          : object_get_attr(source, "__xlang3_bytes_value__", payload, ignored);
+          : get_exporter_attr("__xlang3_bytes_value__", payload);
       if (have_payload) {
         const auto* bytes = value_as_bytes(payload);
         const auto* bytearray = value_as_bytearray(payload);
@@ -3184,14 +3194,27 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
           // leaving owner as an instance bypasses bytearray resize protection.
           Value owner = native_array ? payload : source;
           Value exported_owner;
-          if (!native_array && object_get_attr(source, "__xlang3_memoryview_owner__", exported_owner, ignored) &&
+          bool native_buffer_exporter = false;
+          if (!native_array && get_exporter_attr("__xlang3_memoryview_owner__", exported_owner) &&
               exported_owner.tag != ValueTag::None) {
-            owner = std::move(exported_owner);
+            Value exporter_marker;
+            if (get_exporter_attr("__xlang3_memoryview_exporter__", exporter_marker) &&
+                value_truthy(exporter_marker) && payload_view != nullptr) {
+              // Keep an external-backed payload view alive as the storage
+              // owner while exposing the native exporter through memoryview.obj.
+              owner = payload;
+              native_buffer_exporter = true;
+            } else {
+              owner = std::move(exported_owner);
+            }
           }
           out = Value::memoryview(std::move(owner), 0,
               bytes != nullptr ? bytes->size :
                   bytearray != nullptr ? bytearray->value.size() : payload_view->size,
               bytes != nullptr || (payload_view != nullptr && payload_view->readonly));
+          if (native_buffer_exporter) {
+            if (auto* result = value_as_memoryview(out)) result->exporter = source;
+          }
           Value format;
           const bool have_format = native_array && source_instance->native_get_attr != nullptr
               ? source_instance->native_get_attr(source, "__xlang3_array_format__", format, ignored)

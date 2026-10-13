@@ -8,3 +8,7 @@ b'XYZdef'
 b'123def'
 b'XYZdef'
 TypeError
+True False 4
+b'A'
+BufferError
+True
