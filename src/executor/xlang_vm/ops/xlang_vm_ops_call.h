@@ -2826,10 +2826,20 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
         if (cache.kind == CallSiteKind::NativeConstructor &&
             cache.native != nullptr) {
           Value ignored;
-          if (!xlang3::xlang_vm::ops::call_native_function(
-                  runtime, cache.native, init_args, native_call_args,
-                  execution_lock, ignored, raise_runtime_error,
-                  raise_exception_value)) {
+          // A warmed extended constructor must retain the first call's
+          // keyword binding. The positional helper drops explicit keywords
+          // and rejects ** expansion, breaking repeated AESGCM(key=...) calls.
+          // Keep ordinary positional construction on its existing fast path.
+          const bool ok = init_args.has_keywords() || init_args.has_expansion()
+              ? xlang3::xlang_vm::ops::call_native_function_ex(
+                    runtime, cache.native, init_args, native_call_args,
+                    native_keyword_args, execution_lock, ignored,
+                    raise_runtime_error, raise_exception_value)
+              : xlang3::xlang_vm::ops::call_native_function(
+                    runtime, cache.native, init_args, native_call_args,
+                    execution_lock, ignored, raise_runtime_error,
+                    raise_exception_value);
+          if (!ok) {
             if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
             return XlangVMOpFlow::ContinueLoop;
           }
