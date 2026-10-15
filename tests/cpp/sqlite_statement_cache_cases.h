@@ -107,7 +107,7 @@ inline void check_sqlite_statement_cache(CaseResult& result, const char* program
   try {
     using namespace sqlite_cache_probe;
     require(program != nullptr, "cannot locate native cache test executable");
-    const auto fixtures = std::filesystem::absolute(std::filesystem::path(__FILE__)).parent_path();
+    const auto fixtures = sqlite_aggregate_probe::fixture_root(program);
     const auto modules = std::filesystem::absolute(std::filesystem::path(program)).parent_path() / "modules";
     sqlite_aggregate_probe::ProbeState state;
     X::Runtime runtime;

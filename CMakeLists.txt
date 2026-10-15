@@ -519,6 +519,20 @@ add_xlang3_cpp_test(xlang3_ipc_capacity_tests tests/cpp/ipc_capacity_tests.cpp)
 add_xlang3_cpp_test(xlang3_memory_tests tests/cpp/memory_tests.cpp)
 add_xlang3_cpp_test(xlang3_parser_tests tests/cpp/parser_tests.cpp)
 add_xlang3_cpp_test(xlang3_interpreter_tests tests/cpp/interpreter_tests.cpp)
+set(xlang3_interpreter_python_fixtures
+  "${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp/sqlite_aggregate_sdk_probe.py"
+  "${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp/sqlite_statement_cache_sdk_probe.py"
+)
+# Keep the packaged native test executable runnable away from the source tree.
+set_property(TARGET xlang3_interpreter_tests APPEND PROPERTY
+  LINK_DEPENDS "${xlang3_interpreter_python_fixtures}")
+add_custom_command(TARGET xlang3_interpreter_tests POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E make_directory
+    "$<TARGET_FILE_DIR:xlang3_interpreter_tests>/test-fixtures/xlang3"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${xlang3_interpreter_python_fixtures}
+    "$<TARGET_FILE_DIR:xlang3_interpreter_tests>/test-fixtures/xlang3"
+  VERBATIM
+)
 add_xlang3_cpp_test(xlang3_debug_session_tests tests/cpp/debug_session_tests.cpp)
 add_xlang3_cpp_test(xlang3_dap_session_tests tests/cpp/dap_session_tests.cpp)
 add_xlang3_cpp_test(xlang3_module_slot_tests tests/cpp/module_slot_tests.cpp)
