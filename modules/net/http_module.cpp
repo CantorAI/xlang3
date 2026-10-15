@@ -282,6 +282,14 @@ X::Value HttpServer::StaticRoots() const {
 
 void HttpServer::Init() {
   server_ = std::make_unique<httplib::Server>();
+#ifndef _WIN32
+  // Rebind after closed connections enter TIME_WAIT while keeping one live
+  // listener per address. The library's SO_REUSEPORT default shares listeners.
+  server_->set_socket_options([](auto socket) {
+    const int enabled = 1;
+    ::setsockopt(socket, SOL_SOCKET, SO_REUSEADDR, &enabled, sizeof(enabled));
+  });
+#endif
   server_->set_routing_handler([this](const httplib::Request& req, httplib::Response& res) {
     for (auto& route : routes_) {
       std::smatch matches;
