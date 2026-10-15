@@ -202,7 +202,7 @@ Value ast_class(Runtime& runtime, const char* name, const Value& base, std::init
   attrs.push_back({"_fields", Value::tuple(field_tuple(fields))});
   const std::string_view class_name(name);
   if (class_name == "stmt" || class_name == "expr" || class_name == "excepthandler" ||
-      class_name == "pattern" || class_name == "type_param") {
+      class_name == "pattern" || class_name == "type_param" || class_name == "alias") {
     attrs.push_back({"_attributes", Value::tuple(field_tuple(
         {"lineno", "col_offset", "end_lineno", "end_col_offset"}))});
     attrs.push_back({"end_lineno", Value::none()});

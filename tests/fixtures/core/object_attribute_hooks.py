@@ -45,6 +45,22 @@ class Delegate:
 delegate = Delegate()
 print(hasattr(delegate, "ping"), delegate.ping(3))
 
+class KeywordHook:
+    def __call__(self, *, config):
+        return "hook:" + config
+
+class KeywordRelay:
+    def __getattr__(self, name):
+        return KeywordHook()
+
+class KeywordProxy:
+    def __init__(self):
+        self._hook_relay = KeywordRelay()
+    def __getattr__(self, name):
+        return getattr(self._hook_relay, name)
+
+print(KeywordProxy().pytest_cmdline_main(config="config"))
+
 
 class Override:
     def __init__(self):

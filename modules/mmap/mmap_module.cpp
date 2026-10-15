@@ -8,6 +8,7 @@
 #include <limits>
 #include <memory>
 #include <mutex>
+#include <new>
 #include <string>
 #include <utility>
 
@@ -41,6 +42,7 @@ struct Mapping {
   unsigned char* data = nullptr;
   uint64_t length = 0;
   uint64_t position = 0;
+  uint64_t buffer_exports = 0;
   int access = kAccessDefault;
   int fd = -1;
   bool closed = false;
@@ -395,6 +397,8 @@ X3Status close_method(X3CallContext* call, X3Runtime*, void* user_data,
   Mapping* data = mapping(state, args[0]);
   if (!data) return fail(state, call, "TypeError", "expected mmap object");
   std::lock_guard lock(data->mutex);
+  if (data->buffer_exports != 0)
+    return fail(state, call, "BufferError", "cannot close exported pointers exist");
   data->close();
   *result = x3_value_none();
   return X3_STATUS_OK;
@@ -426,6 +430,55 @@ X3Status closed_property(X3CallContext* call, X3Runtime*, void* user_data,
   Mapping* data = mapping(state, args[0]);
   if (!data) return fail(state, call, "TypeError", "expected mmap object");
   *result = x3_value_bool(data->closed);
+  return X3_STATUS_OK;
+}
+
+struct BufferExport {
+  State* state = nullptr;
+  Mapping* mapping = nullptr;
+  X3Value owner = x3_value_invalid();
+};
+
+void release_buffer_export(void* value) {
+  auto* exported = static_cast<BufferExport*>(value);
+  {
+    std::lock_guard lock(exported->mapping->mutex);
+    if (exported->mapping->buffer_exports != 0) --exported->mapping->buffer_exports;
+  }
+  exported->state->host->value_release(exported->owner);
+  delete exported;
+}
+
+X3Status bytes_value_property(X3CallContext* call, X3Runtime* runtime,
+                              void* user_data, const X3Value* args,
+                              uint32_t argc, X3Value* result) {
+  auto* state = static_cast<State*>(user_data);
+  if (argc != 1) return fail(state, call, "TypeError", "mmap buffer getter arguments");
+  Mapping* data = mapping(state, args[0]);
+  if (!data) return fail(state, call, "TypeError", "expected mmap object");
+  auto* exported = new (std::nothrow) BufferExport{state, data, args[0]};
+  if (!exported) return fail(state, call, "MemoryError", "unable to export mmap buffer");
+  {
+    std::lock_guard lock(data->mutex);
+    if (data->closed) {
+      delete exported;
+      return fail(state, call, "ValueError", "mmap closed or invalid");
+    }
+    ++data->buffer_exports;
+    state->host->value_retain(args[0]);
+  }
+  *result = state->host->value_memoryview(runtime, data->data, data->length,
+      data->access == kAccessRead ? 1 : 0, exported, release_buffer_export);
+  return result->tag == X3_TAG_INVALID ? X3_STATUS_ERROR : X3_STATUS_OK;
+}
+
+X3Status buffer_exporter_marker(X3CallContext* call, X3Runtime*,
+                                void* user_data, const X3Value* args,
+                                uint32_t argc, X3Value* result) {
+  auto* state = static_cast<State*>(user_data);
+  if (argc != 1) return fail(state, call, "TypeError", "mmap exporter marker arguments");
+  if (!mapping(state, args[0])) return fail(state, call, "TypeError", "expected mmap object");
+  *result = x3_value_bool(1);
   return X3_STATUS_OK;
 }
 
@@ -462,6 +515,30 @@ X3Status register_module(X3PackageHost* host) {
       state->klass, "closed", descriptor);
   host->value_release(descriptor);
   if (property_status != X3_STATUS_OK) return X3_STATUS_ERROR;
+  X3Value bytes_property = x3_value_invalid();
+  if (host->property_create(host->runtime, "__xlang3_bytes_value__",
+          bytes_value_property, nullptr, state, &bytes_property) != X3_STATUS_OK)
+    return X3_STATUS_ERROR;
+  const X3Status bytes_status = host->class_add_value(
+      state->klass, "__xlang3_bytes_value__", bytes_property);
+  host->value_release(bytes_property);
+  if (bytes_status != X3_STATUS_OK) return X3_STATUS_ERROR;
+  X3Value owner_property = x3_value_invalid();
+  if (host->property_create(host->runtime, "__xlang3_memoryview_owner__",
+          buffer_exporter_marker, nullptr, state, &owner_property) != X3_STATUS_OK)
+    return X3_STATUS_ERROR;
+  const X3Status owner_status = host->class_add_value(
+      state->klass, "__xlang3_memoryview_owner__", owner_property);
+  host->value_release(owner_property);
+  if (owner_status != X3_STATUS_OK) return X3_STATUS_ERROR;
+  X3Value marker_property = x3_value_invalid();
+  if (host->property_create(host->runtime, "__xlang3_memoryview_exporter__",
+          buffer_exporter_marker, nullptr, state, &marker_property) != X3_STATUS_OK)
+    return X3_STATUS_ERROR;
+  const X3Status marker_status = host->class_add_value(
+      state->klass, "__xlang3_memoryview_exporter__", marker_property);
+  host->value_release(marker_property);
+  if (marker_status != X3_STATUS_OK) return X3_STATUS_ERROR;
   int64_t page_size = 4096;
   int64_t allocation_granularity = 4096;
 #ifdef _WIN32

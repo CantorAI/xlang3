@@ -2928,6 +2928,26 @@ X3Status import_module(PackageState* package, X3Runtime* runtime,
   return status;
 }
 
+X3Status import_submodule(PackageState* package, X3Runtime* runtime,
+                          const char* name, X3Value* result) {
+  X3Value importlib = x3_value_invalid();
+  X3Value importer = x3_value_invalid();
+  if (import_module(package, runtime, "importlib", &importlib) != X3_STATUS_OK ||
+      package->host->get_attr(runtime, importlib, "import_module", &importer) !=
+          X3_STATUS_OK) {
+    if (importer.tag != X3_TAG_INVALID) package->host->value_release(importer);
+    if (importlib.tag != X3_TAG_INVALID) package->host->value_release(importlib);
+    return X3_STATUS_ERROR;
+  }
+  X3Value module_name = package->host->value_string(runtime, name);
+  const auto status =
+      package->host->call(runtime, importer, &module_name, 1, result);
+  package->host->value_release(module_name);
+  package->host->value_release(importer);
+  package->host->value_release(importlib);
+  return status;
+}
+
 X3Status validation_info_repr(
     X3CallContext* context, X3Runtime* runtime, void* user_data,
     const X3Value* args, uint32_t argc, X3Value* result) {
@@ -30010,7 +30030,17 @@ X3Status register_module(X3PackageHost* host) {
   host->value_release(tzinfo_base);
   state->retained.push_back(state->tzinfo_class);
 
-  X3Value version = host->value_string(host->runtime, "2.46.5");
+  X3Value schema_gather = x3_value_invalid();
+  if (import_submodule(state, host->runtime, "pydantic_core._schema_gather",
+                       &schema_gather) != X3_STATUS_OK ||
+      host->module_add_value(module, "_schema_gather", schema_gather) !=
+          X3_STATUS_OK) {
+    if (schema_gather.tag != X3_TAG_INVALID) host->value_release(schema_gather);
+    return X3_STATUS_ERROR;
+  }
+  host->value_release(schema_gather);
+
+  X3Value version = host->value_string(host->runtime, "2.50.1");
   host->module_add_value(module, "__version__", version);
   host->value_release(version);
 #if defined(NDEBUG)
@@ -30044,6 +30074,6 @@ extern "C" XLANG3_PACKAGE_EXPORT X3Status Load(void* host_pointer, X3Value) {
   auto* host = static_cast<X3PackageHost*>(host_pointer);
   if (!host || host->abi_version != X3_ABI_VERSION) return X3_STATUS_ERROR;
   host->package_set_metadata(host, "package", "pydantic_core._pydantic_core");
-  host->package_set_metadata(host, "version", "2.46.5+xlang3");
+  host->package_set_metadata(host, "version", "2.50.1+xlang3");
   return register_module(host);
 }

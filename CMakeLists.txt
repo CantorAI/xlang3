@@ -637,6 +637,11 @@ add_test(
   NAME xlang3_cli_yaml_module_import
   COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/yaml_module.py $<TARGET_FILE_DIR:xlang_yaml_native_package>
 )
+add_test(
+  NAME xlang3_pydantic_core_schema_gather
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/fastapi/pydantic_core_schema_gather_contract.py
+)
+set_tests_properties(xlang3_pydantic_core_schema_gather PROPERTIES TIMEOUT 30)
 
 add_test(
   NAME xlang3_cli_device_module_import

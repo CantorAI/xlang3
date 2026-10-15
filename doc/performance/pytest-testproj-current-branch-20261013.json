@@ -1,0 +1,33 @@
+{
+  "date": "2026-10-13",
+  "result": "passed",
+  "scope": "TestProj Model Zoo API pytest suite and live FastAPI HTTP smoke on the xlang3 pytest-compatibility branch",
+  "branch": "fix/pytest-pathaware-hook-proxy",
+  "revision": "1b5a408b",
+  "mainBase": "f0c425cf",
+  "runtime": "xlang3 3.14",
+  "command": "xlang3.exe -m pytest -q",
+  "executable": "D:\\CantorAI2026\\xlang3\\build-pytest-pathaware\\Release\\xlang3.exe",
+  "pythonPath": [
+    "D:\\CantorAI2026\\xlang3\\build-pytest-pathaware\\Release\\modules",
+    "D:\\CantorAI2026\\TestProj\\model-zoo\\backend",
+    "D:\\CantorAI2026\\TestProj\\model-zoo\\backend\\.xlang3-site"
+  ],
+  "workingDirectory": "D:\\CantorAI2026\\TestProj\\model-zoo\\backend",
+  "pytest": "8.4.2",
+  "pydantic": "2.14.1",
+  "nativePydanticCoreFacade": "2.50.1",
+  "testsPassed": 9,
+  "testsFailed": 0,
+  "durationSeconds": 1.60,
+  "httpAcceptance": {
+    "server": "xlang3.exe -m uvicorn app.main:app --host 127.0.0.1 --port 8768 --log-level warning",
+    "health": { "path": "/api/health", "status": "ok" },
+    "catalog": { "path": "/api/models?page_size=5", "items": 5, "total": 12, "page": 1, "pages": 3 },
+    "result": "passed"
+  },
+  "warnings": [
+    "Starlette/AnyIO deprecation: anyio.abc.BlockingPortal alias"
+  ],
+  "pythonNativeExtensionsUsed": false
+}
