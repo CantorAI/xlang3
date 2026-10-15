@@ -619,7 +619,11 @@ bool raise_socket_code_error(Runtime& runtime, const char* operation, int code, 
   }
 #else
   error = std::string(operation) + " failed: " + std::strerror(code);
+  // Nonblocking socket operations use EAGAIN/EWOULDBLOCK to report that no
+  // data is currently available. asyncio relies on this being a
+  // BlockingIOError so selector callbacks can treat the condition as normal.
   switch (code) {
+    case EAGAIN: exception_class = "BlockingIOError"; break;
     case ECONNREFUSED: exception_class = "ConnectionRefusedError"; break;
     case ECONNRESET: exception_class = "ConnectionResetError"; break;
     case ECONNABORTED: exception_class = "ConnectionAbortedError"; break;

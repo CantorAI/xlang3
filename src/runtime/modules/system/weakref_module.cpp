@@ -1295,6 +1295,14 @@ bool class_has_module_root(Runtime& runtime, const ClassObject* klass) {
   };
   const auto module_holds_class = [&](const ModuleObject* owner) {
     if (owner == nullptr) return false;
+    // Most module-owned classes retain their original binding. Use the existing
+    // slot index before scanning large module namespaces on every class edge.
+    // Identity is still required; rebinding, renamed classes and aliases fall
+    // through to the complete scan, with no cached root across mutations.
+    const auto named_slot = owner->name_to_slot.find(klass->name);
+    if (named_slot != owner->name_to_slot.end() &&
+        named_slot->second < owner->slots.size() &&
+        holds_class(owner->slots[named_slot->second])) return true;
     for (const auto& value : owner->slots)
       if (holds_class(value)) return true;
     for (const auto& entry : owner->extra_globals)

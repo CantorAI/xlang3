@@ -17,6 +17,8 @@ print(cypher.RSA_PKCS1_OAEP_PADDING)
 cypher.StorePath = "xlang3_net_crypto_test"
 cypher.rsa_padding_mode = cypher.RSA_PKCS1_OAEP_PADDING
 public_key = cypher.generate_key_pair(1024, "test_key")
+assert cypher.get_public_key("test_key") == public_key
+assert cypher.get_public_key("missing_test_key") == ""
 print(public_key.startswith("-----BEGIN PUBLIC KEY-----"))
 encrypted = cypher.encrypt_with_public_key(b"\x00xlang3-binary", public_key)
 print(type(encrypted).__name__, len(encrypted) > 0)

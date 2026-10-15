@@ -98,9 +98,10 @@ using CurrentFrameStackMap = std::unordered_map<const Runtime*, std::vector<Runt
 using ActiveExceptionMap = std::unordered_map<const Runtime*, Value>;
 using PendingExceptionMap = std::unordered_map<const Runtime*, Value>;
 
-#if defined(__APPLE__)
-// Darwin tears down main-thread TLS before executable-owned global objects. Keep
-// the containers alive so a global X::Runtime can still perform orderly cleanup.
+#if defined(__APPLE__) || defined(__linux__)
+// POSIX hosts can destroy main-thread TLS before executable-owned global objects.
+// Retain the containers through process teardown so a global X::Runtime can still
+// clear its frame and exception state. This also preserves the cached frame path.
 CurrentFrameMap& current_frames() {
   thread_local auto* frames = new CurrentFrameMap();
   return *frames;

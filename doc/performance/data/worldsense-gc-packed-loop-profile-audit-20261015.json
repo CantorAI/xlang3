@@ -1,0 +1,34 @@
+{
+  "scope": "Offline reinterpretation of saved owned-process samples; no new workload or acceptance timing",
+  "profile_workspace_sha": "1813203c8c7fa08538b93b362a1392152d48e55a",
+  "runtime_sha256": "ace22d3f65a6fc85215d4e3d902fe94119e0cd08837d5ddf7c5941d89dacd372",
+  "pdb_sha256": "3dd03f7c357453c9c6df93dbea988275bd78dc593369165cd76ad952b2a7825b",
+  "total_samples": 25377,
+  "runtime_samples": 16396,
+  "attribution_limit": "Most public symbols have size zero. Nearest public names alone do not identify private functions. PE unwind ranges plus exact-image disassembly identify the following hot loops.",
+  "packed_sequence_scanner": {
+    "samples": 4397,
+    "function_begin_rva": 1827808,
+    "hot_unwind_fragment_begin_rva": 1827850,
+    "hot_unwind_fragment_end_rva": 1828111,
+    "misleading_nearest_public_symbol": "std::vector<int64_t>::_Construct_n",
+    "identified_instructions": "Four bounded full-Value loads/XORs, combined OR, PCMPEQB/PMOVMSKB/CMP, multiplicity and scalar tail"
+  },
+  "class_has_module_root": {
+    "samples": 3759,
+    "function_begin_rva": 3102352,
+    "function_end_rva": 3103480,
+    "public_symbol_matches_unwind_start": true
+  },
+  "benchmark_host_capabilities": {
+    "host": "CANTORAI003",
+    "logical_processors": 4,
+    "sse41": true,
+    "avx2": true,
+    "source": "Read-only .NET intrinsic capability query"
+  },
+  "application_installed": false,
+  "service_changed": false,
+  "new_trial_built": false,
+  "new_trial_performance_accepted": false
+}

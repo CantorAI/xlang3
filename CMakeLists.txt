@@ -79,7 +79,8 @@ if(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
       xlang_yaml_native_package xlang_device_native_package xlang_net_native_package
       xlang_ssl_native_package xlang_hashlib_native_package xlang_blake2_native_package
       xlang_pydantic_core_native_package xlang_argon2_cffi_native_package
-      xlang_cffi_backend_native_package xlang_httptools_url_native_package
+      xlang_cffi_backend_native_package xlang_cryptography_rust_native_package
+      xlang_httptools_url_native_package
       xlang_httptools_parser_native_package
       xlang_zstd_native_package xlang_zstandard_native_package
       xlang_brotli_native_package xlang_mmap_native_package)
@@ -522,6 +523,20 @@ add_xlang3_cpp_test(xlang3_ipc_capacity_tests tests/cpp/ipc_capacity_tests.cpp)
 add_xlang3_cpp_test(xlang3_memory_tests tests/cpp/memory_tests.cpp)
 add_xlang3_cpp_test(xlang3_parser_tests tests/cpp/parser_tests.cpp)
 add_xlang3_cpp_test(xlang3_interpreter_tests tests/cpp/interpreter_tests.cpp)
+set(xlang3_interpreter_python_fixture_files
+  "${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp/sqlite_aggregate_sdk_probe.py"
+  "${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp/sqlite_statement_cache_sdk_probe.py"
+)
+# Keep the packaged native test executable runnable away from the source tree.
+add_custom_target(xlang3_interpreter_python_fixtures
+  COMMAND ${CMAKE_COMMAND} -E make_directory
+    "$<TARGET_FILE_DIR:xlang3_interpreter_tests>/test-fixtures/xlang3"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${xlang3_interpreter_python_fixture_files}
+    "$<TARGET_FILE_DIR:xlang3_interpreter_tests>/test-fixtures/xlang3"
+  DEPENDS ${xlang3_interpreter_python_fixture_files}
+  VERBATIM
+)
+add_dependencies(xlang3_interpreter_tests xlang3_interpreter_python_fixtures)
 add_xlang3_cpp_test(xlang3_debug_session_tests tests/cpp/debug_session_tests.cpp)
 add_xlang3_cpp_test(xlang3_dap_session_tests tests/cpp/dap_session_tests.cpp)
 add_xlang3_cpp_test(xlang3_module_slot_tests tests/cpp/module_slot_tests.cpp)
@@ -673,6 +688,9 @@ add_test(
 )
 
 if(XLANG3_PYTHON314_EXECUTABLE)
+  add_test(NAME xlang3_cli_cypher_key_persistence
+    COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/run_cypher_key_store.py
+      $<TARGET_FILE:xlang3> $<TARGET_FILE_DIR:xlang_net_native_package>)
   add_test(NAME xlang3_cli_asyncio_accelerator
     COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py
       $<TARGET_FILE:xlang3>

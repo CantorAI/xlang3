@@ -17,6 +17,7 @@ public:
   ~xlang_net_cypher();
 
   std::string GenerateKeyPair(int key_size, std::string key_name);
+  std::string GetPublicKey(std::string key_name);
   bool RemovePrivateKey(std::string key_name);
   X::Value EncryptWithPrivateKey(X::Value message, std::string key_name);
   X::Value DecryptWithPrivateKey(X::Value encrypted, std::string key_name);
@@ -32,6 +33,7 @@ public:
     APISET().AddConst("RSA_X931_PADDING", 5);
     APISET().AddPropWithType<int>("rsa_padding_mode", &xlang_net_cypher::rsa_padding_mode_);
     APISET().AddFunc<2>("generate_key_pair", &xlang_net_cypher::GenerateKeyPair);
+    APISET().AddFunc<1>("get_public_key", &xlang_net_cypher::GetPublicKey);
     APISET().AddFunc<1>("remove_private_key", &xlang_net_cypher::RemovePrivateKey);
     APISET().AddFunc<2>("encrypt_with_private_key", &xlang_net_cypher::EncryptWithPrivateKey);
     APISET().AddFunc<2>("decrypt_with_private_key", &xlang_net_cypher::DecryptWithPrivateKey);

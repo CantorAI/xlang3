@@ -17,6 +17,16 @@ int main() {
         "[[], {}, {1}, (1, 2), type('Sample', (), {})()]"), globals}, host.retained)) {
       throw X::Error(host.runtime->LastError());
     }
+    // Initialize exception TLS before main returns. The global runtime must still
+    // be able to clear it after the main thread's TLS destructors have run.
+    X::Value result;
+    if (!builtins["exec"].Call({X::Value(*host.runtime,
+        "try:\n"
+        "    raise RuntimeError('static runtime shutdown')\n"
+        "except RuntimeError:\n"
+        "    pass\n"), globals}, result)) {
+      throw X::Error(host.runtime->LastError());
+    }
     std::cout << "global runtime retained until process teardown\n";
     return 0;
   } catch (const std::exception& error) {

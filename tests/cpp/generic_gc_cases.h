@@ -116,7 +116,9 @@ inline void check_generic_gc_cases(CaseResult& result) {
   // Exercise full packed blocks, short tails and mismatching borrowed/scalar
   // lanes. Reclamation proves multiplicity; a native root proves cached edges
   // still preserve the component before that root is removed.
-  for (size_t copies : {size_t{4}, size_t{5}, size_t{8}, size_t{9}, size_t{17}}) {
+  for (size_t copies : {size_t{3}, size_t{4}, size_t{5}, size_t{7}, size_t{8}, size_t{9},
+                       size_t{15}, size_t{16}, size_t{17}, size_t{31}, size_t{32},
+                       size_t{33}, size_t{63}, size_t{64}, size_t{65}}) {
     for (bool mixed : {false, true}) {
       Value left = Value::list({}), right = Value::list({left});
       auto* left_object = left.as.obj;

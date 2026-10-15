@@ -343,6 +343,13 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
                 break;
               }
             }
+            // object_get_attr returns the raw class property. A native or
+            // otherwise unproved getter must run through the ordinary Python
+            // frame so descriptor invocation, exceptions and tracing survive.
+            // In particular, MemoryBIO.pending must yield its integer value,
+            // not the property object, inside asyncio's small read-size method.
+            supported = false;
+            return false;
           }
           // The inline method interpreter only implements proven property
           // getter shapes above. Returning object_get_attr's raw class value

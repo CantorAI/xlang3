@@ -14,6 +14,16 @@
 
 namespace xlang3::test::sqlite_aggregate_probe {
 
+inline std::filesystem::path fixture_root(const char* program) {
+  const auto packaged = std::filesystem::absolute(std::filesystem::path(program))
+      .parent_path() / "test-fixtures" / "xlang3";
+  if (std::filesystem::is_regular_file(packaged / "sqlite_aggregate_sdk_probe.py") &&
+      std::filesystem::is_regular_file(packaged / "sqlite_statement_cache_sdk_probe.py")) {
+    return packaged;
+  }
+  return std::filesystem::absolute(std::filesystem::path(__FILE__)).parent_path();
+}
+
 static void require(bool ok, const char* message) {
   if (!ok) throw std::runtime_error(message);
 }
@@ -223,7 +233,7 @@ inline void check_sqlite_aggregate_abi(CaseResult& result, const char* program) 
   try {
     using namespace sqlite_aggregate_probe;
     require(program != nullptr, "cannot locate existing test executable");
-    const auto fixtures = std::filesystem::absolute(std::filesystem::path(__FILE__)).parent_path();
+    const auto fixtures = fixture_root(program);
     const auto modules = std::filesystem::absolute(std::filesystem::path(program)).parent_path() / "modules";
     require(std::filesystem::is_regular_file(fixtures / "sqlite_aggregate_sdk_probe.py"),
         "cannot locate Python aggregate ownership fixture");
