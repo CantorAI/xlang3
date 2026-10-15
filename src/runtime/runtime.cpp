@@ -2728,7 +2728,10 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
         std::cerr << " python_source=\"error\"";
       }
       if (!native_error.empty()) {
-        std::cerr << " native=\"tried\"";
+        std::cerr << " native=\"tried\" native_error=\"" << native_error << "\"";
+      }
+      if (!prefixed_native_error.empty()) {
+        std::cerr << " prefixed_native_error=\"" << prefixed_native_error << "\"";
       }
       std::cerr << "\n";
     }

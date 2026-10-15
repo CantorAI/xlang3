@@ -641,6 +641,17 @@ add_test(
   COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/fastapi/pydantic_core_schema_gather_contract.py
 )
 set_tests_properties(xlang3_pydantic_core_schema_gather PROPERTIES TIMEOUT 30)
+if(WIN32 AND TARGET xlang_pydantic_core_native_package)
+  add_test(
+    NAME xlang3_native_package_long_path
+    COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
+      -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/pydantic_core_long_path_contract.ps1
+      -XLang3 $<TARGET_FILE:xlang3>
+      -Modules $<TARGET_FILE_DIR:xlang_pydantic_core_native_package>
+      -OutputRoot ${CMAKE_CURRENT_BINARY_DIR}/long-native-package-path
+  )
+  set_tests_properties(xlang3_native_package_long_path PROPERTIES TIMEOUT 30)
+endif()
 
 add_test(
   NAME xlang3_cli_device_module_import
