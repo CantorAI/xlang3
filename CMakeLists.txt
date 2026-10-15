@@ -407,6 +407,10 @@ if(WIN32)
 endif()
 
 add_executable(xlang3 src/xlang3.cpp)
+if(WIN32)
+  set_target_properties(xlang3 PROPERTIES
+    VS_GLOBAL_ApplicationManifest "${CMAKE_CURRENT_SOURCE_DIR}/src/xlang3.exe.manifest")
+endif()
 add_executable(xlang3_charconv_compat_tests tests/cpp/charconv_compat_tests.cpp)
 target_include_directories(xlang3_charconv_compat_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sdk)
 target_link_libraries(xlang3 PRIVATE xlang3_runtime)

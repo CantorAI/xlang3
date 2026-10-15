@@ -31,7 +31,7 @@ $segment = 'longseg'
 $fixtureRoot = [IO.Path]::GetFullPath($OutputRoot)
 $targetModules = Join-Path $fixtureRoot 'native-modules'
 $targetDll = Join-Path $targetModules 'pydantic_core._pydantic_core.x3pkg.dll'
-while ($targetDll.Length -lt 250) {
+while ($targetDll.Length -lt 262) {
     $targetModules = Join-Path $targetModules $segment
     $targetDll = Join-Path $targetModules 'pydantic_core._pydantic_core.x3pkg.dll'
 }
@@ -50,8 +50,8 @@ $sourceSchemaGather = Join-Path (Join-Path $Modules 'pydantic_core') '_schema_ga
     [Text.UTF8Encoding]::new($false)
 )
 
-if ($targetDll.Length -lt 244 -or $targetDll.Length -ge 260) {
-    throw "Native package fixture path must exercise the near-MAX_PATH boundary (244-259 characters): $($targetDll.Length)"
+if ($targetDll.Length -lt 262 -or $targetDll.Length -ge 280) {
+    throw "Native package fixture path must exercise a path beyond MAX_PATH (262-279 characters): $($targetDll.Length)"
 }
 
 $previousPythonPath = $env:PYTHONPATH
