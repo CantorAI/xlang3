@@ -24,6 +24,10 @@ limitations under the License.
 #include <cstddef>
 #if defined(_M_X64) || defined(__x86_64__)
 #include <emmintrin.h>
+#include <smmintrin.h>
+#endif
+#if defined(_MSC_VER) && defined(_M_X64) && !defined(__clang__)
+#include <intrin.h>
 #endif
 #include <limits>
 
@@ -107,8 +111,19 @@ void gc_visit_plain_storage(Object* object, Visit&& visit) {
   }
 }
 
-template <class Visit>
-void gc_visit_plain_sequence_owned_runs(const std::vector<Value>& items, Visit&& visit) {
+#if defined(_MSC_VER) && defined(_M_X64) && !defined(__clang__)
+bool gc_plain_sse41_available() {
+  static const bool supported = [] {
+    int registers[4]{};
+    __cpuid(registers, 1);
+    return (registers[2] & (1 << 19)) != 0;
+  }();
+  return supported;
+}
+#endif
+
+template <bool UseSse41, class Visit>
+void gc_visit_plain_sequence_owned_runs_impl(const std::vector<Value>& items, Visit&& visit) {
   size_t position = 0;
   while (position < items.size()) {
     const Value& first = items[position++];
@@ -133,7 +148,14 @@ void gc_visit_plain_sequence_owned_runs(const std::vector<Value>& items, Visit&&
       const __m128i c = _mm_xor_si128(_mm_loadu_si128(reinterpret_cast<const __m128i*>(current + 2)), needle);
       const __m128i d = _mm_xor_si128(_mm_loadu_si128(reinterpret_cast<const __m128i*>(current + 3)), needle);
       const __m128i difference = _mm_or_si128(_mm_or_si128(a, b), _mm_or_si128(c, d));
-      if (_mm_movemask_epi8(_mm_cmpeq_epi8(difference, _mm_setzero_si128())) != 0xffff) break;
+      if constexpr (UseSse41) {
+        // PTEST checks all 128 difference bits directly. Keep the SSE2
+        // predicate below for older CPUs; neither path changes ownership,
+        // flags, multiplicity, block bounds or the scalar tail.
+        if (_mm_testz_si128(difference, difference) == 0) break;
+      } else {
+        if (_mm_movemask_epi8(_mm_cmpeq_epi8(difference, _mm_setzero_si128())) != 0xffff) break;
+      }
       position += 4;
       multiplicity += 4; // Each equal owning Value counts; this is not deduplication.
     }
@@ -144,6 +166,20 @@ void gc_visit_plain_sequence_owned_runs(const std::vector<Value>& items, Visit&&
     }
     visit(target, multiplicity);
   }
+}
+
+template <class Visit>
+void gc_visit_plain_sequence_owned_runs(const std::vector<Value>& items, Visit&& visit) {
+#if defined(_MSC_VER) && defined(_M_X64) && !defined(__clang__)
+  // The measured Windows hot loop otherwise materializes a byte mask just to
+  // test zero. Select once per sequence, never per block or VM instruction;
+  // the CPUID guard prevents executing PTEST on the x86-64 SSE2 baseline.
+  if (gc_plain_sse41_available()) {
+    gc_visit_plain_sequence_owned_runs_impl<true>(items, visit);
+    return;
+  }
+#endif
+  gc_visit_plain_sequence_owned_runs_impl<false>(items, visit);
 }
 
 // Repeated owning references still contribute their full multiplicity to
