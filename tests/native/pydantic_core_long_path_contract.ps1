@@ -19,6 +19,16 @@ param(
 
 $ErrorActionPreference = "Stop"
 
+# A 32-bit PowerShell process cannot inspect a 64-bit child's mapped DLLs.
+# CMake may find SysWOW64 first on a persistent runner; keep the same fixture
+# and assertions, but execute them in the native Windows host.
+if ([Environment]::Is64BitOperatingSystem -and -not [Environment]::Is64BitProcess) {
+    $nativePowerShell = Join-Path $env:WINDIR 'Sysnative/WindowsPowerShell/v1.0/powershell.exe'
+    & $nativePowerShell -NoProfile -ExecutionPolicy Bypass -File $PSCommandPath `
+        -XLang3 $XLang3 -Modules $Modules -OutputRoot $OutputRoot
+    exit $LASTEXITCODE
+}
+
 function Get-ExtendedPath([string]$Path) {
     $fullPath = [IO.Path]::GetFullPath($Path)
     if ($fullPath.StartsWith('\\')) {
@@ -95,7 +105,8 @@ foreach ($pathStyle in @('native', 'forward-slash')) {
         }
         $output = $versionTask.Result
         if (-not $output) {
-            throw "pydantic_core imported without reporting its version ($pathStyle)"
+            $startupError = if ($stderrTask.IsCompleted) { $stderrTask.GetAwaiter().GetResult() } else { '' }
+            throw "xlang3 produced no pydantic_core version ($pathStyle): $startupError"
         }
         $process.Refresh()
         $mappedPaths = @($process.Modules | Where-Object {
@@ -103,6 +114,7 @@ foreach ($pathStyle in @('native', 'forward-slash')) {
         } | ForEach-Object { Get-NormalizedModulePath $_.FileName })
         [IO.File]::WriteAllText($originPath, ([ordered]@{
             path_style = $pathStyle
+            inspector_pointer_bits = [IntPtr]::Size * 8
             expected_path = $targetDll
             expected_length = $targetDll.Length
             mapped_paths = $mappedPaths
