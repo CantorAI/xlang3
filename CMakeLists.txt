@@ -408,6 +408,10 @@ if(WIN32)
 endif()
 
 add_executable(xlang3 src/xlang3.cpp)
+if(WIN32)
+  set_target_properties(xlang3 PROPERTIES
+    VS_GLOBAL_ApplicationManifest "${CMAKE_CURRENT_SOURCE_DIR}/src/xlang3.exe.manifest")
+endif()
 add_executable(xlang3_charconv_compat_tests tests/cpp/charconv_compat_tests.cpp)
 target_include_directories(xlang3_charconv_compat_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sdk)
 target_link_libraries(xlang3 PRIVATE xlang3_runtime)
@@ -656,6 +660,17 @@ add_test(
   COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/fastapi/pydantic_core_schema_gather_contract.py
 )
 set_tests_properties(xlang3_pydantic_core_schema_gather PROPERTIES TIMEOUT 30)
+if(WIN32 AND TARGET xlang_pydantic_core_native_package)
+  add_test(
+    NAME xlang3_native_package_long_path
+    COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
+      -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/pydantic_core_long_path_contract.ps1
+      -XLang3 $<TARGET_FILE:xlang3>
+      -Modules $<TARGET_FILE_DIR:xlang_pydantic_core_native_package>
+      -OutputRoot ${CMAKE_CURRENT_BINARY_DIR}/long-native-package-path
+  )
+  set_tests_properties(xlang3_native_package_long_path PROPERTIES TIMEOUT 30)
+endif()
 
 add_test(
   NAME xlang3_cli_device_module_import
