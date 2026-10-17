@@ -468,6 +468,8 @@ function(add_xlang3_cpp_test name source)
   add_test(NAME ${name} COMMAND ${name})
 endfunction()
 
+add_xlang3_cpp_test(xlang3_ipc_native_host_tests tests/cpp/ipc_native_host_tests.cpp)
+set_tests_properties(xlang3_ipc_native_host_tests PROPERTIES TIMEOUT 30)
 add_xlang3_cpp_test(xlang3_smoke tests/smoke.cpp)
 add_xlang3_cpp_test(xlang3_abi_ownership tests/cpp/abi_ownership_tests.cpp)
 add_executable(xlang3_embedded_package_tests tests/cpp/embedded_package_tests.cpp)

@@ -65,6 +65,11 @@ X3_API X3Status x3_event_set_change_handler(X3Runtime*, X3Value,
 X3_API X3Status x3_runtime_add_import_root(X3Runtime* runtime, const char* path);
 X3_API X3Status x3_runtime_import_remote(X3Runtime* runtime, const char* name,
     const char* endpoint, X3Value* result);
+/* Register a value owned by runtime and start its process-local shared-memory
+   LRPC listener. The listener is detached when runtime is destroyed. */
+X3_API X3Status x3_runtime_register_remote_object(X3Runtime* runtime,
+    const char* name, X3Value object);
+X3_API X3Status x3_runtime_lrpc_listen(X3Runtime* runtime, int64_t port);
 typedef struct X3LrpcEndpointInfo {
   uint32_t size;
   uint32_t pid;

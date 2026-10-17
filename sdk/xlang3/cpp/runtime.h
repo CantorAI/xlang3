@@ -73,6 +73,15 @@ public:
     check(x3_runtime_import_remote(runtime_, name, endpoint, &result));
     return Value(&host_, result, false);
   }
+  void RegisterRemoteObject(const char* name, const Value& object) {
+    if (object.runtime() != runtime_) {
+      throw std::invalid_argument("remote object must belong to this runtime");
+    }
+    check(x3_runtime_register_remote_object(runtime_, name, object.raw()));
+  }
+  void LrpcListen(int64_t port) {
+    check(x3_runtime_lrpc_listen(runtime_, port));
+  }
   // The borrowed service must outlive this runtime and all its package values.
   template<class T> Value RegisterPackage(const char* name, T& service);
   uint64_t CollectSerializedObjects() {

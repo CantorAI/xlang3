@@ -44,3 +44,42 @@ X3Status x3_runtime_import_remote(X3Runtime* runtime, const char* name,
     return X3_STATUS_ERROR;
   }
 }
+
+X3Status x3_runtime_register_remote_object(X3Runtime* runtime,
+    const char* name, X3Value object) {
+  auto* rt = reinterpret_cast<xlang3::Runtime*>(runtime);
+  if (!rt) return X3_STATUS_ERROR;
+  try {
+    if (!name || !*name || std::char_traits<char>::length(name) > 256)
+      throw std::runtime_error("remote object name is invalid");
+    xlang3::XlangRuntimeExecutionGuard guard;
+    std::string error;
+    auto value = xlang3::from_c_value(object, error);
+    if (value.tag == xlang3::ValueTag::Invalid)
+      throw std::runtime_error(error.empty() ? "remote object value is invalid" : error);
+    if (!xlang3::ipc_register_remote_object(*rt, name, value, error))
+      throw std::runtime_error(error);
+    return X3_STATUS_OK;
+  } catch (const std::exception& error) {
+    rt->set_last_error(error.what());
+    return X3_STATUS_ERROR;
+  }
+}
+
+X3Status x3_runtime_lrpc_listen(X3Runtime* runtime, int64_t port) {
+  auto* rt = reinterpret_cast<xlang3::Runtime*>(runtime);
+  if (!rt) return X3_STATUS_ERROR;
+  try {
+    if (port < 1 || port > 65535)
+      throw std::runtime_error("lrpc port must be between 1 and 65535");
+    xlang3::XlangRuntimeExecutionGuard guard;
+    xlang3::Value ignored;
+    std::string error;
+    if (!xlang3::ipc_lrpc_listen(*rt, port, false, ignored, error))
+      throw std::runtime_error(error);
+    return X3_STATUS_OK;
+  } catch (const std::exception& error) {
+    rt->set_last_error(error.what());
+    return X3_STATUS_ERROR;
+  }
+}
