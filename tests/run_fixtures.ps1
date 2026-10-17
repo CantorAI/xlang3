@@ -118,6 +118,7 @@ $cases = @(
     "property_descriptor",
     "property_callable_getter",
     "inline_method_descriptor_fallback",
+    "cached_property_inline_method_fallback",
     "lambda_eager_comprehension_capture",
     "python_new_vm_continuation",
     "python_new_completion_finalizer",

@@ -349,7 +349,12 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
           // for any other descriptor skips its __get__ behavior (for example,
           // importlib.metadata.Distribution.entry_points). Resume the regular
           // method call so the normal LOAD_ATTR descriptor path runs.
-          if (object_value_has_descriptor_get(descriptor)) {
+          // An instance-valued class attribute can itself be a pure-Python
+          // descriptor (for example functools.cached_property). If the inline
+          // lookup cannot prove its descriptor behavior, leave the lookup to
+          // the ordinary attribute path instead of returning the descriptor.
+          if (object_value_has_descriptor_get(descriptor) ||
+              value_as_instance(descriptor) != nullptr) {
             supported = false;
             return false;
           }
