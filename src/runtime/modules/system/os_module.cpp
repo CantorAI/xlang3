@@ -2558,7 +2558,7 @@ bool dir_entry_resolve_stat(Runtime& runtime, const Value& entry,
                             bool follow_symlinks, VfsStat& stat,
                             std::string& error) {
   std::string current_path = dir_entry_path(entry);
-  if (!runtime.vfs().stat(current_path, stat, error)) return false;
+  if (!runtime.vfs().lstat(current_path, stat, error)) return false;
   if (!follow_symlinks) return true;
   for (size_t depth = 0; stat.is_symlink && depth < 40; ++depth) {
     std::string target;
@@ -2568,7 +2568,7 @@ bool dir_entry_resolve_stat(Runtime& runtime, const Value& entry,
         ? target_path
         : std::filesystem::u8path(current_path).parent_path() / target_path)
         .lexically_normal().u8string();
-    if (!runtime.vfs().stat(current_path, stat, error)) return false;
+    if (!runtime.vfs().lstat(current_path, stat, error)) return false;
     if (stat.kind == VfsNodeKind::Missing) return true;
   }
   if (stat.is_symlink) {
@@ -2778,7 +2778,7 @@ bool dir_entry_inode(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     return false;
   }
   VfsStat stat;
-  if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error) ||
+  if (!runtime.vfs().lstat(dir_entry_path(args[0]), stat, error) ||
       stat.kind == VfsNodeKind::Missing) {
     if (error.empty()) {
       error = "file not found: " + dir_entry_path(args[0]);
@@ -2993,7 +2993,7 @@ bool os_scandir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   for (auto& name : names) {
     const std::string full_path = join_vfs_path(path.text, name);
     VfsStat stat;
-    if (!runtime.vfs().stat(full_path, stat, error) || stat.kind == VfsNodeKind::Missing) {
+    if (!runtime.vfs().lstat(full_path, stat, error) || stat.kind == VfsNodeKind::Missing) {
       continue;
     }
     state->entries.push_back(make_dir_entry(
@@ -3159,7 +3159,7 @@ bool os_rmdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
     return false;
   }
   VfsStat stat;
-  if (!runtime.vfs().stat(path.text, stat, error)) {
+  if (!runtime.vfs().lstat(path.text, stat, error)) {
     return raise_path_not_found(runtime, error, &args[0]);
   }
   if (stat.kind == VfsNodeKind::Missing) {
@@ -3318,7 +3318,7 @@ bool os_stat_impl(Runtime& runtime, const Value* args, uint32_t argc,
     return true;
   }
 #endif
-  if (!runtime.vfs().stat(path.text, stat, error)) {
+  if (!runtime.vfs().lstat(path.text, stat, error)) {
     return raise_path_not_found(runtime, error, &args[0]);
   }
   if (follow_symlinks) {
@@ -3333,7 +3333,7 @@ bool os_stat_impl(Runtime& runtime, const Value* args, uint32_t argc,
           ? target_path
           : std::filesystem::u8path(current_path).parent_path() / target_path)
           .lexically_normal().u8string();
-      if (!runtime.vfs().stat(current_path, stat, error)) {
+      if (!runtime.vfs().lstat(current_path, stat, error)) {
         return raise_path_not_found(runtime, error, &args[0]);
       }
       if (stat.kind == VfsNodeKind::Missing) break;
@@ -3680,7 +3680,7 @@ bool os_lstat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
     return false;
   }
   VfsStat stat;
-  if (!runtime.vfs().stat(path.text, stat, error)) {
+  if (!runtime.vfs().lstat(path.text, stat, error)) {
     return raise_path_not_found(runtime, error, &args[0]);
   }
   if (stat.kind == VfsNodeKind::Missing) {
@@ -4690,7 +4690,7 @@ bool os_windows_path_query(
   }
   VfsStat vfs_stat;
   std::string vfs_error;
-  if (runtime.vfs().stat(path.text, vfs_stat, vfs_error) &&
+  if (runtime.vfs().lstat(path.text, vfs_stat, vfs_error) &&
       vfs_stat.kind != VfsNodeKind::Missing) {
     if (vfs_stat.is_symlink && query != WindowsPathQuery::Lexists &&
         query != WindowsPathQuery::IsLink && query != WindowsPathQuery::IsJunction) {
@@ -4706,7 +4706,7 @@ bool os_windows_path_query(
             ? target_path
             : std::filesystem::u8path(current_path).parent_path() / target_path)
             .lexically_normal().u8string();
-        if (!runtime.vfs().stat(current_path, vfs_stat, vfs_error) ||
+        if (!runtime.vfs().lstat(current_path, vfs_stat, vfs_error) ||
             vfs_stat.kind == VfsNodeKind::Missing) {
           value_set_bool(out, false);
           return true;

@@ -467,6 +467,16 @@ public:
   }
 
   bool stat(const std::string& path, VfsStat& out, std::string& error) override {
+    return stat_impl(path, out, error, true);
+  }
+
+  bool lstat(const std::string& path, VfsStat& out, std::string& error) override {
+    return stat_impl(path, out, error, false);
+  }
+
+private:
+  bool stat_impl(const std::string& path, VfsStat& out, std::string& error,
+                 bool follow_symlinks) {
     std::error_code ec;
     out = VfsStat{};
     std::filesystem::path native_path;
@@ -482,6 +492,9 @@ public:
 #endif
     }
 #if defined(_WIN32)
+    // Keep the existing Windows reparse-point inspection; Python callers
+    // explicitly follow its link metadata through the VFS namespace.
+    (void)follow_symlinks;
     WIN32_FILE_ATTRIBUTE_DATA file_data{};
     if (GetFileAttributesExW(
             native_path.c_str(), GetFileExInfoStandard, &file_data) == 0) {
@@ -497,10 +510,13 @@ public:
     out.file_attributes = file_data.dwFileAttributes;
     out.is_symlink = false;
 #else
-    // lstat preserves the identity of the leaf symlink. Callers requesting
-    // target metadata already follow links through the VFS namespace.
+    // Ordinary filesystem operations need target metadata (notably for
+    // directory parents such as macOS /tmp). Only lstat preserves a leaf link.
     struct stat native_info {};
-    if (::lstat(native_path.c_str(), &native_info) != 0) {
+    const int result = follow_symlinks
+        ? ::stat(native_path.c_str(), &native_info)
+        : ::lstat(native_path.c_str(), &native_info);
+    if (result != 0) {
       const int error_number = errno;
       if (error_number == ENOENT) return true;
       error = "cannot stat path " + path + ": " +
@@ -747,7 +763,14 @@ bool Vfs::list_dir(const std::string& path, std::vector<std::string>& out, std::
 
 bool Vfs::stat(const std::string& path, VfsStat& out, std::string& error) {
   ResolvedPath resolved;
+  out = VfsStat{};
   return resolve(path, resolved, error) && resolved.fs->stat(resolved.path, out, error);
+}
+
+bool Vfs::lstat(const std::string& path, VfsStat& out, std::string& error) {
+  ResolvedPath resolved;
+  out = VfsStat{};
+  return resolve(path, resolved, error) && resolved.fs->lstat(resolved.path, out, error);
 }
 
 bool Vfs::create_link(const std::string& target, const std::string& link_path,

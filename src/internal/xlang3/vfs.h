@@ -72,6 +72,11 @@ public:
     error = "filesystem does not support symbolic links";
     return false;
   }
+  // Filesystems without distinct link metadata retain their existing stat
+  // implementation. Native POSIX filesystems override this for leaf links.
+  virtual bool lstat(const std::string& path, VfsStat& out, std::string& error) {
+    return stat(path, out, error);
+  }
 };
 
 struct ResolvedPath {
@@ -95,6 +100,7 @@ public:
   bool make_dirs(const std::string& path, bool exist_ok, std::string& error);
   bool list_dir(const std::string& path, std::vector<std::string>& out, std::string& error);
   bool stat(const std::string& path, VfsStat& out, std::string& error);
+  bool lstat(const std::string& path, VfsStat& out, std::string& error);
   bool directory_mtime(const std::string& path, int64_t& mtime_ns, std::string& error);
   bool kind(const std::string& path, VfsNodeKind& out, std::string& error);
   bool read_link(const std::string& path, std::string& out, std::string& error);
