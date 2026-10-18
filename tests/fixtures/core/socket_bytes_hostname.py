@@ -1,5 +1,6 @@
 import _socket
 import socket
+import sys
 
 
 result = _socket.getaddrinfo(
@@ -15,7 +16,9 @@ except TypeError as exc:
 
 for label, host, flags, expected in (
     ('numeric-host-error', 'not-a-numeric-address', socket.AI_NUMERICHOST, 'EAI_NONAME'),
-    ('bad-flags-error', '127.0.0.1', -1, 'EAI_BADFLAGS'),
+    # Darwin reports EAI_NONAME for this exact invalid flag combination.
+    ('bad-flags-error', '127.0.0.1', -1,
+     'EAI_NONAME' if sys.platform == 'darwin' else 'EAI_BADFLAGS'),
 ):
     try:
         _socket.getaddrinfo(host, 80, _socket.AF_INET, _socket.SOCK_STREAM, 0, flags)

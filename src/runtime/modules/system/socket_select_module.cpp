@@ -2929,6 +2929,9 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
 #ifdef EAI_FAMILY
       .value("EAI_FAMILY", Value::int64(EAI_FAMILY))
 #endif
+#if defined(__APPLE__) && defined(EAI_MAX)
+      .value("EAI_MAX", Value::int64(EAI_MAX))
+#endif
 #ifdef EAI_MEMORY
       .value("EAI_MEMORY", Value::int64(EAI_MEMORY))
 #endif
