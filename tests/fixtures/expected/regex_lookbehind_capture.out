@@ -3,3 +3,5 @@ abc (1, 4) {'word': 'abc', 'literal': None}
 abc (1, 4) {'word': 'abc', 'literal': None}
 abc (0, 3) {'marked': None, 'plain': 'abc'}
 [{'marked': None, 'plain': 'abc'}, {'marked': None, 'plain': 'abc'}]
+named-order [('zeta', 'a'), ('alpha', None), ('middle', 'c')]
+named-default [('zeta', 'a'), ('alpha', 'missing'), ('middle', 'c')]

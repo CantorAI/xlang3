@@ -15,3 +15,7 @@ print(
     [match.groupdict() for match in re.finditer(
         r"(?P<marked>(?<=#)abc)|(?P<plain>abc)", "abc abc")]
 )
+
+ordered = re.match(r"(?P<zeta>a)(?P<alpha>b)?(?P<middle>c)", "ac")
+print("named-order", list(ordered.groupdict().items()))
+print("named-default", list(ordered.groupdict("missing").items()))

@@ -2891,6 +2891,49 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
       .value("RCVALL_ON", Value::int64(static_cast<int64_t>(RCVALL_ON)))
       .value("RCVALL_OFF", Value::int64(static_cast<int64_t>(RCVALL_OFF)))
       .value("SIO_KEEPALIVE_VALS", Value::int64(static_cast<int64_t>(SIO_KEEPALIVE_VALS)))
+#else
+#ifdef EAI_ADDRFAMILY
+      .value("EAI_ADDRFAMILY", Value::int64(EAI_ADDRFAMILY))
+#endif
+#ifdef EAI_AGAIN
+      .value("EAI_AGAIN", Value::int64(EAI_AGAIN))
+#endif
+#ifdef EAI_BADFLAGS
+      .value("EAI_BADFLAGS", Value::int64(EAI_BADFLAGS))
+#endif
+#ifdef EAI_BADHINTS
+      .value("EAI_BADHINTS", Value::int64(EAI_BADHINTS))
+#endif
+#ifdef EAI_FAIL
+      .value("EAI_FAIL", Value::int64(EAI_FAIL))
+#endif
+#ifdef EAI_FAMILY
+      .value("EAI_FAMILY", Value::int64(EAI_FAMILY))
+#endif
+#ifdef EAI_MEMORY
+      .value("EAI_MEMORY", Value::int64(EAI_MEMORY))
+#endif
+#ifdef EAI_NODATA
+      .value("EAI_NODATA", Value::int64(EAI_NODATA))
+#endif
+#ifdef EAI_NONAME
+      .value("EAI_NONAME", Value::int64(EAI_NONAME))
+#endif
+#ifdef EAI_OVERFLOW
+      .value("EAI_OVERFLOW", Value::int64(EAI_OVERFLOW))
+#endif
+#ifdef EAI_PROTOCOL
+      .value("EAI_PROTOCOL", Value::int64(EAI_PROTOCOL))
+#endif
+#ifdef EAI_SERVICE
+      .value("EAI_SERVICE", Value::int64(EAI_SERVICE))
+#endif
+#ifdef EAI_SOCKTYPE
+      .value("EAI_SOCKTYPE", Value::int64(EAI_SOCKTYPE))
+#endif
+#ifdef EAI_SYSTEM
+      .value("EAI_SYSTEM", Value::int64(EAI_SYSTEM))
+#endif
 #endif
 #ifdef AI_PASSIVE
       .value("AI_PASSIVE", Value::int64(AI_PASSIVE))

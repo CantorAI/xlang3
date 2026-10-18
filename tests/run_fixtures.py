@@ -112,6 +112,12 @@ def normalize(text):
 
 
 def run_case(executable, source, expected_path, root):
+    platform_expected = expected_path.parent / sys.platform / expected_path.name
+    posix_expected = expected_path.parent / "posix" / expected_path.name
+    if platform_expected.is_file():
+        expected_path = platform_expected
+    elif sys.platform != "win32" and posix_expected.is_file():
+        expected_path = posix_expected
     # Some fixtures spawn children that inherit stdio handles; files let us
     # observe the direct process exit without waiting for every child pipe EOF.
     with tempfile.TemporaryFile() as stdout_file, tempfile.TemporaryFile() as stderr_file:

@@ -2845,7 +2845,13 @@ Value make_match_type(Runtime& runtime) {
     }
     const Value default_value = argc == 2 ? args[1] : Value::none();
     out = Value::dict({});
-    for (const auto& entry : pattern->group_names) {
+    // group_names is a lookup table, not capture-definition order. Python
+    // dictionaries expose insertion order, including unmatched named groups.
+    std::vector<std::pair<std::string, int64_t>> ordered_names(
+        pattern->group_names.begin(), pattern->group_names.end());
+    std::sort(ordered_names.begin(), ordered_names.end(),
+              [](const auto& left, const auto& right) { return left.second < right.second; });
+    for (const auto& entry : ordered_names) {
       const int64_t index = entry.second;
       if (index < 0 || static_cast<size_t>(index) >= state->groups.size()) {
         if (!mapping_set_item(out, Value::string(entry.first), default_value, error)) {

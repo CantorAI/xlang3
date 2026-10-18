@@ -10,3 +10,24 @@
 10054 ConnectionResetError 10054 probe
 10060 TimeoutError 10060 probe
 10061 ConnectionRefusedError 10061 probe
+native-errno ENOENT True True True
+native-errno ESRCH True True True
+native-errno EINTR True True True
+native-errno EAGAIN True True True
+native-errno EWOULDBLOCK True True True
+native-errno EALREADY True True True
+native-errno EINPROGRESS True True True
+native-errno EACCES True True True
+native-errno EPERM True True True
+native-errno EEXIST True True True
+native-errno EPIPE True True True
+native-errno ESHUTDOWN True True True
+native-errno ECHILD True True True
+native-errno EISDIR True True True
+native-errno ENOTDIR True True True
+native-errno ECONNABORTED True True True
+native-errno ECONNRESET True True True
+native-errno ECONNREFUSED True True True
+native-errno ETIMEDOUT True True True
+native-errno EINVAL True True True
+native-errno EBADF True True True

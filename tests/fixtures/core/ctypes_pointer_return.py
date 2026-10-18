@@ -20,3 +20,12 @@ if sys.platform == 'win32':
     returned = command_line()
     print('native', type(returned).__name__, bool(returned),
           len(returned.contents.value), returned.contents.value == returned[0])
+else:
+    from ctypes import CDLL, c_char, c_char_p
+
+    strchr = CDLL(None).strchr
+    strchr.argtypes = (c_char_p, c_int)
+    strchr.restype = POINTER(c_char)
+    returned = strchr(b'probe', ord('p'))
+    print('native', type(returned).__name__, bool(returned),
+          len(returned.contents.value), returned.contents.value == returned[0])

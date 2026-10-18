@@ -3,9 +3,10 @@
 
 import abc
 import _py_abc
+import os
 
 
-print(abc.__file__.replace("\\", "/").endswith("/Lib/abc.py"))
+print(os.path.isfile(abc.__file__) and os.path.basename(abc.__file__) == "abc.py")
 
 class AbstractPair(metaclass=abc.ABCMeta):
     @abc.abstractmethod
