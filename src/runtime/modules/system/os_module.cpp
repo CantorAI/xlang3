@@ -1622,9 +1622,9 @@ bool os_fstat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
 #else
   struct stat native_stat;
   if (::fstat(fd, &native_stat) != 0) {
+    const int error_number = errno;
     error = "fstat failed";
-    runtime.raise_class_error("OSError", error);
-    return false;
+    return raise_fstat_error(runtime, error_number, error);
   }
   stat.kind = S_ISDIR(native_stat.st_mode) ? VfsNodeKind::Directory : VfsNodeKind::File;
   stat.size = static_cast<uint64_t>(native_stat.st_size);

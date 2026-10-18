@@ -73,14 +73,18 @@ std::string zip_module_base(const std::string& fullname) {
 }
 
 std::string zip_origin_path(const std::string& archive, const std::string& member) {
-  // XLang3's supported desktop target is Windows. zipimport uses native
-  // Windows paths for __file__, __path__, and ModuleSpec.origin.
+  // ZIP members use forward slashes; Python-visible origins use the host's
+  // native separator without rewriting literal POSIX backslashes.
+#if defined(_WIN32)
   constexpr char separator = '\\';
+#else
+  constexpr char separator = '/';
+#endif
   std::string origin = archive;
   for (char& ch : origin) {
     if (ch == '/') ch = separator;
   }
-  if (!origin.empty() && origin.back() != '/' && origin.back() != '\\') {
+  if (!origin.empty() && origin.back() != separator) {
     origin.push_back(separator);
   }
   for (char ch : member) {
