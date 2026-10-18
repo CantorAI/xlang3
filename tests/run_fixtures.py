@@ -96,6 +96,7 @@ CORE_CASES.append("os_descriptor_errors")
 CORE_CASES.append("pyexpat_file_protocols")
 CORE_CASES.append("native_file_identity")
 CORE_CASES.append("symlink_parent_operations")
+CORE_CASES.append("cmath_sqrt_stability")
 
 
 if sys.platform != "win32":

@@ -1,0 +1,6 @@
+negative-axis True True True
+signed-zero True
+known-squares True
+near-cut True
+scaled-finite True
+special-values True True
