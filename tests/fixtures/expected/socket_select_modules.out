@@ -4,8 +4,9 @@
 2
 1
 True
-1
+True True
 ([], [], [])
+select-ready True True
 1
 TypeError
 2

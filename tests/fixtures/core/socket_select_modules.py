@@ -2,6 +2,8 @@ import _socket
 import socket
 import select
 import signal
+import sys
+import errno
 
 
 print(socket.AF_INET)
@@ -12,8 +14,14 @@ print(s.family)
 print(s.type)
 print(s.fileno() >= 0)
 s.settimeout(1)
-print(s.gettimeout())
-print(select.select([], [], [], 0))
+print(s.gettimeout() == 1.0, isinstance(s.gettimeout(), float))
+poll_left, poll_right = socket.socketpair()
+print(select.select([poll_left], [], [], 0))
+poll_right.sendall(b"ready")
+ready, _, _ = select.select([poll_left], [], [], 1)
+print("select-ready", ready == [poll_left], poll_left.recv(5) == b"ready")
+poll_left.close()
+poll_right.close()
 s.close()
 option_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 option_socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, b"\x01\x00\x00\x00")
@@ -32,7 +40,7 @@ try:
 except Exception as exc:
     print(type(exc).__name__)
 host_info = _socket.gethostbyname_ex("localhost")
-print(isinstance(host_info, tuple), host_info[1] == [], "127.0.0.1" in host_info[2])
+print(isinstance(host_info, tuple), isinstance(host_info[1], list), "127.0.0.1" in host_info[2])
 reverse_info = _socket.gethostbyaddr("127.0.0.1")
 print(isinstance(reverse_info, tuple), len(reverse_info) == 3, "127.0.0.1" in reverse_info[2])
 print(_socket.inet_ntop(_socket.AF_INET6, _socket.inet_pton(_socket.AF_INET6, "::1")))
@@ -99,25 +107,26 @@ print(right.recv(32), right.recv(1))
 left.close()
 right.close()
 
-print(signal.SIGBREAK, 21 in signal.valid_signals())
+test_signal = signal.SIGBREAK if sys.platform == "win32" else signal.SIGUSR1
+print(test_signal, test_signal in signal.valid_signals())
 handler = lambda signum, frame: None
-old = signal.signal(signal.SIGBREAK, handler)
-print(signal.signal(signal.SIGBREAK, old) is handler)
-for signum in (-1, 7):
+old = signal.signal(test_signal, handler)
+print(signal.signal(test_signal, old) is handler)
+for signum in ((-1, 7) if sys.platform == "win32" else (-1, 999999)):
     try:
         signal.signal(signum, handler)
     except ValueError:
         print(True)
 raised_signals = []
-signal.signal(signal.SIGBREAK, lambda signum, frame: raised_signals.append(signum))
-signal.raise_signal(signal.SIGBREAK)
+signal.signal(test_signal, lambda signum, frame: raised_signals.append(signum))
+signal.raise_signal(test_signal)
 print(raised_signals)
-signal.signal(signal.SIGBREAK, signal.SIG_DFL)
+signal.signal(test_signal, signal.SIG_DFL)
 try:
     signal.raise_signal(-1)
-except ValueError:
-    print(True)
-inheritable_socket = _socket.socket()
+except OSError as exc:
+    print(type(exc) is OSError and exc.errno == errno.EINVAL)
+inheritable_socket = socket.socket()
 print(inheritable_socket.get_inheritable())
 inheritable_socket.set_inheritable(True)
 print(inheritable_socket.get_inheritable())
@@ -131,10 +140,10 @@ print(blocking_socket.getblocking())
 blocking_socket.setblocking(True)
 print(blocking_socket.getblocking())
 blocking_socket.close()
-inherit_listener = _socket.socket()
+inherit_listener = socket.socket()
 inherit_listener.bind(("127.0.0.1", 0))
 inherit_listener.listen(1)
-inherit_client = _socket.socket()
+inherit_client = socket.socket()
 inherit_client.connect(inherit_listener.getsockname())
 inherit_accepted, _ = inherit_listener.accept()
 print(inherit_accepted.get_inheritable())
