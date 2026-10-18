@@ -713,7 +713,8 @@ void collect_pattern_reads(const ast::Expr& expr, std::vector<std::string>& name
   }
   if (auto* dict = dynamic_cast<const ast::DictExpr*>(&expr)) {
     for (const auto& entry : dict->entries) {
-      collect_reads_expr(*entry.first, names, seen);
+      // A mapping-pattern rest capture (**name) has no key expression.
+      if (entry.first != nullptr) collect_reads_expr(*entry.first, names, seen);
       collect_pattern_reads(*entry.second, names, seen);
     }
     return;

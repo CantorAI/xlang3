@@ -1,0 +1,6 @@
+key-and-rest (7, {'extra': 9})
+rest-only {'key': 7}
+empty-rest (7, {})
+miss None
+closure (11, {'extra': 13})
+closure-miss None

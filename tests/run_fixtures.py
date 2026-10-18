@@ -89,6 +89,7 @@ any_generator_consume_fastpath sum_generator_consume_fastpath closure_arg_binary
 """.split()
 
 CORE_CASES.append("ast_alias_source_locations")
+CORE_CASES.append("match_mapping_rest_scope")
 
 
 if sys.platform != "win32":
