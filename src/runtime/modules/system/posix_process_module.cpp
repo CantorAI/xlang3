@@ -37,7 +37,17 @@ char** process_environment() {
 bool os_error(Runtime& runtime, std::string& error) {
   const int code = errno;
   error = std::strerror(code);
-  runtime.raise_class_error(code == ECHILD ? "ChildProcessError" : "OSError", error);
+  const Value* error_class = runtime.find_builtin("OSError");
+  if (error_class == nullptr) {
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  const Value arguments[] = {Value::int64(code), Value::string(error)};
+  Value exception;
+  if (!runtime_call_callable(runtime, *error_class, arguments, 2, exception, error)) {
+    return false;
+  }
+  runtime.set_pending_exception(exception);
   return false;
 }
 
@@ -121,8 +131,25 @@ bool fork_exec(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
   const bool inherit_environment = args[5].tag == ValueTag::None;
   char** inherited_environment = process_environment();
   if (!inherit_environment && !string_array(runtime, args[5], environment, envp, error)) return false;
-  std::string cwd;
+  // os.chdir changes this runtime's VFS cwd, not the process-global cwd.
+  // Resolve before fork so the child only performs async-signal-safe chdir.
+  std::string cwd = runtime.vfs().cwd();
   if (args[4].tag != ValueTag::None && !text_arg(runtime, args[4], cwd, error)) return false;
+  if (cwd.find('\0') != std::string::npos) {
+    error = "embedded null byte in cwd";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  if (!cwd.empty()) {
+    ResolvedPath directory;
+    if (!runtime.vfs().resolve(cwd, directory, error)) return false;
+    std::string native_directory;
+    if (directory.fs != nullptr && directory.fs->native_path(directory.path, native_directory)) {
+      cwd = std::move(native_directory);
+    } else {
+      cwd = std::move(directory.path);
+    }
+  }
   int fds[8];
   for (size_t i = 0; i < 8; ++i) if (!integer(args[i + 6], fds[i], error)) return false;
   const int errpipe = fds[7];
@@ -195,7 +222,7 @@ bool fork_exec(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
     for (int fd : keep) {
       if (fd != errpipe && ::fcntl(fd, F_SETFD, 0) < 0) child_error(errpipe, errno, "noexec");
     }
-    if (!cwd.empty() && ::chdir(cwd.c_str()) < 0) child_error(errpipe, errno, "noexec:chdir");
+    if (::chdir(cwd.c_str()) < 0) child_error(errpipe, errno, "noexec:chdir");
     if (mask >= 0) ::umask(static_cast<mode_t>(mask));
     if (restore_signals) {
       struct sigaction action {};

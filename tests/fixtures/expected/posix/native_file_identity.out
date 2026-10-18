@@ -1,0 +1,11 @@
+alias-samefile True
+canonical-samefile True
+different-files True
+alias-cwd True True
+descriptor-identity True True
+entry-identity True
+posix-entry-stat-identity True True
+posix-kernel-fields True True
+posix-link-identity True True
+posix-dangling-lstat True
+posix-dangling-stat True

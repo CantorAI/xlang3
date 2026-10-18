@@ -565,17 +565,75 @@ bool parser_parse(Runtime& runtime, const Value* args, uint32_t argc, Value& out
 bool parser_parse_file(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 2) {
     error = "ParseFile() expected a file object";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
+  // Native file values and Python file-like objects share the normal attribute
+  // protocol, including descriptors and __getattr__ delegation.
   Value read_method;
-  if (!object_get_attr(args[1], "read", read_method, error)) {
+  const Value* getattr_function = runtime.find_builtin("getattr");
+  Value getattr_args[] = {args[1], Value::string("read")};
+  if (getattr_function == nullptr ||
+      !runtime_call_callable(runtime, *getattr_function, getattr_args, 2, read_method, error)) {
+    Value pending;
+    if (runtime.take_pending_exception(pending)) {
+      const Value* attribute_error = runtime.find_builtin("AttributeError");
+      const Value type = runtime.exception_type(pending);
+      auto* klass = value_as_class(type);
+      if (attribute_error == nullptr || klass == nullptr ||
+          !class_is_subclass(klass, value_as_class(*attribute_error))) {
+        runtime.set_pending_exception(std::move(pending));
+        return false;
+      }
+    }
+    error = "argument must have 'read' attribute";
+    runtime.raise_class_error("TypeError", error);
     return false;
   }
-  Value data;
-  if (!runtime_call_callable(runtime, read_method, nullptr, 0, data, error)) {
-    return false;
+  std::string document;
+  const Value read_size = Value::int64(2048);
+  for (;;) {
+    Value data;
+    if (!runtime_call_callable(runtime, read_method, &read_size, 1, data, error)) {
+      return false;
+    }
+    Value payload = data;
+    if (auto* instance = value_as_instance(data)) {
+      auto* klass = value_as_class(instance->klass);
+      const Value* bytes_class = runtime.find_builtin("bytes");
+      const Value* bytearray_class = runtime.find_builtin("bytearray");
+      const bool binary_subclass = klass != nullptr &&
+          ((bytes_class != nullptr && class_is_subclass(klass, value_as_class(*bytes_class))) ||
+           (bytearray_class != nullptr && class_is_subclass(klass, value_as_class(*bytearray_class))));
+      if (binary_subclass) {
+        // Read the native subclass storage without calling __bytes__ coercion.
+        for (const auto& attr : instance->attrs) {
+          if (attr.first == "__xlang3_bytes_value__") {
+            payload = attr.second;
+            break;
+          }
+        }
+      }
+    }
+    std::string_view chunk;
+    if (auto* bytes = value_as_bytes(payload)) {
+      chunk = bytes_object_view(*bytes);
+    } else if (auto* bytearray = value_as_bytearray(payload)) {
+      chunk = bytearray->value;
+    } else {
+      error = "read() did not return a bytes object";
+      runtime.raise_class_error("TypeError", error);
+      return false;
+    }
+    if (chunk.size() > 2048) {
+      error = "read() returned too much data";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    if (chunk.empty()) break;
+    document.append(chunk.data(), chunk.size());
   }
-  Value parse_args[3] = {args[0], data, Value::boolean(true)};
+  Value parse_args[3] = {args[0], Value::bytes(document), Value::boolean(true)};
   return parser_parse(runtime, parse_args, 3, out, error, user_data);
 }
 

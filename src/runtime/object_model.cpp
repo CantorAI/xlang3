@@ -5176,16 +5176,18 @@ bool object_set_attr(Value& object, const std::string& name, const Value& value,
   if (object.tag == ValueTag::Object && object.as.obj != nullptr &&
       object.as.obj->kind == ObjectKind::File) {
     auto* file = reinterpret_cast<FileObject*>(object.as.obj);
-    auto* text = value_as_string(value);
-    if ((name == "name" || name == "mode") && text != nullptr) {
-      if (name == "name") {
-        file->path = string_object_to_string(*text);
-      } else {
-        file->mode = string_object_to_string(*text);
-      }
+    if (name == "name") {
+      // FileIO.name is Python metadata (including tempfile's integer fd),
+      // independent of the path used for the open stream's actual I/O.
+      value_assign_fast(file->attrs[name], value);
       return true;
     }
-    if (name == "name" || name == "mode" || name == "closed" || name == "closefd" ||
+    auto* text = value_as_string(value);
+    if (name == "mode" && text != nullptr) {
+      file->mode = string_object_to_string(*text);
+      return true;
+    }
+    if (name == "mode" || name == "closed" || name == "closefd" ||
         name == "buffer" || name == "raw" || name == "encoding" || name == "errors" ||
         name == "newlines") {
       error = "file attribute '" + name + "' is read-only";

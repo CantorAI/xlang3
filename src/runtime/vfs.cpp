@@ -18,6 +18,7 @@ limitations under the License.
 
 #if !defined(XLANG3_EMBEDDED)
 #include <filesystem>
+#include <cerrno>
 #include <functional>
 #include <fstream>
 #include <limits>
@@ -466,6 +467,16 @@ public:
   }
 
   bool stat(const std::string& path, VfsStat& out, std::string& error) override {
+    return stat_impl(path, out, error, true);
+  }
+
+  bool lstat(const std::string& path, VfsStat& out, std::string& error) override {
+    return stat_impl(path, out, error, false);
+  }
+
+private:
+  bool stat_impl(const std::string& path, VfsStat& out, std::string& error,
+                 bool follow_symlinks) {
     std::error_code ec;
     out = VfsStat{};
     std::filesystem::path native_path;
@@ -481,6 +492,9 @@ public:
 #endif
     }
 #if defined(_WIN32)
+    // Keep the existing Windows reparse-point inspection; Python callers
+    // explicitly follow its link metadata through the VFS namespace.
+    (void)follow_symlinks;
     WIN32_FILE_ATTRIBUTE_DATA file_data{};
     if (GetFileAttributesExW(
             native_path.c_str(), GetFileExInfoStandard, &file_data) == 0) {
@@ -496,33 +510,40 @@ public:
     out.file_attributes = file_data.dwFileAttributes;
     out.is_symlink = false;
 #else
-    if (!std::filesystem::exists(native_path, ec)) {
-      if (ec) {
-        error = "cannot stat path " + path + ": " + ec.message();
-        return false;
-      }
-      return true;
-    }
-#endif
-#if !defined(_WIN32)
-    const auto symlink_status = std::filesystem::symlink_status(native_path, ec);
-    if (!ec) {
-      out.is_symlink = std::filesystem::is_symlink(symlink_status);
-    }
-    ec.clear();
-    const auto status = std::filesystem::status(native_path, ec);
-    const bool have_status = !ec;
-    if (ec) {
-      error = "cannot stat path " + path + ": " + ec.message();
+    // Ordinary filesystem operations need target metadata (notably for
+    // directory parents such as macOS /tmp). Only lstat preserves a leaf link.
+    struct stat native_info {};
+    const int result = follow_symlinks
+        ? ::stat(native_path.c_str(), &native_info)
+        : ::lstat(native_path.c_str(), &native_info);
+    if (result != 0) {
+      const int error_number = errno;
+      if (error_number == ENOENT) return true;
+      error = "cannot stat path " + path + ": " +
+          std::error_code(error_number, std::generic_category()).message();
       return false;
     }
-    std::error_code abs_ec;
-    const auto absolute_path = std::filesystem::absolute(native_path, abs_ec);
-    const std::string inode_key = abs_ec ? path : filesystem_path_text(absolute_path);
-    out.inode = static_cast<uint64_t>(std::hash<std::string>{}(inode_key));
-    if (out.inode == 0) {
-      out.inode = 1;
-    }
+    out.kind = S_ISDIR(native_info.st_mode) ? VfsNodeKind::Directory : VfsNodeKind::File;
+    out.is_symlink = S_ISLNK(native_info.st_mode);
+    out.is_character_device = S_ISCHR(native_info.st_mode);
+    out.is_block_device = S_ISBLK(native_info.st_mode);
+    out.size = static_cast<uint64_t>(native_info.st_size);
+    out.inode = static_cast<uint64_t>(native_info.st_ino);
+    out.native_mode = static_cast<int64_t>(native_info.st_mode);
+    out.device = static_cast<uint64_t>(native_info.st_dev);
+    out.link_count = static_cast<uint64_t>(native_info.st_nlink);
+    out.user_id = static_cast<uint64_t>(native_info.st_uid);
+    out.group_id = static_cast<uint64_t>(native_info.st_gid);
+#if defined(__APPLE__)
+    out.atime_ns = static_cast<int64_t>(native_info.st_atimespec.tv_sec) * 1000000000LL + native_info.st_atimespec.tv_nsec;
+    out.mtime_ns = static_cast<int64_t>(native_info.st_mtimespec.tv_sec) * 1000000000LL + native_info.st_mtimespec.tv_nsec;
+    out.ctime_ns = static_cast<int64_t>(native_info.st_ctimespec.tv_sec) * 1000000000LL + native_info.st_ctimespec.tv_nsec;
+#else
+    out.atime_ns = static_cast<int64_t>(native_info.st_atim.tv_sec) * 1000000000LL + native_info.st_atim.tv_nsec;
+    out.mtime_ns = static_cast<int64_t>(native_info.st_mtim.tv_sec) * 1000000000LL + native_info.st_mtim.tv_nsec;
+    out.ctime_ns = static_cast<int64_t>(native_info.st_ctim.tv_sec) * 1000000000LL + native_info.st_ctim.tv_nsec;
+#endif
+    return true;
 #endif
 #if defined(_WIN32)
     out.inode = 0;
@@ -570,13 +591,6 @@ public:
       out.mtime_ns = filetime_to_unix_ns(handle_info.ftLastWriteTime);
       out.ctime_ns = filetime_to_unix_ns(handle_info.ftCreationTime);
     }
-#else
-    struct stat stat_buffer {};
-    if (::stat(native_path.c_str(), &stat_buffer) == 0) {
-      out.atime_ns = static_cast<int64_t>(stat_buffer.st_atime) * 1000000000LL;
-      out.mtime_ns = static_cast<int64_t>(stat_buffer.st_mtime) * 1000000000LL;
-      out.ctime_ns = static_cast<int64_t>(stat_buffer.st_ctime) * 1000000000LL;
-    }
 #endif
 #if defined(_WIN32)
     if ((out.file_attributes & FILE_ATTRIBUTE_DIRECTORY) != 0) {
@@ -587,28 +601,6 @@ public:
       out.size = (static_cast<uint64_t>(file_data.nFileSizeHigh) << 32u) |
           static_cast<uint64_t>(file_data.nFileSizeLow);
     }
-    return true;
-#else
-    if (!have_status) {
-      out.kind = VfsNodeKind::Missing;
-      return true;
-    }
-    if (std::filesystem::is_regular_file(status)) {
-      out.kind = VfsNodeKind::File;
-      out.size = static_cast<uint64_t>(std::filesystem::file_size(native_path, ec));
-      if (ec) {
-        out.size = 0;
-      }
-      return true;
-    }
-    if (std::filesystem::is_directory(status)) {
-      out.kind = VfsNodeKind::Directory;
-      out.size = 0;
-      return true;
-    }
-    out.kind = VfsNodeKind::Missing;
-    out.size = 0;
-    out.inode = 0;
     return true;
 #endif
   }
@@ -771,7 +763,14 @@ bool Vfs::list_dir(const std::string& path, std::vector<std::string>& out, std::
 
 bool Vfs::stat(const std::string& path, VfsStat& out, std::string& error) {
   ResolvedPath resolved;
+  out = VfsStat{};
   return resolve(path, resolved, error) && resolved.fs->stat(resolved.path, out, error);
+}
+
+bool Vfs::lstat(const std::string& path, VfsStat& out, std::string& error) {
+  ResolvedPath resolved;
+  out = VfsStat{};
+  return resolve(path, resolved, error) && resolved.fs->lstat(resolved.path, out, error);
 }
 
 bool Vfs::create_link(const std::string& target, const std::string& link_path,
@@ -813,11 +812,11 @@ bool Vfs::chdir(const std::string& path, std::string& error) {
   if (!resolve(path, resolved, error)) {
     return false;
   }
-  VfsStat stat;
-  if (!resolved.fs->stat(resolved.path, stat, error)) {
+  VfsNodeKind kind;
+  if (!resolved.fs->kind(resolved.path, kind, error)) {
     return false;
   }
-  if (stat.kind != VfsNodeKind::Directory) {
+  if (kind != VfsNodeKind::Directory) {
     error = "not a directory: " + path;
     return false;
   }

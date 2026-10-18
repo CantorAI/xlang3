@@ -23,6 +23,7 @@ limitations under the License.
 #include "xlang3/vfs.h"
 
 #include <algorithm>
+#include <cerrno>
 #include <cctype>
 #include <cmath>
 #include <cwchar>
@@ -233,7 +234,7 @@ struct OsModuleState {
 };
 
 Value make_terminal_size(const Value& klass, int64_t columns, int64_t lines);
-Value make_stat_result(const Value& klass, const VfsStat& stat);
+Value make_stat_result(const Value& klass, const VfsStat& stat, int64_t native_mode = -1);
 
 void scandir_state_cleanup(void* data) {
   auto* state = static_cast<ScandirState*>(data);
@@ -350,13 +351,60 @@ bool no_args(uint32_t argc, const char* name, std::string& error) {
   return false;
 }
 
+const char* os_error_class_for_errno(int error_number) {
+  if (error_number == EAGAIN) return "BlockingIOError";
+#if defined(EWOULDBLOCK)
+  if (error_number == EWOULDBLOCK) return "BlockingIOError";
+#endif
+#if defined(EALREADY)
+  if (error_number == EALREADY) return "BlockingIOError";
+#endif
+#if defined(EINPROGRESS)
+  if (error_number == EINPROGRESS) return "BlockingIOError";
+#endif
+  if (error_number == EACCES || error_number == EPERM) return "PermissionError";
+  if (error_number == ENOENT) return "FileNotFoundError";
+  if (error_number == EEXIST) return "FileExistsError";
+  if (error_number == ECHILD) return "ChildProcessError";
+  if (error_number == EINTR) return "InterruptedError";
+  if (error_number == ESRCH) return "ProcessLookupError";
+  if (error_number == EPIPE) return "BrokenPipeError";
+#if defined(ESHUTDOWN)
+  if (error_number == ESHUTDOWN) return "BrokenPipeError";
+#endif
+#if defined(EISDIR)
+  if (error_number == EISDIR) return "IsADirectoryError";
+#endif
+#if defined(ENOTDIR)
+  if (error_number == ENOTDIR) return "NotADirectoryError";
+#endif
+#if defined(ECONNABORTED)
+  if (error_number == ECONNABORTED) return "ConnectionAbortedError";
+#endif
+#if defined(ECONNREFUSED)
+  if (error_number == ECONNREFUSED) return "ConnectionRefusedError";
+#endif
+#if defined(ECONNRESET)
+  if (error_number == ECONNRESET) return "ConnectionResetError";
+#endif
+#if defined(ETIMEDOUT)
+  if (error_number == ETIMEDOUT) return "TimeoutError";
+#endif
+  return "OSError";
+}
+
 bool raise_os_error_with_errno(
     Runtime& runtime,
     const char* class_name,
     int error_number,
     const std::string& message) {
+  if (std::strcmp(class_name, "OSError") == 0) {
+    class_name = os_error_class_for_errno(error_number);
+  }
   Value exception = runtime.make_exception(class_name, message);
   std::string ignored;
+  object_set_attr(exception, "args",
+                  Value::tuple({Value::int64(error_number), Value::string(message)}), ignored);
   object_set_attr(exception, "errno", Value::int64(error_number), ignored);
   object_set_attr(exception, "strerror", Value::string(message), ignored);
   runtime.set_pending_exception(std::move(exception));
@@ -806,26 +854,6 @@ bool raise_fstat_error(
   return false;
 }
 
-const char* os_error_class_for_errno(int error_number) {
-  switch (error_number) {
-    case ENOENT:
-      return "FileNotFoundError";
-    case EACCES:
-      return "PermissionError";
-    case EEXIST:
-      return "FileExistsError";
-#if defined(EISDIR)
-    case EISDIR:
-      return "IsADirectoryError";
-#endif
-#if defined(ENOTDIR)
-    case ENOTDIR:
-      return "NotADirectoryError";
-#endif
-    default:
-      return "OSError";
-  }
-}
 
 bool raise_os_path_error_with_errno(
     Runtime& runtime,
@@ -1306,26 +1334,6 @@ bool os_waitstatus_to_exitcode(Runtime& runtime, const Value* args, uint32_t arg
 #endif
 
 #if !defined(_WIN32)
-const char* os_error_class_for_errno(int error_number) {
-  switch (error_number) {
-    case ENOENT:
-      return "FileNotFoundError";
-    case EACCES:
-      return "PermissionError";
-    case EEXIST:
-      return "FileExistsError";
-#if defined(EISDIR)
-    case EISDIR:
-      return "IsADirectoryError";
-#endif
-#if defined(ENOTDIR)
-    case ENOTDIR:
-      return "NotADirectoryError";
-#endif
-    default:
-      return "OSError";
-  }
-}
 
 bool raise_os_path_error_with_errno(
     Runtime& runtime,
@@ -1622,18 +1630,35 @@ bool os_fstat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
 #else
   struct stat native_stat;
   if (::fstat(fd, &native_stat) != 0) {
+    const int error_number = errno;
     error = "fstat failed";
-    runtime.raise_class_error("OSError", error);
-    return false;
+    return raise_os_error_with_errno(
+        runtime, os_error_class_for_errno(error_number), error_number, error);
   }
   stat.kind = S_ISDIR(native_stat.st_mode) ? VfsNodeKind::Directory : VfsNodeKind::File;
   stat.size = static_cast<uint64_t>(native_stat.st_size);
   stat.inode = static_cast<uint64_t>(native_stat.st_ino);
-  stat.atime_ns = static_cast<int64_t>(native_stat.st_atime) * 1000000000LL;
-  stat.mtime_ns = static_cast<int64_t>(native_stat.st_mtime) * 1000000000LL;
-  stat.ctime_ns = static_cast<int64_t>(native_stat.st_ctime) * 1000000000LL;
+  stat.native_mode = static_cast<int64_t>(native_stat.st_mode);
+  stat.device = static_cast<uint64_t>(native_stat.st_dev);
+  stat.link_count = static_cast<uint64_t>(native_stat.st_nlink);
+  stat.user_id = static_cast<uint64_t>(native_stat.st_uid);
+  stat.group_id = static_cast<uint64_t>(native_stat.st_gid);
+#if defined(__APPLE__)
+  stat.atime_ns = static_cast<int64_t>(native_stat.st_atimespec.tv_sec) * 1000000000LL + native_stat.st_atimespec.tv_nsec;
+  stat.mtime_ns = static_cast<int64_t>(native_stat.st_mtimespec.tv_sec) * 1000000000LL + native_stat.st_mtimespec.tv_nsec;
+  stat.ctime_ns = static_cast<int64_t>(native_stat.st_ctimespec.tv_sec) * 1000000000LL + native_stat.st_ctimespec.tv_nsec;
+#else
+  stat.atime_ns = static_cast<int64_t>(native_stat.st_atim.tv_sec) * 1000000000LL + native_stat.st_atim.tv_nsec;
+  stat.mtime_ns = static_cast<int64_t>(native_stat.st_mtim.tv_sec) * 1000000000LL + native_stat.st_mtim.tv_nsec;
+  stat.ctime_ns = static_cast<int64_t>(native_stat.st_ctim.tv_sec) * 1000000000LL + native_stat.st_ctim.tv_nsec;
 #endif
+#endif
+#if defined(_WIN32)
   out = make_stat_result(state->stat_result_class, stat);
+#else
+  out = make_stat_result(
+      state->stat_result_class, stat, static_cast<int64_t>(native_stat.st_mode));
+#endif
   return true;
 }
 
@@ -2277,26 +2302,29 @@ Value make_stat_result_class(Runtime& runtime) {
   return result;
 }
 
-Value make_stat_result(const Value& klass, const VfsStat& stat) {
-  const int64_t mode = stat.is_block_device
+Value make_stat_result(const Value& klass, const VfsStat& stat, int64_t native_mode) {
+  const int64_t vfs_mode = stat.is_block_device
       ? 0060000
       : stat.is_character_device
       ? 0020000
       : stat.is_symlink
       ? 0120000
       : stat.kind == VfsNodeKind::Directory ? 0040000 : stat.kind == VfsNodeKind::File ? 0100000 : 0;
+  const int64_t mode = native_mode >= 0 ? native_mode : stat.native_mode >= 0 ? stat.native_mode : vfs_mode;
   const double atime = static_cast<double>(stat.atime_ns) / 1000000000.0;
   const double mtime = static_cast<double>(stat.mtime_ns) / 1000000000.0;
   const double ctime = static_cast<double>(stat.ctime_ns) / 1000000000.0;
+  const auto unsigned_field = [](uint64_t value) {
+    return value <= static_cast<uint64_t>((std::numeric_limits<int64_t>::max)())
+        ? Value::int64(static_cast<int64_t>(value)) : value_bigint_from_u64(value);
+  };
   std::vector<Value> tuple_items = {
       Value::int64(mode),
-      stat.inode <= static_cast<uint64_t>((std::numeric_limits<int64_t>::max)())
-          ? Value::int64(static_cast<int64_t>(stat.inode))
-          : value_bigint_from_u64(stat.inode),
-      Value::int64(0),
-      Value::int64(0),
-      Value::int64(0),
-      Value::int64(0),
+      unsigned_field(stat.inode),
+      unsigned_field(stat.device),
+      unsigned_field(stat.link_count),
+      unsigned_field(stat.user_id),
+      unsigned_field(stat.group_id),
       Value::int64(static_cast<int64_t>(stat.size)),
       Value::int64(stat.atime_ns / 1000000000LL),
       Value::int64(stat.mtime_ns / 1000000000LL),
@@ -2530,7 +2558,7 @@ bool dir_entry_resolve_stat(Runtime& runtime, const Value& entry,
                             bool follow_symlinks, VfsStat& stat,
                             std::string& error) {
   std::string current_path = dir_entry_path(entry);
-  if (!runtime.vfs().stat(current_path, stat, error)) return false;
+  if (!runtime.vfs().lstat(current_path, stat, error)) return false;
   if (!follow_symlinks) return true;
   for (size_t depth = 0; stat.is_symlink && depth < 40; ++depth) {
     std::string target;
@@ -2540,7 +2568,7 @@ bool dir_entry_resolve_stat(Runtime& runtime, const Value& entry,
         ? target_path
         : std::filesystem::u8path(current_path).parent_path() / target_path)
         .lexically_normal().u8string();
-    if (!runtime.vfs().stat(current_path, stat, error)) return false;
+    if (!runtime.vfs().lstat(current_path, stat, error)) return false;
     if (stat.kind == VfsNodeKind::Missing) return true;
   }
   if (stat.is_symlink) {
@@ -2750,7 +2778,7 @@ bool dir_entry_inode(Runtime& runtime, const Value* args, uint32_t argc, Value& 
     return false;
   }
   VfsStat stat;
-  if (!runtime.vfs().stat(dir_entry_path(args[0]), stat, error) ||
+  if (!runtime.vfs().lstat(dir_entry_path(args[0]), stat, error) ||
       stat.kind == VfsNodeKind::Missing) {
     if (error.empty()) {
       error = "file not found: " + dir_entry_path(args[0]);
@@ -2965,7 +2993,7 @@ bool os_scandir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
   for (auto& name : names) {
     const std::string full_path = join_vfs_path(path.text, name);
     VfsStat stat;
-    if (!runtime.vfs().stat(full_path, stat, error) || stat.kind == VfsNodeKind::Missing) {
+    if (!runtime.vfs().lstat(full_path, stat, error) || stat.kind == VfsNodeKind::Missing) {
       continue;
     }
     state->entries.push_back(make_dir_entry(
@@ -3131,7 +3159,7 @@ bool os_rmdir(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
     return false;
   }
   VfsStat stat;
-  if (!runtime.vfs().stat(path.text, stat, error)) {
+  if (!runtime.vfs().lstat(path.text, stat, error)) {
     return raise_path_not_found(runtime, error, &args[0]);
   }
   if (stat.kind == VfsNodeKind::Missing) {
@@ -3290,7 +3318,7 @@ bool os_stat_impl(Runtime& runtime, const Value* args, uint32_t argc,
     return true;
   }
 #endif
-  if (!runtime.vfs().stat(path.text, stat, error)) {
+  if (!runtime.vfs().lstat(path.text, stat, error)) {
     return raise_path_not_found(runtime, error, &args[0]);
   }
   if (follow_symlinks) {
@@ -3305,7 +3333,7 @@ bool os_stat_impl(Runtime& runtime, const Value* args, uint32_t argc,
           ? target_path
           : std::filesystem::u8path(current_path).parent_path() / target_path)
           .lexically_normal().u8string();
-      if (!runtime.vfs().stat(current_path, stat, error)) {
+      if (!runtime.vfs().lstat(current_path, stat, error)) {
         return raise_path_not_found(runtime, error, &args[0]);
       }
       if (stat.kind == VfsNodeKind::Missing) break;
@@ -3652,7 +3680,7 @@ bool os_lstat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
     return false;
   }
   VfsStat stat;
-  if (!runtime.vfs().stat(path.text, stat, error)) {
+  if (!runtime.vfs().lstat(path.text, stat, error)) {
     return raise_path_not_found(runtime, error, &args[0]);
   }
   if (stat.kind == VfsNodeKind::Missing) {
@@ -4662,7 +4690,7 @@ bool os_windows_path_query(
   }
   VfsStat vfs_stat;
   std::string vfs_error;
-  if (runtime.vfs().stat(path.text, vfs_stat, vfs_error) &&
+  if (runtime.vfs().lstat(path.text, vfs_stat, vfs_error) &&
       vfs_stat.kind != VfsNodeKind::Missing) {
     if (vfs_stat.is_symlink && query != WindowsPathQuery::Lexists &&
         query != WindowsPathQuery::IsLink && query != WindowsPathQuery::IsJunction) {
@@ -4678,7 +4706,7 @@ bool os_windows_path_query(
             ? target_path
             : std::filesystem::u8path(current_path).parent_path() / target_path)
             .lexically_normal().u8string();
-        if (!runtime.vfs().stat(current_path, vfs_stat, vfs_error) ||
+        if (!runtime.vfs().lstat(current_path, vfs_stat, vfs_error) ||
             vfs_stat.kind == VfsNodeKind::Missing) {
           value_set_bool(out, false);
           return true;

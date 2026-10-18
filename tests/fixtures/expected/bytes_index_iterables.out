@@ -1,0 +1,10 @@
+bytes items True True
+bytes range-errors True
+bytes type-errors True
+bytes callback True True
+bytes generator True
+bytearray items True True
+bytearray range-errors True
+bytearray type-errors True
+bytearray callback True True
+bytearray generator True

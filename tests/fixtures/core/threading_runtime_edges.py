@@ -2,12 +2,13 @@
 # Licensed under the Apache License, Version 2.0
 
 import sys
+import os
 import threading
 import time
 import _thread
 
 
-print("threading-source", threading.__file__.replace("\\", "/").endswith("/Lib/threading.py"))
+print("threading-source", os.path.isfile(threading.__file__) and os.path.basename(threading.__file__) == "threading.py")
 print("main", threading.current_thread() is threading.main_thread(), threading.active_count())
 
 errors = []

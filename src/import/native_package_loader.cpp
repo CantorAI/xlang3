@@ -67,6 +67,22 @@ std::string path_utf8(const std::filesystem::path& path) {
   return {reinterpret_cast<const char*>(encoded.data()), encoded.size()};
 }
 
+std::filesystem::path native_filesystem_path(const std::filesystem::path& path) {
+#if defined(_WIN32)
+  const auto absolute = path.is_absolute() ? path : std::filesystem::absolute(path);
+  const auto& value = absolute.native();
+  if (value.rfind(L"\\\\?\\", 0) == 0) {
+    return absolute;
+  }
+  if (value.rfind(L"\\\\", 0) == 0) {
+    return std::filesystem::path(L"\\\\?\\UNC\\" + value.substr(2));
+  }
+  return std::filesystem::path(L"\\\\?\\" + value);
+#else
+  return path;
+#endif
+}
+
 struct NativeThunk {
   X3NativeFn callback = nullptr;
   X3NativeKeywordFn keyword_callback = nullptr;
@@ -123,6 +139,20 @@ std::vector<std::filesystem::path> native_library_candidates(const std::filesyst
   out.push_back(directory / ("lib" + stem + ".so"));
   out.push_back(directory / (stem + ".so"));
 #endif
+#if defined(_WIN32)
+  out.push_back(root / (name + ".x3pkg.dll"));
+  out.push_back(root / (name + ".dll"));
+#elif defined(__APPLE__)
+  out.push_back(root / ("lib" + name + ".x3pkg.dylib"));
+  out.push_back(root / (name + ".x3pkg.dylib"));
+  out.push_back(root / ("lib" + name + ".dylib"));
+  out.push_back(root / (name + ".dylib"));
+  out.push_back(root / ("lib" + name + ".x3pkg.so"));
+  out.push_back(root / (name + ".x3pkg.so"));
+#else
+  out.push_back(root / ("lib" + name + ".x3pkg.so"));
+  out.push_back(root / (name + ".x3pkg.so"));
+#endif
   return out;
 }
 
@@ -159,7 +189,7 @@ std::vector<std::string> native_package_name_candidates(const std::string& name)
 
 void* open_library(const std::filesystem::path& path, std::string& error) {
 #if defined(_WIN32)
-  const auto absolute = std::filesystem::absolute(path);
+  const auto absolute = native_filesystem_path(path);
   HMODULE handle = LoadLibraryExW(absolute.c_str(), nullptr,
       LOAD_LIBRARY_SEARCH_DLL_LOAD_DIR | LOAD_LIBRARY_SEARCH_DEFAULT_DIRS);
   if (handle == nullptr) {
@@ -1017,7 +1047,7 @@ std::vector<std::filesystem::path> collect_native_library_candidates(
 bool find_native_library(const std::vector<std::filesystem::path>& candidates, std::filesystem::path& out) {
   std::error_code ec;
   for (const auto& candidate : candidates) {
-    if (std::filesystem::is_regular_file(candidate, ec)) {
+    if (std::filesystem::is_regular_file(native_filesystem_path(candidate), ec)) {
       out = candidate;
       return true;
     }

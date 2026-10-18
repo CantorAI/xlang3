@@ -3,6 +3,8 @@
 
 import asyncio
 import inspect
+import os
+import sys
 
 
 async def coroutine_metadata():
@@ -16,7 +18,9 @@ class OneTurnAwaitable:
 
 
 async def main():
-    print("asyncio-source", asyncio.__file__.replace("\\", "/").endswith("/Lib/asyncio/__init__.py"))
+    print("asyncio-source", os.path.isfile(asyncio.__file__)
+          and os.path.basename(asyncio.__file__) == "__init__.py"
+          and os.path.basename(os.path.dirname(asyncio.__file__)) == "asyncio")
     print("loop", type(asyncio.get_running_loop()).__name__)
     print("custom-await", await OneTurnAwaitable())
 
@@ -103,10 +107,18 @@ async def main():
     server.close()
     await server.wait_closed()
 
+    if sys.platform == "win32":
+        command = ("cmd", "/c", "(echo async-out)&(echo async-err 1>&2)&exit /b 7")
+        pipe_command = ("cmd", "/c", "sort")
+    else:
+        command = (sys.executable, "-c",
+                   "import sys; sys.stdout.buffer.write(b'async-out\\n'); "
+                   "sys.stderr.buffer.write(b'async-err\\n'); sys.exit(7)")
+        pipe_command = (sys.executable, "-c",
+                        "import sys; sys.stdout.buffer.write(sys.stdin.buffer.read())")
+
     process = await asyncio.create_subprocess_exec(
-        "cmd",
-        "/c",
-        "(echo async-out)&(echo async-err 1>&2)&exit /b 7",
+        *command,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,
     )
@@ -114,9 +126,7 @@ async def main():
     print("process", process.returncode, stdout, stderr)
 
     pipe_process = await asyncio.create_subprocess_exec(
-        "cmd",
-        "/c",
-        "sort",
+        *pipe_command,
         stdin=asyncio.subprocess.PIPE,
         stdout=asyncio.subprocess.PIPE,
         stderr=asyncio.subprocess.PIPE,

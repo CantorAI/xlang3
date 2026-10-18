@@ -689,11 +689,22 @@ bool socket_dup_fd(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   }
   SetHandleInformation(reinterpret_cast<HANDLE>(duplicate), HANDLE_FLAG_INHERIT, 0);
 #else
-  const NativeSocket duplicate = ::dup(static_cast<NativeSocket>(raw_fd));
+  NativeSocket duplicate = kInvalidSocket;
+#ifdef F_DUPFD_CLOEXEC
+  duplicate = ::fcntl(static_cast<NativeSocket>(raw_fd), F_DUPFD_CLOEXEC, 0);
+  if (duplicate == kInvalidSocket && errno != EINVAL && errno != ENOSYS) {
+    return raise_socket_os_error(runtime, "dup", error);
+  }
+#endif
   if (duplicate == kInvalidSocket) {
-    error = socket_last_error_text("dup");
-    runtime.raise_class_error("OSError", error);
-    return false;
+    duplicate = ::dup(static_cast<NativeSocket>(raw_fd));
+    if (duplicate == kInvalidSocket) return raise_socket_os_error(runtime, "dup", error);
+    const int flags = ::fcntl(duplicate, F_GETFD);
+    if (flags < 0 || ::fcntl(duplicate, F_SETFD, flags | FD_CLOEXEC) < 0) {
+      const int error_number = errno;
+      ::close(duplicate);
+      return raise_socket_code_error(runtime, "dup", error_number, error);
+    }
   }
 #endif
   value_set_int64(out, static_cast<int64_t>(duplicate));
@@ -1128,7 +1139,11 @@ bool socket_getdefaulttimeout(Runtime&, const Value*, uint32_t argc, Value& out,
     error = "getdefaulttimeout() takes no arguments";
     return false;
   }
-  value_assign_fast(out, g_default_socket_timeout);
+  if (g_default_socket_timeout.tag == ValueTag::Int64) {
+    out = Value::number(static_cast<double>(g_default_socket_timeout.as.i64));
+  } else {
+    value_assign_fast(out, g_default_socket_timeout);
+  }
   return true;
 }
 
@@ -1399,7 +1414,11 @@ bool socket_gettimeout(Runtime&, const Value* args, uint32_t argc, Value& out, s
   if (state == nullptr) {
     return false;
   }
-  value_assign_fast(out, state->timeout);
+  if (state->timeout.tag == ValueTag::Int64) {
+    out = Value::number(static_cast<double>(state->timeout.as.i64));
+  } else {
+    value_assign_fast(out, state->timeout);
+  }
   return true;
 }
 
@@ -2891,6 +2910,52 @@ void add_socket_exports(Runtime& runtime, NativeModuleBuilder& builder, const Va
       .value("RCVALL_ON", Value::int64(static_cast<int64_t>(RCVALL_ON)))
       .value("RCVALL_OFF", Value::int64(static_cast<int64_t>(RCVALL_OFF)))
       .value("SIO_KEEPALIVE_VALS", Value::int64(static_cast<int64_t>(SIO_KEEPALIVE_VALS)))
+#else
+#ifdef EAI_ADDRFAMILY
+      .value("EAI_ADDRFAMILY", Value::int64(EAI_ADDRFAMILY))
+#endif
+#ifdef EAI_AGAIN
+      .value("EAI_AGAIN", Value::int64(EAI_AGAIN))
+#endif
+#ifdef EAI_BADFLAGS
+      .value("EAI_BADFLAGS", Value::int64(EAI_BADFLAGS))
+#endif
+#ifdef EAI_BADHINTS
+      .value("EAI_BADHINTS", Value::int64(EAI_BADHINTS))
+#endif
+#ifdef EAI_FAIL
+      .value("EAI_FAIL", Value::int64(EAI_FAIL))
+#endif
+#ifdef EAI_FAMILY
+      .value("EAI_FAMILY", Value::int64(EAI_FAMILY))
+#endif
+#if defined(__APPLE__) && defined(EAI_MAX)
+      .value("EAI_MAX", Value::int64(EAI_MAX))
+#endif
+#ifdef EAI_MEMORY
+      .value("EAI_MEMORY", Value::int64(EAI_MEMORY))
+#endif
+#ifdef EAI_NODATA
+      .value("EAI_NODATA", Value::int64(EAI_NODATA))
+#endif
+#ifdef EAI_NONAME
+      .value("EAI_NONAME", Value::int64(EAI_NONAME))
+#endif
+#ifdef EAI_OVERFLOW
+      .value("EAI_OVERFLOW", Value::int64(EAI_OVERFLOW))
+#endif
+#ifdef EAI_PROTOCOL
+      .value("EAI_PROTOCOL", Value::int64(EAI_PROTOCOL))
+#endif
+#ifdef EAI_SERVICE
+      .value("EAI_SERVICE", Value::int64(EAI_SERVICE))
+#endif
+#ifdef EAI_SOCKTYPE
+      .value("EAI_SOCKTYPE", Value::int64(EAI_SOCKTYPE))
+#endif
+#ifdef EAI_SYSTEM
+      .value("EAI_SYSTEM", Value::int64(EAI_SYSTEM))
+#endif
 #endif
 #ifdef AI_PASSIVE
       .value("AI_PASSIVE", Value::int64(AI_PASSIVE))

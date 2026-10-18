@@ -1,0 +1,56 @@
+2
+1
+4098 4097
+2
+1
+True
+True True
+([], [], [])
+select-ready True True
+4
+TypeError
+2
+True True
+6
+80 http
+ValueError
+True True True
+True True True
+::1
+127.0.0.1
+True True 4
+True True
+b'v6' 4 True
+4 4 4 b'6'
+('::1', '0')
+3
+b'udp' True
+2 b'xy' True
+b'p' b'p'
+1 b'q' b'q'
+b'close-write' b''
+30 True
+True
+True
+True
+[30]
+True
+False
+True
+False
+True
+False
+True
+False
+True True
+False
+True
+False
+b'dup'
+raw-dup-inherit True True
+raw-dup-data True
+True
+negative byte order
+ipv6 flowinfo
+True True
+True

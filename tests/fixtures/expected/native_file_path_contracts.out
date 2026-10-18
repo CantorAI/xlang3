@@ -1,0 +1,9 @@
+fstat-errno True True
+integer-name True
+object-name True
+display-name-storage True
+temporary-file True
+zip-origins True
+subprocess-cwd True
+relative-cwd True
+parent-cwd True

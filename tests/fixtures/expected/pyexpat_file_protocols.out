@@ -1,0 +1,17 @@
+bytesio True
+native-file True True
+plist-native-file True
+large-plist True
+short-reads True True True
+delegation True
+bytes-subclass True
+bytearray-buffer True
+bad-read text True
+bad-read none True
+bad-read integer True
+bad-read memoryview True
+oversized-read True
+missing-read True
+read-exception True
+lookup-exception True
+mac-version True

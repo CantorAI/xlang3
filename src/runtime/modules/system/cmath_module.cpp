@@ -155,6 +155,44 @@ const char* unary_name(UnaryOperation operation) {
   return "cmath";
 }
 
+Complex stable_complex_sqrt(const Complex& value) {
+  const double real = value.real();
+  const double imag = value.imag();
+  const double infinity = std::numeric_limits<double>::infinity();
+  const double nan = std::numeric_limits<double>::quiet_NaN();
+  if (std::isinf(imag)) return Complex(infinity, imag);
+  if (std::isinf(real)) {
+    if (real > 0.0) {
+      return Complex(infinity, std::isnan(imag) ? nan : std::copysign(0.0, imag));
+    }
+    return Complex(std::isnan(imag) ? nan : 0.0,
+                   std::isnan(imag) ? infinity : std::copysign(infinity, imag));
+  }
+  if (std::isnan(real) || std::isnan(imag)) return Complex(nan, nan);
+  if (real == 0.0 && imag == 0.0) return Complex(0.0, imag);
+
+  // Use the rectangular principal-root formula, as in CPython's cmath.sqrt,
+  // rather than a polar conversion that loses tiny components near the cut.
+  // An even binary scale keeps hypot and the sum normal and bounded, including
+  // subnormal inputs and pairs whose unscaled magnitude would overflow.
+  const double abs_real = std::fabs(real);
+  const double abs_imag = std::fabs(imag);
+  int exponent = 0;
+  std::frexp(abs_real > abs_imag ? abs_real : abs_imag, &exponent);
+  if (exponent % 2 != 0) --exponent;
+  const double scaled_real = std::scalbn(abs_real, -exponent);
+  const double scaled_imag = std::scalbn(abs_imag, -exponent);
+  const double larger = std::scalbn(
+      std::sqrt((scaled_real + std::hypot(scaled_real, scaled_imag)) * 0.5),
+      exponent / 2);
+  // Retain the original imaginary component: scaling it can underflow even
+  // when the smaller output component is representable.
+  const double smaller = abs_imag / (2.0 * larger);
+  return real >= 0.0
+      ? Complex(larger, std::copysign(smaller, imag))
+      : Complex(smaller, std::copysign(larger, imag));
+}
+
 Complex apply_unary(UnaryOperation operation, const Complex& value) {
   if (operation == UnaryOperation::Acos && value.real() == 0.0 && std::isnan(value.imag())) {
     return Complex(1.57079632679489661923, value.imag());
@@ -319,7 +357,7 @@ Complex apply_unary(UnaryOperation operation, const Complex& value) {
     case UnaryOperation::Log10: return std::log10(value);
     case UnaryOperation::Sin: return std::sin(value);
     case UnaryOperation::Sinh: return std::sinh(value);
-    case UnaryOperation::Sqrt: return std::sqrt(value);
+    case UnaryOperation::Sqrt: return stable_complex_sqrt(value);
     case UnaryOperation::Tan: return std::tan(value);
     case UnaryOperation::Tanh: return std::tanh(value);
   }

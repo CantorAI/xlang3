@@ -21,3 +21,13 @@ if sys.platform == 'win32':
     print('errcheck-original', bool(function(None)))
     function.errcheck = lambda result, native, args: ('checked', bool(result), len(args))
     print('errcheck-replace', function(None))
+else:
+    from ctypes import CDLL, c_size_t
+
+    function = CDLL(None).strlen
+    function.argtypes = (c_char_p,)
+    function.restype = c_size_t
+    function.errcheck = lambda result, native, args: args
+    print('errcheck-original', bool(function(b'probe')))
+    function.errcheck = lambda result, native, args: ('checked', bool(result), len(args))
+    print('errcheck-replace', function(b'probe'))

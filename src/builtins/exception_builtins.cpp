@@ -19,6 +19,7 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 
+#include <cerrno>
 #include <string_view>
 
 namespace xlang3 {
@@ -195,44 +196,87 @@ void remap_exact_os_error(Runtime& runtime, Value& self, const Value* args, uint
 #endif
   const char* mapped_name = nullptr;
   switch (error_number) {
-    case 2:
+    case ENOENT:
       mapped_name = "FileNotFoundError";
       break;
-    case 3:
+    case ESRCH:
       mapped_name = "ProcessLookupError";
       break;
-    case 4:
+    case EINTR:
       mapped_name = "InterruptedError";
       break;
-    case 11:
-#if defined(_WIN32)
+    case EAGAIN:
+#if !defined(_WIN32)
+#if defined(EWOULDBLOCK) && EWOULDBLOCK != EAGAIN
+    case EWOULDBLOCK:
+#endif
+#if defined(EALREADY) && EALREADY != EAGAIN && EALREADY != EWOULDBLOCK
+    case EALREADY:
+#endif
+#if defined(EINPROGRESS) && EINPROGRESS != EAGAIN && EINPROGRESS != EWOULDBLOCK && EINPROGRESS != EALREADY
+    case EINPROGRESS:
+#endif
+#else
     case 10035:
+    case 10036:
+    case 10037:
 #endif
       mapped_name = "BlockingIOError";
       break;
-    case 13:
+    case EACCES:
+    case EPERM:
       mapped_name = "PermissionError";
       break;
-    case 17:
+    case EEXIST:
       mapped_name = "FileExistsError";
       break;
-    case 32:
+    case EPIPE:
+#if defined(_WIN32)
+    case 10058:
+#else
+#ifdef ESHUTDOWN
+    case ESHUTDOWN:
+#endif
+#endif
       mapped_name = "BrokenPipeError";
       break;
-    case 138: case 10060:
+#if defined(_WIN32)
+    case 10060:
+#else
+    case ETIMEDOUT:
+#endif
       mapped_name = "TimeoutError";
+      break;
+    case ECHILD:
+      mapped_name = "ChildProcessError";
+      break;
+    case EISDIR:
+      mapped_name = "IsADirectoryError";
+      break;
+    case ENOTDIR:
+      mapped_name = "NotADirectoryError";
       break;
 #if defined(_WIN32)
     case 10053:
+#else
+    case ECONNABORTED:
+#endif
       mapped_name = "ConnectionAbortedError";
       break;
+#if defined(_WIN32)
     case 10054:
+#else
+    case ECONNRESET:
+#endif
       mapped_name = "ConnectionResetError";
       break;
+#if defined(_WIN32)
     case 10061:
+#else
+    case ECONNREFUSED:
+#endif
       mapped_name = "ConnectionRefusedError";
       break;
-#endif
     default:
       break;
   }

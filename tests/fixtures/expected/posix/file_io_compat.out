@@ -1,0 +1,37 @@
+True w utf-8 strict None
+False True True False
+4
+13
+False
+True
+True False True
+one
+
+4
+one
+
+
+['two\n', 'three']
+one
+two
+three
+four
+3 3
+one
+None None
+b'one'
+2
+b'xy'
+3
+b'a\r\nb'
+'a\r\nb'
+['a\n', 'b']
+2
+b'\xe9?'
+2 233 ?
+2
+5
+ok
+2
+b'A?'
+iter one

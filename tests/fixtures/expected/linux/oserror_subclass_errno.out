@@ -1,0 +1,33 @@
+2 FileNotFoundError 2 probe
+3 ProcessLookupError 3 probe
+4 InterruptedError 4 probe
+11 BlockingIOError 11 probe
+13 PermissionError 13 probe
+17 FileExistsError 17 probe
+32 BrokenPipeError 32 probe
+10035 OSError 10035 probe
+10053 OSError 10053 probe
+10054 OSError 10054 probe
+10060 OSError 10060 probe
+10061 OSError 10061 probe
+native-errno ENOENT True True True
+native-errno ESRCH True True True
+native-errno EINTR True True True
+native-errno EAGAIN True True True
+native-errno EWOULDBLOCK True True True
+native-errno EALREADY True True True
+native-errno EINPROGRESS True True True
+native-errno EACCES True True True
+native-errno EPERM True True True
+native-errno EEXIST True True True
+native-errno EPIPE True True True
+native-errno ESHUTDOWN True True True
+native-errno ECHILD True True True
+native-errno EISDIR True True True
+native-errno ENOTDIR True True True
+native-errno ECONNABORTED True True True
+native-errno ECONNRESET True True True
+native-errno ECONNREFUSED True True True
+native-errno ETIMEDOUT True True True
+native-errno EINVAL True True True
+native-errno EBADF True True True

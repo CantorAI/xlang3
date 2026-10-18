@@ -4,8 +4,9 @@
 2
 1
 True
-1
+True True
 ([], [], [])
+select-ready True True
 1
 TypeError
 2
@@ -46,6 +47,8 @@ False
 True
 False
 b'dup'
+raw-dup-inherit True True
+raw-dup-data True
 True
 negative byte order
 ipv6 flowinfo

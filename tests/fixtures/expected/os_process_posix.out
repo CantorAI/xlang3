@@ -1,0 +1,8 @@
+os-process-source True
+os-process-descriptor-kinds True True True
+os-process-spawn True True True True
+os-process-environment True
+os-process-shell True
+os-process-exec-error True True
+os-process-kill-error True True True True
+os-process-wait-error True True True True

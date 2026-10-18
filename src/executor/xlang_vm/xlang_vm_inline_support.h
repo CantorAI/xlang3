@@ -356,7 +356,12 @@ XLANG3_HOT_INLINE bool execute_inline_small_self_method(
           // for any other descriptor skips its __get__ behavior (for example,
           // importlib.metadata.Distribution.entry_points). Resume the regular
           // method call so the normal LOAD_ATTR descriptor path runs.
-          if (object_value_has_descriptor_get(descriptor)) {
+          // An instance-valued class attribute can itself be a pure-Python
+          // descriptor (for example functools.cached_property). If the inline
+          // lookup cannot prove its descriptor behavior, leave the lookup to
+          // the ordinary attribute path instead of returning the descriptor.
+          if (object_value_has_descriptor_get(descriptor) ||
+              value_as_instance(descriptor) != nullptr) {
             supported = false;
             return false;
           }
@@ -1643,6 +1648,54 @@ XLANG3_HOT_INLINE bool xlang_vm_parse_int_text(std::string_view text, int base, 
   return saw_digit;
 }
 
+// Keep uncommon user-defined index conversion out of the VM's hot inline body.
+// The direct Int64 path stays in the byte-buffer loop; protocol dispatch and
+// its exception semantics remain identical for every other input.
+XLANG3_NOINLINE inline bool xlang_vm_bytes_index_value(
+    Runtime& runtime, const Value& item, int64_t& byte_value,
+    XlangVMBuiltinConstructor constructor,
+    XlangVMBuiltinConstructorError& constructor_error, std::string& local_error) {
+  auto is_integer = [](const Value& value) {
+    if (value.tag == ValueTag::Int64 || value.tag == ValueTag::Bool ||
+        value_as_bigint(value) != nullptr) return true;
+    auto* instance = value_as_instance(value);
+    auto* type = instance == nullptr ? nullptr : value_as_class(instance->klass);
+    return type != nullptr && class_has_builtin_base_name(type, "int");
+  };
+  // Integer subclasses (including IntEnum) use their stored integer,
+  // regardless of an overridden __index__. Other objects follow the
+  // type-level index protocol, not an instance attribute of that name.
+  Value indexed = item;
+  if (!is_integer(indexed)) {
+    Value method;
+    std::string lookup_error;
+    if (!object_get_special_method(runtime, item, "__index__", method, lookup_error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        runtime.set_pending_exception(std::move(pending));
+        local_error = lookup_error;
+        return false;
+      }
+      local_error = "object cannot be interpreted as an integer";
+      constructor_error.set("TypeError", local_error);
+      return false;
+    }
+    if (!runtime_call_callable(runtime, method, nullptr, 0, indexed, local_error)) return false;
+    if (!is_integer(indexed)) {
+      local_error = "__index__ returned a non-integer";
+      constructor_error.set("TypeError", local_error);
+      return false;
+    }
+  }
+  if (!value_int_like_to_i64(indexed, byte_value)) {
+    local_error = constructor == XlangVMBuiltinConstructor::Bytes
+        ? "bytes must be in range(0, 256)" : "byte must be in range(0, 256)";
+    constructor_error.set("ValueError", local_error);
+    return false;
+  }
+  return true;
+}
+
 XLANG3_HOT_INLINE bool call_builtin_type_constructor(
     Runtime& runtime,
     const ClassObject& klass,
@@ -2793,11 +2846,22 @@ XLANG3_HOT_INLINE bool call_builtin_type_constructor(
         return false;
       }
       if (done) break;
-      if (item.tag != ValueTag::Int64 || item.as.i64 < 0 || item.as.i64 > 255) {
-        local_error = "bytes-like object requires integers in range(0, 256)";
+      int64_t byte_value = 0;
+      if (item.tag == ValueTag::Int64) {
+        byte_value = item.as.i64;
+      } else {
+        if (!xlang_vm_bytes_index_value(
+                runtime, item, byte_value, constructor, constructor_error, local_error)) {
+          return false;
+        }
+      }
+      if (byte_value < 0 || byte_value > 255) {
+        local_error = constructor == XlangVMBuiltinConstructor::Bytes
+            ? "bytes must be in range(0, 256)" : "byte must be in range(0, 256)";
+        constructor_error.set("ValueError", local_error);
         return false;
       }
-      bytes.push_back(static_cast<char>(static_cast<unsigned char>(item.as.i64)));
+      bytes.push_back(static_cast<char>(static_cast<unsigned char>(byte_value)));
     }
     return true;
   };
