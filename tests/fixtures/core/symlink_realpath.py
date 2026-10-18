@@ -15,4 +15,5 @@ with tempfile.TemporaryDirectory() as temporary:
     resolved_directory = os.path.realpath(directory)
     print(resolved_link == os.path.realpath(outside))
     print(link.resolve() == outside.resolve())
-    print(os.path.commonpath([resolved_link, resolved_directory]) == str(root))
+    print(os.path.commonpath([resolved_link, resolved_directory]) ==
+          os.path.realpath(root))

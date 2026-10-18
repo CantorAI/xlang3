@@ -11,14 +11,15 @@ with tempfile.TemporaryDirectory() as directory:
         child = subprocess.check_output(
             [sys.executable, '-c', 'import os; print(os.getcwd())'], text=True
         ).strip()
-        print(os.path.normcase(os.path.abspath(child)) ==
-              os.path.normcase(os.path.abspath(directory)))
+        # macOS temporary paths may use /var while getcwd resolves /private/var.
+        print(os.path.normcase(os.path.realpath(child)) ==
+              os.path.normcase(os.path.realpath(directory)))
 
         explicit = subprocess.check_output(
             [sys.executable, '-c', 'import os; print(os.getcwd())'],
             cwd=original, text=True
         ).strip()
-        print(os.path.normcase(os.path.abspath(explicit)) ==
-              os.path.normcase(os.path.abspath(original)))
+        print(os.path.normcase(os.path.realpath(explicit)) ==
+              os.path.normcase(os.path.realpath(original)))
     finally:
         os.chdir(original)
