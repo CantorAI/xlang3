@@ -1,6 +1,5 @@
 import cmath
 import math
-import sys
 
 
 def close_component(actual, expected):
@@ -17,12 +16,12 @@ def close_root(value, expected):
 print("negative-axis", cmath.sqrt(-4) == 2j, close_root(complex(-4, 0.0), complex(0.0, 2.0)), close_root(complex(-4, -0.0), complex(0.0, -2.0)))
 print("signed-zero", all(close_root(complex(real, imag), complex(0.0, imag)) for real in [-0.0, 0.0] for imag in [-0.0, 0.0]))
 
-squares = [(complex(3, 4), complex(2, 1)), (complex(-3, 4), complex(1, 2)), (complex(5, 12), complex(3, 2))]
-print("known-squares", all(close_root(value, expected) and close_root(value.conjugate(), expected.conjugate()) for value, expected in squares))
+squares = [(3, 4, 2, 1), (-3, 4, 1, 2), (5, 12, 3, 2)]
+print("known-squares", all(close_root(complex(real, imag), complex(root_real, root_imag)) and close_root(complex(real, -imag), complex(root_real, -root_imag)) for real, imag, root_real, root_imag in squares))
 
-minimum = float.fromhex("0x0.0000000000001p-1022")
+minimum = math.ldexp(1.0, -1074)
 near_cut = [(complex(-4, imag), complex(abs(imag) / 4.0, math.copysign(2.0, imag))) for imag in [1e-300, -1e-300, 4 * minimum, -4 * minimum, minimum, -minimum]]
-large = sys.float_info.max
+large = math.ldexp(0x1fffffffffffff, 971)
 large_root = math.sqrt(large)
 near_cut += [(complex(-large, imag), complex(abs(imag) / (2.0 * large_root), math.copysign(large_root, imag))) for imag in [1e-100, -1e-100]]
 print("near-cut", all(close_root(value, expected) for value, expected in near_cut))
@@ -35,7 +34,7 @@ for exponent in [-1074, -1000, 1000]:
 scaled += [(complex(large, 0.0), complex(large_root, 0.0)), (complex(-large, -0.0), complex(0.0, -large_root))]
 # Reference components of sqrt(DBL_MAX + i*DBL_MAX), with relative tolerance
 # per component; neither input magnitude nor x + hypot(x,y) fits a double.
-scaled.append((complex(large, large), complex(float.fromhex("0x1.19435caffa9f9p+512"), float.fromhex("0x1.d203138f6c827p+510"))))
+scaled.append((complex(large, large), complex(math.ldexp(0x119435caffa9f9, 460), math.ldexp(0x1d203138f6c827, 458))))
 print("scaled-finite", all(close_root(value, expected) for value, expected in scaled))
 
 
