@@ -1,0 +1,4 @@
+invalid-descriptor-metadata True
+nonblocking-read-metadata True
+nonblocking-write-metadata True
+broken-pipe-metadata True

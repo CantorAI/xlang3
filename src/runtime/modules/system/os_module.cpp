@@ -23,6 +23,7 @@ limitations under the License.
 #include "xlang3/vfs.h"
 
 #include <algorithm>
+#include <cerrno>
 #include <cctype>
 #include <cmath>
 #include <cwchar>
@@ -350,13 +351,60 @@ bool no_args(uint32_t argc, const char* name, std::string& error) {
   return false;
 }
 
+const char* os_error_class_for_errno(int error_number) {
+  if (error_number == EAGAIN) return "BlockingIOError";
+#if defined(EWOULDBLOCK)
+  if (error_number == EWOULDBLOCK) return "BlockingIOError";
+#endif
+#if defined(EALREADY)
+  if (error_number == EALREADY) return "BlockingIOError";
+#endif
+#if defined(EINPROGRESS)
+  if (error_number == EINPROGRESS) return "BlockingIOError";
+#endif
+  if (error_number == EACCES || error_number == EPERM) return "PermissionError";
+  if (error_number == ENOENT) return "FileNotFoundError";
+  if (error_number == EEXIST) return "FileExistsError";
+  if (error_number == ECHILD) return "ChildProcessError";
+  if (error_number == EINTR) return "InterruptedError";
+  if (error_number == ESRCH) return "ProcessLookupError";
+  if (error_number == EPIPE) return "BrokenPipeError";
+#if defined(ESHUTDOWN)
+  if (error_number == ESHUTDOWN) return "BrokenPipeError";
+#endif
+#if defined(EISDIR)
+  if (error_number == EISDIR) return "IsADirectoryError";
+#endif
+#if defined(ENOTDIR)
+  if (error_number == ENOTDIR) return "NotADirectoryError";
+#endif
+#if defined(ECONNABORTED)
+  if (error_number == ECONNABORTED) return "ConnectionAbortedError";
+#endif
+#if defined(ECONNREFUSED)
+  if (error_number == ECONNREFUSED) return "ConnectionRefusedError";
+#endif
+#if defined(ECONNRESET)
+  if (error_number == ECONNRESET) return "ConnectionResetError";
+#endif
+#if defined(ETIMEDOUT)
+  if (error_number == ETIMEDOUT) return "TimeoutError";
+#endif
+  return "OSError";
+}
+
 bool raise_os_error_with_errno(
     Runtime& runtime,
     const char* class_name,
     int error_number,
     const std::string& message) {
+  if (std::strcmp(class_name, "OSError") == 0) {
+    class_name = os_error_class_for_errno(error_number);
+  }
   Value exception = runtime.make_exception(class_name, message);
   std::string ignored;
+  object_set_attr(exception, "args",
+                  Value::tuple({Value::int64(error_number), Value::string(message)}), ignored);
   object_set_attr(exception, "errno", Value::int64(error_number), ignored);
   object_set_attr(exception, "strerror", Value::string(message), ignored);
   runtime.set_pending_exception(std::move(exception));
@@ -806,26 +854,6 @@ bool raise_fstat_error(
   return false;
 }
 
-const char* os_error_class_for_errno(int error_number) {
-  switch (error_number) {
-    case ENOENT:
-      return "FileNotFoundError";
-    case EACCES:
-      return "PermissionError";
-    case EEXIST:
-      return "FileExistsError";
-#if defined(EISDIR)
-    case EISDIR:
-      return "IsADirectoryError";
-#endif
-#if defined(ENOTDIR)
-    case ENOTDIR:
-      return "NotADirectoryError";
-#endif
-    default:
-      return "OSError";
-  }
-}
 
 bool raise_os_path_error_with_errno(
     Runtime& runtime,
@@ -1306,26 +1334,6 @@ bool os_waitstatus_to_exitcode(Runtime& runtime, const Value* args, uint32_t arg
 #endif
 
 #if !defined(_WIN32)
-const char* os_error_class_for_errno(int error_number) {
-  switch (error_number) {
-    case ENOENT:
-      return "FileNotFoundError";
-    case EACCES:
-      return "PermissionError";
-    case EEXIST:
-      return "FileExistsError";
-#if defined(EISDIR)
-    case EISDIR:
-      return "IsADirectoryError";
-#endif
-#if defined(ENOTDIR)
-    case ENOTDIR:
-      return "NotADirectoryError";
-#endif
-    default:
-      return "OSError";
-  }
-}
 
 bool raise_os_path_error_with_errno(
     Runtime& runtime,

@@ -92,6 +92,7 @@ CORE_CASES.append("ast_alias_source_locations")
 CORE_CASES.append("match_mapping_rest_scope")
 CORE_CASES.append("native_file_path_contracts")
 CORE_CASES.append("bytes_index_iterables")
+CORE_CASES.append("os_descriptor_errors")
 
 
 if sys.platform != "win32":
