@@ -47,6 +47,8 @@ False
 True
 False
 b'dup'
+raw-dup-inherit True True
+raw-dup-data True
 True
 negative byte order
 ipv6 flowinfo

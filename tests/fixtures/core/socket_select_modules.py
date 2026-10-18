@@ -165,6 +165,17 @@ print(dup_right.recv(3))
 dup_copy.close()
 dup_right.close()
 
+raw_source, raw_peer = socket.socketpair()
+raw_source.set_inheritable(True)
+raw_descriptor = _socket.dup(raw_source.fileno())
+raw_copy = socket.socket(fileno=raw_descriptor)
+print("raw-dup-inherit", raw_source.get_inheritable(), not raw_copy.get_inheritable())
+raw_source.close()
+raw_copy.sendall(b"raw")
+print("raw-dup-data", raw_peer.recv(3) == b"raw")
+raw_copy.close()
+raw_peer.close()
+
 
 sendto_error_socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 try:

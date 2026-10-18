@@ -91,6 +91,7 @@ any_generator_consume_fastpath sum_generator_consume_fastpath closure_arg_binary
 CORE_CASES.append("ast_alias_source_locations")
 CORE_CASES.append("match_mapping_rest_scope")
 CORE_CASES.append("native_file_path_contracts")
+CORE_CASES.append("bytes_index_iterables")
 
 
 if sys.platform != "win32":

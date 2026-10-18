@@ -689,11 +689,22 @@ bool socket_dup_fd(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   }
   SetHandleInformation(reinterpret_cast<HANDLE>(duplicate), HANDLE_FLAG_INHERIT, 0);
 #else
-  const NativeSocket duplicate = ::dup(static_cast<NativeSocket>(raw_fd));
+  NativeSocket duplicate = kInvalidSocket;
+#ifdef F_DUPFD_CLOEXEC
+  duplicate = ::fcntl(static_cast<NativeSocket>(raw_fd), F_DUPFD_CLOEXEC, 0);
+  if (duplicate == kInvalidSocket && errno != EINVAL && errno != ENOSYS) {
+    return raise_socket_os_error(runtime, "dup", error);
+  }
+#endif
   if (duplicate == kInvalidSocket) {
-    error = socket_last_error_text("dup");
-    runtime.raise_class_error("OSError", error);
-    return false;
+    duplicate = ::dup(static_cast<NativeSocket>(raw_fd));
+    if (duplicate == kInvalidSocket) return raise_socket_os_error(runtime, "dup", error);
+    const int flags = ::fcntl(duplicate, F_GETFD);
+    if (flags < 0 || ::fcntl(duplicate, F_SETFD, flags | FD_CLOEXEC) < 0) {
+      const int error_number = errno;
+      ::close(duplicate);
+      return raise_socket_code_error(runtime, "dup", error_number, error);
+    }
   }
 #endif
   value_set_int64(out, static_cast<int64_t>(duplicate));
