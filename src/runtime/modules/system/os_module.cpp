@@ -1638,9 +1638,20 @@ bool os_fstat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
   stat.kind = S_ISDIR(native_stat.st_mode) ? VfsNodeKind::Directory : VfsNodeKind::File;
   stat.size = static_cast<uint64_t>(native_stat.st_size);
   stat.inode = static_cast<uint64_t>(native_stat.st_ino);
-  stat.atime_ns = static_cast<int64_t>(native_stat.st_atime) * 1000000000LL;
-  stat.mtime_ns = static_cast<int64_t>(native_stat.st_mtime) * 1000000000LL;
-  stat.ctime_ns = static_cast<int64_t>(native_stat.st_ctime) * 1000000000LL;
+  stat.native_mode = static_cast<int64_t>(native_stat.st_mode);
+  stat.device = static_cast<uint64_t>(native_stat.st_dev);
+  stat.link_count = static_cast<uint64_t>(native_stat.st_nlink);
+  stat.user_id = static_cast<uint64_t>(native_stat.st_uid);
+  stat.group_id = static_cast<uint64_t>(native_stat.st_gid);
+#if defined(__APPLE__)
+  stat.atime_ns = static_cast<int64_t>(native_stat.st_atimespec.tv_sec) * 1000000000LL + native_stat.st_atimespec.tv_nsec;
+  stat.mtime_ns = static_cast<int64_t>(native_stat.st_mtimespec.tv_sec) * 1000000000LL + native_stat.st_mtimespec.tv_nsec;
+  stat.ctime_ns = static_cast<int64_t>(native_stat.st_ctimespec.tv_sec) * 1000000000LL + native_stat.st_ctimespec.tv_nsec;
+#else
+  stat.atime_ns = static_cast<int64_t>(native_stat.st_atim.tv_sec) * 1000000000LL + native_stat.st_atim.tv_nsec;
+  stat.mtime_ns = static_cast<int64_t>(native_stat.st_mtim.tv_sec) * 1000000000LL + native_stat.st_mtim.tv_nsec;
+  stat.ctime_ns = static_cast<int64_t>(native_stat.st_ctim.tv_sec) * 1000000000LL + native_stat.st_ctim.tv_nsec;
+#endif
 #endif
 #if defined(_WIN32)
   out = make_stat_result(state->stat_result_class, stat);
@@ -2299,19 +2310,21 @@ Value make_stat_result(const Value& klass, const VfsStat& stat, int64_t native_m
       : stat.is_symlink
       ? 0120000
       : stat.kind == VfsNodeKind::Directory ? 0040000 : stat.kind == VfsNodeKind::File ? 0100000 : 0;
-  const int64_t mode = native_mode >= 0 ? native_mode : vfs_mode;
+  const int64_t mode = native_mode >= 0 ? native_mode : stat.native_mode >= 0 ? stat.native_mode : vfs_mode;
   const double atime = static_cast<double>(stat.atime_ns) / 1000000000.0;
   const double mtime = static_cast<double>(stat.mtime_ns) / 1000000000.0;
   const double ctime = static_cast<double>(stat.ctime_ns) / 1000000000.0;
+  const auto unsigned_field = [](uint64_t value) {
+    return value <= static_cast<uint64_t>((std::numeric_limits<int64_t>::max)())
+        ? Value::int64(static_cast<int64_t>(value)) : value_bigint_from_u64(value);
+  };
   std::vector<Value> tuple_items = {
       Value::int64(mode),
-      stat.inode <= static_cast<uint64_t>((std::numeric_limits<int64_t>::max)())
-          ? Value::int64(static_cast<int64_t>(stat.inode))
-          : value_bigint_from_u64(stat.inode),
-      Value::int64(0),
-      Value::int64(0),
-      Value::int64(0),
-      Value::int64(0),
+      unsigned_field(stat.inode),
+      unsigned_field(stat.device),
+      unsigned_field(stat.link_count),
+      unsigned_field(stat.user_id),
+      unsigned_field(stat.group_id),
       Value::int64(static_cast<int64_t>(stat.size)),
       Value::int64(stat.atime_ns / 1000000000LL),
       Value::int64(stat.mtime_ns / 1000000000LL),

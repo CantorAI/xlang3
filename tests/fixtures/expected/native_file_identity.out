@@ -1,0 +1,6 @@
+alias-samefile True
+canonical-samefile True
+different-files True
+alias-cwd True True
+descriptor-identity True True
+entry-identity True

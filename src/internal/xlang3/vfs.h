@@ -39,6 +39,12 @@ struct VfsStat {
   bool is_block_device = false;
   uint32_t file_attributes = 0;
   uint32_t reparse_tag = 0;
+  // Native identity/permissions are distinct from virtual filesystem defaults.
+  int64_t native_mode = -1;
+  uint64_t device = 0;
+  uint64_t link_count = 0;
+  uint64_t user_id = 0;
+  uint64_t group_id = 0;
 };
 
 class FileSystem {

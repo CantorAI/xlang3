@@ -94,6 +94,7 @@ CORE_CASES.append("native_file_path_contracts")
 CORE_CASES.append("bytes_index_iterables")
 CORE_CASES.append("os_descriptor_errors")
 CORE_CASES.append("pyexpat_file_protocols")
+CORE_CASES.append("native_file_identity")
 
 
 if sys.platform != "win32":
