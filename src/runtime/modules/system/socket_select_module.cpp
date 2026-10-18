@@ -1128,7 +1128,11 @@ bool socket_getdefaulttimeout(Runtime&, const Value*, uint32_t argc, Value& out,
     error = "getdefaulttimeout() takes no arguments";
     return false;
   }
-  value_assign_fast(out, g_default_socket_timeout);
+  if (g_default_socket_timeout.tag == ValueTag::Int64) {
+    out = Value::number(static_cast<double>(g_default_socket_timeout.as.i64));
+  } else {
+    value_assign_fast(out, g_default_socket_timeout);
+  }
   return true;
 }
 
@@ -1399,7 +1403,11 @@ bool socket_gettimeout(Runtime&, const Value* args, uint32_t argc, Value& out, s
   if (state == nullptr) {
     return false;
   }
-  value_assign_fast(out, state->timeout);
+  if (state->timeout.tag == ValueTag::Int64) {
+    out = Value::number(static_cast<double>(state->timeout.as.i64));
+  } else {
+    value_assign_fast(out, state->timeout);
+  }
   return true;
 }
 

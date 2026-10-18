@@ -23,3 +23,15 @@ for label, host, flags, expected in (
         print(label, exc.errno == getattr(socket, expected))
     else:
         print(label, False)
+
+previous_timeout = socket.getdefaulttimeout()
+try:
+    socket.setdefaulttimeout(2)
+    with socket.socket() as connection:
+        print('default-timeout-type', type(socket.getdefaulttimeout()) is float,
+              type(connection.gettimeout()) is float, connection.gettimeout() == 2.0)
+        connection.settimeout(1)
+        print('socket-timeout-type', type(connection.gettimeout()) is float,
+              connection.gettimeout() == 1.0)
+finally:
+    socket.setdefaulttimeout(previous_timeout)

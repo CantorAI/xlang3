@@ -95,6 +95,7 @@ CORE_CASES.append("native_file_path_contracts")
 
 if sys.platform != "win32":
     CORE_CASES.remove("multiprocessing_spawn_semlock")
+    CORE_CASES[CORE_CASES.index("os_process_windows")] = "os_process_posix"
 
 SECTION_CASES = """
 module_and_statement_syntax function_and_class_syntax expression_syntax core_value_and_object_model

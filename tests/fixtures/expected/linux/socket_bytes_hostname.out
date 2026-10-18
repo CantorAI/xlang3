@@ -3,3 +3,5 @@
 TypeError getaddrinfo() argument 1 must be string or None
 numeric-host-error True
 bad-flags-error True
+default-timeout-type True True True
+socket-timeout-type True True

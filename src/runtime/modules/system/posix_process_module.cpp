@@ -37,7 +37,17 @@ char** process_environment() {
 bool os_error(Runtime& runtime, std::string& error) {
   const int code = errno;
   error = std::strerror(code);
-  runtime.raise_class_error(code == ECHILD ? "ChildProcessError" : "OSError", error);
+  const Value* error_class = runtime.find_builtin("OSError");
+  if (error_class == nullptr) {
+    runtime.raise_class_error("OSError", error);
+    return false;
+  }
+  const Value arguments[] = {Value::int64(code), Value::string(error)};
+  Value exception;
+  if (!runtime_call_callable(runtime, *error_class, arguments, 2, exception, error)) {
+    return false;
+  }
+  runtime.set_pending_exception(exception);
   return false;
 }
 

@@ -233,7 +233,7 @@ struct OsModuleState {
 };
 
 Value make_terminal_size(const Value& klass, int64_t columns, int64_t lines);
-Value make_stat_result(const Value& klass, const VfsStat& stat);
+Value make_stat_result(const Value& klass, const VfsStat& stat, int64_t native_mode = -1);
 
 void scandir_state_cleanup(void* data) {
   auto* state = static_cast<ScandirState*>(data);
@@ -1634,7 +1634,12 @@ bool os_fstat(Runtime& runtime, const Value* args, uint32_t argc, Value& out, st
   stat.mtime_ns = static_cast<int64_t>(native_stat.st_mtime) * 1000000000LL;
   stat.ctime_ns = static_cast<int64_t>(native_stat.st_ctime) * 1000000000LL;
 #endif
+#if defined(_WIN32)
   out = make_stat_result(state->stat_result_class, stat);
+#else
+  out = make_stat_result(
+      state->stat_result_class, stat, static_cast<int64_t>(native_stat.st_mode));
+#endif
   return true;
 }
 
@@ -2278,14 +2283,15 @@ Value make_stat_result_class(Runtime& runtime) {
   return result;
 }
 
-Value make_stat_result(const Value& klass, const VfsStat& stat) {
-  const int64_t mode = stat.is_block_device
+Value make_stat_result(const Value& klass, const VfsStat& stat, int64_t native_mode) {
+  const int64_t vfs_mode = stat.is_block_device
       ? 0060000
       : stat.is_character_device
       ? 0020000
       : stat.is_symlink
       ? 0120000
       : stat.kind == VfsNodeKind::Directory ? 0040000 : stat.kind == VfsNodeKind::File ? 0100000 : 0;
+  const int64_t mode = native_mode >= 0 ? native_mode : vfs_mode;
   const double atime = static_cast<double>(stat.atime_ns) / 1000000000.0;
   const double mtime = static_cast<double>(stat.mtime_ns) / 1000000000.0;
   const double ctime = static_cast<double>(stat.ctime_ns) / 1000000000.0;
