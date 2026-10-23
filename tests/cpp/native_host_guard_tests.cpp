@@ -48,6 +48,10 @@ int main(){try{
     observed.push_back(observe("host_class_add_value",[&]{return Call{host->class_add_value(klass,"native_field",integer)};}));
     observed.push_back(observe("host_value_instance",[&]{auto value=host->value_instance(runtime.get(),klass);return Call{value.tag==X3_TAG_INVALID?X3_STATUS_ERROR:X3_STATUS_OK,value};}));
     observed.push_back(observe("host_module_add_value",[&]{return Call{host->module_add_value(module,"native_value",integer)};}));
+    observed.push_back(observe("runtime_create",[]{auto* created=x3_runtime_create();if(!created)throw std::runtime_error("Runtime creation failed");x3_runtime_destroy(created);return Call{X3_STATUS_OK};}));
+    auto* retiring=std::async(std::launch::async,[]{return x3_runtime_create();}).get();
+    if(!retiring)throw std::runtime_error("Runtime retirement setup failed");
+    observed.push_back(observe("runtime_destroy",[&]{x3_runtime_destroy(retiring);return Call{X3_STATUS_OK};}));
     x3_value_release(klass);
     if(!observed.front().blocked||observed.front().status!=X3_STATUS_OK)throw std::runtime_error("Guarded C API control did not serialize");
     bool good=true;for(const auto& r:observed){if(r.status!=X3_STATUS_OK)throw std::runtime_error("Package operation failed");good=good&&r.blocked;}
