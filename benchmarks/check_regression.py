@@ -4,6 +4,7 @@ Exit 0: pass, 1: confirmed regression, 2: inconclusive or invalid run.
 This is deliberately separate from compilation and correctness tests.
 """
 import argparse
+from contextlib import nullcontext
 import hashlib
 import json
 import math
@@ -62,8 +63,14 @@ def run_once(executable, source, timeout):
     cache_key = hashlib.sha256(repr(identity).encode()).hexdigest()[:16]
     child_env = os.environ.copy()
     child_env["PYTHONPYCACHEPREFIX"] = str(cache_root / cache_key)
+    command = [str(executable)]
+    # Older native CLIs expose -B but do not read this standard environment
+    # setting. Honor the requested cache policy equally for both runtimes.
+    if child_env.get("PYTHONDONTWRITEBYTECODE"):
+        command.append("-B")
+    command.append(str(source))
     completed = subprocess.run(
-        [str(executable), str(source)], cwd=ROOT, capture_output=True,
+        command, cwd=ROOT, capture_output=True,
         text=True, timeout=timeout, env=child_env,
     )
     if completed.returncode:
@@ -156,6 +163,10 @@ def main(argv=None):
                         help="allowed fractional slowdown per case (default 0.10)")
     parser.add_argument("--timeout", type=float, default=60)
     parser.add_argument("--cases", nargs="+", choices=CASES, default=list(CASES))
+    parser.add_argument("--cases-dir", type=Path, default=ROOT / "benchmarks/cases",
+                        help="directory containing the unchanged benchmark case sources")
+    parser.add_argument("--work-dir", type=Path,
+                        help="reuse an existing directory for timed sources instead of creating a temporary directory")
     args = parser.parse_args(argv)
     if (args.repeats < 7 or args.warmup < 1 or not math.isfinite(args.threshold)
             or not 0 <= args.threshold < 1 or not math.isfinite(args.timeout) or args.timeout <= 0):
@@ -173,11 +184,16 @@ def main(argv=None):
         report["candidate"] = runtime_identity(args.candidate)
         if args.baseline == args.candidate:
             raise ValueError("baseline must be a separate preserved runtime, not the candidate path")
-        with tempfile.TemporaryDirectory(prefix="xlang3-performance-") as temporary:
+        workspace = (nullcontext(str(args.work_dir.resolve(strict=True))) if args.work_dir
+                     else tempfile.TemporaryDirectory(prefix="xlang3-performance-"))
+        with workspace as temporary:
             for case in args.cases:
-                original = ROOT / "benchmarks/cases" / (case + ".py")
-                source = Path(temporary) / (case + ".py")
-                source.write_text(timed_source(original.read_text(encoding="utf-8")), encoding="utf-8")
+                original = args.cases_dir / (case + ".py")
+                source = Path(temporary) / ("performance-" + case + ".py")
+                timed = timed_source(original.read_text(encoding="utf-8"))
+                if source.exists() and source.read_text(encoding="utf-8") != timed:
+                    raise ValueError(f"preserving conflicting benchmark workspace file: {source}")
+                source.write_text(timed, encoding="utf-8")
                 attempts = [measure_case(args.baseline, args.candidate, source, args.repeats,
                                          args.warmup, args.timeout, args.threshold)]
                 if attempts[0]["status"] != "pass":

@@ -624,6 +624,11 @@ bool raise_socket_code_error(Runtime& runtime, const char* operation, int code, 
     case ECONNRESET: exception_class = "ConnectionResetError"; break;
     case ECONNABORTED: exception_class = "ConnectionAbortedError"; break;
     case ETIMEDOUT: exception_class = "TimeoutError"; break;
+    case EAGAIN:
+#if EWOULDBLOCK != EAGAIN
+    case EWOULDBLOCK:
+#endif
+      exception_class = "BlockingIOError"; break;
     case EINTR: exception_class = "InterruptedError"; break;
     default: break;
   }
