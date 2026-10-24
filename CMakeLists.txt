@@ -18,7 +18,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-if(MSVC)
+option(XLANG3_RELEASE_OB3 "Use MSVC /Ob3 inline expansion for Release builds" ON)
+if(MSVC AND XLANG3_RELEASE_OB3)
   string(REPLACE "/Ob2" "/Ob3" CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE}")
   # CMake's Release defaults already contain /Ob2. Replace it so MSVC sees a
   # single inline policy instead of an overriding pair on every compilation.
@@ -78,7 +79,8 @@ if(CMAKE_RUNTIME_OUTPUT_DIRECTORY)
       xlang_yaml_native_package xlang_device_native_package xlang_net_native_package
       xlang_ssl_native_package xlang_hashlib_native_package xlang_blake2_native_package
       xlang_pydantic_core_native_package xlang_argon2_cffi_native_package
-      xlang_cffi_backend_native_package xlang_httptools_url_native_package
+      xlang_cffi_backend_native_package xlang_cryptography_rust_native_package
+      xlang_httptools_url_native_package
       xlang_httptools_parser_native_package
       xlang_zstd_native_package xlang_zstandard_native_package
       xlang_brotli_native_package xlang_mmap_native_package)
@@ -143,6 +145,7 @@ set(XLANG3_RUNTIME_SOURCES
   src/runtime/value.cpp
   src/runtime/value_hash.cpp
   src/runtime/object_model.cpp
+  src/runtime/native_trace_hook.cpp
   src/runtime/sequence.cpp
   src/runtime/mapping.cpp
   src/runtime/set_object.cpp
@@ -193,13 +196,18 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/atexit_module.cpp
   src/runtime/modules/system/binascii_module.cpp
   src/runtime/modules/system/bisect_module.cpp
+  src/runtime/modules/system/heapq_module.cpp
   src/runtime/modules/system/bz2_module.cpp
   src/runtime/modules/system/cmath_module.cpp
+  src/runtime/modules/system/decimal_module.cpp
   src/runtime/modules/system/codecs_module.cpp
   src/runtime/modules/system/locale_module.cpp
   src/runtime/modules/system/multibytecodec_module.cpp
   src/runtime/modules/system/collections_module.cpp
   src/runtime/modules/system/contextvars_module.cpp
+  src/runtime/modules/system/asyncio_module.cpp
+  src/runtime/modules/system/asyncio_future.cpp
+  src/runtime/modules/system/asyncio_task.cpp
   src/runtime/modules/system/csv_module.cpp
   src/runtime/modules/system/ctypes_module.cpp
   src/runtime/modules/system/errno_module.cpp
@@ -207,6 +215,7 @@ set(XLANG3_SYSTEM_RUNTIME_SOURCES
   src/runtime/modules/system/functools_module.cpp
     src/runtime/modules/system/gc_module.cpp
     src/runtime/modules/system/lsprof_module.cpp
+    src/runtime/modules/system/coverage_tracer_module.cpp
     src/runtime/modules/system/array_module.cpp
   src/runtime/modules/system/imp_module.cpp
   src/runtime/modules/system/importlib_module.cpp
@@ -399,6 +408,10 @@ if(WIN32)
 endif()
 
 add_executable(xlang3 src/xlang3.cpp)
+if(WIN32)
+  set_target_properties(xlang3 PROPERTIES
+    VS_GLOBAL_ApplicationManifest "${CMAKE_CURRENT_SOURCE_DIR}/src/xlang3.exe.manifest")
+endif()
 add_executable(xlang3_charconv_compat_tests tests/cpp/charconv_compat_tests.cpp)
 target_include_directories(xlang3_charconv_compat_tests PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/sdk)
 target_link_libraries(xlang3 PRIVATE xlang3_runtime)
@@ -510,6 +523,20 @@ add_xlang3_cpp_test(xlang3_ipc_capacity_tests tests/cpp/ipc_capacity_tests.cpp)
 add_xlang3_cpp_test(xlang3_memory_tests tests/cpp/memory_tests.cpp)
 add_xlang3_cpp_test(xlang3_parser_tests tests/cpp/parser_tests.cpp)
 add_xlang3_cpp_test(xlang3_interpreter_tests tests/cpp/interpreter_tests.cpp)
+set(xlang3_interpreter_python_fixture_files
+  "${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp/sqlite_aggregate_sdk_probe.py"
+  "${CMAKE_CURRENT_SOURCE_DIR}/tests/cpp/sqlite_statement_cache_sdk_probe.py"
+)
+# Keep the packaged native test executable runnable away from the source tree.
+add_custom_target(xlang3_interpreter_python_fixtures
+  COMMAND ${CMAKE_COMMAND} -E make_directory
+    "$<TARGET_FILE_DIR:xlang3_interpreter_tests>/test-fixtures/xlang3"
+  COMMAND ${CMAKE_COMMAND} -E copy_if_different ${xlang3_interpreter_python_fixture_files}
+    "$<TARGET_FILE_DIR:xlang3_interpreter_tests>/test-fixtures/xlang3"
+  DEPENDS ${xlang3_interpreter_python_fixture_files}
+  VERBATIM
+)
+add_dependencies(xlang3_interpreter_tests xlang3_interpreter_python_fixtures)
 add_xlang3_cpp_test(xlang3_debug_session_tests tests/cpp/debug_session_tests.cpp)
 add_xlang3_cpp_test(xlang3_dap_session_tests tests/cpp/dap_session_tests.cpp)
 add_xlang3_cpp_test(xlang3_module_slot_tests tests/cpp/module_slot_tests.cpp)
@@ -628,6 +655,22 @@ add_test(
   NAME xlang3_cli_yaml_module_import
   COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/yaml_module.py $<TARGET_FILE_DIR:xlang_yaml_native_package>
 )
+add_test(
+  NAME xlang3_pydantic_core_schema_gather
+  COMMAND xlang3 ${CMAKE_CURRENT_SOURCE_DIR}/tests/fastapi/pydantic_core_schema_gather_contract.py
+)
+set_tests_properties(xlang3_pydantic_core_schema_gather PROPERTIES TIMEOUT 30)
+if(WIN32 AND TARGET xlang_pydantic_core_native_package)
+  add_test(
+    NAME xlang3_native_package_long_path
+    COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass
+      -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/pydantic_core_long_path_contract.ps1
+      -XLang3 $<TARGET_FILE:xlang3>
+      -Modules $<TARGET_FILE_DIR:xlang_pydantic_core_native_package>
+      -OutputRoot ${CMAKE_CURRENT_BINARY_DIR}/long-native-package-path
+  )
+  set_tests_properties(xlang3_native_package_long_path PROPERTIES TIMEOUT 30)
+endif()
 
 add_test(
   NAME xlang3_cli_device_module_import
@@ -645,6 +688,14 @@ add_test(
 )
 
 if(XLANG3_PYTHON314_EXECUTABLE)
+  add_test(NAME xlang3_cli_cypher_key_persistence
+    COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/net/run_cypher_key_store.py
+      $<TARGET_FILE:xlang3> $<TARGET_FILE_DIR:xlang_net_native_package>)
+  add_test(NAME xlang3_cli_asyncio_accelerator
+    COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py
+      $<TARGET_FILE:xlang3>
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/asyncio_accelerator.py
+      ${CMAKE_CURRENT_SOURCE_DIR}/tests/native/asyncio_accelerator.out)
   if(WIN32)
     add_test(NAME xlang3_cli_overlapped_completion
       COMMAND ${XLANG3_PYTHON314_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/run_expected.py

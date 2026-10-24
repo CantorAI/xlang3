@@ -1,0 +1,12 @@
+local_slots              pass         1.014x
+scalar_arithmetic        pass         1.003x
+range_for                pass         1.029x
+function_calls           pass         1.026x
+class_construct          pass         0.995x
+list_append              pass         0.977x
+property_access          pass         1.019x
+deepcopy_memo            pass         0.921x
+json_dumps               pass         0.974x
+gc_traversal             pass         1.017x
+subparsers               pass         0.947x
+Performance check: pass. Report: doc\performance\data\release-subscription-dispatch-frame-fixed-gate-20261007.json

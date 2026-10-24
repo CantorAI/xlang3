@@ -1,0 +1,441 @@
+diff --git a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+index ce0cce9a..1a29c1f7 100644
+--- a/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
++++ b/src/executor/xlang_vm/ops/xlang_vm_ops_call.h
+@@ -141,7 +141,8 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
+     Runtime&, NativeFunctionObject*, CallArgsView, std::vector<Value>&,
+     std::vector<NativeKeywordArg>&, XlangRuntimeExecutionGuard&, Value&,
+     RaiseRuntimeError&&, RaiseExceptionValue&&,
+-    const Value* monitoring_code = nullptr, int64_t monitoring_instruction_offset = -1);
++    const Value* monitoring_code = nullptr, int64_t monitoring_instruction_offset = -1,
++    const Value* observed_callable = nullptr);
+ 
+ template <typename MakeGeneratorIfNeeded, typename PushFrame>
+ XLANG3_HOT_INLINE bool call_user_function(
+@@ -516,11 +517,34 @@ XLANG3_HOT_INLINE bool call_builtin_method_spec(
+     XlangRuntimeExecutionGuard& execution_lock,
+     Value& out,
+     RaiseRuntimeError&& raise_runtime_error,
+-    RaiseExceptionValue&& raise_exception_value) {
++    RaiseExceptionValue&& raise_exception_value,
++    const Value* monitoring_code = nullptr,
++    int64_t monitoring_instruction_offset = -1) {
+   CallArgsView method_args = values;
+   method_args.leading = &self;
+   method_args.leading_count = 1;
+ 
++  const bool profiling = runtime.profile_event_may_dispatch() &&
++      runtime.profile_function().tag != ValueTag::Invalid &&
++      runtime.profile_function().tag != ValueTag::None &&
++      !runtime.profile_dispatch_active();
++  constexpr int64_t native_events =
++      kSysMonitoringEventCall | kSysMonitoringEventCReturn | kSysMonitoringEventCRaise;
++  if (profiling || sys_monitoring_event_may_dispatch(native_events)) {
++    // Direct builtin specs omit binding when observers are inactive. Active
++    // observers need the actual callable and caller location, not a name string.
++    // Own self as well: CallLocalMethod can replace the receiver's register.
++    Value callable = Value::bound_method(self, builtin_method_function(spec));
++    auto* bound = value_as_bound_method(callable);
++    auto* native = value_as_native_function(bound->function);
++    method_args.leading = &bound->self;
++    std::vector<NativeKeywordArg> native_keyword_args;
++    return call_native_function_ex(
++        runtime, native, method_args, native_call_args, native_keyword_args,
++        execution_lock, out, raise_runtime_error, raise_exception_value,
++        monitoring_code, monitoring_instruction_offset, &callable);
++  }
++
+   std::string& error = xlang_vm_native_error_scratch();
+   bool ok = false;
+   if (spec.fast_callback != nullptr) {
+@@ -757,7 +781,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
+     AnalyzeSelfSlotConstSumMethod&& analyze_self_slot_const_sum_method_fn,
+     ExecuteSelfSlotConstSumMethod&& execute_self_slot_const_sum_method_fn,
+     RaiseRuntimeError&& raise_runtime_error,
+-    RaiseExceptionValue&& raise_exception_value) {
++    RaiseExceptionValue&& raise_exception_value,
++    const Value* monitoring_code = nullptr) {
+   if (in.b >= fn.names.size() || in.c >= fn.call_args.size()) {
+     result.errors.push_back("invalid method call");
+     return XlangVMOpFlow::ReturnResult;
+@@ -1126,7 +1151,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
+               execution_lock,
+               regs[in.dst],
+               raise_runtime_error,
+-              raise_exception_value)) {
++              raise_exception_value, monitoring_code, static_cast<int64_t>(ip))) {
+         if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+         return XlangVMOpFlow::ContinueLoop;
+       }
+@@ -1740,7 +1765,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
+             execution_lock,
+             regs[in.dst],
+             raise_runtime_error,
+-            raise_exception_value)) {
++            raise_exception_value, monitoring_code, static_cast<int64_t>(ip))) {
+       if (!result.errors.empty()) return XlangVMOpFlow::ReturnResult;
+       return XlangVMOpFlow::ContinueLoop;
+     }
+@@ -3941,9 +3966,19 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
+     RaiseRuntimeError&& raise_runtime_error,
+     RaiseExceptionValue&& raise_exception_value,
+     const Value* monitoring_code,
+-    int64_t monitoring_instruction_offset) {
++    int64_t monitoring_instruction_offset,
++    const Value* observed_callable) {
+   NativeCallArgsScope args_scope{native_call_args};
+   std::string error;
++  auto raise_observer_failure = [&](const std::string& diagnostic) -> bool {
++    Value pending;
++    if (runtime.take_pending_exception(pending)) {
++      (void)raise_exception_value(std::move(pending));
++      return false;
++    }
++    (void)raise_runtime_error(diagnostic.empty() ? "native observer callback failed" : diagnostic);
++    return false;
++  };
+   bool has_materialized_keywords = false;
+   const bool needs_materialized_ex = values.has_keywords() || values.has_expansion();
+   const bool use_fast_keyword = native->fast_keyword_predicate != nullptr &&
+@@ -4043,7 +4078,11 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
+   Value callable;
+   Value profile_frame;
+   if (monitoring_enabled || profile_enabled) {
+-    callable = Value::string(native->name);
++    if (observed_callable != nullptr) {
++      value_assign_fast(callable, *observed_callable);
++    } else {
++      callable = Value::string(native->name);
++    }
+   }
+   if (profile_enabled) {
+     profile_frame = runtime.current_frame_snapshot();
+@@ -4057,11 +4096,13 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
+             monitoring_instruction_offset,
+             &callable,
+             monitoring_error)) {
++      if (observed_callable != nullptr) return raise_observer_failure(monitoring_error);
+       if (raise_runtime_error(monitoring_error.empty() ? "monitoring callback failed" : monitoring_error)) return false;
+       return false;
+     }
+   }
+   if (profile_enabled && !runtime.emit_profile_event_for_frame(profile_frame, "c_call", callable, error)) {
++    if (observed_callable != nullptr) return raise_observer_failure(error);
+     if (raise_runtime_error(error.empty() ? "profile callback failed" : error)) return false;
+     return false;
+   }
+@@ -4123,6 +4164,13 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
+     }
+   }
+   if (!ok) {
++    // Observers may enter Python/native code and replace the shared pending
++    // slot. Keep the native failure owned until successful events finish; an
++    // observer failure deliberately propagates the observer's own exception.
++    Value observed_pending;
++    if (observed_callable != nullptr) {
++      (void)runtime.take_pending_exception(observed_pending);
++    }
+     if (monitor_raise) {
+       std::string monitoring_error;
+       if (!sys_monitoring_dispatch_event(
+@@ -4132,13 +4180,22 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
+               monitoring_instruction_offset,
+               &callable,
+               monitoring_error)) {
++        if (observed_callable != nullptr) return raise_observer_failure(monitoring_error);
+         if (raise_runtime_error(monitoring_error.empty() ? "monitoring callback failed" : monitoring_error)) return false;
+         return false;
+       }
+     }
+     if (profile_enabled) {
+       std::string profile_error;
+-      (void)runtime.emit_profile_event_for_frame(profile_frame, "c_exception", callable, profile_error);
++      const bool profile_ok = runtime.emit_profile_event_for_frame(
++          profile_frame, "c_exception", callable, profile_error);
++      if (!profile_ok && observed_callable != nullptr) return raise_observer_failure(profile_error);
++    }
++    if (observed_pending.tag != ValueTag::Invalid) {
++      Value observer_pending;
++      (void)runtime.take_pending_exception(observer_pending);
++      (void)raise_exception_value(std::move(observed_pending));
++      return false;
+     }
+     Value pending;
+     if (runtime.take_pending_exception(pending)) {
+@@ -4157,11 +4214,13 @@ XLANG3_HOT_INLINE bool call_native_function_ex(
+             monitoring_instruction_offset,
+             &callable,
+             monitoring_error)) {
++      if (observed_callable != nullptr) return raise_observer_failure(monitoring_error);
+       if (raise_runtime_error(monitoring_error.empty() ? "monitoring callback failed" : monitoring_error)) return false;
+       return false;
+     }
+   }
+   if (profile_enabled && !runtime.emit_profile_event_for_frame(profile_frame, "c_return", callable, error)) {
++    if (observed_callable != nullptr) return raise_observer_failure(error);
+     if (raise_runtime_error(error.empty() ? "profile callback failed" : error)) return false;
+     return false;
+   }
+@@ -5125,7 +5184,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_local_method(
+     AnalyzeSelfSlotConstSumMethod&& analyze_self_slot_const_sum_method,
+     ExecuteSelfSlotConstSumMethod&& execute_self_slot_const_sum_method,
+     RaiseRuntimeError&& raise_runtime_error, RaiseExceptionValue&& raise_exception_value,
+-    RaiseUnboundLocalError&& raise_unbound_local_error) {
++    RaiseUnboundLocalError&& raise_unbound_local_error,
++    const Value* monitoring_code = nullptr) {
+   if (in.a >= locals.size() || in.dst >= regs.size()) {
+     result.errors.push_back("invalid local slot in method call");
+     return XlangVMOpFlow::ReturnResult;
+@@ -5152,7 +5212,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_local_method(
+       std::forward<AnalyzeSelfSlotConstSumMethod>(analyze_self_slot_const_sum_method),
+       std::forward<ExecuteSelfSlotConstSumMethod>(execute_self_slot_const_sum_method),
+       std::forward<RaiseRuntimeError>(raise_runtime_error),
+-      std::forward<RaiseExceptionValue>(raise_exception_value));
++      std::forward<RaiseExceptionValue>(raise_exception_value), monitoring_code);
+ }
+ 
+ } // namespace xlang3::xlang_vm::ops
+diff --git a/src/executor/xlang_vm/xlang_vm_op_rows.h b/src/executor/xlang_vm/xlang_vm_op_rows.h
+index 9c33522f..b7dbf7cf 100644
+--- a/src/executor/xlang_vm/xlang_vm_op_rows.h
++++ b/src/executor/xlang_vm/xlang_vm_op_rows.h
+@@ -62,9 +62,9 @@ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(Call, xlang3::xlang_vm::ops::call(in,
+ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallLocal, xlang3::xlang_vm::ops::call_local(in, fn, module, module_owner, runtime_, regs, locals, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_arg_binary_function, execute_arg_binary_function, analyze_slot_constructor, execute_slot_constructor, raise_runtime_error, raise_exception_value, raise_unbound_local_error))
+ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallGlobal, xlang3::xlang_vm::ops::call_global(in, fn, module, module_owner, runtime_, regs, globals_module, globals_, globals_version_, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_arg_binary_function, execute_arg_binary_function, analyze_slot_constructor, execute_slot_constructor, raise_runtime_error, raise_exception_value, raise_name_error))
+ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallEx, xlang3::xlang_vm::ops::call_ex(in, fn, module, module_owner, frame.monitoring_code, runtime_, regs, frames, frame_count, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, raise_runtime_error, raise_exception_value))
+-XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallMethod, xlang3::xlang_vm::ops::call_method(in, fn, module, module_owner, runtime_, regs, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_const_method, analyze_self_binary_method, execute_self_binary_method, analyze_self_slot_method, execute_self_slot_method, analyze_self_slot_const_sum_method, execute_self_slot_const_sum_method, raise_runtime_error, raise_exception_value))
++XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallMethod, xlang3::xlang_vm::ops::call_method(in, fn, module, module_owner, runtime_, regs, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_const_method, analyze_self_binary_method, execute_self_binary_method, analyze_self_slot_method, execute_self_slot_method, analyze_self_slot_const_sum_method, execute_self_slot_const_sum_method, raise_runtime_error, raise_exception_value, &frame.monitoring_code))
+ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallMethodEx, xlang3::xlang_vm::ops::call_method_ex(in, fn, module, module_owner, frame.monitoring_code, runtime_, regs, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
+-XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallLocalMethod, xlang3::xlang_vm::ops::call_local_method(in, fn, module, module_owner, runtime_, regs, locals, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_const_method, analyze_self_binary_method, execute_self_binary_method, analyze_self_slot_method, execute_self_slot_method, analyze_self_slot_const_sum_method, execute_self_slot_const_sum_method, raise_runtime_error, raise_exception_value, raise_unbound_local_error))
++XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallLocalMethod, xlang3::xlang_vm::ops::call_local_method(in, fn, module, module_owner, runtime_, regs, locals, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, call_builtin_type_constructor, analyze_const_method, analyze_self_binary_method, execute_self_binary_method, analyze_self_slot_method, execute_self_slot_method, analyze_self_slot_const_sum_method, execute_self_slot_const_sum_method, raise_runtime_error, raise_exception_value, raise_unbound_local_error, &frame.monitoring_code))
+ XLANG3_VM_FLOW_TRACKED_REFRESH_MONITORING(CallModuleMethod, xlang3::xlang_vm::ops::call_module_method(in, fn, module, module_owner, frame.monitoring_code, runtime_, regs, globals_module, instr_cache, native_call_args, ip, result, execution_lock, make_generator_if_needed, push_frame, raise_runtime_error, raise_exception_value))
+ XLANG3_VM_FLOW_TRACKED(ImportModule, xlang3::xlang_vm::ops::import_module(in, fn, runtime_, regs, result, raise_import_error))
+ XLANG3_VM_FLOW_TRACKED(ImportModuleThru, xlang3::xlang_vm::ops::import_module_thru(in, fn, runtime_, regs, result, raise_import_error))
+diff --git a/tests/cpp/interpreter_tests.cpp b/tests/cpp/interpreter_tests.cpp
+index 9136b97b..cbba10da 100644
+--- a/tests/cpp/interpreter_tests.cpp
++++ b/tests/cpp/interpreter_tests.cpp
+@@ -21,6 +21,7 @@ limitations under the License.
+ #include "inherited_call_ex_constructor_cases.h"
+ #include "hash_exception_cases.h"
+ #include "dict_get_exception_cases.h"
++#include "observable_builtin_method_cases.h"
+ 
+ #include "xlang3/object_model.h"
+ #include "xlang3/sequence.h"
+@@ -36,6 +37,7 @@ int main(int argc, char** argv) {
+   xlang3::test::check_inherited_call_ex_constructor(result);
+   xlang3::test::check_hash_exception_cases(result);
+   xlang3::test::check_dict_get_exception_cases(result);
++  xlang3::test::check_observable_builtin_method_cases(result);
+ 
+   // Same-object owning copies should avoid refcount churn, while copying into
+   // a borrowed slot must still acquire an independent reference.
+diff --git a/tests/cpp/observable_builtin_method_cases.h b/tests/cpp/observable_builtin_method_cases.h
+new file mode 100644
+--- /dev/null
++++ b/tests/cpp/observable_builtin_method_cases.h
+@@ -0,0 +1,203 @@
++#pragma once
++#include "test_harness.h"
++#include "executor/xlang_vm/ops/xlang_vm_ops_call.h"
++#include <memory>
++
++namespace xlang3::test {
++namespace observable_builtin_method_cases {
++struct State {
++  std::vector<std::string> events;
++  Object* expected_self = nullptr;
++  const ir::Module* expected_module = nullptr;
++  Value native_exception;
++  Value observer_exception;
++  std::string fail_event;
++  unsigned hash_calls = 0;
++  unsigned receiver_cleanup = 0;
++  bool hash_fails = false;
++  bool replace_pending = false;
++  bool collect_in_observer = false;
++  bool identity_ok = true;
++  bool receiver_alive = true;
++  bool observer_saw_native_pending = false;
++};
++inline void destroy_context(void* context) {
++  delete static_cast<std::shared_ptr<State>*>(context);
++}
++inline void receiver_cleanup(void* context) {
++  ++(**static_cast<std::shared_ptr<State>*>(context)).receiver_cleanup;
++  destroy_context(context);
++}
++inline bool lifetime_token(Runtime&, const Value*, uint32_t, Value& out,
++    std::string& error, void*) {
++  error.clear(); out = Value::none(); return true;
++}
++inline bool hash_key(Runtime& runtime, const Value*, uint32_t argc, Value& out,
++    std::string& error, void* context) {
++  auto& state = **static_cast<std::shared_ptr<State>*>(context);
++  if (argc != 1) { error = "unexpected observer hash arity"; return false; }
++  ++state.hash_calls;
++  if (state.hash_fails) {
++    runtime.set_pending_exception(state.native_exception);
++    error = "native hash marker";
++    return false;
++  }
++  error.clear(); out = Value::int64(7); return true;
++}
++inline bool profile(Runtime& runtime, const Value* args, uint32_t argc,
++    Value& out, std::string& error, void* context) {
++  auto& state = **static_cast<std::shared_ptr<State>*>(context);
++  auto* frame = argc == 3 ? value_as_frame(args[0]) : nullptr;
++  auto* event = argc == 3 ? value_as_string(args[1]) : nullptr;
++  auto* bound = argc == 3 ? value_as_bound_method(args[2]) : nullptr;
++  std::string event_name = event == nullptr ? "invalid" : std::string(string_object_view(*event));
++  state.events.push_back(event_name);
++  Value name;
++  std::string name_error;
++  state.identity_ok &= frame != nullptr && frame->module.get() == state.expected_module &&
++      frame->function_id == 1 && bound != nullptr &&
++      bound->self.tag == ValueTag::Object && bound->self.as.obj == state.expected_self &&
++      object_get_attr(args[2], "__name__", name, name_error) &&
++      value_as_string(name) != nullptr && string_object_view(*value_as_string(name)) == "get";
++  state.receiver_alive &= state.receiver_cleanup == 0;
++  if (state.collect_in_observer) {
++    Value gc, collect, ignored;
++    if (!runtime.import_module("gc", gc, error) ||
++        !module_get_attr(gc, "collect", collect, error) ||
++        !runtime_call_callable(runtime, collect, nullptr, 0, ignored, error)) return false;
++    state.receiver_alive &= state.receiver_cleanup == 0;
++  }
++  if (state.replace_pending && event_name == "c_exception") {
++    Value pending;
++    state.observer_saw_native_pending = runtime.take_pending_exception(pending) &&
++        value_is(pending, state.native_exception);
++    runtime.set_pending_exception(state.observer_exception);
++    Value drained;
++    if (!runtime.take_pending_exception(drained) ||
++        !value_is(drained, state.observer_exception)) {
++      error = "observer could not drain its temporary pending owner"; return false;
++    }
++    runtime.set_pending_exception(state.observer_exception);
++  }
++  if (state.fail_event == event_name) {
++    runtime.set_pending_exception(state.observer_exception);
++    error = "profile marker";
++    return false;
++  }
++  error.clear(); out = Value::none(); return true;
++}
++inline Value callback(const char* name, NativeFunctionCallback function,
++    const std::shared_ptr<State>& state) {
++  auto context = std::make_unique<std::shared_ptr<State>>(state);
++  Value result = Value::native_function(0, name, function, context.get(), destroy_context);
++  context.release();
++  return result;
++}
++struct ResetRuntimeView {
++  Runtime& runtime;
++  ~ResetRuntimeView() {
++    runtime.set_profile_function(Value::none());
++    runtime.clear_current_frame();
++  }
++};
++} // namespace observable_builtin_method_cases
++
++inline void check_observable_builtin_method_cases(CaseResult& result) {
++  using namespace observable_builtin_method_cases;
++  auto mutable_module = std::make_shared<ir::Module>();
++  mutable_module->functions.resize(2);
++  mutable_module->functions[0].name = "<module>";
++  mutable_module->functions[1].name = "observable_invoke";
++  mutable_module->functions[1].code.push_back({ir::Op::Return, 0, 0, 0, 0});
++  std::shared_ptr<const ir::Module> module = mutable_module;
++  Value globals = Value::none();
++  std::ostringstream output;
++  Runtime runtime(output);
++  ResetRuntimeView reset{runtime};
++  runtime.set_current_frame(&module, 1, &globals, 0);
++  XlangRuntimeExecutionGuard lock;
++  Value table = Value::dict({{Value::string("present"), Value::int64(17)}});
++  const auto* spec = dict_find_method_spec(table, "get");
++  expect_true(result, spec != nullptr && spec->callback != nullptr && spec->fast_callback != nullptr,
++      "observer proof requires the real registered ordinary/fast dict.get specification");
++  if (spec == nullptr || spec->callback == nullptr || spec->fast_callback == nullptr) return;
++  std::vector<Value> native_args;
++  std::vector<uint32_t> arg_regs{0, 1};
++  Value registers[2] = {Value::string("present"), Value::int64(903)};
++  CallArgsView args;
++  args.registers = registers;
++  args.register_args = &arg_regs;
++  Value caught;
++  unsigned diagnostic_raises = 0;
++  auto raise_error = [&](const std::string&) { ++diagnostic_raises; return true; };
++  auto raise_value = [&](Value exception) { caught = std::move(exception); return true; };
++  auto invoke = [&](Value& receiver, Value& out) {
++    return xlang_vm::ops::call_builtin_method_spec(runtime, *spec, receiver, args,
++        native_args, lock, out, raise_error, raise_value);
++  };
++  auto state = std::make_shared<State>();
++  state->expected_module = module.get();
++  state->expected_self = table.as.obj;
++  state->native_exception = runtime.make_exception("LookupError", "native marker");
++  state->observer_exception = runtime.make_exception("LookupError", "observer marker");
++  Value hook = callback("observable_profile", profile, state);
++  runtime.set_profile_function(hook);
++  Value out;
++  for (const char* key : {"present", "missing"}) {
++    registers[0] = Value::string(key);
++    expect_true(result, invoke(table, out) && out.tag == ValueTag::Int64 &&
++        out.as.i64 == (std::string(key) == "present" ? 17 : 903),
++        "profiled real get retains hit/default semantics");
++  }
++  expect_true(result, state->events == std::vector<std::string>{"c_call", "c_return", "c_call", "c_return"} &&
++      state->identity_ok && state->receiver_alive && diagnostic_raises == 0,
++      "profile sees owning real bound get and the actual caller frame for success/return");
++
++  // The receiver is also the output and its dictionary is the last owner of
++  // the token. Observer reentry/GC and the return event must still see it alive.
++  state->events.clear(); state->collect_in_observer = true;
++  auto token_context = std::make_unique<std::shared_ptr<State>>(state);
++  Value token = Value::native_function(0, "observable_receiver_token", lifetime_token,
++      token_context.get(), receiver_cleanup);
++  token_context.release();
++  table = Value::dict({{Value::string("present"), Value::int64(17)},
++      {Value::string("lifetime"), std::move(token)}});
++  state->expected_self = table.as.obj;
++  registers[0] = Value::string("present");
++  expect_true(result, invoke(table, table) && table.tag == ValueTag::Int64 && table.as.i64 == 17 &&
++      state->events == std::vector<std::string>{"c_call", "c_return"} &&
++      state->identity_ok && state->receiver_alive && state->receiver_cleanup == 1,
++      "profiled output/receiver alias retains self through observers then releases its last owner");
++  state->collect_in_observer = false; state->receiver_cleanup = 0;
++
++  Value hash = callback("ObservableKey.__hash__", hash_key, state);
++  Value key_class = Value::class_object("ObservableKey", {{"__hash__", hash}});
++  registers[0] = Value::instance(key_class);
++  table = Value::dict({}); state->expected_self = table.as.obj;
++  state->events.clear(); state->hash_calls = 0; state->hash_fails = true; state->replace_pending = true;
++  value_set_invalid(caught); out = Value::int64(887);
++  expect_true(result, !invoke(table, out) && value_is(caught, state->native_exception) &&
++      state->hash_calls == 1 && out.tag == ValueTag::Int64 && out.as.i64 == 887 &&
++      state->events == std::vector<std::string>{"c_call", "c_exception"} &&
++      !state->observer_saw_native_pending && diagnostic_raises == 0,
++      "failed get pins its native pending owner before observer replacement/drain and raises original identity");
++  Value pending;
++  expect_true(result, !runtime.take_pending_exception(pending), "failed dispatch consumes exactly one original pending owner");
++  state->hash_fails = false; state->replace_pending = false;
++  for (const char* failed_event : {"c_call", "c_return"}) {
++    runtime.set_profile_function(hook);
++    state->fail_event = failed_event; state->events.clear(); state->hash_calls = 0;
++    value_set_invalid(caught); out = Value::int64(887);
++    expect_true(result, !invoke(table, out) && value_is(caught, state->observer_exception) &&
++        state->hash_calls == (state->fail_event == "c_call" ? 0u : 1u) && diagnostic_raises == 0,
++        "observer failures preserve exact pending identity and do not retry or invoke get after c_call failure");
++    expect_true(result, !runtime.take_pending_exception(pending), "observer failure transfers its pending owner once");
++  }
++  state->fail_event.clear(); state->events.clear();
++  runtime.set_profile_function(Value::none()); state->hash_calls = 0;
++  expect_true(result, invoke(table, out) && out.tag == ValueTag::Int64 && out.as.i64 == 903 &&
++      state->hash_calls == 1 && state->events.empty(),
++      "disabled profile retains the existing direct native specification path without C events");
++  value_set_invalid(hook);
++}
++} // namespace xlang3::test

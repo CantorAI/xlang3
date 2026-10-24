@@ -99,6 +99,13 @@ Value make_warnings_module(Runtime& runtime) {
 
 } // namespace
 
+bool runtime_warn(Runtime& runtime, const Value& message, const Value& category,
+                  int64_t stacklevel, std::string& error) {
+  const Value args[] = {message, category, Value::int64(stacklevel)};
+  Value ignored;
+  return warnings_warn_impl(runtime, args, 3, nullptr, 0, ignored, error, "warn");
+}
+
 void register_warnings_module(Runtime& runtime) {
   runtime.register_module("_warnings", make_warnings_module(runtime));
 }

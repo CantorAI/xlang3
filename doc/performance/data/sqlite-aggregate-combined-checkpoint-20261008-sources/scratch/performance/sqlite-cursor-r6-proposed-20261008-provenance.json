@@ -1,0 +1,34 @@
+{
+  "scope": "Scratch-only incremental proposal over applied R5. Static generation, no runtime/build.",
+  "input_sha256": {
+    "modules/sqlite/sqlite_handles.h": "14030a98a09e1aff765cd5a8bc48361c6a55b8f2546fed078d5e60a97d75c435",
+    "modules/sqlite/sqlite_package.cpp": "20c8b0a89bd21d232798f9d431bdb94e98523017a51366a7dce40bc5de8c5867",
+    "tests/run_fixtures.py": "57bd59b17b68b9f448a21fd559d7b551e7cb542462c798f8f1740adbda09b078",
+    "tests/run_fixtures.ps1": "49c36fefa4f1ea6cdf12412150c860064efb64df2628ccb7d482303a61c238b1"
+  },
+  "fixture_sha256": "25b83546a23c20509da6bf2006311a51cdc19ef7b6504bc293efffeac6d41560",
+  "patch_sha256": "59122111be1b50a9f9f1b2a5fd366e6482fa16c4074d8098c48971a14da7bfb5",
+  "candidate_source_sha256": {
+    "modules/sqlite/sqlite_handles.h": "f4a214354fc7d229f67906161c467f18d285e7da49528e3a8110aa985dc72896",
+    "modules/sqlite/sqlite_package.cpp": "d7a31550402d0e91913b291c68011afd36317e6fb01d433279152d7d0e1f931d",
+    "tests/run_fixtures.py": "c0c1666b9fb4d5a48eb04319d545a5a38c4dd8a5757ca53fcfad14e1068f74bf",
+    "tests/run_fixtures.ps1": "debb9fcd7efcb1fd179b6af70490ba019e782b6ea74de20097c4c698c54522a3",
+    "tests/fixtures/core/sqlite_cursor_completion.py": "25b83546a23c20509da6bf2006311a51cdc19ef7b6504bc293efffeac6d41560",
+    "tests/fixtures/expected/sqlite_cursor_completion.out": "3a15cdd0649f50361658539b4eb5fe9e50f84d3d48eb70fd29f3cf636daff518"
+  },
+  "files": [
+    "modules/sqlite/sqlite_handles.h",
+    "modules/sqlite/sqlite_package.cpp",
+    "tests/run_fixtures.py",
+    "tests/run_fixtures.ps1",
+    "tests/fixtures/core/sqlite_cursor_completion.py",
+    "tests/fixtures/expected/sqlite_cursor_completion.out"
+  ],
+  "preserved_fixture_sha256": "5e8b444a8f47eae17d597bbea7455f0b8301102ffe89c016b76fde1474a9a650",
+  "primary_reference": "https://raw.githubusercontent.com/python/cpython/v3.14.7/Modules/_sqlite/cursor.c",
+  "requirements": [
+    "Exact CPython 3.14.7 precheck of new fixture",
+    "Build and run original unchanged seven groups and R5 CPP ownership tests",
+    "Generic cursor fixture, existing native SQLite tests, complete correctness and unchanged fixed gate before original sqlite_synth"
+  ]
+}

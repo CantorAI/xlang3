@@ -409,6 +409,10 @@ bool apply_optimized_instance_slots(
       return false;
     }
   }
+  if (slots.size() > klass->instance_slot_names.size()) {
+    // A metaclass-produced extension is not captured own declaration history.
+    class_forget_slot_declarations(klass);
+  }
   const size_t existing = klass->instance_slot_names.size();
   for (size_t i = existing; i < slots.size(); ++i) {
     klass->instance_slot_names.push_back(slots[i]);
@@ -747,14 +751,6 @@ const Value* find_builtin_type(Runtime& runtime, const char* name) {
   return name == nullptr ? nullptr : runtime.find_builtin(name);
 }
 
-bool try_runtime_protocol_instancecheck(
-    Runtime& runtime,
-    const Value& classinfo,
-    const Value& instance_value,
-    bool& handled,
-    bool& out,
-    std::string& error);
-
 bool call_class_check_hook(
     Runtime& runtime,
     const Value& classinfo,
@@ -764,17 +760,9 @@ bool call_class_check_hook(
     bool& out,
     std::string& error) {
   applied = false;
-  if (std::string_view(hook_name) == "__instancecheck__") {
-    bool protocol_handled = false;
-    if (!try_runtime_protocol_instancecheck(
-            runtime, classinfo, hook_arg, protocol_handled, out, error)) {
-      return false;
-    }
-    if (protocol_handled) {
-      applied = true;
-      return true;
-    }
-  }
+  // Python-defined hooks, including typing.Protocol, must execute their Python
+  // body. Keep optimizations in generic dispatch instead of translating a
+  // pure-Python library's member loop into a native implementation.
   Value hook;
   std::string hook_error;
   const Value* hook_owner = &classinfo;
@@ -831,129 +819,6 @@ bool call_class_check_hook(
 
   applied = true;
   out = value_truthy(result);
-  return true;
-}
-
-// Runtime-checkable typing Protocols are currently implemented in typing.py.
-// Their hot __instancecheck__ loop is a small, stable operation, so keep the
-// standard ABC result and inspect.getattr_static semantics but perform the
-// common ordinary-instance path without interpreting that Python loop on every
-// isinstance call. Objects with custom native attribute storage retain the
-// regular hook, which is important because static lookup must not invoke user
-// descriptors or __getattribute__ implementations.
-bool try_runtime_protocol_instancecheck(
-    Runtime& runtime,
-    const Value& classinfo,
-    const Value& instance_value,
-    bool& handled,
-    bool& out,
-    std::string& error) {
-  handled = false;
-  auto* protocol = value_as_class(classinfo);
-  if (protocol == nullptr) return true;
-  auto* metaclass = value_as_class(protocol->metaclass);
-  if (metaclass == nullptr || metaclass->name != "_ProtocolMeta") return true;
-
-  Value metaclass_module;
-  std::string ignored;
-  if (!object_get_attr(protocol->metaclass, "__module__", metaclass_module, ignored)) return true;
-  auto* module_name = value_as_string(metaclass_module);
-  if (module_name == nullptr || string_object_to_string(*module_name) != "typing") return true;
-  // _ProtocolMeta defines this hook directly. Read that exact slot instead of
-  // doing a general MRO lookup on every isinstance call; replacements still
-  // miss the recognized function-name guard below and use normal dispatch.
-  auto standard_hook = metaclass->attrs.find("__instancecheck__");
-  if (standard_hook == metaclass->attrs.end()) return true;
-  const Value& standard_instancecheck = standard_hook->second;
-  auto* standard_function = value_as_function(standard_instancecheck);
-  if (standard_function == nullptr ||
-      standard_function->qualname != "_ProtocolMeta.__instancecheck__") {
-    return true;
-  }
-
-  Value is_protocol;
-  Value is_runtime_protocol;
-  if (!object_get_attr(classinfo, "_is_protocol", is_protocol, ignored) ||
-      !value_truthy(is_protocol)) {
-    return true;
-  }
-  if (!object_get_attr(classinfo, "_is_runtime_protocol", is_runtime_protocol, ignored) ||
-      !value_truthy(is_runtime_protocol)) {
-    return true;  // Let typing.py raise its exact TypeError for non-runtime protocols.
-  }
-
-  auto* subject = value_as_instance(instance_value);
-  if (subject == nullptr || subject->native_get_attr != nullptr) return true;
-
-  Value protocol_attrs_value;
-  Value noncallable_attrs_value;
-  if (!object_get_attr(classinfo, "__protocol_attrs__", protocol_attrs_value, ignored) ||
-      !object_get_attr(classinfo, "__non_callable_proto_members__", noncallable_attrs_value, ignored)) {
-    return true;
-  }
-  auto* protocol_attrs = value_as_set(protocol_attrs_value);
-  auto* noncallable_attrs = value_as_set(noncallable_attrs_value);
-  if (protocol_attrs == nullptr || noncallable_attrs == nullptr) return true;
-
-  // typing._ProtocolMeta first honors ABC virtual/nominal registrations.
-  Value abc_instancecheck;
-  if (!module_get_attr(standard_function->globals_module, "_abc_instancecheck", abc_instancecheck, error)) {
-    return false;
-  }
-  Value abc_args[] = {classinfo, instance_value};
-  Value abc_result;
-  if (!runtime_call_callable(runtime, abc_instancecheck, abc_args, 2, abc_result, error)) return false;
-  handled = true;
-  if (value_truthy(abc_result)) {
-    out = true;
-    return true;
-  }
-
-  for (const Value& member_value : protocol_attrs->items) {
-    auto* member = value_as_string(member_value);
-    if (member == nullptr) {
-      handled = false;
-      return true;
-    }
-    const std::string member_name = string_object_to_string(*member);
-
-    // getattr_static(instance, name): data descriptors win, then the instance
-    // dictionary, then the raw class attribute. Never call the descriptor.
-    Value raw_class_attr;
-    std::string lookup_error;
-    const bool has_class_attr = object_lookup_class_attr(
-        subject->klass, member_name, raw_class_attr, lookup_error);
-    if (!has_class_attr) lookup_error.clear();
-    Value instance_attr;
-    const Value& instance_dict = instance_attribute_storage(*subject);
-    const bool has_instance_attr = value_as_dict(instance_dict) != nullptr &&
-        mapping_get_string_item(instance_dict, member_name, instance_attr, lookup_error);
-    const bool class_data_descriptor = has_class_attr &&
-        object_value_is_data_descriptor(raw_class_attr);
-    const bool found = class_data_descriptor || has_instance_attr || has_class_attr;
-    if (!found) {
-      out = false;
-      return true;
-    }
-    const Value& static_value = class_data_descriptor
-        ? raw_class_attr
-        : (has_instance_attr ? instance_attr : raw_class_attr);
-    if (static_value.tag == ValueTag::None) {
-      bool noncallable_member = false;
-      for (const Value& item : noncallable_attrs->items) {
-        auto* item_name = value_as_string(item);
-        if (item_name != nullptr && string_object_to_string(*item_name) == member_name) {
-          noncallable_member = true;
-          break;
-        }
-      }
-      if (!noncallable_member) {
-        out = false;
-        return true;
-      }
-    }
-  }
-  out = true;
   return true;
 }
 
@@ -1032,6 +897,21 @@ bool class_tuple_matches(
       out = true;
       return true;
     }
+  }
+
+  const Value* builtin_type = runtime.find_builtin("type");
+  const auto* builtin_type_class = builtin_type == nullptr
+      ? nullptr
+      : value_as_class(*builtin_type);
+  if (builtin_type != nullptr && builtin_type_class != nullptr &&
+      value_is(expected->metaclass, *builtin_type) &&
+      builtin_type_class->version == builtin_type_class->builtin_type_check_version) {
+    // With the exact, unmodified builtin type metaclass, these hooks are the
+    // native MRO test itself. Avoid resolving and calling type's descriptor
+    // for every isinstance/issubclass; any mutation advances type.version and
+    // falls through to the fully observable custom-hook path above.
+    out = class_is_subclass(actual, expected);
+    return true;
   }
 
   const char* hook_name = subclass_check ? "__subclasscheck__" : "__instancecheck__";
@@ -1148,6 +1028,15 @@ bool builtin_isinstance_values(
   bool result = false;
   if (!class_tuple_matches(runtime, object, actual_type, class_info, false, result, error)) {
     return false;
+  }
+  // Immediate values cannot override __class__ or carry instance attributes.
+  // In particular, an integer row index failing isinstance(index, tuple) must
+  // not pay for a failed _spec_class lookup on every Python __getitem__ call.
+  // Run the complete class-info/hook check first: custom __instancecheck__,
+  // tuple/union ordering, and errors remain observable for these values too.
+  if (!result && object.tag != ValueTag::Object) {
+    out = Value::boolean(false);
+    return true;
   }
   if (!result) {
     if (auto* instance = value_as_instance(object)) {
@@ -2402,7 +2291,7 @@ bool builtin_type_new_impl(
     created_class->has_explicit_bases = true;
   }
   for (size_t i = 1; i < resolved_bases.size(); ++i) {
-    if (!class_set_base(out, resolved_bases[i], error)) {
+    if (!class_set_base_for_construction(out, resolved_bases[i], error)) {
       runtime.raise_class_error("TypeError", error);
       return false;
     }
@@ -4387,7 +4276,11 @@ void register_object_type_builtins(Runtime& runtime) {
   object_attrs.push_back({"__reduce__", Value::native_function(0, "object.__reduce__", builtin_object_reduce)});
   object_attrs.push_back({"__reduce_ex__", Value::native_function(0, "object.__reduce_ex__", builtin_object_reduce_ex)});
   object_attrs.push_back({"__getstate__", Value::native_function(0, "object.__getstate__", builtin_object_getstate)});
-  object_attrs.push_back({"__getattribute__", Value::native_function(0, "object.__getattribute__", builtin_object_getattribute)});
+  // inspect.getattr_static repeatedly calls object.__getattribute__(obj,
+  // "__dict__"); keep this ordinary positional builtin call stack-backed.
+  object_attrs.push_back({"__getattribute__", Value::native_function(
+      0, "object.__getattribute__", builtin_object_getattribute, nullptr,
+      nullptr, builtin_fast_adapter<builtin_object_getattribute, 2>)});
   object_attrs.push_back({"__setattr__", Value::native_function(
       0, "object.__setattr__", builtin_object_setattr, nullptr, nullptr,
       builtin_fast_adapter<builtin_object_setattr, 3>, true)});
@@ -4461,8 +4354,19 @@ void register_object_type_builtins(Runtime& runtime) {
     slot_descriptor_set_owner_class(type_class->attrs["__mro__"], type_type);
     slot_descriptor_set_owner_class(type_class->attrs["__dict__"], type_type);
     slot_descriptor_set_owner_class(type_class->attrs["__annotations__"], type_type);
+    // Any later write to type.__instancecheck__ or type.__subclasscheck__
+    // advances the class version and returns generic hook dispatch to the
+    // observable path. While unchanged, those exact builtin hooks are just
+    // native MRO checks and need no repeated descriptor lookup/call.
+    type_class->builtin_type_check_version = type_class->version;
   }
   runtime.register_builtin("type", type_type);
+  // Keep keyword literals immediate in the VM, but expose their canonical
+  // values for Python code that enumerates the builtin namespace (for example
+  // AST template symbol maps). This adds no lookup to literal evaluation.
+  runtime.register_builtin("None", Value::none());
+  runtime.register_builtin("False", Value::boolean(false));
+  runtime.register_builtin("True", Value::boolean(true));
   runtime.register_builtin("__debug__", Value::boolean(true));
   runtime.register_builtin(
       "__xlang3_build_class_from_namespace__",
@@ -4652,6 +4556,11 @@ void register_object_type_builtins(Runtime& runtime) {
     const Value* type_value = runtime.find_builtin(type_name);
     auto* type_class = type_value == nullptr ? nullptr : value_as_class(*type_value);
     if (type_class == nullptr) return;
+    // Native method tables already installed concrete slots such as str's
+    // __repr__. Keep their payload-aware implementation: an object fallback
+    // makes string-subclass keys produce invalid generated Python literals.
+    // Decide once at bootstrap rather than adding checks to every repr call.
+    if (type_class->attrs.find("__repr__") != type_class->attrs.end()) return;
     type_class->attrs["__repr__"] = Value::native_function(
         0, std::string(type_name) + ".__repr__", builtin_object_repr);
     type_class->version = next_class_version_tag();

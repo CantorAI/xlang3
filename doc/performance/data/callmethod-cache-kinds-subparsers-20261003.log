@@ -1,0 +1,46 @@
+profiled workload subparsers None
+profiled Python calls, grouped by source/function
+[[["argparse.py","_registry_get"],3510],[["argparse.py","_add_action"],3009],[["argparse.py","_parse_optional"],3004],[["argparse.py","__init__"],2014],[["argparse.py","_get_validation_formatter"],2005],[["__init__.py","_compile"],1508],[["argparse.py","_get_nargs_pattern"],1504],[["argparse.py","_get_value"],1504],[["argparse.py","_check_value"],1504],[["argparse.py","_get_values"],1504],[["argparse.py","__call__"],1504],[["argparse.py","take_action"],1504],[["__init__.py","match"],1502],[["argparse.py","_match_argument"],1500],[["argparse.py","consume_optional"],1500],[["argparse.py","_pop_action_class"],1003],[["argparse.py","_metavar_formatter"],1003],[["argparse.py","format"],1003],[["argparse.py","_format_args"],1003],[["argparse.py","_get_help_string"],1003],[["argparse.py","_expand_help"],1003],[["argparse.py","_check_help"],1003],[["argparse.py","_check_conflict"],1003],[["argparse.py","add_argument"],1002],[["argparse.py","_get_optional_kwargs"],1001],[["dataclasses.py","#genexpr"],180],[["inspect.py","kind"],119],[["_parser.py","__getitem__"],92],[["__init__.py","__iter__"],86],[["_collections_abc.py","__iter__"],86],[["inspect.py","name"],78],[["__init__.py","__setitem__"],78],[["annotationlib.py","_get_dunder_annotations"],57],[["annotationlib.py","get_annotations"],57],[["_parser.py","__next"],56],[["dataclasses.py","__init__"],54],[["_parser.py","match"],52],[["_parser.py","__len__"],51],[["inspect.py","__init__"],49],[["enum.py","__new__"],47],[["enum.py","__call__"],47],[["inspect.py","#genexpr"],45],[["_parser.py","get"],43],[["dataclasses.py","_is_kw_only"],41],[["dataclasses.py","field"],41],[["typing.py","get_origin"],41],[["dataclasses.py","_is_classvar"],41],[["dataclasses.py","_is_initvar"],41],[["dataclasses.py","_get_field"],41],[["dataclasses.py","_field_assign"],41],[["dataclasses.py","_field_init"],41],[["dataclasses.py","_init_param"],41],[["inspect.py","formatannotation"],41],[["argparse.py","register"],37],[["_parser.py","__init__"],37],[["inspect.py","_format"],37],[["dataclasses.py","_set_new_attribute"],35],[["_parser.py","tell"],32],[["dataclasses.py","add_fn"],30],[["_parser.py","getwidth"],29]]
+profiled benchmark function times (inclusive/self seconds)
+argparse.py parse_args 2 4.045969 0.000735
+argparse.py parse_known_args 2 4.045234 0.00079
+argparse.py _parse_known_args2 2 4.044444 0.106648
+argparse.py _parse_known_args 2 3.937759 0.808655
+argparse.py consume_optional 1500 3.047093 0.629617
+argparse.py add_argument 1002 2.835877 1.016783
+argparse.py take_action 1504 1.535127 0.612003
+argparse.py _add_action 3009 1.275526 0.594613
+argparse.py _match_argument 1500 0.888457 0.617618
+argparse.py _get_values 1504 0.855215 0.604997
+argparse.py _check_help 1003 0.552938 0.35085
+argparse.py _format_args 1003 0.376195 0.323867
+__init__.py match 1502 0.265062 0.16235
+argparse.py _get_value 1504 0.222818 0.193135
+argparse.py _expand_help 1003 0.188811 0.173946
+__init__.py _compile 1508 0.155037 0.077228
+argparse.py __init__ 2014 0.144235 0.115561
+argparse.py _pop_action_class 1003 0.103605 0.089701
+inspect.py __init__ 49 0.092109 0.031205
+_compiler.py compile 6 0.073515 0.002172
+argparse.py __call__ 1504 0.067909 0.067909
+_parser.py _parse_sub 12 0.067403 0.003984
+_parser.py _parse 12 0.062528 0.01833
+inspect.py _signature_bound_method 4 0.060788 0.010936
+argparse.py _registry_get 3510 0.056931 0.056931
+inspect.py __str__ 4 0.053086 0.000765
+__init__.py compile 6 0.052932 0.000606
+inspect.py format 4 0.05232 0.022324
+argparse.py _parse_optional 3004 0.050118 0.050118
+_parser.py parse 6 0.045824 0.001703
+__init__.py __init__ 8 0.042447 0.001433
+_collections_abc.py update 8 0.041014 0.016121
+argparse.py _get_optional_kwargs 1001 0.039974 0.039974
+inspect.py replace 4 0.038991 0.000712
+argparse.py format 1003 0.037682 0.037682
+dataclasses.py _get_field 41 0.033953 0.018907
+dataclasses.py <module> 1 0.03324 0.002884
+argparse.py consume_positionals 4 0.031479 0.002504
+call_method_cache_kinds: 1=27704 4=2511
+_compiler.py _compile 24 0.029401 0.00983
+argparse.py _check_value 1504 0.0274 0.0274
+profiled benchmark-frame calls 41305

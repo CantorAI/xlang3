@@ -41,9 +41,17 @@ struct DictObject {
   // Module namespaces are exact dict objects while module slots remain the
   // fast execution storage. This non-owning link keeps mutations coherent.
   ModuleObject* backing_module = nullptr;
-  mutable std::unordered_map<int64_t, size_t> integer_index;
+  // Flat open-addressed table: integer-key probes are hot in dict membership,
+  // indexing, and interpreter memo tables, so avoid per-entry node allocation.
+  // Entries remain authoritative; slots store entry index + 1 (zero is empty).
+  mutable std::vector<size_t> integer_index;
   mutable std::unordered_map<int64_t, std::vector<size_t>> runtime_hash_index;
   mutable size_t runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
+  // Native writes may share these buckets only when the entire key set has
+  // callback-free hashes/equality. Cache rejected eligibility as well, so a
+  // mixed dictionary does not rescan all keys before every fallback write.
+  mutable size_t intrinsic_hash_checked_entry_count = static_cast<size_t>(-1);
+  mutable bool intrinsic_hash_keys_only = false;
   // Flat open-addressed slots store entry index + 1 (zero means empty). The
   // authoritative strings and cached hashes remain in entries.
   mutable std::vector<size_t> string_index;
@@ -51,6 +59,12 @@ struct DictObject {
   mutable bool index_has_other_keys = false;
   mutable bool index_has_non_string_keys = false;
 };
+
+// Includes Python dict subclasses while excluding other mapping protocols.
+bool mapping_is_dict(const Value& value);
+// Return the built-in storage for a dict or dict subclass. Keyword expansion
+// follows dict storage semantics and intentionally bypasses subclass overrides.
+DictObject* mapping_dict_storage(const Value& value);
 
 struct MappingProxyObject {
   Object header;
@@ -116,6 +130,15 @@ bool mapping_truthy(const Value& value);
 bool mapping_is_mapping(const Value& value);
 
 bool mapping_get_item(const Value& object, const Value& key, Value& out, std::string& error);
+// Return only a hit for an exact integer key in the built-in dict index.
+// Callers must use the generic mapping path on a miss so custom key equality
+// and dict-subclass overrides keep their normal semantics.
+bool mapping_get_integer_item_if_present(
+    const Value& object, int64_t key, Value& out);
+// Reuse an exact identity-hashed class or instance key already stored in a
+// plain dict; misses retain the generic hash/equality path.
+bool mapping_get_item_identity_key(
+    const Value& object, const Value& key, Value& out, std::string& error);
 // Fast path for the common exact-string lookup. It retains full dict key
 // semantics by falling back to mapping_get_item when non-string keys exist.
 bool mapping_get_string_item(
@@ -124,7 +147,21 @@ bool mapping_get_string_item(
 bool mapping_get_item_runtime(Runtime& runtime, const Value& object, const Value& key,
                               Value& out, std::string& error,
                               bool dispatch_override = true);
+// Type-based dict-subclass __missing__ dispatch. An absent method returns
+// false with "key not found"; descriptor/call failures retain their exception.
+bool mapping_call_missing(Runtime& runtime, const Value& object, const Value& key,
+                          Value& out, std::string& error);
+// Speculative native IR shortcut: only a proven intrinsic dict hit succeeds.
+// Failure leaves output unchanged and executes no Python callback or miss hook.
+bool mapping_get_intrinsic_item_if_present(const Value& object, const Value& key,
+                                           Value& out);
 bool mapping_set_item(Value& object, const Value& key, const Value& item, std::string& error);
+// Update or erase an existing exact object-identity key without repeating the
+// generic hash/equality path. Missing keys retain ordinary dict behavior.
+bool mapping_set_item_identity_key(Value& object, const Value& key, const Value& item,
+                                   std::string& error);
+bool mapping_delete_item_identity_key(Value& object, const Value& key,
+                                      std::string& error);
 bool mapping_set_item_runtime(Runtime& runtime, Value& object, const Value& key, const Value& item, std::string& error);
 bool mapping_delete_item(Value& object, const Value& key, std::string& error);
 bool mapping_delete_item_runtime(Runtime& runtime, Value& object, const Value& key, std::string& error);

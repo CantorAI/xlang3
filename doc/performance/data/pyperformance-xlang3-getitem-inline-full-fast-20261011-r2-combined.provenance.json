@@ -1,0 +1,47 @@
+{
+  "status": "finished_with_benchmark_failures",
+  "benchmark_suite": "pyperformance 1.14.0",
+  "python": "3.14.7",
+  "pyperf": "2.10.0",
+  "mode": "fast",
+  "definitions_attempted": 97,
+  "primary_run": {
+    "raw_json": "doc\\performance\\data\\pyperformance-xlang3-getitem-inline-full-fast-20261011-r1.pyperf.json",
+    "runner_log": "doc\\performance\\data\\pyperformance-xlang3-getitem-inline-full-fast-20261011-r1.log",
+    "dependency_site": "C:\\Python\\Python314\\Lib\\site-packages",
+    "case_timeout_seconds": 300,
+    "definitions_selected": "all"
+  },
+  "dependency_supplement": {
+    "raw_json": "doc\\performance\\data\\pyperformance-xlang3-getitem-inline-dependency-supplement-20261011-r1.pyperf.json",
+    "runner_log": "doc\\performance\\data\\pyperformance-xlang3-getitem-inline-dependency-supplement-20261011-r1.log",
+    "dependency_site": "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+    "python_version_verified": "3.14.7",
+    "definitions_selected": 26,
+    "case_timeout_seconds": 300,
+    "networkx_timeout_override_seconds": 600
+  },
+  "combined_json": "doc\\performance\\data\\pyperformance-xlang3-getitem-inline-full-fast-20261011-r2-combined.pyperf.json",
+  "combined_log": "doc\\performance\\data\\pyperformance-xlang3-getitem-inline-full-fast-20261011-r2-combined.log",
+  "combined_timed_subtests": 88,
+  "combined_completed_definitions": 78,
+  "primary_run_dependency_caveat": "The primary run used the raw Python 3.14 site-packages and therefore missed optional packages. The 26 affected definitions were rerun with the same prepared Python 3.14 dependency site used by the saved full-suite control; successful supplement samples were merged by distinct pyperf subtest name. Each source run is preserved separately.",
+  "executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "executable_sha256": "163A6D2059F5E5FC7A9EF21D7C9EF901EFC0D32F36BCFF3BDB8397F15C950B93",
+  "runtime_dll": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll",
+  "runtime_dll_sha256": "9E435A106AAB07891757CE155F79FB1783E6E86831771FE6F41D7ECFE7CF67E0",
+  "runner_sha256": "E4B984F3B9FBB251395E6A415B73929B6AFA04023FA92C05C40357980323BCC8",
+  "cpython_reference": "pyperformance-cpython3147-live-eval-full-fast-20261007.json",
+  "cpython_reference_sha256": "AC474DF5576AC85F6F5350363AFFECC439D4F658B4DFA3DBE291B46964276EB0",
+  "combined_json_sha256": "EBFC4BCCA6D4666F45D74B0A8234EED2D0759359A2BACA682C8A14ABA19E2147",
+  "combined_log_sha256": "E2CE6D3E4FE141D40F26B59C938A2AA9EC3507F73092954489743E7C949ECAAC",
+  "manager_version": "3.14.7",
+  "sha256_start": {
+    "exe": "163A6D2059F5E5FC7A9EF21D7C9EF901EFC0D32F36BCFF3BDB8397F15C950B93",
+    "dll": "9E435A106AAB07891757CE155F79FB1783E6E86831771FE6F41D7ECFE7CF67E0"
+  },
+  "sha256_end": {
+    "exe": "163A6D2059F5E5FC7A9EF21D7C9EF901EFC0D32F36BCFF3BDB8397F15C950B93",
+    "dll": "9E435A106AAB07891757CE155F79FB1783E6E86831771FE6F41D7ECFE7CF67E0"
+  }
+}

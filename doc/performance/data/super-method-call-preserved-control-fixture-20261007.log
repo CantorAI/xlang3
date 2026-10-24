@@ -1,0 +1,7 @@
+native, Python, saved and ordinary fallback methods True
+base mutation and saved callable identity True
+current diamond MRO dispatch True
+Traceback (most recent call last):
+  File "tests/fixtures/core/super_method_call_dispatch.py", line 100, in <module>
+    assert 'native' in calls
+AssertionError

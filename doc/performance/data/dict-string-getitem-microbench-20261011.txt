@@ -1,0 +1,16 @@
+Exact-string dict read/write loop, count=500000, seven samples per runtime.
+The XLang3 control/candidate binaries differ only in the GetItem cache. Runs
+used the fixed Release path; Python reference is C:\Python\Python314\python.exe.
+
+XLang3 control samples (seconds): 0.061866, 0.062037, 0.064174, 0.064477, 0.065053, 0.065093, 0.068149
+XLang3 control median: 0.064477 s
+
+XLang3 candidate samples (seconds): 0.058135, 0.059534, 0.059908, 0.062078, 0.062994, 0.063907, 0.068788
+XLang3 candidate median: 0.062078 s
+
+CPython 3.14.7 samples (seconds): 0.021401, 0.021524, 0.022663, 0.023667, 0.024791, 0.026939, 0.029830
+CPython median: 0.023667 s
+
+The isolated candidate median is 1.04x faster than the XLang3 control and
+2.62x slower than CPython. Ranges remain wide, so these microbenchmark values
+are directional evidence only.

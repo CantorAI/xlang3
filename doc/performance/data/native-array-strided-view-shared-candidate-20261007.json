@@ -1,0 +1,18 @@
+{
+  "diagnostic_only": true,
+  "timing": false,
+  "records": [
+    {
+      "step": 2,
+      "ok": false,
+      "error": "AssertionError",
+      "detail": "strided .obj must retain exporter"
+    },
+    {
+      "step": -2,
+      "ok": false,
+      "error": "AssertionError",
+      "detail": "strided .obj must retain exporter"
+    }
+  ]
+}

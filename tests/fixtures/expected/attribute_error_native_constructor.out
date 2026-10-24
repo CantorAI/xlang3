@@ -1,0 +1,3 @@
+PASS exact-attribute-error
+PASS non-fast-argument-shape
+PASS subclass-constructor-fallback

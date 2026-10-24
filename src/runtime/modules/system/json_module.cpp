@@ -118,6 +118,7 @@ public:
   }
 
   size_t position() const { return pos_; }
+  bool ascii_only() const { return ascii_only_; }
 
 private:
   void whitespace() {
@@ -160,25 +161,42 @@ private:
     }
   }
 
-  bool parse_string(Value& out) {
+  bool parse_string(
+      Value& out, std::string_view* unescaped_text = nullptr,
+      bool* is_unescaped = nullptr) {
     if (pos_ >= source_.size() || source_[pos_] != '"') return false;
+    if (is_unescaped != nullptr) *is_unescaped = false;
     ++pos_;
     std::string decoded;
     const size_t content_start = pos_;
+    bool has_escape = false;
     while (pos_ < source_.size()) {
       const unsigned char c = static_cast<unsigned char>(source_[pos_++]);
       if (c == '"') {
-        if (decoded.empty() && pos_ - content_start >= 1) {
-          // The source view is copied directly into XLang's owned string.
-          // Avoid constructing a temporary std::string for every unescaped
-          // JSON key/value; json_loads contains many short strings per parse.
-          out = Value::string_view(source_.substr(content_start, pos_ - content_start - 1));
+        if (!has_escape) {
+          const auto text = source_.substr(content_start, pos_ - content_start - 1);
+          if (unescaped_text != nullptr) {
+            // Object keys first probe the decoder's string-only memo by view.
+            // This avoids allocating a temporary Value for every repeated key
+            // in JSON records while preserving the canonical memoized key.
+            *unescaped_text = text;
+            if (is_unescaped != nullptr) *is_unescaped = true;
+            out = Value::invalid();
+          } else if (!text.empty()) {
+            // The source view is copied directly into XLang's owned string.
+            // Avoid constructing a temporary std::string for every unescaped
+            // JSON key/value; json_loads contains many short strings per parse.
+            out = Value::string_view(text);
+          } else {
+            out = Value::string(std::string{});
+          }
         } else {
           out = Value::string(std::move(decoded));
         }
         return true;
       }
       if (c >= 0x80) {
+        ascii_only_ = false;
         if (!decoded.empty()) decoded.push_back(static_cast<char>(c));
         continue;
       }
@@ -187,6 +205,7 @@ private:
         if (!decoded.empty()) decoded.push_back(static_cast<char>(c));
         continue;
       }
+      has_escape = true;
       if (decoded.empty()) {
         decoded.assign(source_.substr(content_start, pos_ - content_start - 1));
       }
@@ -231,6 +250,22 @@ private:
     }
     ignored.clear();
     return mapping_set_item(memo_, key, key, ignored);
+  }
+
+  bool memoize_unescaped_key(std::string_view text, Value& key) {
+    Value existing;
+    std::string error;
+    if (mapping_get_string_item(memo_, text, existing, error)) {
+      key = std::move(existing);
+      return true;
+    }
+
+    // The memo contains string keys only, so the view lookup is exact. On a
+    // miss we now pay to create the owned key once; repeated keys avoid this
+    // allocation on the decoder's JSON records.
+    key = Value::string_view(text);
+    error.clear();
+    return mapping_set_item(memo_, key, key, error);
   }
 
   bool parse_number(Value& out) {
@@ -321,7 +356,14 @@ private:
     if (pos_ < source_.size() && source_[pos_] == '}') { ++pos_; return true; }
     while (true) {
       Value key;
-      if (!parse_string(key) || !memoize_key(key)) return false;
+      std::string_view unescaped_key;
+      bool is_unescaped = false;
+      if (!parse_string(key, &unescaped_key, &is_unescaped)) return false;
+      if (is_unescaped) {
+        if (!memoize_unescaped_key(unescaped_key, key)) return false;
+      } else if (!memoize_key(key)) {
+        return false;
+      }
       whitespace();
       if (pos_ >= source_.size() || source_[pos_++] != ':') return false;
       whitespace();
@@ -359,6 +401,10 @@ private:
   bool strict_ = true;
   Runtime& runtime_;
   Value& memo_;
+  // Scanner end offsets are Python character indices. The common JSON input
+  // is ASCII, where parser byte offsets are already character offsets; track
+  // non-ASCII while scanning so the hot path avoids a second full-string pass.
+  bool ascii_only_ = true;
 };
 
 bool json_scanner_call(
@@ -371,8 +417,11 @@ bool json_scanner_call(
     return false;
   }
   const auto text = string_object_view(*value_as_string(args[0]));
-  const size_t start = utf8_byte_offset(text, static_cast<size_t>(args[1].as.i64));
-  if (static_cast<size_t>(args[1].as.i64) > utf8_codepoint_count(text)) {
+  const size_t start_index = static_cast<size_t>(args[1].as.i64);
+  // json.loads() and the normal JSONDecoder path start at index zero. Avoid
+  // counting every code point just to validate that known-valid hot offset.
+  const size_t start = start_index == 0 ? 0 : utf8_byte_offset(text, start_index);
+  if (start_index != 0 && start_index > utf8_codepoint_count(text)) {
     error = "JSON scanner index out of range";
     runtime.raise_class_error("IndexError", error);
     return false;
@@ -381,7 +430,9 @@ bool json_scanner_call(
   Value result;
   size_t end_byte = 0;
   if (!parser.parse(result, end_byte)) {
-    const size_t error_index = utf8_codepoint_count(text.substr(0, parser.position()));
+    const size_t error_index = parser.ascii_only()
+        ? start_index + (parser.position() - start)
+        : utf8_codepoint_count(text.substr(0, parser.position()));
     std::string ignored;
     (void)mapping_clear(state->memo, ignored);
     const Value* stop_iteration = runtime.find_builtin("StopIteration");
@@ -398,7 +449,9 @@ bool json_scanner_call(
   }
   std::string ignored;
   (void)mapping_clear(state->memo, ignored);
-  const size_t end = utf8_codepoint_count(text.substr(0, end_byte));
+  const size_t end = parser.ascii_only()
+      ? start_index + (end_byte - start)
+      : utf8_codepoint_count(text.substr(0, end_byte));
   out = Value::tuple({std::move(result), Value::int64(static_cast<int64_t>(end))});
   return true;
 }

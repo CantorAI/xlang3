@@ -18,10 +18,12 @@ limitations under the License.
 
 namespace xlang3 {
 
-// Bump the third byte whenever serialized IR op encodings or marshal layouts
-// change. Source caches otherwise remain structurally readable but can execute
-// with the wrong instruction meanings after an enum change.
-inline constexpr char kPycMagic[4] = {'O', 'X', '\x0e', '\n'};
+// Bump for changed IR encodings, marshal layouts or lowering semantics. 0x14
+// invalidates pre-live-annotation class IR that remains structurally readable
+// but computes class-body __slots__ from a stale module __annotations__ map.
+// Structurally readable source caches can still retain obsolete owner lifetimes
+// (for example a completed synthetic class frame) after a compiler correction.
+inline constexpr char kPycMagic[4] = {'O', 'X', '\x14', '\n'};
 inline constexpr std::string_view kPycMagicView{kPycMagic, sizeof(kPycMagic)};
 
 } // namespace xlang3

@@ -1,0 +1,47 @@
+{
+  "status": "scratch_only_r3_incremental_not_applied_not_built_not_run",
+  "head": "e2a752f62227ef1088236c68d6a08e480323e112",
+  "based_on": "Applied inherited R2; build 77574 exit0, no runtime/measurement",
+  "parent_r2_patch_sha256": "1452f7291f98998e765ab764010e8a5f0fc7f6038ee30b5fc5a090ee63e53e71",
+  "apply_check_exit": 0,
+  "targets": [
+    {
+      "path": "src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "source_sha256_before": "e46f56b0abefa21760a65fa18e9e81dcdf7dcd892f38ea58d59b567108704f2f",
+      "source_sha256_after": "e46f56b0abefa21760a65fa18e9e81dcdf7dcd892f38ea58d59b567108704f2f",
+      "source_copy": "scratch/performance/inherited-slot-proof-r3-incremental-20261008-sources/src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "candidate_copy": "scratch/performance/inherited-slot-proof-r3-incremental-20261008-candidates/src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "candidate_sha256": "a65817da76f797cfaf3a35b3fbf9eddf30ae0aefa8514aea22b9fd031914e7a8"
+    },
+    {
+      "path": "tests/cpp/canonical_slot_read_cases.h",
+      "source_sha256_before": "b2c25865e6d0335b7cd3ba28cfca544c04af503c9262838a32a2973a37a2ba2e",
+      "source_sha256_after": "b2c25865e6d0335b7cd3ba28cfca544c04af503c9262838a32a2973a37a2ba2e",
+      "source_copy": "scratch/performance/inherited-slot-proof-r3-incremental-20261008-sources/tests/cpp/canonical_slot_read_cases.h",
+      "candidate_copy": "scratch/performance/inherited-slot-proof-r3-incremental-20261008-candidates/tests/cpp/canonical_slot_read_cases.h",
+      "candidate_sha256": "69ea4cad0d2a500ef863ecd0122665286f8a0490be9e5fceec41805e19d4e2a1"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "scratch/performance/inherited-slot-proof-r3-incremental-20261008.patch",
+      "bytes": 5464,
+      "sha256": "1cd96169bcd6bdd46d7d5ac8b2d34abfb11d2e74ea37ab19d59018df99e8ab24"
+    },
+    {
+      "path": "scratch/performance/inherited-slot-proof-r3-incremental-20261008-apply-check.log",
+      "bytes": 110,
+      "sha256": "4d57fe326f3370bc96451f21345307282a75bd16960248badc3101bbebf52465"
+    },
+    {
+      "path": "scratch/performance/prepare-inherited-slot-proof-r3-incremental-20261008.ps1",
+      "bytes": 4885,
+      "sha256": "a3c9abee299619c028ab4785030cb20d35556a9e6b00abb57bbff74d61e150a3"
+    },
+    {
+      "path": "scratch/performance/inherited-slot-proof-displaced-CPP-20261008.h",
+      "bytes": 3716,
+      "sha256": "dc2882e1145cd8595105049bed21a4243545843764c3bdec6a1a1967eb8c0e4f"
+    }
+  ]
+}

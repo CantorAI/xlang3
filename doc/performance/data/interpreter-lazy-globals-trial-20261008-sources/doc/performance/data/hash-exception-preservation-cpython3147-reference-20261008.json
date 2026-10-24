@@ -1,0 +1,15 @@
+{
+  "status": "terminal",
+  "exit_code": 0,
+  "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\hash-exception-fixture-proposed-20261008.py",
+  "source_sha256": "5cbef9d45a4d1b5d9f7dfa5121abfde01651e5865422afe197d975856dafcbf7",
+  "cpython_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "stdout_sha256": "d6b626f45bea180d87ae227099885d951f70f580a03bd5254a45c42b6379e859",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stdout_lines": [
+    "hash exception identity cause traceback and active context preserved",
+    "hash preserves BaseException callbacks",
+    "hash keeps TypeError and ValueError fallbacks"
+  ],
+  "diagnostic_only": true
+}

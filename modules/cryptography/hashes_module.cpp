@@ -469,5 +469,7 @@ X3Status register_openssl_hashes_module(X3Module* root,
     return X3_STATUS_ERROR;
   if (register_openssl_x25519_module(openssl, state) != X3_STATUS_OK)
     return X3_STATUS_ERROR;
-  return register_openssl_ciphers_module(openssl, state);
+  if (register_openssl_ciphers_module(openssl, state) != X3_STATUS_OK)
+    return X3_STATUS_ERROR;
+  return register_openssl_aead_module(openssl, state);
 }

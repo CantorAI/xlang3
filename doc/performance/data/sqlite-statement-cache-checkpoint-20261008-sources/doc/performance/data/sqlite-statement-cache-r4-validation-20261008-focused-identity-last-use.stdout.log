@@ -1,0 +1,7 @@
+module weakref observation does not retain the external owner: OK
+straight and fused identity comparisons preserve finalizer order: OK
+live local aliases and recreated loop results retain correct ownership: OK
+temporary finalizers can reenter collection and resurrect their object: OK
+finalizer failures preserve the handled exception and unraisable hook: OK
+trace and profile retain identity temporary lifetime semantics: OK
+identity finalizers preserve CPython monitoring phases: OK

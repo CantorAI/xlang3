@@ -1,0 +1,28 @@
+{
+  "status": "frozen_scratch_only_unparsed_unexecuted_numeric_reference_derivative",
+  "controller": "scratch/performance/capture-dict-numeric-isolated-cpython3147-s8-reference-proposed-20261008.py",
+  "controller_sha256": "bae94d263bcfdc9a5930fd2451496c62213e59ee7a178b00450fa54a612f3bda",
+  "preserved_base": "scratch/performance/capture-frame-locals-retained-cpython3147-s8-reference-proposed-20261008.py",
+  "preserved_base_sha256": "ddaf17c09f6460ef28845169a587ddce3f9c5a6cf6fc9e6183f9a4ec22c46ec9",
+  "generator": "scratch/performance/prepare-dict-numeric-isolated-reference-proposed-20261008.ps1",
+  "generator_sha256": "08f542e0d8143a3e0fa56e6a3e5b0638c00136d192d904a45b6043fa2991bcbf",
+  "isolation_provenance": "scratch/performance/dict-numeric-prerequisites-isolation-provenance-proposed-20261008.json",
+  "isolation_provenance_sha256": "344c42dc2987161eab830b2a41077a17b59c36d05b844034047c82995dc96769",
+  "original_strict_reference_sha256": "2266464a276cf086c990441426b8f3f2de6173828e9f1bc2e9c0f2c590d8692e",
+  "planned_child_order": [
+    "cpython3147-equivalent2",
+    "cpython3147-subclass1",
+    "preserved_s8-equivalent2",
+    "preserved_s8-subclass1"
+  ],
+  "child_count": 4,
+  "timeout_seconds_per_child": 120,
+  "current_source_count": 110,
+  "current_release_count": 178,
+  "control_manifest_sha256": "67449b0b9ecd5a1b4c9669acef85d8b89eb28c7b31df60b7a4653ad5a7c79b56",
+  "scope": "Separate strict diagnostic coverage of original CP-passed numeric groups never reached by S8; not retry/rescue/changed expectations or implementation",
+  "preserved": "Original d26 fixture/364 output/226 failed capture stay byte-identical; exact body/prelude/transcript slices checked at manager preflight",
+  "guard": "Executed ddaf/ad44 untimed MSBuild Name/PID logging only; all other compiler/runtime scanner guards, serialized children and before/after full pins unchanged",
+  "failures": "CP failure stops; ordinary S8 behavior failures retained independently and second S8 case attempted once; no expected output replacement/retries",
+  "no_ast_interpreter_build_benchmark_or_live_source_changes": true
+}

@@ -1,0 +1,42 @@
+{
+  "schema": "numeric-ir-r7-gate-refusal-telemetry-only",
+  "status": "frozen_static_only_root_AST_review_and_guarded_execution_pending",
+  "controller": "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r7-gate-telemetry-proposed-20261010.py",
+  "controller_sha256": "34f9e66330bbf8f3a674c8fc4448c494f3f9b3da4e84eca25b356c5bf0b3231e",
+  "parent_controller": "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r6-gate-proposed-20261010.py",
+  "parent_controller_sha256": "3594485de646a5754d80734c01b4c6ad0bbcac5d2d637ab54330b61033957d63",
+  "parent_provenance_sha256": "608703a332f6e4404670d1bc1e63104b9aa4c9a4b6b445926e52359bb5acaba2",
+  "input_sha256": {
+    "scratch/performance/gc-phase-dormant-msbuild-activity-watch-20261009.py": "6dea8abf4f66ff0d2a95830e4c560202359c57502f0f635ecf9e1dda5494bd48",
+    "doc/performance/data/two-argument-double-ir-plan-r7-fixed-gate-20261010.json": "28eef3ce29816d4ee1c9f16e0aba5bee93fc38df42a1286ef8e72d06b786737b",
+    "doc/performance/data/two-argument-double-ir-plan-r7-fixed-gate-20261010-fixed-gate.external-process-observations.jsonl": "2805a4a04e28d121d87627f3826053b93465557a049c7906ee8d7c45c30d3de5",
+    "doc/performance/data/two-argument-double-ir-plan-r6-correctness-20261010.json": "7a801dbc1c39e3156d24096a2f2fec80e7857519808ce313b65db99392346e85"
+  },
+  "observed_failure": {
+    "time": 1791613887.7322822,
+    "message": "RuntimeError('Known worker identity/CPU changed or its PID was reused')",
+    "proof_sha256": "d59283104007bc45fdd83e994e40089d5c54fd840402e1c280c0190268984893",
+    "scope": "Existing failed sample has only timestamp/error. Later matching worker/console snapshots do not determine what differed or recertify this invalid gate."
+  },
+  "bounded_delta": [
+    "Retain the exact same already-scanned rows in a local before unchanged classify; no new scan.",
+    "On the exact dormant-refusal message only, add expected/observed worker row(s), complete seven-field values/types/equality results, parent-PID rows, observed direct children, expected-child PID rows and seven-field child comparisons.",
+    "Telemetry generation errors are separately logged. Original scanner_error remains in the same errors list and timing stays invalid.",
+    "No admission/identity/CPU/PID-parent normalization, reset, exemptions, retries, old-result reclassification, workload or source/authentication change."
+  ],
+  "limitations": [
+    "Whole worker-row omission is accepted by unchanged guard; missing known console alone is accepted by unchanged helper. This telemetry records those distinctions rather than labeling them failures.",
+    "The worker parent check uses any matching parent PID, without original-parent lifetime metadata. A reused parent PID is a possible refusal reason, not an established cause of the retained failure.",
+    "One-second snapshots and native CIM field quality remain existing limits. This is evidence capture only.",
+    "Same fresh7a801 correctness/current145/Release178/baseline177 and default11/21repeats/5warmup/.10 remain mandatory."
+  ],
+  "root_execution": "Same R6 CLI arguments plus a fresh output prefix; optional new worker proof path+SHA remains independently authenticated. Root alone performs AST and guarded launch.",
+  "author_actions": {
+    "Python_AST": false,
+    "runtime_tests_benchmarks": false,
+    "compile_build": false,
+    "process_scans": false,
+    "engine_test_Git_edits": false,
+    "scratch_only": true
+  }
+}

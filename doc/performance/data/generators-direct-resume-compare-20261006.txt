@@ -1,0 +1,2 @@
+pyperf compare_to --table control.json candidate.json:
+Benchmark hidden because not significant (1): generators

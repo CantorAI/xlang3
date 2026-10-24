@@ -1,0 +1,40 @@
+{"variant": "xml", "repeat": 20, "diagnostic_elapsed_seconds": 19.879727899999125, "characters": 112017, "rows": 1000, "cells": 10000, "sha256_utf8": "61096eb9fee3ea72a4615a57e653bca545efacbad8aa8d522bb954d66d9421bc", "profile": []}
+exit=0 samples=3540 unavailable=20 output=D:\CantorAI\xlang3\doc\performance\data\genshi-render-xml-native-body-20261007.json
+   117 tid=5680 C:\WINDOWS\SYSTEM32\ntdll.dll+0x274bd
+    69 tid=5680 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x32ad
+    57 tid=5680 C:\WINDOWS\System32\ucrtbase.dll+0xed924
+    52 tid=5680 C:\WINDOWS\SYSTEM32\ntdll.dll+0x1cd63
+    44 tid=5680 C:\WINDOWS\SYSTEM32\ntdll.dll+0x275fc
+    34 tid=5680 C:\WINDOWS\SYSTEM32\ntdll.dll+0x3a14e
+    31 tid=5680 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x8778dc
+    28 tid=5680 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x779bee
+    28 tid=5680 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x5a6844
+    26 tid=5680 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x4bd5ca
+    25 tid=5680 C:\WINDOWS\SYSTEM32\ntdll.dll+0x3940b
+    24 tid=5680 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0xc97df
+    23 tid=5680 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x8764a0
+    22 tid=5680 C:\WINDOWS\System32\ucrtbase.dll+0xed902
+    22 tid=5680 C:\WINDOWS\SYSTEM32\ntdll.dll+0x26fbd
+    21 tid=5680 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x761be1
+    20 tid=5680 C:\WINDOWS\System32\ucrtbase.dll+0xed934
+    20 tid=5680 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x5a681f
+    19 tid=5680 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x5a6855
+    16 tid=5680 D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3_runtime.dll+0x6f641f
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\astutil.py:799: DeprecationWarning: Expression.__init__ missing 1 required positional argument: 'body'. This will become an error in Python 3.15.
+  return visitor(node)
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\astutil.py:799: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.
+  return visitor(node)
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\eval.py:589: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.
+  name = _new(_ast.Name, '_lookup_name', _ast.Load())
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\eval.py:590: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.
+  namearg = _new(_ast.Name, '__data__', _ast.Load())
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\eval.py:591: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.
+  strarg = _new(_ast_Str, node.id)
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\eval.py:592: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.
+  node = _new(_ast.Call, name, [namearg, strarg], [])
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\eval.py:609: DeprecationWarning: Name.__init__ missing 1 required positional argument: 'id'. This will become an error in Python 3.15.
+  func = _new(_ast.Name, '_lookup_attr', _ast.Load())
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\eval.py:610: DeprecationWarning: Constant.__init__ missing 1 required positional argument: 'value'. This will become an error in Python 3.15.
+  args = [self.visit(node.value), _new(_ast_Str, node.attr)]
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\genshi\template\eval.py:611: DeprecationWarning: Call.__init__ missing 1 required positional argument: 'func'. This will become an error in Python 3.15.
+  return _new(_ast.Call, func, args, [])

@@ -23,6 +23,7 @@ limitations under the License.
 #include <limits>
 #include <numeric>
 #include <utility>
+#include <vector>
 
 namespace xlang3 {
 
@@ -59,6 +60,47 @@ bool require_number_arg(const Value& value, const char* name, double& out, std::
   }
   error = std::string(name) + "() argument must be a number";
   return false;
+}
+
+bool math_log_value(const Value& value, double& out, std::string& error) {
+  if (value_as_bigint(value) != nullptr) {
+    bool negative = false;
+    const uint32_t* limbs = nullptr;
+    uint32_t count = 0;
+    if (!value_bigint_limb_view(value, negative, limbs, count) || count == 0 || negative) {
+      error = "math domain error";
+      return false;
+    }
+    uint32_t high_bits = 0;
+    for (uint32_t high_limb = limbs[count - 1]; high_limb != 0; high_limb >>= 1u) {
+      ++high_bits;
+    }
+    const uint64_t bit_count = static_cast<uint64_t>(count - 1) * 32u + high_bits;
+    const uint32_t kept_bits = static_cast<uint32_t>(bit_count < 53u ? bit_count : 53u);
+    const uint64_t shift = bit_count - kept_bits;
+    uint64_t leading = 0;
+    // CPython's math.log accepts arbitrary-size integers. Read only the top
+    // 53 bits needed for a double mantissa; converting the full BigInt through
+    // a decimal string would allocate and scan every digit on this native path.
+    for (uint64_t bit = bit_count; bit > shift;) {
+      --bit;
+      leading = (leading << 1u) | ((limbs[bit / 32u] >> (bit % 32u)) & 1u);
+    }
+    const double mantissa = std::ldexp(
+        static_cast<double>(leading), -static_cast<int>(kept_bits - 1u));
+    constexpr double kLn2 = 0.693147180559945309417232121458176568;
+    out = std::log(mantissa) + static_cast<double>(bit_count - 1u) * kLn2;
+    return true;
+  }
+
+  double number = 0.0;
+  if (!require_number_arg(value, "log", number, error)) return false;
+  if (number <= 0.0) {
+    error = "math domain error";
+    return false;
+  }
+  out = std::log(number);
+  return true;
 }
 
 bool unary_math(const char* name, double (*fn)(double), const Value* args, uint32_t argc, Value& out, std::string& error) {
@@ -112,6 +154,19 @@ bool math_modf(Runtime&, const Value* args, uint32_t argc, Value& out, std::stri
   double integral = 0.0;
   const double fractional = std::modf(value, &integral);
   out = Value::tuple({Value::number(fractional), Value::number(integral)});
+  return true;
+}
+
+bool math_frexp(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  if (argc != 1) {
+    error = "frexp() expected 1 argument";
+    return false;
+  }
+  double value = 0.0;
+  if (!require_number_arg(args[0], "frexp", value, error)) return false;
+  int exponent = 0;
+  const double mantissa = std::frexp(value, &exponent);
+  out = Value::tuple({Value::number(mantissa), Value::int64(exponent)});
   return true;
 }
 
@@ -221,23 +276,28 @@ bool math_log(
     Value& out,
     std::string& error,
     void* user_data) {
-  (void)runtime;
   (void)user_data;
   if (argc < 1 || argc > 2) {
     error = "log() expected 1 or 2 arguments";
     return false;
   }
-  double value = 0.0;
-  if (!require_number_arg(args[0], "log", value, error)) {
+  double result = 0.0;
+  if (!math_log_value(args[0], result, error)) {
+    if (error == "math domain error") runtime.raise_class_error("ValueError", error);
     return false;
   }
-  double result = std::log(value);
   if (argc == 2) {
-    double base = 0.0;
-    if (!require_number_arg(args[1], "log", base, error)) {
+    double log_base = 0.0;
+    if (!math_log_value(args[1], log_base, error)) {
+      if (error == "math domain error") runtime.raise_class_error("ValueError", error);
       return false;
     }
-    result /= std::log(base);
+    if (log_base == 0.0) {
+      error = "math domain error";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    result /= log_base;
   }
   value_set_number(out, result);
   return true;
@@ -253,24 +313,31 @@ bool math_log_fast(
     Value& out,
     std::string& error,
     void* user_data) {
-  (void)runtime;
   (void)user_data;
   const uint32_t argc = leading_count + register_arg_count;
   if (argc < 1 || argc > 2) {
     error = "log() expected 1 or 2 arguments";
     return false;
   }
-  double value = 0.0;
-  if (!fast_number_arg_at("log", leading, leading_count, registers, register_args, register_arg_count, 0, value, error)) {
+  double result = 0.0;
+  if (!math_log_value(
+          fast_arg(leading, leading_count, registers, register_args, 0), result, error)) {
+    if (error == "math domain error") runtime.raise_class_error("ValueError", error);
     return false;
   }
-  double result = std::log(value);
   if (argc == 2) {
-    double base = 0.0;
-    if (!fast_number_arg_at("log", leading, leading_count, registers, register_args, register_arg_count, 1, base, error)) {
+    double log_base = 0.0;
+    if (!math_log_value(
+            fast_arg(leading, leading_count, registers, register_args, 1), log_base, error)) {
+      if (error == "math domain error") runtime.raise_class_error("ValueError", error);
       return false;
     }
-    result /= std::log(base);
+    if (log_base == 0.0) {
+      error = "math domain error";
+      runtime.raise_class_error("ValueError", error);
+      return false;
+    }
+    result /= log_base;
   }
   value_set_number(out, result);
   return true;
@@ -555,6 +622,10 @@ bool math_erfc(Runtime& runtime, const Value* args, uint32_t argc, Value& out, s
   return unary_math("erfc", std::erfc, args, argc, out, error);
 }
 
+bool math_erf(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
+  return unary_math("erf", std::erf, args, argc, out, error);
+}
+
 bool math_tan(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   return unary_math("tan", std::tan, args, argc, out, error);
 }
@@ -812,6 +883,51 @@ bool math_iteration_count(Runtime& runtime, const Value& value, uint64_t& count,
   return false;
 }
 
+bool math_factorial_owned_limbs(uint32_t count, Value& out, std::string& error) {
+  // math.factorial is a native CPython function, so its XLang3 counterpart
+  // can compute directly on private limbs. The former Value multiply loop
+  // cloned both operands and published a new bigint at every step; factorial
+  // has no observable intermediate results or Python arithmetic callbacks.
+  // Keep this accumulator private and publish only the final immutable Value.
+  std::vector<uint32_t> limbs;
+  limbs.reserve(8);
+  limbs.push_back(1);
+  auto multiply_chunk = [&limbs](uint32_t factor) {
+    uint64_t carry = 0;
+    for (uint32_t& limb : limbs) {
+      const uint64_t product = static_cast<uint64_t>(limb) * factor + carry;
+      limb = static_cast<uint32_t>(product);
+      carry = product >> 32u;
+    }
+    if (carry != 0) limbs.push_back(static_cast<uint32_t>(carry));
+  };
+
+  // Batch consecutive factors while their product fits a 32-bit multiplier.
+  // The test product fits uint64_t because each operand is at most UINT32_MAX;
+  // it avoids a division in each iteration and reduces full-limb traversals.
+  uint64_t chunk = 1;
+  for (uint64_t factor = 2; factor <= count; ++factor) {
+    const uint64_t next = chunk * factor;
+    if (next > std::numeric_limits<uint32_t>::max()) {
+      multiply_chunk(static_cast<uint32_t>(chunk));
+      chunk = factor;
+    } else {
+      chunk = next;
+    }
+  }
+  multiply_chunk(static_cast<uint32_t>(chunk));
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_BIG_ENDIAN__
+  // The existing bigint import API takes little-endian limb bytes, even on
+  // a big-endian host; it converts those bytes back to native limb storage.
+  for (uint32_t& limb : limbs) {
+    limb = (limb << 24u) | ((limb & 0x0000ff00u) << 8u) |
+        ((limb & 0x00ff0000u) >> 8u) | (limb >> 24u);
+  }
+#endif
+  return value_bigint_from_binary_limbs(limbs.data(), limbs.size() * sizeof(uint32_t),
+                                        false, out, error);
+}
+
 bool math_factorial(Runtime& runtime, const Value* args, uint32_t argc,
                     Value& out, std::string& error, void*) {
   if (argc != 1) {
@@ -825,6 +941,26 @@ bool math_factorial(Runtime& runtime, const Value* args, uint32_t argc,
     return false;
   uint64_t count = 0;
   if (!math_iteration_count(runtime, n, count, error)) return false;
+  // CPython uses the platform C long range before doing any factorial work.
+  // In particular, Windows must reject 2**31 rather than enter a huge loop.
+  if (count > static_cast<uint64_t>(std::numeric_limits<long>::max())) {
+    error = "factorial() argument should not exceed " +
+        std::to_string(std::numeric_limits<long>::max());
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
+  static constexpr int64_t small_factorials[] = {
+      1, 1, 2, 6, 24, 120, 720, 5040, 40320, 362880, 3628800, 39916800,
+      479001600, 6227020800LL, 87178291200LL, 1307674368000LL,
+      20922789888000LL, 355687428096000LL, 6402373705728000LL,
+      121645100408832000LL, 2432902008176640000LL};
+  if (count <= 20) {
+    out = Value::int64(small_factorials[count]);
+    return true;
+  }
+  if (count <= std::numeric_limits<uint32_t>::max())
+    return math_factorial_owned_limbs(static_cast<uint32_t>(count), out, error);
+  // On platforms with 64-bit C long, preserve the wider accepted input range.
   Value result = Value::int64(1);
   for (uint64_t i = 2; i <= count; ++i) {
     Value product;
@@ -1062,6 +1198,7 @@ void register_math_module(Runtime& runtime) {
       .function("isqrt", math_isqrt)
       .function("sqrt", math_sqrt, math_sqrt_fast)
       .function("hypot", math_hypot)
+      .function("erf", math_erf)
       .function("erfc", math_erfc)
       .function("tan", math_tan)
       .function("cosh", math_cosh)
@@ -1070,6 +1207,7 @@ void register_math_module(Runtime& runtime) {
       .function("fsum", math_fsum)
       .function("sumprod", math_sumprod)
       .function("modf", math_modf)
+      .function("frexp", math_frexp)
       .function("sin", math_sin, math_sin_fast)
       .function("cos", math_cos, math_cos_fast)
       .function("sinh", [](Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {

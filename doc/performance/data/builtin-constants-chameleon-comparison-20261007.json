@@ -1,0 +1,15 @@
+{
+  "benchmark": "chameleon",
+  "xlang3_seconds": 0.17806827999738745,
+  "cpython3147_saved_seconds": 0.01185077124991949,
+  "cpython_over_xlang3_speed": 0.06655183758776892,
+  "xlang3_over_cpython_time": 15.025881121331846,
+  "xlang3_values": 20,
+  "cpython_values": 20,
+  "nominal_fast_mode": true,
+  "input_sha256": {
+    "pyperformance-xlang3-builtin-constants-chameleon-fast-20261007.json": "c82bafab62804f06987b663e394a661f0c478eb569d3079da4cf92dbde539739",
+    "pyperformance-cpython314-clean-release-full-fast-20261002.json": "0543fa675730f019f2c9b54c18d07ae7777d2edc15e9eed60d98a3179e949dc5"
+  },
+  "cpython_reference_provenance_limits": "cpython3147-saved-reference-provenance-audit-20261007.json"
+}

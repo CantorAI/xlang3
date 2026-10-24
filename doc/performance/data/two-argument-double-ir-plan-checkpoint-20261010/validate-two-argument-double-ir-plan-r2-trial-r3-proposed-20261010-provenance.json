@@ -1,0 +1,53 @@
+{
+  "schema": "two-argument-double-ir-plan-r2-validation-controller-r3-resume",
+  "status": "scratch_frozen_pending_root_AST_and_independent_static_review",
+  "controller": "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r3-proposed-20261010.py",
+  "controller_sha256": "f55f7b665a760ac6ccfca68b25b00dbf2ee8bad229bb0127c5b669103fdf32cb",
+  "input_sha256": {
+    "scratch/performance/two-argument-double-ir-plan-engine-r2-fixture-r3-proposed-20261009-provenance.json": "6a6a7a42f6564e0905454206060c9a25449c0ee89e45050618ecb73a38eca26f",
+    "scratch/performance/two-argument-double-ir-plan-r2-proposed-20261009.patch": "da97037a0d0ae7c764b17bcc9e4784b36f7b73265a8186f268e57c0f95ad8bfa",
+    "scratch/performance/apply-build-two-argument-ir-trial-20261010.py": "5c4a908179c03658b7462748df99b6a7d01103d01c9bdf23ab0c1e7c6b3d172d",
+    "scratch/performance/gc-phase-dormant-msbuild-activity-watch-20261009.py": "6dea8abf4f66ff0d2a95830e4c560202359c57502f0f635ecf9e1dda5494bd48",
+    "benchmarks/check_regression.py": "579934598caddc37409fed03181b0cd42408853a34bde65dff48b777e4e8ffef",
+    "doc/performance/data/two-argument-double-ir-plan-r2-trial-20261010-application.json": "a68a609265662e89d8657a13bf00fde0ca174e4661122a7ab0e810705a4ecaac",
+    "doc/performance/data/two-argument-double-ir-plan-r2-trial-20261010-build.json": "ba14f17d762bf33ad703cf31914b2feb06d0bc938d8774a7c8a858cf4aa79f9e",
+    "doc/performance/data/two-argument-double-ir-plan-r3-reference-20261010.json": "982014bca87d3712a170c0fcc455701555746864cb614ecd08afd27dd092fe58",
+    "doc/performance/data/two-argument-double-ir-plan-r2-candidate-semantic-20261010.json": "606237d0aad9954aaef56050e134eca4f99d32b775c8d5883407a884d153d588",
+    "scratch/performance/validate-two-argument-double-ir-plan-r2-proposed-20261010.py": "63ed8e37a6675b5e4060c64b7c9629f8cd480d1a0076a2f7c4234f4e0c34d9d4",
+    "scratch/performance/validate-two-argument-double-ir-plan-r2-proposed-20261010-provenance.json": "badcedef378b906a9b9f9a7c0d6c3c3838900b3c7bed3c8db7237ef3f44450f0",
+    "doc/performance/data/two-argument-double-ir-plan-r2-correctness-20261010.json": "c93d9d9dba1c773ff32a3ddee3ef1983106e047c5d0b9f89f876a32c5fee3bca",
+    "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r2-proposed-20261010.py": "12e55668617a9efdd8833d3a2a28713d7175bb4934417d38c1d81edbb1e87400",
+    "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r2-proposed-20261010-provenance.json": "3c6ccf886906f922e906f6f9c005b992ea7ffa3ef504147d0c25aff78e946219",
+    "doc/performance/data/two-argument-double-ir-plan-r3-correctness-20261010.json": "17d1c5415aeb1f39b9d7ff8f48f42d0abbc89e2179c8cf1510c0432af522b881",
+    "doc/performance/data/two-argument-double-ir-plan-r3-correctness-20261010-python-fixtures.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/two-argument-double-ir-plan-r3-correctness-20261010-python-fixtures.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/two-argument-double-ir-plan-r3-correctness-20261010-python-fixtures.external-process-observations.jsonl": "9071a0346a42eba9cf5059bced8a4d0f41d2d23b6cfed3706af07c8d80ee255d"
+  },
+  "execution_by_author": false,
+  "ast_or_compile_by_author": false,
+  "live_source_mutations_by_author": false,
+  "scope": "Root-only same-candidate fixture-semantic resume, fresh all55 CTest/API2 and separately mandatory default gate. No build, retry, staging or timing recertification.",
+  "source_population": "Preserved143 inputs plus two registered fixture files equals145; exact changed subset is three engine headers and two runner registrations. Before-map preserves the explicit PowerShell harness overlay; debugpy remains separately protected.",
+  "standalone_semantics": "Authenticate actual current candidate606237d0 plus CP3.14.7 reference982014bc and their raw eight-group outputs. No repeat child.",
+  "correctness": "Authenticate the exact17d1 failed R2 receipt: new-candidate full407/11/3 already exited0 with both streams empty and all inputs unchanged. Its sole rejection was birth-pinned owned conhost8080 after primary27852 exited. Preserve original passed/watch flags false, independently prove both PIDs absent now, add semantic_passed plus the new cleanup receipt, then execute fresh all55 inventory/CTest/API2. No whole-Python repeat.",
+  "gate": "Requires same-controller/same-candidate successful correctness receipt, rehashes all inputs and raw logs, then the unchanged default11 check_regression.py with21 repeats/5 warmup/.10 threshold. Canonical built-in confirmation policy is unchanged; controller performs no extra retries.",
+  "process_policy": "Untimed correctness records foreign build/CTest/runtime CPU activity without rejecting a semantic result for CPU overlap; measurement_valid=false and timing_accepted=false. Scanners, actual outputs, source/test/current/baseline hashes and owned process cleanup remain mandatory. Timed gate keeps strict pre/watch/post policy without dormant exceptions.",
+  "cleanup": "Original owned process-group cleanup remains. Future phases additionally observe/wait up to10s only for known conhost helpers to retire, retaining strict foreign observations, scanner failures and final survivor checks. No helper kill, exemption or foreign timing allowance.",
+  "limits": [
+    "No actual output or gate validation claimed until root executes.",
+    "One-second snapshots can miss an unrelated short-lived process wholly between polls.",
+    "An official affected benchmark and optimization eligibility evidence are separate prerequisites for a speed or checkpoint acceptance claim.",
+    "The original full Python fixture command also appears in all55 CTest; both are explicitly fresh as requested."
+  ],
+  "commands": [
+    "C:/Python/Python314/python.exe -I scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r3-proposed-20261010.py --mode correctness --resume-fixture-receipt doc/performance/data/two-argument-double-ir-plan-r3-correctness-20261010.json --resume-fixture-sha256 17d1c5415aeb1f39b9d7ff8f48f42d0abbc89e2179c8cf1510c0432af522b881 --application doc/performance/data/two-argument-double-ir-plan-r2-trial-20261010-application.json --application-sha256 a68a609265662e89d8657a13bf00fde0ca174e4661122a7ab0e810705a4ecaac --build doc/performance/data/two-argument-double-ir-plan-r2-trial-20261010-build.json --build-sha256 ba14f17d762bf33ad703cf31914b2feb06d0bc938d8774a7c8a858cf4aa79f9e --prefix two-argument-double-ir-plan-r4-correctness-20261010",
+    "C:/Python/Python314/python.exe -I scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r3-proposed-20261010.py --mode gate --application doc/performance/data/two-argument-double-ir-plan-r2-trial-20261010-application.json --application-sha256 a68a609265662e89d8657a13bf00fde0ca174e4661122a7ab0e810705a4ecaac --build doc/performance/data/two-argument-double-ir-plan-r2-trial-20261010-build.json --build-sha256 ba14f17d762bf33ad703cf31914b2feb06d0bc938d8774a7c8a858cf4aa79f9e --correctness-receipt doc/performance/data/two-argument-double-ir-plan-r4-correctness-20261010.json --correctness-sha256 ROOT_ACTUAL_TERMINAL_SHA --prefix two-argument-double-ir-plan-r4-fixed-gate-20261010"
+  ],
+  "bounded_delta": [
+    "Known R2 full-Python output-only success is inherited with exact command, cap, raw streams, input maps and old failed watcher authentication.",
+    "Old owner27852 and console8080 must be absent in a new healthy CIM scan; their exact original creation identities are retained.",
+    "All original false passed/observation_valid/measurement_valid/timing_accepted flags remain in the inherited row; semantic_passed and independent cleanup proof are separate.",
+    "Fresh all55/API2 and future gate remain mandatory. Gate authenticates only this exact inherited semantic exception, all fresh phase results and unchanged source/current/baseline maps.",
+    "Future console-only cleanup wait is bounded, observable and does not admit foreign processes or surviving owners."
+  ]
+}

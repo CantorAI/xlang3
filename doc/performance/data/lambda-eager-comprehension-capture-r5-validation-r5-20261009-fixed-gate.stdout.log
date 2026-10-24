@@ -1,0 +1,12 @@
+local_slots              pass         0.989x
+scalar_arithmetic        pass         1.002x
+range_for                pass         1.016x
+function_calls           pass         1.028x
+class_construct          pass         1.006x
+list_append              pass         0.979x
+property_access          pass         0.956x
+deepcopy_memo            pass         0.906x
+json_dumps               pass         1.010x
+gc_traversal             pass         0.756x
+subparsers               pass         0.914x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\lambda-eager-comprehension-capture-r5-validation-r5-20261009-fixed-gate.json

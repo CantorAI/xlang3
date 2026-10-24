@@ -1,0 +1,17 @@
+{
+  "status": "build_completed",
+  "terminal": true,
+  "exit_code": 0,
+  "exec_session_id": 63591,
+  "working_directory": "D:/CantorAI/xlang3",
+  "command": ["cmd.exe", "/d", "/c", "scratch\\performance\\build-frame-locals-retirement-r4-20261008.cmd"],
+  "wrapper": "scratch/performance/build-frame-locals-retirement-r4-20261008.cmd",
+  "wrapper_sha256": "2856a414d0f760757daba4b880953bd5bc4b68dd9ed51dc17b6624d6ae1a70ef",
+  "build_log": "doc/performance/data/frame-locals-retirement-r4-build-20261008.log",
+  "build_log_sha256": "d6f11dc2d3457b547d6d9bfa1435776801ea7da21f4665f706ee14ab739f16b1",
+  "application_receipt": "doc/performance/data/frame-locals-retirement-s8-application-20261008-applied-source.json",
+  "application_receipt_sha256": "dc563e2b363dc3992a2c8b323e0f59e953749a715bb4ec97264ef1fa846ab153",
+  "validation_completed": false,
+  "scored": false,
+  "scope": "One build using the existing Visual C++ environment and Ninja build directory; no configuration or run path change. Terminal process result is recorded from the root tool, not inferred from log text."
+}

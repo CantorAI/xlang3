@@ -1,0 +1,7 @@
+heapq-not-implemented-reflected ['new-lt', 'parent-gt']
+heapq-special-lookup-ignores-instance ['class']
+heapq-cache-does-not-own-method True
+heapq-inherited-method-mutation ['base-old', 'base-new']
+heapq-method-deletion-invalidates-cache True
+heapq-method-mutation-during-operation 1 7
+heapq-descriptor-fallback ['get']

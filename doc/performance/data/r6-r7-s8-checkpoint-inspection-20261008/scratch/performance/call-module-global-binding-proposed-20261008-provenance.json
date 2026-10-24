@@ -1,0 +1,29 @@
+{
+  "status": "held_scratch_only_uncompiled_unexecuted_activation_global_binding_proposal",
+  "source_inventory": "D:/CantorAI/xlang3/doc/performance/data/class-constructor-plan-c5-applied-source-20261008.json",
+  "source_inventory_sha256": "69aaf03539202bbc7fced4dfe46df5f3a801a6d40b8e0360a68245de6ce71937",
+  "source_count": 106,
+  "raw_before_sha256": {
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "a84f771ff95698f27c5536bb8ce81d5de6f5c21c80c705f3933b5c13a2c35069"
+  },
+  "candidate_root": "D:/CantorAI/xlang3/scratch/performance/call-module-global-binding-proposed-20261008-candidates",
+  "input_root": "D:/CantorAI/xlang3/scratch/performance/call-module-global-binding-proposed-20261008-inputs",
+  "mapping": {
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "src/executor/xlang_vm/ops/xlang_vm_ops_call.h"
+  },
+  "candidate_source_sha256": {
+    "src/executor/xlang_vm/ops/xlang_vm_ops_call.h": "271ca4bff6ce954c262d8c7fa3d22fdf769de3ab3ffa77cdf6369bd1fce8210c"
+  },
+  "patch_sha256": "80dceda82870d0c377249b48bd00688b2dff1285d3700719cb9055bbaa4f81ce",
+  "preparer_sha256": "21d90fdf75a4d472bea7eb48704b701c81033c29dce16d4915443eac3a4f4487",
+  "held_note": "scratch/performance/call-module-global-slot-binding-source-note-20261008.md",
+  "held_note_sha256": "32ff1e34b5c3bbe377c48c0e960de4999da324b9feec4b78bedd8c27b4834799",
+  "git_apply_exact_check_exit": 0,
+  "git_apply_check_ignore_whitespace_exit": 0,
+  "all_actual_source_inputs_unchanged": true,
+  "compiler_runtime_ast_benchmark_executed": false,
+  "new_cache_fields_or_owners": false,
+  "cross_activation_global_persistence": false,
+  "scope": "Use existing per-site global kind1/index/version; same LoadModuleSlot validity checks; current live slot value only. Publish before callbacks. Existing CallMethod domain/pop global clearing and native/export/property/nonmodule/error/observer dispatch unchanged.",
+  "measured_gain": null
+}

@@ -1,0 +1,12 @@
+local_slots              pass         0.941x
+scalar_arithmetic        pass         1.012x
+range_for                pass         0.998x
+function_calls           pass         0.976x
+class_construct          pass         1.005x
+list_append              pass         0.987x
+property_access          pass         0.957x
+deepcopy_memo            pass         0.911x
+json_dumps               pass         1.001x
+gc_traversal             pass         0.758x
+subparsers               pass         0.931x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\release-bigint-operand-view-shorter-outer-fixed-gate-20261007.json

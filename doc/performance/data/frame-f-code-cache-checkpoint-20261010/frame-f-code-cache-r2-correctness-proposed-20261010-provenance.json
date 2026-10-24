@@ -1,0 +1,124 @@
+{
+  "schema": "frame-f-code-cache-r2-fresh-combined-correctness-v1",
+  "status": "frozen_scratch_root_execution_proposal_unexecuted",
+  "controller": "scratch/performance/check-frame-f-code-cache-r2-correctness-proposed-20261010.py",
+  "controller_sha256": "9c3cd1f0b60f1b8507df04d1789e3a8ddae722724c65a30a1dbc7ff856c123ff",
+  "input_sha256": {
+    "scratch/performance/validate-two-argument-double-ir-plan-r2-trial-r4-proposed-20261010.py": "cb4ab8ceba90b041b50d75326fc9af31e4a029672ec6a723b17d1c4cc5652de0",
+    "scratch/performance/apply-build-frame-f-code-cache-r2-proposed-20261010.py": "6964467891efcc7290702e04fd529f164834b247404231921216ec1882a0c31f",
+    "scratch/performance/gc-phase-dormant-msbuild-activity-watch-20261009.py": "6dea8abf4f66ff0d2a95830e4c560202359c57502f0f635ecf9e1dda5494bd48",
+    "scratch/performance/frame-f-code-lazy-cache-r2-proposed-20261010-provenance.json": "4b7da282acf73b4eb3da569a28268b5c262fa95270c818d4d4f078f3555afbb0",
+    "scratch/performance/frame-f-code-lazy-cache-r2-proposed-20261010.patch": "39e79918d7c249623e61357fff6e562d06dc2edbf29e1164dda7fa4c4e38afd9",
+    "scratch/performance/frame-f-code-preexisting-identity-metadata-probe-proposed-20261010.py": "6c27c8f42b72839186a5e0a6d1c31acda07e4486561008837756b69f117b74ea",
+    "scratch/performance/check-frame-f-code-r2-reference-20261010.py": "7258d2a456ce2f8ef6fc8612d9ed939d91a7d5cdc181e1b3d0b07d19ea29fab6",
+    "scratch/performance/check-frame-f-code-cache-candidate-20261010.py": "9ded1d5a0e0b24c3286b95c092aeca2f9fafdcdc11b89727b13150c1140290e8",
+    "doc/performance/data/frame-f-code-cache-r2-trial-20261010-application.json": "37f0cc99feec21b72481a257b287e92fb04ceb047f309aaaa6fe801338390f3a",
+    "doc/performance/data/frame-f-code-cache-r2-trial-20261010-build.json": "249f35338294c2e6a8e822ed107db3035e2c50b47b5dd46acdbfed26c607a081",
+    "doc/performance/data/frame-f-code-cache-r2-trial-20261010-build.log": "4698c375e40fabbe36485364a99eea64a57b51dcf94d5a607c0c96ebb7a2509e",
+    "doc/performance/data/frame-f-code-cache-r2-candidate-semantic-20261010.json": "dc9c6fd38888dbecb9ee4ef4be7d0d087a87d2a6414961f25086ced67eabcfb4",
+    "doc/performance/data/frame-f-code-r2-reference-20261010.json": "04a8c326a4393ad9ab7ee2dfc3c5d97e45a1c32d643aa378347cca5abacdb029",
+    "build-repro/controls/frame-f-code-cache-numeric-unaccepted-parent-20261010/provenance.json": "2674c32475d96a907fe3c6bc9bd9e49b28cf5700b16bde21617b53d4032d7b13",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-cpython3147-fixture.stdout.log": "662627d99430f8331aae3b72d1341eb5af3c3167a372084abcb73f5e5d9d5369",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-cpython3147-fixture.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-cpython3147-canonical.stdout.log": "964703e30578db98ba598285ecd4e5c8ac48044f7ab7588e0d18d9aabe8c96f4",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-cpython3147-canonical.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-cpython3147-assigned_metadata.stdout.log": "04f50e26aebdf6e51b21bf65c4bb12e5703c1fe97e4e50c20a3375b9b83360f1",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-cpython3147-assigned_metadata.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-accepted_xlang3-fixture.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-accepted_xlang3-fixture.stderr.log": "0a8d654070fe5e1fc196b23d6b75ec8254f7af99359adaa3c17fc9f31e008189",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-accepted_xlang3-canonical.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-accepted_xlang3-canonical.stderr.log": "89ac02ce3d0c6608ce9236847a3487aa13a85558c3626b393ec020925e84e941",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-accepted_xlang3-assigned_metadata.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-accepted_xlang3-assigned_metadata.stderr.log": "c27ae239e5fd83818a14fa4c910b1c1759713bd48790a52c8e4308d641887030",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-guarded_numeric_xlang3-fixture.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-guarded_numeric_xlang3-fixture.stderr.log": "0a8d654070fe5e1fc196b23d6b75ec8254f7af99359adaa3c17fc9f31e008189",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-guarded_numeric_xlang3-canonical.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-guarded_numeric_xlang3-canonical.stderr.log": "89ac02ce3d0c6608ce9236847a3487aa13a85558c3626b393ec020925e84e941",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-guarded_numeric_xlang3-assigned_metadata.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-r2-reference-20261010-guarded_numeric_xlang3-assigned_metadata.stderr.log": "c27ae239e5fd83818a14fa4c910b1c1759713bd48790a52c8e4308d641887030",
+    "doc/performance/data/frame-f-code-cache-r2-candidate-semantic-20261010-frame_f_code_cache.stdout.log": "662627d99430f8331aae3b72d1341eb5af3c3167a372084abcb73f5e5d9d5369",
+    "doc/performance/data/frame-f-code-cache-r2-candidate-semantic-20261010-frame_f_code_cache.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "doc/performance/data/frame-f-code-cache-r2-candidate-semantic-20261010-two_argument_double_ir_plan.stdout.log": "2303543e489c5848facf1b9842a12f8f394bbaee65b7b275a4362afad19f9691",
+    "doc/performance/data/frame-f-code-cache-r2-candidate-semantic-20261010-two_argument_double_ir_plan.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "root_command": "C:/Python/Python314/python.exe -I scratch/performance/check-frame-f-code-cache-r2-correctness-proposed-20261010.py --application doc/performance/data/frame-f-code-cache-r2-trial-20261010-application.json --application-sha256 37f0cc99feec21b72481a257b287e92fb04ceb047f309aaaa6fe801338390f3a --build doc/performance/data/frame-f-code-cache-r2-trial-20261010-build.json --build-sha256 249f35338294c2e6a8e822ed107db3035e2c50b47b5dd46acdbfed26c607a081 --semantic-receipt doc/performance/data/frame-f-code-cache-r2-candidate-semantic-20261010.json --semantic-sha256 dc9c6fd38888dbecb9ee4ef4be7d0d087a87d2a6414961f25086ced67eabcfb4",
+  "default_output_prefix": "frame-f-code-cache-r2-correctness-20261010",
+  "actual_lineage": {
+    "incremental_owned_targets": 8,
+    "source_count": 148,
+    "release_file_count": 178,
+    "cumulative_owned_engine_paths": 7,
+    "fixed_baseline_file_count": 177,
+    "original_numeric_recorded_source_count": 145,
+    "protected_inputs": "All six supplied unowned tracked dirty paths plus the separate debugpy input are pinned pre/post; no source is excluded to permit timing.",
+    "cumulative_owned_targets": 13,
+    "inherited_numeric_correctness": false,
+    "explicit_weakref_parent_count": 146,
+    "numeric_parent_accepted": false
+  },
+  "same_combined_candidate_focus": {
+    "authenticated_raw_stdout_stderr": true,
+    "repeated": false,
+    "cases": [
+      "frame_f_code_cache",
+      "two_argument_double_ir_plan"
+    ],
+    "receipt_sha256": "dc9c6fd38888dbecb9ee4ef4be7d0d087a87d2a6414961f25086ced67eabcfb4",
+    "scope": "Only two actual POST-combined focused executions are authenticated; full registered correctness is fresh.",
+    "groups": [
+      5,
+      8
+    ]
+  },
+  "strict_separate_probes": {
+    "known_preexisting_failure_reference": "04a8c326a4393ad9ab7ee2dfc3c5d97e45a1c32d643aa378347cca5abacdb029",
+    "included_in_registered_correctness": false,
+    "fresh_candidate_children": true,
+    "unchanged_cp_expected_transcripts": true,
+    "no_xfail_registration": true,
+    "scope": "A strict mismatch stays strict_expected_match=false/passed=false, with raw errors retained. It is never called a repaired parity contract or expected success.",
+    "cases": [
+      "canonical",
+      "assigned_metadata"
+    ],
+    "failure_flags_preserved": true
+  },
+  "historical_reference_resolution": "Authenticate receipt and all nine raw rows. Old live source145 and Release178 pins are redirected to verified unaccepted archive copies; immutable script/CP/fixture-input pins remain direct.",
+  "fresh_correctness": {
+    "ctest_inventory": 55,
+    "native_api_policy": "Require actual API2 success labels if covered by all55; otherwise run both existing standalone cases once.",
+    "python_cap_seconds": 1200,
+    "ctest_cap_seconds": 1800,
+    "expected_error_cases": 3,
+    "all_ctest_actual_results": 55,
+    "python_command": [
+      "C:/Python/Python314/python.exe",
+      "-I",
+      "tests/run_fixtures.py",
+      "build-repro/main-verify-20261006/Release/xlang3.exe"
+    ],
+    "core": 408,
+    "native_api_checks": 2,
+    "compat": 11
+  },
+  "borrowed_semantic_execution": {
+    "Activity": "Imported exact frozen R4 class, including creation-pinned ancestry and bounded known-conhost wait10s.",
+    "timing_accepted": false,
+    "foreign_activity": "Recorded without scoring; healthy scanner, owned cleanup, raw semantic outputs and exact source/test/Release/baseline hashes remain mandatory.",
+    "phase_block_lf_sha256": "85ee969a2fe1bea563e2be2811024a8a8857937c3882924a2a81b011d7e507c3",
+    "phase_block_file_only_comparison": "Exactly matches R4 after removing only trailing whitespace at block boundary.",
+    "correctness_cache_prefix": "Cleared; sys.pycache_prefix remains None.",
+    "base_sha256": "cb4ab8ceba90b041b50d75326fc9af31e4a029672ec6a723b17d1c4cc5652de0"
+  },
+  "no_gate_or_benchmark_mode": true,
+  "no_correctness_resume_mode": true,
+  "full_validated_claim": false,
+  "preparation": {
+    "engine_edits": false,
+    "git_index_edits": false,
+    "runtime_executed": false,
+    "python_executed": false,
+    "build_executed": false,
+    "ast_executed": false
+  }
+}

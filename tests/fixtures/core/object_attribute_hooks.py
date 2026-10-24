@@ -45,6 +45,22 @@ class Delegate:
 delegate = Delegate()
 print(hasattr(delegate, "ping"), delegate.ping(3))
 
+class KeywordHook:
+    def __call__(self, *, config):
+        return "hook:" + config
+
+class KeywordRelay:
+    def __getattr__(self, name):
+        return KeywordHook()
+
+class KeywordProxy:
+    def __init__(self):
+        self._hook_relay = KeywordRelay()
+    def __getattr__(self, name):
+        return getattr(self._hook_relay, name)
+
+print(KeywordProxy().pytest_cmdline_main(config="config"))
+
 
 class Override:
     def __init__(self):
@@ -58,6 +74,35 @@ class Override:
 
 override = Override()
 print(override.special, override.value)
+
+
+class DictView:
+    pass
+
+
+dict_view = DictView()
+dict_view.value = 31
+dict_view_result = object.__getattribute__(dict_view, "__dict__")
+print(dict_view_result, dict_view_result is object.__getattribute__(dict_view, "__dict__"))
+
+
+class DictProperty:
+    @property
+    def __dict__(self):
+        return "custom-dict"
+
+
+print(object.__getattribute__(DictProperty(), "__dict__"))
+print(DictProperty.__dict__["__dict__"] is DictProperty.__dict__["__dict__"])
+
+
+class SlotDict:
+    __slots__ = ("__dict__",)
+
+
+slot_dict = SlotDict()
+slot_dict.value = 42
+print(object.__getattribute__(slot_dict, "__dict__"))
 
 
 class Setter:

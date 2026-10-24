@@ -1,0 +1,13 @@
+Benchmarks with tag 'serialize':
+================================
+
+| Benchmark  | pyperformance-xlang3-jsonloads-offset-candidate-r2-rigorous-20261005 | pyperformance-xlang3-jsonloads-key-view-candidate-r1-rigorous-20261005 | pyperformance-xlang3-jsonloads-key-view-candidate-r2-rigorous-20261005 | pyperformance-xlang3-jsonloads-key-view-fixed-release-r1-rigorous-20261005 |
+|------------|:--------------------------------------------------------------------:|:----------------------------------------------------------------------:|:----------------------------------------------------------------------:|:--------------------------------------------------------------------------:|
+| json_loads | 90.8 us                                                              | 85.0 us: 1.07x faster                                                  | 85.2 us: 1.07x faster                                                  | 98.6 us: 1.09x slower                                                      |
+
+All benchmarks:
+===============
+
+| Benchmark  | pyperformance-xlang3-jsonloads-offset-candidate-r2-rigorous-20261005 | pyperformance-xlang3-jsonloads-key-view-candidate-r1-rigorous-20261005 | pyperformance-xlang3-jsonloads-key-view-candidate-r2-rigorous-20261005 | pyperformance-xlang3-jsonloads-key-view-fixed-release-r1-rigorous-20261005 |
+|------------|:--------------------------------------------------------------------:|:----------------------------------------------------------------------:|:----------------------------------------------------------------------:|:--------------------------------------------------------------------------:|
+| json_loads | 90.8 us                                                              | 85.0 us: 1.07x faster                                                  | 85.2 us: 1.07x faster                                                  | 98.6 us: 1.09x slower                                                      |

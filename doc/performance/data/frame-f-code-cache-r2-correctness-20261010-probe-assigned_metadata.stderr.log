@@ -1,0 +1,4 @@
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\scratch\performance\frame-f-code-preexisting-identity-metadata-probe-proposed-20261010.py", line 45, in <module>
+    assert frame.f_code.co_filename == "frame-code-assigned-override.py"
+AssertionError

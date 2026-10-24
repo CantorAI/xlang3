@@ -1,0 +1,15 @@
+pair,order,runtime,seconds
+1,control-candidate,control,1.0597898000050918
+1,control-candidate,candidate,1.0632177000006777
+2,candidate-control,candidate,1.0609286000035354
+2,candidate-control,control,1.0518771999995806
+3,control-candidate,control,1.0451149000000441
+3,control-candidate,candidate,1.0742270999980974
+4,candidate-control,candidate,1.0655527999988408
+4,candidate-control,control,1.0574027999973623
+5,control-candidate,control,1.1084715000033611
+5,control-candidate,candidate,1.0590660000016214
+6,candidate-control,candidate,1.0586543000026722
+6,candidate-control,control,1.0653787999981432
+7,control-candidate,control,1.0562992000050144
+7,control-candidate,candidate,1.1356446999998298

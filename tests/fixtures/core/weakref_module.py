@@ -265,3 +265,25 @@ try:
     next(weakref.proxy(lambda: None))
 except TypeError as exc:
     print(str(exc))
+
+# Exact ReferenceType calls are a VM hot path; keep the observable behavior
+# covered for live/dead references and ensure subclass overrides still dispatch.
+call_target = Box()
+call_ref = weakref.ref(call_target)
+print(call_ref() is call_target, call_ref() is call_target)
+def make_dead_call_ref():
+    target = Box()
+    reference = weakref.ref(target)
+    del target
+    gc.collect()
+    return reference
+
+dead_call_ref = make_dead_call_ref()
+print(dead_call_ref() is None)
+
+class OverriddenReferenceType(weakref.ref):
+    def __call__(self):
+        return "subclass-call"
+
+overridden_ref = OverriddenReferenceType(call_target)
+print(overridden_ref())

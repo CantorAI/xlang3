@@ -1,4 +1,6 @@
 (5, 'inside')
 outside inside
+('outside', 'outside nested', 'outside')
+outside nested updated outer
 ValueError boom
-outside after failure
+outside nested after failure

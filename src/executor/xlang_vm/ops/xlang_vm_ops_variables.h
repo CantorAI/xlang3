@@ -44,6 +44,14 @@ XLANG3_HOT_INLINE bool load_mapping_global(
   if (!mapping_is_mapping(globals_mapping)) {
     return true;
   }
+  // Compiled expressions load the same names repeatedly. Exact-dict hits
+  // can use the stored string index without allocating a new Python key for
+  // every load. Misses retain the generic path and subclass missing hooks.
+  if (value_as_dict(globals_mapping) != nullptr &&
+      mapping_get_string_item(globals_mapping, name, out, error)) {
+    found = true;
+    return true;
+  }
   const Value key = Value::string(name);
   if (mapping_get_item(globals_mapping, key, out, error)) {
     found = true;
@@ -244,13 +252,114 @@ XLANG3_HOT_INLINE void delete_local(
   value_set_invalid(locals[in.dst]);
 }
 
+inline void release_deleted_global_temporaries(
+    const Value& deleted_value,
+    XlangVMSmallRegisterBuffer& regs,
+    std::vector<Value>& native_call_args,
+    XlangVMInstrCacheStorage& caches,
+    const std::vector<size_t>& register_last_use,
+    const std::vector<bool>& register_loop_carried,
+    size_t ip) {
+  if (deleted_value.tag != ValueTag::Object || deleted_value.as.obj == nullptr) return;
+  // Deletion is a cold ownership boundary. Release obsolete expression/call
+  // temporaries here, rather than adding scans to every VM instruction. Real
+  // future and loop-carried registers remain roots; Python aliases still own
+  // the object through their namespace/container values.
+  for (size_t index = 0; index < regs.size(); ++index) {
+    const bool carried = index < register_loop_carried.size() && register_loop_carried[index];
+    const bool future = index < register_last_use.size() &&
+        register_last_use[index] != std::numeric_limits<size_t>::max() &&
+        register_last_use[index] > ip;
+    // An obsolete container temporary can retain the deleted value too (for
+    // example max([item])). Apply the same dead-register cleanup as del-local,
+    // including those indirect owners, rather than checking pointer equality.
+    if (!carried && !future) {
+      value_set_invalid(regs[index]);
+    }
+  }
+  native_call_args.clear();
+  for (auto& cache : caches) {
+    if (cache.global.value.tag == ValueTag::Object &&
+        cache.global.value.as.obj == deleted_value.as.obj) {
+      cache.global.kind = 0;
+      value_set_invalid(cache.global.value);
+    }
+  }
+}
+
 XLANG3_HOT_INLINE void delete_global(
     const ir::Instr& in,
     const ir::Function& fn,
     std::unordered_map<std::string, Value>& globals,
-    uint64_t& globals_version) {
-  globals.erase(fn.names[in.dst]);
+    uint64_t& globals_version,
+    XlangVMSmallRegisterBuffer& regs,
+    std::vector<Value>& native_call_args,
+    XlangVMInstrCacheStorage& caches,
+    const std::vector<size_t>& register_last_use,
+    const std::vector<bool>& register_loop_carried,
+    size_t ip) {
+  Value deleted_value;
+  const auto found = globals.find(fn.names[in.dst]);
+  if (found != globals.end()) {
+    deleted_value = std::move(found->second);
+    globals.erase(found);
+  }
   ++globals_version;
+  // Publish the absent binding and new version before finalizers reenter.
+  release_deleted_global_temporaries(deleted_value, regs, native_call_args,
+                                    caches, register_last_use, register_loop_carried, ip);
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_load_cached_builtin_global(
+    Runtime& runtime,
+    GlobalSiteCache& cache,
+    Object* globals_owner,
+    uint64_t globals_version,
+    Value& out) {
+  if (cache.kind != 3) return false;
+  const Value* builtins_module = runtime.find_module("builtins");
+  auto* builtins_object = builtins_module == nullptr
+      ? nullptr : value_as_module(*builtins_module);
+  if (cache.owner != globals_owner || cache.version != globals_version ||
+      builtins_object == nullptr ||
+      cache.secondary_owner != &builtins_object->header ||
+      cache.secondary_version != builtins_object->version) {
+    // A stale guarded value must not stay rooted after either namespace
+    // changes. The retained target is canonical and runtime-owned, but clear
+    // it as soon as its proof fails.
+    cache = GlobalSiteCache{};
+    return false;
+  }
+  value_assign_fast(out, cache.value);
+  return true;
+}
+
+XLANG3_HOT_INLINE void xlang_vm_cache_canonical_builtin_global(
+    Runtime& runtime,
+    const std::string& name,
+    const Value& loaded,
+    Object* globals_owner,
+    uint64_t globals_version,
+    GlobalSiteCache& cache) {
+  const Value* builtins_module = runtime.find_module("builtins");
+  auto* builtins_object = builtins_module == nullptr
+      ? nullptr : value_as_module(*builtins_module);
+  const Value* canonical = runtime.find_builtin(name);
+  uint32_t slot = 0;
+  std::string ignored;
+  if (builtins_object == nullptr || canonical == nullptr ||
+      !value_is(*canonical, loaded) ||
+      !module_find_attr_slot(*builtins_module, name, slot, ignored) ||
+      slot >= builtins_object->slots.size() ||
+      value_as_property(builtins_object->slots[slot]) != nullptr ||
+      !value_is(builtins_object->slots[slot], loaded)) return;
+  cache = GlobalSiteCache{};
+  value_assign_fast(cache.value, loaded);
+  cache.version = globals_version;
+  cache.owner = globals_owner;
+  cache.secondary_owner = &builtins_object->header;
+  cache.secondary_version = builtins_object->version;
+  cache.kind = 3;
 }
 
 template <typename RaiseRuntimeError, typename RaiseExceptionValue>
@@ -271,6 +380,25 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_slot(
   }
   const auto& name = module.global_slots[in.a];
   auto* globals_module_obj = value_as_module(globals_module);
+  if (globals_module_obj == nullptr && mapping_is_dict(globals_module)) {
+    const auto& fn = module.functions[runtime.current_frame_function_id()];
+    if (const Value* active_locals = current_eval_locals(runtime, &fn)) {
+      Value retained_locals = *active_locals;
+      std::string lookup_error;
+      if (mapping_get_item_runtime(runtime, retained_locals, Value::string(name), regs[in.dst], lookup_error))
+        return XlangVMOpFlow::Next;
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        const Value* key_error = runtime.find_builtin("KeyError");
+        auto* expected = key_error == nullptr ? nullptr : value_as_class(*key_error);
+        auto* actual = value_as_class(runtime.exception_type(pending));
+        if (expected == nullptr || actual == nullptr || !class_is_subclass(actual, expected))
+          return raise_exception_value(std::move(pending)) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      } else if (lookup_error != "key not found") {
+        return raise_runtime_error(lookup_error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+    }
+  }
   if (globals_module_obj != nullptr) {
     xlang_vm_cache_touch(instr_cache, XlangVMCacheDomain::Global);
     auto& global_cache = instr_cache.global;
@@ -285,6 +413,10 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_slot(
       value_assign_fast(regs[in.dst], global_cache.value);
       return XlangVMOpFlow::Next;
     }
+    if (xlang_vm_load_cached_builtin_global(
+            runtime, global_cache, &globals_module_obj->header,
+            globals_module_obj->version, regs[in.dst]))
+      return XlangVMOpFlow::Next;
     const auto bound = globals_module_obj->name_to_slot.find(name);
     if (bound != globals_module_obj->name_to_slot.end() && bound->second == in.a &&
         in.a < globals_module_obj->slots.size() && globals_module_obj->slots[in.a].tag != ValueTag::Invalid) {
@@ -308,7 +440,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_slot(
     Value builtin;
     if (runtime.resolve_builtin(name, builtin)) {
       value_move_assign_fast(regs[in.dst], builtin);
-      global_cache.kind = 0;
+      // Cache only stable module values. The guard covers global shadowing,
+      // builtins mutation, and replacement of the builtins module itself.
+      xlang_vm_cache_canonical_builtin_global(
+          runtime, name, regs[in.dst], &globals_module_obj->header,
+          globals_module_obj->version, global_cache);
       return XlangVMOpFlow::Next;
     }
     return raise_runtime_error("name '" + name + "' is not defined") ? XlangVMOpFlow::ContinueLoop
@@ -342,6 +478,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_slot(
 XLANG3_HOT_INLINE XlangVMOpFlow store_module_slot(
     const ir::Instr& in,
     const ir::Module& module,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     Value& globals_module,
     std::unordered_map<std::string, Value>& globals,
@@ -350,6 +487,21 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_module_slot(
   if (in.dst >= module.global_slots.size() || in.a >= regs.size()) {
     result.errors.push_back("invalid module slot store");
     return XlangVMOpFlow::ReturnResult;
+  }
+  if (mapping_is_dict(globals_module)) {
+    // Entry-code walrus bindings belong to eval locals, while nested function
+    // global stores belong to the retained globals dict. Updating a separate
+    // interpreter map would silently lose the write and subsequent reads.
+    const auto& fn = module.functions[runtime.current_frame_function_id()];
+    const Value* eval_locals = current_eval_locals(runtime, &fn);
+    Value target = eval_locals == nullptr ? globals_module : *eval_locals;
+    std::string error;
+    const Value key = Value::string(module.global_slots[in.dst]);
+    const bool stored = eval_locals != nullptr
+        ? mapping_set_item_runtime(runtime, target, key, regs[in.a], error)
+        : mapping_set_item(target, key, regs[in.a], error);
+    if (!stored) { result.errors.push_back(error); return XlangVMOpFlow::ReturnResult; }
+    return XlangVMOpFlow::Next;
   }
   auto* globals_module_obj = value_as_module(globals_module);
   if (globals_module_obj != nullptr) {
@@ -384,12 +536,22 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
     return XlangVMOpFlow::ReturnResult;
   }
   auto* globals_module_obj = value_as_module(globals_module);
-  const uint64_t current_globals_version = globals_module_obj != nullptr ? globals_module_obj->version : globals_version;
+  auto* globals_dict = value_as_dict(globals_module);
+  auto* namespace_module = globals_dict == nullptr ? nullptr : globals_dict->backing_module;
+  const bool versioned_namespace_dict = globals_module_obj == nullptr && namespace_module != nullptr;
+  Object* globals_owner = globals_module_obj != nullptr
+      ? &globals_module_obj->header
+      : (versioned_namespace_dict ? &namespace_module->header : nullptr);
+  const uint64_t current_globals_version = globals_module_obj != nullptr
+      ? globals_module_obj->version
+      : (versioned_namespace_dict ? namespace_module->version : globals_version);
   auto& global_cache = instr_cache.global;
-  Value eval_locals;
-  if (const Value* active_locals = current_eval_locals(runtime, &fn)) {
-    value_assign_fast(eval_locals, *active_locals);
-    Value key = Value::string(fn.names[in.a]);
+  const auto& name = fn.names[in.a];
+  const Value* active_eval_locals = current_eval_locals(runtime, &fn);
+  if (active_eval_locals != nullptr) {
+    Value eval_locals;
+    value_assign_fast(eval_locals, *active_eval_locals);
+    Value key = Value::string(name);
     std::string lookup_error;
     if (mapping_get_item_runtime(runtime, eval_locals, key, regs[in.dst], lookup_error)) {
       global_cache.kind = 0;
@@ -411,7 +573,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
     }
     global_cache.kind = 0;
   }
-  if (global_cache.kind != 0 && eval_locals.tag == ValueTag::Invalid) {
+  // Eval/custom globals dictionaries have no mutation counter. Module
+  // namespace dictionaries carry their owning module's version and can safely
+  // guard cached globals/builtins across normal Python writes.
+  const bool live_dict_globals = globals_dict != nullptr && !versioned_namespace_dict;
+  if (live_dict_globals && global_cache.kind != 0)
+    global_cache = GlobalSiteCache{};
+  if (global_cache.kind != 0 && active_eval_locals == nullptr) {
     if (globals_module_obj != nullptr && global_cache.kind == 1) {
       const auto slot = global_cache.slot;
       if (global_cache.version == current_globals_version &&
@@ -423,9 +591,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
     } else if (global_cache.kind == 2 && global_cache.version == current_globals_version) {
       value_assign_fast(regs[in.dst], global_cache.value);
       return XlangVMOpFlow::Next;
+    } else if (globals_owner != nullptr &&
+               xlang_vm_load_cached_builtin_global(
+                   runtime, global_cache, globals_owner,
+                   current_globals_version, regs[in.dst])) {
+      return XlangVMOpFlow::Next;
     }
   }
-  const auto& name = fn.names[in.a];
   if (globals_module_obj != nullptr) {
     std::string error;
     uint32_t slot = 0;
@@ -441,7 +613,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
     Value builtin;
     if (runtime.resolve_builtin(name, builtin)) {
       value_move_assign_fast(regs[in.dst], builtin);
-      global_cache.kind = 0;
+      // CPython's LOAD_GLOBAL cache includes builtin-module names and is
+      // guarded by both globals and builtins dictionary versions. Unversioned
+      // eval/custom globals and mutated/noncanonical builtins remain dynamic.
+      if (globals_owner != nullptr)
+        xlang_vm_cache_canonical_builtin_global(
+            runtime, name, regs[in.dst], globals_owner,
+            current_globals_version, global_cache);
     } else {
       return raise_runtime_error("name '" + name + "' is not defined") ? XlangVMOpFlow::ContinueLoop
                                                                       : XlangVMOpFlow::ReturnResult;
@@ -460,7 +638,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
     }
     if (mapping_found) {
       value_assign_fast(global_cache.value, regs[in.dst]);
-      global_cache.version = globals_version;
+      global_cache.version = current_globals_version;
       global_cache.kind = 2;
       return XlangVMOpFlow::Next;
     }
@@ -472,6 +650,21 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
     } else if (Value builtin; runtime.resolve_builtin(name, builtin)) {
       value_move_assign_fast(regs[in.dst], builtin);
       global_cache.kind = 0;
+      const Value* builtins_module = runtime.find_module("builtins");
+      auto* builtins_object = builtins_module == nullptr
+          ? nullptr : value_as_module(*builtins_module);
+      uint32_t builtin_slot = 0;
+      std::string builtin_lookup_error;
+      if (versioned_namespace_dict && builtins_object != nullptr &&
+          module_find_attr_slot(*builtins_module, name, builtin_slot, builtin_lookup_error) &&
+          builtin_slot < builtins_object->slots.size() &&
+          value_as_property(builtins_object->slots[builtin_slot]) == nullptr) {
+        value_assign_fast(global_cache.value, regs[in.dst]);
+        global_cache.version = current_globals_version;
+        global_cache.secondary_owner = &builtins_object->header;
+        global_cache.secondary_version = builtins_object->version;
+        global_cache.kind = 3;
+      }
     } else {
       return raise_runtime_error("name '" + name + "' is not defined") ? XlangVMOpFlow::ContinueLoop
                                                                       : XlangVMOpFlow::ReturnResult;
@@ -483,6 +676,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_global(
 XLANG3_HOT_INLINE XlangVMOpFlow store_global(
     const ir::Instr& in,
     const ir::Function& fn,
+    Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     Value& globals_module,
     std::unordered_map<std::string, Value>& globals,
@@ -493,6 +687,18 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_global(
   if (in.dst >= fn.names.size() || in.a >= regs.size()) {
     result.errors.push_back("invalid global store");
     return XlangVMOpFlow::ReturnResult;
+  }
+  if (mapping_is_dict(globals_module)) {
+    const Value* eval_locals = current_eval_locals(runtime, &fn);
+    Value target = eval_locals == nullptr ? globals_module : *eval_locals;
+    std::string error;
+    const Value key = Value::string(fn.names[in.dst]);
+    const bool stored = eval_locals != nullptr
+        ? mapping_set_item_runtime(runtime, target, key, regs[in.a], error)
+        : mapping_set_item(target, key, regs[in.a], error);
+    instr_cache.global.kind = 0;
+    if (!stored) { result.errors.push_back(error); return XlangVMOpFlow::ReturnResult; }
+    return XlangVMOpFlow::Next;
   }
   if (value_as_module(globals_module) != nullptr) {
     std::string error;
@@ -525,6 +731,12 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_module_slot(
     const ir::Instr& in,
     const ir::Module& module,
     Value& globals_module,
+    XlangVMSmallRegisterBuffer& regs,
+    std::vector<Value>& native_call_args,
+    XlangVMInstrCacheStorage& caches,
+    const std::vector<size_t>& register_last_use,
+    const std::vector<bool>& register_loop_carried,
+    size_t ip,
     RuntimeResult& result,
     RaiseRuntimeError&& raise_runtime_error) {
   if (in.dst >= module.global_slots.size()) {
@@ -543,10 +755,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_module_slot(
     return raise_runtime_error("module slot is not bound") ? XlangVMOpFlow::ContinueLoop
                                                           : XlangVMOpFlow::ReturnResult;
   }
+  Value deleted_value = globals_module_obj->slots[slot];
   if (!module_delete_attr(globals_module, module.global_slots[in.dst], error)) {
     return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop
                                       : XlangVMOpFlow::ReturnResult;
   }
+  release_deleted_global_temporaries(deleted_value, regs, native_call_args,
+                                    caches, register_last_use, register_loop_carried, ip);
   return XlangVMOpFlow::Next;
 }
 

@@ -1,0 +1,9 @@
+aggregate-groups-empty
+aggregate-arity
+aggregate-dynamic-dispatch
+aggregate-value-conversion
+aggregate-errors-cleanup
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\tests\fixtures\core\sqlite_native_aggregate.py", line 279, in <module>
+    assert factory_ref() is None and lifetime_events == ["factory released"]
+AssertionError

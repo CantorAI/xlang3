@@ -92,14 +92,20 @@ bool append_unique(SetObject& set, const Value& value, std::string& error) {
   if (!value_hash_key(value, hash, error)) {
     return false;
   }
-  for (size_t index = 0; index < set.items.size(); ++index) {
-    if (set.item_hashes[index] == hash && value_key_equal(set.items[index], value)) {
-      return true;
+  if (set_prepare_membership_index(set)) {
+    for (size_t index = set_membership_index_first(set, hash);
+         index != kSetMembershipIndexEmpty;
+         index = set_membership_index_next(set, index)) {
+      if (set.item_hashes[index] == hash && value_key_equal(set.items[index], value)) return true;
+    }
+  } else {
+    for (size_t index = 0; index < set.items.size(); ++index) {
+      if (set.item_hashes[index] == hash && value_key_equal(set.items[index], value)) return true;
     }
   }
   set.items.push_back(value);
   set.item_hashes.push_back(hash);
-  set_note_content_change(set);
+  set_note_append(set);
   return true;
 }
 
@@ -260,19 +266,44 @@ bool set_add_runtime(Runtime& runtime, Value& set, const Value& item,
   Value owned_item = item;
   size_t hash = 0;
   if (!runtime_value_hash_key(runtime, owned_item, hash, error)) return false;
-  for (size_t index = 0; index < obj->items.size(); ++index) {
-    Value existing = obj->items[index];
-    if (value_is(existing, owned_item)) return true;
-    if (obj->item_hashes[index] != hash) continue;
-    Value equal;
-    if (!runtime_value_compare(runtime, "==", existing, owned_item, equal, error)) return false;
-    bool matches = false;
-    if (!runtime_truthy(runtime, equal, matches, error)) return false;
-    if (matches) return true;
+  // Equality/truth callbacks can mutate the target. Use the same version
+  // restart rule as membership and never keep a vector reference across Python.
+  for (;;) {
+    const uint64_t version = obj->content_version;
+    const bool indexed = set_prepare_membership_index(*obj);
+    bool restart = false;
+    if (indexed && owned_item.tag == ValueTag::Object && owned_item.as.obj != nullptr) {
+      for (size_t index = set_membership_identity_first(*obj, owned_item);
+           index != kSetMembershipIndexEmpty;
+           index = set_membership_identity_next(*obj, index)) {
+        if (value_is(obj->items[index], owned_item)) return true;
+      }
+    }
+    size_t index = indexed ? set_membership_index_first(*obj, hash) : 0;
+    while (indexed ? index != kSetMembershipIndexEmpty : index < obj->items.size()) {
+      Value existing = obj->items[index];
+      if (value_is(existing, owned_item)) return true;
+      if (obj->item_hashes[index] == hash) {
+        Value equal;
+        bool matches = false;
+        if (!runtime_value_compare(runtime, "==", existing, owned_item, equal, error) ||
+            !runtime_truthy(runtime, equal, matches, error)) return false;
+        // Like CPython insertion, a successful comparison completes the add
+        // even if the callback removed that entry. Restart only a failed probe.
+        if (matches) return true;
+        if (obj->content_version != version) {
+          restart = true;
+          break;
+        }
+      }
+      index = indexed ? set_membership_index_next(*obj, index) : index + 1;
+    }
+    if (!restart) break;
   }
+
   obj->items.push_back(owned_item);
   obj->item_hashes.push_back(hash);
-  set_note_content_change(*obj);
+  set_note_append(*obj);
   return true;
 }
 

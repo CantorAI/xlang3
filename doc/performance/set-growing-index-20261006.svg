@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1110" height="509" viewBox="0 0 1110 509">
+<rect width="100%" height="100%" fill="white"/>
+<style>text{font-family:Arial,sans-serif;fill:#172033;font-size:14px}.title{font-size:23px;font-weight:bold}.note{font-size:13px;fill:#4b5563}</style>
+<text x="25" y="35" class="title">Growing sets: focused speed comparison</text>
+<text x="25" y="60" class="note">CPython 3.14.7 = 1×; longer bars are faster. Median of five samples; linear scale.</text>
+<text x="25" y="81" class="note">Membership followed by unique insertion. These are not official pyperformance or whole-suite results.</text>
+<line x1="290" x2="290" y1="100" y2="434" stroke="#e5e7eb"/>
+<text x="290" y="459" text-anchor="middle">0×</text>
+<line x1="420.0" x2="420.0" y1="100" y2="434" stroke="#e5e7eb"/>
+<text x="420.0" y="459" text-anchor="middle">0.25×</text>
+<line x1="550.0" x2="550.0" y1="100" y2="434" stroke="#e5e7eb"/>
+<text x="550.0" y="459" text-anchor="middle">0.5×</text>
+<line x1="680.0" x2="680.0" y1="100" y2="434" stroke="#e5e7eb"/>
+<text x="680.0" y="459" text-anchor="middle">0.75×</text>
+<line x1="810" x2="810" y1="100" y2="434" stroke="#e5e7eb"/>
+<text x="810" y="459" text-anchor="middle">1×</text>
+<text x="278" y="125" text-anchor="end">1,024 — CPython 3.14.7</text>
+<rect x="290" y="110" width="520.0000" height="21" fill="#2563eb"/>
+<text x="828" y="125">1.00000× · 0.076 ms</text>
+<text x="278" y="161" text-anchor="end">1,024 — XLang3 candidate</text>
+<rect x="290" y="146" width="40.4106" height="21" fill="#d97706"/>
+<text x="828" y="161">0.07771× · 0.974 ms</text>
+<text x="278" y="197" text-anchor="end">1,024 — XLang3 previous</text>
+<rect x="290" y="182" width="4.6975" height="21" fill="#64748b"/>
+<text x="828" y="197">0.00903× · 8.380 ms</text>
+<text x="278" y="233" text-anchor="end">4,096 — CPython 3.14.7</text>
+<rect x="290" y="218" width="520.0000" height="21" fill="#2563eb"/>
+<text x="828" y="233">1.00000× · 0.321 ms</text>
+<text x="278" y="269" text-anchor="end">4,096 — XLang3 candidate</text>
+<rect x="290" y="254" width="38.7371" height="21" fill="#d97706"/>
+<text x="828" y="269">0.07449× · 4.308 ms</text>
+<text x="278" y="305" text-anchor="end">4,096 — XLang3 previous</text>
+<rect x="290" y="290" width="1.3353" height="21" fill="#64748b"/>
+<text x="828" y="305">0.00257× · 124.970 ms</text>
+<text x="278" y="341" text-anchor="end">16,384 — CPython 3.14.7</text>
+<rect x="290" y="326" width="520.0000" height="21" fill="#2563eb"/>
+<text x="828" y="341">1.00000× · 1.526 ms</text>
+<text x="278" y="377" text-anchor="end">16,384 — XLang3 candidate</text>
+<rect x="290" y="362" width="50.6664" height="21" fill="#d97706"/>
+<text x="828" y="377">0.09744× · 15.664 ms</text>
+<text x="278" y="413" text-anchor="end">16,384 — XLang3 previous</text>
+<rect x="290" y="398" width="0.3977" height="21" fill="#64748b"/>
+<text x="828" y="413">0.00076× · 1995.312 ms</text>
+<text x="25" y="492" class="note">Candidate remains slower than CPython. Previous/candidate gains must not be read as speedups over CPython.</text>
+</svg>

@@ -1,0 +1,5 @@
+native, Python, saved and ordinary fallback methods True
+base mutation and saved callable identity True
+current diamond MRO dispatch True
+Python frames and native profile calls retained True
+original method tracebacks and native errors retained True

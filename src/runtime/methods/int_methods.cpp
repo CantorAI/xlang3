@@ -205,6 +205,46 @@ bool int_to_bytes_impl(const Value* args, uint32_t argc, bool signed_value, Valu
     return false;
   }
   const uint32_t length = static_cast<uint32_t>(length_value.as.i64);
+  int64_t small_value = 0;
+  const bool is_small_int = args[0].tag == ValueTag::Int64 || args[0].tag == ValueTag::Bool;
+  if (args[0].tag == ValueTag::Int64) {
+    small_value = args[0].as.i64;
+  } else if (args[0].tag == ValueTag::Bool) {
+    small_value = args[0].as.b ? 1 : 0;
+  }
+  // Keep the frequent machine-word conversion allocation-free. This is a
+  // generic int.to_bytes fast path (including small fixed-width codec chunks),
+  // not a special case for any Python library; subclasses and wider integers
+  // continue through the full BigInt range/encoding checks below.
+  if (is_small_int && length != 0 && length <= sizeof(uint64_t)) {
+    if (!signed_value && small_value < 0) {
+      error = "can't convert negative int to unsigned";
+      return false;
+    }
+    if (signed_value && length < sizeof(uint64_t)) {
+      const uint32_t value_bits = length * 8u;
+      const int64_t minimum = -(int64_t{1} << (value_bits - 1u));
+      const int64_t maximum = (int64_t{1} << (value_bits - 1u)) - 1;
+      if (small_value < minimum || small_value > maximum) {
+        error = "int too big to convert";
+        return false;
+      }
+    } else if (!signed_value && length < sizeof(uint64_t) &&
+               (static_cast<uint64_t>(small_value) >> (length * 8u)) != 0) {
+      error = "int too big to convert";
+      return false;
+    }
+
+    const uint64_t bits = static_cast<uint64_t>(small_value);
+    std::string encoded(length, '\0');
+    for (uint32_t i = 0; i < length; ++i) {
+      const uint32_t index = byteorder == "big" ? length - 1u - i : i;
+      encoded[index] = static_cast<char>((bits >> (8u * i)) & 0xffu);
+    }
+    out = Value::bytes(encoded);
+    return true;
+  }
+
   std::string bytes;
   if (!value_int_like_to_bytes(args[0], length, byteorder == "big", signed_value, bytes, error)) {
     return false;
@@ -295,6 +335,12 @@ bool collect_from_bytes_input(const Value& value, std::vector<uint8_t>& bytes, s
       error = "operation forbidden on released memoryview object";
       return false;
     }
+    std::string packed;
+    if (!view->contiguous) {
+      if (!memoryview_copy_bytes(*view, packed, error)) return false;
+      bytes.assign(packed.begin(), packed.end());
+      return true;
+    }
     const auto data = memoryview_object_view(*view);
     if (!data.data()) {
       error = "memoryview owner is not byte-addressable";
@@ -364,6 +410,37 @@ bool int_from_bytes_impl(
     }
   }
 
+  // Bytes-like buffers are already contiguous in these cases. Hand their
+  // borrowed storage directly to the integer decoder instead of copying each
+  // small chunk into a temporary vector before decoding it.
+  if (auto* object = value_as_bytes(args[0])) {
+    const auto view = bytes_object_view(*object);
+    return value_bigint_from_bytes(
+        reinterpret_cast<const uint8_t*>(view.data()), view.size(), is_big,
+        signed_value, out, error);
+  }
+  if (auto* object = value_as_bytearray(args[0])) {
+    return value_bigint_from_bytes(
+        reinterpret_cast<const uint8_t*>(object->value.data()),
+        object->value.size(), is_big, signed_value, out, error);
+  }
+  if (auto* view = value_as_memoryview(args[0])) {
+    if (view->released) {
+      error = "operation forbidden on released memoryview object";
+      return false;
+    }
+    if (view->contiguous) {
+      const auto data = memoryview_object_view(*view);
+      if (data.data() == nullptr && view->size != 0) {
+        error = "memoryview owner is not byte-addressable";
+        return false;
+      }
+      return value_bigint_from_bytes(
+          reinterpret_cast<const uint8_t*>(data.data()), data.size(), is_big,
+          signed_value, out, error);
+    }
+  }
+
   std::vector<uint8_t> bytes;
   if (!collect_from_bytes_input(args[0], bytes, error)) {
     return false;
@@ -428,7 +505,10 @@ static BuiltinMethodSpec kIntMethods[] = {
 } // namespace
 
 const BuiltinMethodSpec* int_find_method_spec(const Value& object, const std::string& name) {
-  if (object.tag != ValueTag::Int64 && value_as_bigint(object) == nullptr) return nullptr;
+  // Tagged bool values inherit int methods just as the public bool class does.
+  // Admit them in both immediate CALL_METHOD and saved bound-method lookup.
+  if (object.tag != ValueTag::Int64 && object.tag != ValueTag::Bool &&
+      value_as_bigint(object) == nullptr) return nullptr;
   for (const auto& method : kIntMethods) {
     if (name == method.name) return &method;
   }
@@ -449,7 +529,7 @@ bool int_get_method(const Value& object, const std::string& name, Value& out) {
       out = Value::int64(1);
       return true;
     }
-    return false;
+    return bind_builtin_method_from_table(object, name, kIntMethods, std::size(kIntMethods), out);
   }
   if (object.tag != ValueTag::Int64 && value_as_bigint(object) == nullptr) {
     return false;

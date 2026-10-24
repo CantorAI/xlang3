@@ -1,0 +1,8 @@
+{
+  "exit_code": 0,
+  "source_sha256": "25b83546a23c20509da6bf2006311a51cdc19ef7b6504bc293efffeac6d41560",
+  "log_sha256": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6",
+  "cpython_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "groups": 8,
+  "output_matches_expected": true
+}

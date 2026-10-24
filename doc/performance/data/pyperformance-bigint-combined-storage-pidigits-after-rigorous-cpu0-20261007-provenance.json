@@ -1,0 +1,169 @@
+{
+  "status": "finished",
+  "phase": "after",
+  "mode": "rigorous",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "started_utc": "2026-10-07T21:47:17.295106+00:00",
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+    "--runtime",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "--benchmarks",
+    "pidigits",
+    "--mode",
+    "rigorous",
+    "--case-timeout",
+    "300",
+    "--dependency-site",
+    "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+    "--output",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-bigint-combined-storage-pidigits-after-rigorous-cpu0-20261007.json"
+  ],
+  "cpu_affinity": [
+    0
+  ],
+  "worker_affinity_observations": {
+    "22876": [
+      0
+    ],
+    "11784": [
+      0
+    ],
+    "10044": [
+      0
+    ],
+    "25408": [
+      0
+    ],
+    "12280": [
+      0
+    ],
+    "18500": [
+      0
+    ],
+    "14812": [
+      0
+    ],
+    "21004": [
+      0
+    ],
+    "23380": [
+      0
+    ],
+    "25100": [
+      0
+    ],
+    "10272": [
+      0
+    ],
+    "15316": [
+      0
+    ],
+    "25580": [
+      0
+    ],
+    "1452": [
+      0
+    ],
+    "16292": [
+      0
+    ],
+    "22452": [
+      0
+    ],
+    "8904": [
+      0
+    ],
+    "26960": [
+      0
+    ],
+    "27424": [
+      0
+    ],
+    "28112": [
+      0
+    ],
+    "13344": [
+      0
+    ],
+    "12960": [
+      0
+    ],
+    "7104": [
+      0
+    ],
+    "17752": [
+      0
+    ],
+    "15104": [
+      0
+    ],
+    "18028": [
+      0
+    ],
+    "27340": [
+      0
+    ],
+    "10632": [
+      0
+    ],
+    "23840": [
+      0
+    ],
+    "24880": [
+      0
+    ],
+    "2212": [
+      0
+    ],
+    "2180": [
+      0
+    ],
+    "1876": [
+      0
+    ],
+    "24980": [
+      0
+    ],
+    "12680": [
+      0
+    ],
+    "12648": [
+      0
+    ],
+    "27092": [
+      0
+    ],
+    "7628": [
+      0
+    ],
+    "26160": [
+      0
+    ],
+    "9148": [
+      0
+    ],
+    "9560": [
+      0
+    ],
+    "10144": [
+      0
+    ],
+    "27824": [
+      0
+    ]
+  },
+  "sha256_start": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "f326f4beb61179e0c8698ca0ff745f866658a254e78a4a964ff11802e23a4f84"
+  },
+  "benchmark_source_sha256": "4bf89183acb8651623676ece6e10787b6c71eec549fe53ce17a62a812ef7447d",
+  "purpose": "Resolve fast-mode jitter using rigorous official cases with same OS process affinity; fixed gate unchanged",
+  "exit_code": 0,
+  "completed_utc": "2026-10-07T21:48:10.474877+00:00",
+  "sha256_end": {
+    "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+    "dll": "f326f4beb61179e0c8698ca0ff745f866658a254e78a4a964ff11802e23a4f84"
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "schema": "two-argument-double-ir-observable-retirement-guard-scratch-proposal",
+  "status": "frozen_static_only_root_integration_and_validation_pending",
+  "patch": "scratch/performance/two-argument-double-ir-plan-observable-retirement-guard-proposed-20261010.patch",
+  "patch_sha256": "64d32b511f1a228a7472f29b608c8b8a1fcd0e6d6feb0c8bfc4a5fe586084664",
+  "candidate_root": "scratch/performance/two-argument-double-ir-plan-observable-retirement-guard-proposed-20261010-candidates",
+  "raw_before_sha256": {
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "d6abbad220b259ee33f7868a54b21ee6b5db776f2971ac73635fef030de4c16c"
+  },
+  "candidate_sha256": {
+    "src/executor/xlang_vm/xlang_vm_inline_call.h": "637b13a570f104c387c703bbf1e13ccdc8a5a143eb932db5e7eb9dacad0d9fec"
+  },
+  "evidence": {
+    "path": "doc/performance/data/two-argument-ir-lifetime-20261010.json",
+    "sha256": "e180d4069d2521e5d994610549c5c357b9090cfa5706da106f206917e974d14e",
+    "observation": "CP strict temporary group passes. Accepted finalizers identify combine; candidate identifies invoke_temporary. Both X results report missing caller result; later groups previously unexecuted."
+  },
+  "source_basis": [
+    "src/executor/xlang_vm/ops/xlang_vm_ops_control.h:733 direct inherited __del__ guard with lookup-error fallback",
+    "src/runtime/value.cpp:1666 class_has_release_finalizer uses same raw class lookup; no new public declaration proposed",
+    "src/internal/xlang3/value.h:116 kObjectWeakrefFlagsMask"
+  ],
+  "independent_selections": {
+    "child": "scratch/performance/two-argument-ir-lifetime-selections-proposed-20261010.py",
+    "sha256": "424694ff87cfcd432c50b6cc82d54ba5d00a2b75c8af1d5ef7c2195803411f61",
+    "arguments": [
+      "alias",
+      "replacement"
+    ],
+    "expected_sha256": {
+      "scratch/performance/two-argument-ir-lifetime-selections-alias-proposed-20261010.out": "fd1fd322cfd17eeab9e024017671b70e134ed52b9d8b966c21735587aa40d055",
+      "scratch/performance/two-argument-ir-lifetime-selections-replacement-proposed-20261010.out": "1d3b9d7f1373f354589081e1bc2762da07dd2e0c2148efd3dbfa167b8c1da41d"
+    }
+  },
+  "preserved_original": {
+    "path": "scratch/performance/two-argument-ir-lifetime-probe-proposed-20261010.py",
+    "sha256": "d9471c6e9f55f55f7b3cc8b6d7d834f5bc28355b75db341809865d7297a9172c"
+  },
+  "limits": [
+    "No engine/test edits, Python/AST/runtime/build/timing or Git mutation by author.",
+    "Compile/apply/runtime verification pending; a new guard changes admission and requires fresh useful-body/gate evidence.",
+    "Original strict baseline failures are not repaired or weakened. Guard restores ordinary dispatch for class-finalizer/weakref inputs; it does not assert broad CP finalization/context parity.",
+    "No new ABI fields, cache payloads or object owners; existing method shape/observer/recursion/input/result path remains unchanged."
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "runtime_sha256": "d85b82e1f00a05e48bb718b0e3ccf342535f71f27b203a33645f4f6a5f13858d",
+  "pe_helper_sha256": "e535c5d629e5fb4bfc1a360f7b730df0a9d13de86c6231c92e39244b1aa7920e",
+  "export_rva": "0x7a6d80",
+  "containing_pdata": [
+    "0x7a6d80",
+    "0x7bf450",
+    "0xe3ce1c"
+  ],
+  "command": [
+    "C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\VC\\Tools\\MSVC\\14.51.36231\\bin\\Hostx64\\x64\\dumpbin.exe",
+    "/disasm",
+    "/range:0x1807a6d80,0x1807bf450",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll"
+  ],
+  "stdout_sha256": "9492b1c99020383d50efd7ec134d4ab14c0457d3bb1d789d045ccb108f4b4107",
+  "stderr_empty": true,
+  "old_divide20_constant_occurrences": 1,
+  "candidate_divide20_constant_occurrences": 1,
+  "scope": "Exact export/containing AMD64 PE range, file-only. Constant counts describe static disassembly, not dispatch execution counts, CPU shares, or measured speed."
+}

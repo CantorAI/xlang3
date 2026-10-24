@@ -1,0 +1,66 @@
+{
+  "status": "correctness_and_fixed_gate_passed",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "source_base_commit": "f9bc17730a57a0caf96afd7e557dec8adf64d0a1",
+  "source_files": {
+    "src/internal/xlang3/builtins.h": "7af41e6bb4504b252ec60ce526c2463c37b9ecae330cdcacdc3bd93f271cf535",
+    "src/builtins/functional_builtins.cpp": "ff86e531bd6bb24701a876c2f197088c911aeecc236303ff5b6b7a97b406d6f0",
+    "src/runtime/modules/system/warnings_module.cpp": "72d6e1b0f098caba205d4ccaa96b6531b34ed9c4285fe2cea50b34c72a63c8b8",
+    "src/runtime/modules/system/ast_module.cpp": "c627da8774ae23792cd0b87d09129d06bd794d1539c5fb6531ea632d6a36c757",
+    "src/runtime/modules/system/ast_field_schema.inc": "28871c8d988eb93fd8c9b753b2b7becef415939c3652d42cfcab085b4c094476",
+    "tests/run_fixtures.py": "d87344d224cb02aa859b13bd3d8d33eee8cfa6830b564e43f4be62dfa1ee7839",
+    "tests/fixtures/core/ast_constructor_defaults.py": "4395bdfdd6e9d914e8af428b6ee454705f44a246116cd9bacebe1fd831c5c8c2",
+    "tests/fixtures/expected/ast_constructor_defaults.out": "d8684cded21e53b70e782a63fcddd6dc206255f1c94c8496b3318827a528f05d",
+    "benchmarks/diagnostics/export_native_ast_schema.py": "434bacbcb4e7b1be29917a4429f8923d1a44612a25b9460b291bd9afd75eb172",
+    "benchmarks/diagnostics/check_native_ast_schema.py": "aa9fe93c495355718432a2010e186304d4d9d89f81e06238e06fb7abaae614e4"
+  },
+  "sha256_start": {
+    "exe": "e62bcbebf1030ecfa98d48a57f2a4f1be348f415d837735d7991bdd7bf1566bd",
+    "dll": "8c34b05901d2234034d85ce88758dbbe882cf1ee6a084d51cce88ecca44a1e80"
+  },
+  "full_fixtures": {
+    "exit_code": 0,
+    "verified_exec_session": 26715,
+    "core_cases": 354,
+    "section_cases": 11,
+    "expected_failure_cases": 3,
+    "stdout": "empty on success"
+  },
+  "schema_check": {
+    "exit_code": 0,
+    "classes": 126,
+    "stdout": "native AST class schemas match 126"
+  },
+  "cpp_sdk": {
+    "exit_code": 0,
+    "tests_passed": 8,
+    "log": "native-ast-defaults-owner-cpp-sdk-20261007.log"
+  },
+  "fixed_gate": {
+    "status": "pass",
+    "report": "release-native-ast-defaults-owner-fixed-gate-20261007.json",
+    "exit_code": 0,
+    "accepted": true,
+    "cases": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1
+  },
+  "official_chameleon": {
+    "status": "finished_with_benchmark_failures",
+    "exit_code": 1,
+    "benchmarks": "chameleon,gc_traversal",
+    "report": "pyperformance-xlang3-native-ast-defaults-owner-targeted-fast-20261007.json",
+    "provenance": "pyperformance-xlang3-native-ast-defaults-owner-targeted-fast-20261007-provenance.json",
+    "definitions_attempted": 2,
+    "completed": 1,
+    "failed": 1,
+    "chameleon_status": "failed_syntaxerror_unquoted_token_repr",
+    "gc_traversal_status": "completed"
+  },
+  "sha256_end": {
+    "exe": "e62bcbebf1030ecfa98d48a57f2a4f1be348f415d837735d7991bdd7bf1566bd",
+    "dll": "8c34b05901d2234034d85ce88758dbbe882cf1ee6a084d51cce88ecca44a1e80"
+  },
+  "official_comparison": "native-ast-defaults-owner-official-comparison-20261007.json"
+}

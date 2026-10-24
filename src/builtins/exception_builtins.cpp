@@ -15,6 +15,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 
 #include "xlang3/functional_iterators.h"
+#include "xlang3/interpreter.h"
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 
@@ -883,6 +884,34 @@ bool exception_group_class_getitem(
   return true;
 }
 
+bool attribute_error_native_constructor(
+    Runtime& runtime, const ClassObject& klass, const CallArgsView& args,
+    bool& handled, Value& out, std::string& error) {
+  handled = false;
+  if (klass.name != "AttributeError" || args.has_keywords() ||
+      args.has_expansion() || args.size() != 1 ||
+      value_as_string(args.get(0)) == nullptr) {
+    return true;
+  }
+  const Value* canonical = runtime.find_builtin("AttributeError");
+  if (canonical == nullptr || value_as_class(*canonical) != &klass) return true;
+
+  // AttributeError is a native BaseException type. For the common exact
+  // `AttributeError(name)` shape, initialize its one observable payload
+  // directly; class-version guards in the VM keep patched constructors on
+  // ordinary Python class dispatch. Custom subclasses/kwargs also fall back.
+  handled = true;
+  out = Value::instance(*canonical);
+  Value argument;
+  value_assign_fast(argument, args.get(0));
+  if (!object_set_attr(out, "args", Value::tuple({std::move(argument)}), error) ||
+      !object_set_attr(out, "name", Value::none(), error) ||
+      !object_set_attr(out, "obj", Value::none(), error)) {
+    return false;
+  }
+  return true;
+}
+
 void register_exception_class(Runtime& runtime, const char* name, Value base = Value::invalid()) {
   std::vector<std::pair<std::string, Value>> attrs;
   attrs.emplace_back("__module__", Value::string("builtins"));
@@ -929,6 +958,14 @@ void register_exception_class(Runtime& runtime, const char* name, Value base = V
         runtime.make_native_function("BaseExceptionGroup.split", exception_group_split));
   }
   runtime.register_builtin(name, Value::class_object(name, std::move(attrs), std::move(base)));
+  if (std::string_view(name) == "AttributeError") {
+    const Value* value = runtime.find_builtin(name);
+    auto* klass = value == nullptr ? nullptr : value_as_class(*value);
+    if (klass != nullptr) {
+      klass->native_type_constructor = attribute_error_native_constructor;
+      klass->native_type_constructor_version = klass->version;
+    }
+  }
 }
 
 } // namespace

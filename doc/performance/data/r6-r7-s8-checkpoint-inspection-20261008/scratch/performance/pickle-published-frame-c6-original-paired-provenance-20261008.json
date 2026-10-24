@@ -1,0 +1,121 @@
+{
+  "status": "scratch_only_frozen_unexecuted",
+  "prepared_utc": "2026-10-08T19:53:48.9956510Z",
+  "manager_sha256": "b41f74b4efac72cf40e46ec9bccc6cabc2b31d203e9b764341e22a1109d26a0c",
+  "template_sha256": "d3d10bbf61edfaeaf92721952a18919ab1e8017e842051e933b4a0b893a8b699",
+  "files_sha256": {
+    "scratch/performance/measure-pickle-published-frame-c6-original-body-paired-20261008.py": "b41f74b4efac72cf40e46ec9bccc6cabc2b31d203e9b764341e22a1109d26a0c",
+    "scratch/performance/run-pickle-published-frame-c6-original-body-and-sampling-20261008.py": "d3d10bbf61edfaeaf92721952a18919ab1e8017e842051e933b4a0b893a8b699",
+    "scratch/performance/pickle-original-pure-python-diagnostic-proposed-20261008.py": "5295c899d95d023ca2fb3b511e9bf78b58cb49e4a256770c65adf0d614b14109",
+    "scratch/performance/validate-call-ex-cross-activation-constructor-resume-r3-20261008.py": "50007db5cc6adc2e54012fdfbd48514699513f990906d4a508582ba73d6ae0bf",
+    "doc/performance/data/published-frame-snapshot-r6-applied-source-20261008.json": "e1a655b96ec2931b607ddb4b037784ffcb069f814267ca0191871839d39f5221",
+    "doc/performance/data/published-frame-snapshot-r6-focused-20261008.json": "b9eb06e0120d5474a0ef69b65a23da026807c81b3ef803487baf02c3a0eba253",
+    "doc/performance/data/pickle-published-frame-c6-body-20261008.json": "0040315f22ccadd781ef6baaa8472b31765d4e6636bccaa9feec2121d58c1db6",
+    "doc/performance/data/pickle-original-pure-c5-body-20261008.json": "2d6a79f263d3e20f86f494bc13dfef795e395fba0b81773a2bc238472d811665",
+    "doc/performance/data/pickle-original-pure-c5-native-sampling-20261008.json": "e5919bc0ec2840d3300888f1fb54dd10ac66cb96a66734d47a05322d26f5a0a7",
+    "doc/performance/data/ordinary-canonical-slot-constructor-c5-gate-idle-resume-20261008.json": "a3be06b1ef97560253e7f4f0d7740440786f82ca08e0a56b564bfe2bfd3f96ed",
+    "build-repro/controls/class-constructor-c5-before-snapshot-r6-20261008/preserved-release-provenance.json": "85910ee375f16c677153fc128fb17303868a849c124f5909d5ee03eeed764bdc"
+  },
+  "current_candidate": {
+    "source_count": 107,
+    "release_count": 178,
+    "critical_binary_sha256": {
+      "exe": "ae2637ea38377bb7a784b3eb43e616149eadd86cf976e1455179dcf337a2433f",
+      "dll": "2ef6aabbe7c9fff1981215dff02c3bc0a966dcff5165be8161f6d008996974fd"
+    },
+    "focused_status": "targeted_correctness_passed",
+    "focused_hashes_unchanged": true,
+    "initial_body_reference": "0040315f22ccadd781ef6baaa8472b31765d4e6636bccaa9feec2121d58c1db6"
+  },
+  "preserved_control": {
+    "checkpoint": "e6913f8fa33eb0ba0d452f451808ec9df3d5ff4d",
+    "manifest_sha256": "85910ee375f16c677153fc128fb17303868a849c124f5909d5ee03eeed764bdc",
+    "release_count": 178,
+    "source_snapshot_count": 106,
+    "release_and_source_maps_rechecked_before_after": true,
+    "source_snapshot_root": "source-snapshot"
+  },
+  "predeclared_measurement": {
+    "pairs": 7,
+    "order": [
+      [
+        "control",
+        "candidate"
+      ],
+      [
+        "candidate",
+        "control"
+      ],
+      [
+        "control",
+        "candidate"
+      ],
+      [
+        "candidate",
+        "control"
+      ],
+      [
+        "control",
+        "candidate"
+      ],
+      [
+        "candidate",
+        "control"
+      ],
+      [
+        "control",
+        "candidate"
+      ]
+    ],
+    "children": 14,
+    "timed_runtimes": [
+      "C5 preserved XLang3",
+      "fixed R6 XLang3"
+    ],
+    "cpython_timed_children": 0,
+    "original_child_sha256": "5295c899d95d023ca2fb3b511e9bf78b58cb49e4a256770c65adf0d614b14109",
+    "outer_loops": 41,
+    "objects": 3,
+    "dumps_per_object": 20,
+    "dumps_per_invocation": 2460,
+    "all_dump_operations": 34440,
+    "protocol": 5,
+    "profile_enabled": false,
+    "timeout_seconds_per_child": 300,
+    "timer": "original_timer_seconds_diagnostic_only returned by original bench_pickle",
+    "fresh_pycache_each_child": true,
+    "raw_streams": "Separate stdout/stderr xb bytes; retain every child event and diagnostic elapsed",
+    "values_trimmed": 0,
+    "outliers_removed": 0,
+    "automatic_retries": 0,
+    "decision_statistic": "median of seven within-pair control/candidate original timer ratios",
+    "bootstrap_resamples": 50000,
+    "bootstrap_seed": 20261008,
+    "bootstrap_statistic": "median of seven paired ratios resampled with replacement",
+    "ci": {
+      "confidence_percent": 95,
+      "endpoints": [
+        0.025,
+        0.975
+      ],
+      "percentile_method": "linear interpolation at p*(50000-1)"
+    },
+    "useful_rule": "median strictly greater than1.02 AND lower95%CI strictly greater than1.0",
+    "no_signal_decision": "reject_c6_retain_verified_c5",
+    "automatic_rollback": false
+  },
+  "launch_requires": [
+    "Root AST-check/independent static verdict",
+    "Host idle before each child",
+    "No source/build/benchmark overlap; read-only50007 compiler/CTest watcher preserves raw observations and invalidates seen overlaps",
+    "Current107/178/focus12/initialbody exact inputs",
+    "All outputs match immutableC5 body byte signatures and pure-Python roundtrips"
+  ],
+  "limits": [
+    "Paired diagnostic is not a pyperformance score, CP win, whole-suite score or acceptance",
+    "Seven alternating pairs are fixed; control starts four and candidate starts three due odd count",
+    "One-second OS polling can miss subsecond external processes; no target instrumentation",
+    "Existing full04009fa2 remains held on initial single-body gain prereq; any later paired-proof prereq must be a separate revision",
+    "No Python/AST/interpreter/benchmark/compiler/staging/live source edit executed by this subagent"
+  ]
+}

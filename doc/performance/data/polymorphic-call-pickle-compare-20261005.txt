@@ -1,0 +1,14 @@
+Benchmarks with tag 'serialize':
+================================
+
+| Benchmark          | pyperformance-xlang3-callglobal-control-pickle-rigorous-20261005 | pyperformance-xlang3-polymorphic-call-pickle-candidate-r1-rigorous-20261005 |
+|--------------------|:----------------------------------------------------------------:|:---------------------------------------------------------------------------:|
+| pickle_pure_python | 5.20 ms                                                          | 5.30 ms: 1.02x slower                                                       |
+
+All benchmarks:
+===============
+
+| Benchmark          | pyperformance-xlang3-callglobal-control-pickle-rigorous-20261005 | pyperformance-xlang3-polymorphic-call-pickle-candidate-r1-rigorous-20261005 |
+|--------------------|:----------------------------------------------------------------:|:---------------------------------------------------------------------------:|
+| pickle_pure_python | 5.20 ms                                                          | 5.30 ms: 1.02x slower                                                       |
+\n

@@ -1,0 +1,158 @@
+{
+  "scope": "Diagnostic baseline only, distinct loop shapes; not official benchmark scores",
+  "commit": "299f748cbe0ff937d7be9ca78859c7ac4fa28731",
+  "probe_sha256": "5e9d74ed22141a9aa96e86293a42cb4d76eb2cb38252330273a87d368cfbcc67",
+  "observations": [
+    {
+      "runtime": "cpython3147",
+      "exe_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "dll_sha256": null,
+      "result": {
+        "scope": "Call route diagnosis; distinct loop shapes, never official speed scores",
+        "rows": [
+          {
+            "path": "direct_constant",
+            "operations_per_sample": 8192,
+            "samples_seconds": [
+              0.0001999999803956598,
+              0.00020340000628493726,
+              0.00020179999410174787,
+              0.0002018999948631972,
+              0.00020390001009218395
+            ],
+            "checked_result": 0,
+            "mapping_stays_empty": true
+          },
+          {
+            "path": "native_max_constant_key",
+            "operations_per_sample": 8192,
+            "samples_seconds": [
+              0.0002300000051036477,
+              0.00023010000586509705,
+              0.00023269999655894935,
+              0.00023109998437575996,
+              0.00023120001424103975
+            ],
+            "checked_result": 32,
+            "mapping_stays_empty": true
+          },
+          {
+            "path": "counter_missing",
+            "operations_per_sample": 8192,
+            "samples_seconds": [
+              0.0004878000181633979,
+              0.0004899000050500035,
+              0.0004953000170644373,
+              0.0004862999776378274,
+              0.0004933000018354505
+            ],
+            "checked_result": 0,
+            "mapping_stays_empty": true
+          },
+          {
+            "path": "direct_counter_missing",
+            "operations_per_sample": 8192,
+            "samples_seconds": [
+              0.0002156999835278839,
+              0.00021399999968707561,
+              0.0002145000034943223,
+              0.00021579998428933322,
+              0.00021590001415461302
+            ],
+            "checked_result": 0,
+            "mapping_stays_empty": true
+          },
+          {
+            "path": "dict_get_default",
+            "operations_per_sample": 8192,
+            "samples_seconds": [
+              0.00026119998074136674,
+              0.00023100001271814108,
+              0.00022769998759031296,
+              0.0002297000028192997,
+              0.00022479999461211264
+            ],
+            "checked_result": 0,
+            "mapping_stays_empty": true
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "xlang3",
+      "exe_sha256": "475d2ff8d72c19eebaeff4ea6e943c6969cd8c2af3e15df4512de6e62f1c2397",
+      "dll_sha256": "fa9fac1f45195e040b5628386a3db73e4beafaa96a6912b78afb86523dae532a",
+      "result": {
+        "scope": "Call route diagnosis; distinct loop shapes, never official speed scores",
+        "rows": [
+          {
+            "path": "direct_constant",
+            "operations_per_sample": 8192,
+            "samples_seconds": [
+              0.0008188000065274537,
+              0.0007999000081326813,
+              0.0008288999961223453,
+              0.000824799994006753,
+              0.0008186999766621739
+            ],
+            "checked_result": 0,
+            "mapping_stays_empty": true
+          },
+          {
+            "path": "native_max_constant_key",
+            "operations_per_sample": 8192,
+            "samples_seconds": [
+              0.006494000001111999,
+              0.006489699997473508,
+              0.006463600002462044,
+              0.006468099978519604,
+              0.006438200012780726
+            ],
+            "checked_result": 32,
+            "mapping_stays_empty": true
+          },
+          {
+            "path": "counter_missing",
+            "operations_per_sample": 8192,
+            "samples_seconds": [
+              0.017178700014483184,
+              0.017004699999233708,
+              0.017008199996780604,
+              0.01710950001142919,
+              0.01696740000625141
+            ],
+            "checked_result": 0,
+            "mapping_stays_empty": true
+          },
+          {
+            "path": "direct_counter_missing",
+            "operations_per_sample": 8192,
+            "samples_seconds": [
+              0.002479899994796142,
+              0.0024659000046085566,
+              0.002464199991663918,
+              0.00247430001036264,
+              0.0024625000078231096
+            ],
+            "checked_result": 0,
+            "mapping_stays_empty": true
+          },
+          {
+            "path": "dict_get_default",
+            "operations_per_sample": 8192,
+            "samples_seconds": [
+              0.0071672000049147755,
+              0.0071490000118501484,
+              0.007028100022580475,
+              0.00711030000820756,
+              0.007054599991533905
+            ],
+            "checked_result": 0,
+            "mapping_stays_empty": true
+          }
+        ]
+      }
+    }
+  ],
+  "status": "terminal"
+}

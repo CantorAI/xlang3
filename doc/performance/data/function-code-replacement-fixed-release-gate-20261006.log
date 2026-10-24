@@ -1,0 +1,12 @@
+local_slots              pass         1.002x
+scalar_arithmetic        pass         1.036x
+range_for                pass         1.022x
+function_calls           pass         0.993x
+class_construct          pass         1.003x
+list_append              pass         1.016x
+property_access          pass         0.956x
+deepcopy_memo            pass         0.872x
+json_dumps               pass         1.004x
+gc_traversal             pass         0.999x
+subparsers               pass         1.011x
+Performance check: pass. Report: doc\performance\data\function-code-replacement-fixed-release-gate-20261006.json

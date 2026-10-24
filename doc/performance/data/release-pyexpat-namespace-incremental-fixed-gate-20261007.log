@@ -1,0 +1,12 @@
+local_slots              pass         0.989x
+scalar_arithmetic        pass         1.062x
+range_for                pass         1.007x
+function_calls           pass         0.976x
+class_construct          pass         1.012x
+list_append              pass         0.993x
+property_access          pass         0.981x
+deepcopy_memo            pass         0.884x
+json_dumps               pass         1.006x
+gc_traversal             pass         0.752x
+subparsers               pass         0.940x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\release-pyexpat-namespace-incremental-fixed-gate-20261007.json

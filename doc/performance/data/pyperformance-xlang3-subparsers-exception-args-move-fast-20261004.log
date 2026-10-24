@@ -1,0 +1,18 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (argparse_subparsers)
+
+(trying common venv first)
+
+[1/1] argparse_subparsers...
+...........
+subparsers: Mean +- std dev: 142 ms +- 1 ms
+
+Performance version: 1.14.0
+
+### subparsers ###
+Mean +- std dev: 142 ms +- 1 ms
+

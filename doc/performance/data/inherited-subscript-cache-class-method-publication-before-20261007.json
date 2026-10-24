@@ -1,0 +1,17 @@
+{
+  "probe_sha256": "4d9a800be9c2dda63b19adad8d008b595d3057c1257fe6ffc66c8c6d6b9660a7",
+  "observations": [
+    {
+      "runtime": "cpython3147",
+      "exit_code": 0,
+      "stdout": "{\"events\": [\"new\"], \"after\": \"new\"}\r\n",
+      "stderr": ""
+    },
+    {
+      "runtime": "candidate",
+      "exit_code": 0,
+      "stdout": "{\"events\": [\"old\"], \"after\": \"new\"}\r\n",
+      "stderr": ""
+    }
+  ]
+}

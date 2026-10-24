@@ -11,6 +11,9 @@ Licensed under the Apache License, Version 2.0.
 // separately built probe to
 // locate native costs. A parent scope excludes nested execution and its probe
 // recording overhead, so recursive interpreter calls are not counted twice.
+// pyperf filters worker environments: when using run_pyperformance_xlang3_shimmed.py,
+// also pass --inherit-worker-env XLANG3_VM_OPCODE_TIMING. Setting it only in the
+// outer shell enables setup-process probes but leaves timed workers uninstrumented.
 
 #include <algorithm>
 #include <array>
@@ -81,16 +84,36 @@ struct VMOpcodeTimingStore {
     std::sort(snapshots.begin(), snapshots.end(), [](const auto& a, const auto& b) {
       return a.self_ns > b.self_ns;
     });
+    const char* timing_path = std::getenv("XLANG3_VM_OPCODE_TIMING_FILE");
+    std::FILE* timing_file = timing_path != nullptr && timing_path[0] != '\0'
+        ? std::fopen(timing_path, "a") : nullptr;
+    if (timing_file != nullptr) std::fprintf(timing_file, "vm-time: report_begin\n");
     std::fprintf(stderr, "vm-time: clock_pair_mean_ns=%llu\n",
         static_cast<unsigned long long>(clock_pair_mean_ns));
+    if (timing_file != nullptr) {
+      std::fprintf(timing_file, "vm-time: clock_pair_mean_ns=%llu\n",
+          static_cast<unsigned long long>(clock_pair_mean_ns));
+    }
     for (const auto& row : snapshots) {
       std::fprintf(stderr, "vm-time: opcode=%u calls=%llu self_ns=%llu total_ns=%llu\n",
           static_cast<unsigned>(row.opcode),
           static_cast<unsigned long long>(row.calls),
           static_cast<unsigned long long>(row.self_ns),
           static_cast<unsigned long long>(row.total_ns));
+      if (timing_file != nullptr) {
+        std::fprintf(timing_file,
+            "vm-time: opcode=%u calls=%llu self_ns=%llu total_ns=%llu\n",
+            static_cast<unsigned>(row.opcode),
+            static_cast<unsigned long long>(row.calls),
+            static_cast<unsigned long long>(row.self_ns),
+            static_cast<unsigned long long>(row.total_ns));
+      }
     }
     std::fflush(stderr);
+    if (timing_file != nullptr) {
+      std::fflush(timing_file);
+      std::fclose(timing_file);
+    }
   }
 };
 

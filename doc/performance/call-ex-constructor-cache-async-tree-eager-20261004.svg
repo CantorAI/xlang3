@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="330" viewBox="0 0 1040 330" role="img" aria-labelledby="title desc">
+  <title id="title">Eager async tree elapsed time</title>
+  <desc id="desc">Horizontal elapsed-time bars compare CPython 3.14.7, the prior XLang3 Release, and the constructor-cache candidate. Smaller bars are faster.</desc>
+  <rect width="1040" height="330" fill="#ffffff"/>
+  <text x="48" y="42" font-family="Segoe UI, Arial, sans-serif" font-size="22" font-weight="700" fill="#172033">async_tree_eager: elapsed time</text>
+  <text x="48" y="68" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#586174">Same pyperformance 1.14.0 workload body, one run per process · smaller is faster</text>
+  <text x="252" y="105" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#586174">0</text>
+  <text x="895" y="105" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#586174">3.0 seconds</text>
+  <line x1="250" y1="113" x2="930" y2="113" stroke="#aeb6c4" stroke-width="1"/>
+  <line x1="250" y1="112" x2="250" y2="290" stroke="#aeb6c4" stroke-width="1"/>
+  <line x1="477" y1="112" x2="477" y2="290" stroke="#e5e8ee" stroke-width="1"/>
+  <line x1="703" y1="112" x2="703" y2="290" stroke="#e5e8ee" stroke-width="1"/>
+  <line x1="930" y1="112" x2="930" y2="290" stroke="#e5e8ee" stroke-width="1"/>
+  <text x="48" y="151" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#172033">CPython 3.14.7</text>
+  <rect x="250" y="132" width="20" height="26" rx="4" fill="#4b83c3"/>
+  <text x="282" y="151" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#172033">89.7 ms · 1.00×</text>
+  <text x="48" y="211" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#172033">XLang3 prior Release</text>
+  <rect x="250" y="192" width="663" height="26" rx="4" fill="#c97a42"/>
+  <text x="250" y="236" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#586174">2.932 s · 32.7× CPython time</text>
+  <text x="48" y="271" font-family="Segoe UI, Arial, sans-serif" font-size="15" fill="#172033">XLang3 constructor-cache</text>
+  <rect x="250" y="252" width="369" height="26" rx="4" fill="#2a9d78"/>
+  <text x="632" y="271" font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#172033">1.632 s · 18.2× CPython time</text>
+  <text x="242" y="310" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#586174">0</text>
+  <text x="461" y="310" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#586174">1</text>
+  <text x="687" y="310" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#586174">2</text>
+  <text x="913" y="310" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#586174">3</text>
+</svg>

@@ -1,0 +1,2 @@
+{'p': 'Annotated[int, lambda x: x > 0]', 'q': 'Annotated[int, lambda x: x % 3 == 0]'}
+D.<lambda>

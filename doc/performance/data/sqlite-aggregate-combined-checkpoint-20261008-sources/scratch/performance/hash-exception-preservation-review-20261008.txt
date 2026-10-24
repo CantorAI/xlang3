@@ -1,0 +1,72 @@
+STATIC REVIEW / SEPARATE CORRECTNESS PROPOSAL — 2026-10-08
+
+Concrete bug: the accepted 9de05e0d control passes the first three groups of the
+unchanged exact-string-hash fixture, then hash(FailingHash()) converts HashError
+into TypeError with 'uncaught exception in __hash__ ... HashError: preserved'.
+Exact CPython 3.14.7 passed all five groups. Original failure/reference bytes
+remain under doc/performance/data/exact-string-hash-*reference-20261008*.
+The frozen exact-string dispatch patch 8a0af520 and its fixture 8c5661ca are
+unchanged and unapplied by this author. Do not accept TypeError as an alternative.
+
+Exception transfer is already correct until builtin_hash:
+- runtime_value_hash_key, value_hash.cpp:529, dispatches __hash__ through
+  runtime_call_callable and returns false without changing the pending object.
+- Nested Interpreter::run_function stores result.exception and pending exception
+  in xlang_vm_loop.cpp:1928. run_function_value retains that object when needed
+  (xlang_interpreter.cpp:226-231).
+- runtime_call_callable, functional_iterators.cpp:379-396, transfers the precise
+  RuntimeResult.exception into runtime pending state. It also preserves a pending
+  exception when only the error vector is present. Its diagnostic error text is
+  intentionally separate from the Python exception object.
+- builtin_hash, functional_builtins.cpp:5254, unconditionally calls
+  raise_class_error(TypeError or ValueError, error). Runtime::raise_class_error
+  at exceptions.cpp:169 replaces pending state with a NEW exception. This is
+  where the original class, identity, traceback and explicit cause are lost.
+- VM native failure dispatch in ops_call.h takes the resulting pending object;
+  it cannot recover the overwritten original. There is no missing ABI transfer.
+
+Bounded repair: when hashing fails, take and immediately restore any pending
+exception. Synthesize the existing TypeError/ValueError fallback only if none is
+pending. This follows existing min/AST conversion-error helpers at
+functional_builtins.cpp:3087/617. It changes only the failure branch; successful
+hashing pays no new guard, allocation, callback or exception ownership work.
+Do not change Runtime::raise_class_error globally: intentional new raises must
+remain able to replace pending state. Pure Python library algorithms stay Python.
+
+Ownership/API scope: take_pending_exception acquires an owned Value before
+clearing pending state; set_pending_exception receives it by move. There is no
+unowned exception interval, suppression, type conversion, replay of __hash__,
+or modification to diagnostic text. Pending state is the existing native error
+protocol: callers should enter with no unrelated pending error; if one is already
+present at a failing native boundary, this proposal retains it exactly as the
+existing preserving helpers do. Success behavior with pre-existing pending state
+is unchanged. This is generic builtin hash behavior, not full hash conformance.
+
+Meaningful test proposal
+The complete patch registers tests/cpp/hash_exception_cases.h in the EXISTING
+interpreter C++ target, with no CMake/new target requirement. It invokes the real
+registered builtin through ordinary native-call and fast callback paths. Across
+24 failures it verifies the exact callback exception object, one invocation per
+call, unchanged output, retained diagnostic text, no leftover pending owner and
+return to the original exception reference count after each drain. A text-only
+native callback still yields TypeError; a subsequent valid string hash recovers.
+CallbackState owns its exception and is heap-owned by the native function.
+unique_ptr retains ownership until native construction succeeds; no callback
+stores pointers to stack counters and no delayed teardown uses stack state.
+
+The unrun Python proposal covers repeated plain CALL, expanded CALL, saved hash
+and nested tuple hashing. It checks exact exception identity, explicit cause,
+traceback containing __hash__, handled exception context, callback count and
+successful recovery; BaseException subclasses must also survive. Invalid return,
+unhashable list and released memoryview keep TypeError/ValueError fallbacks.
+The complete patch includes core/expected fixture files but DOES NOT modify the
+already-changed run_fixtures lists. Run this fixture explicitly before acceptance
+or add a separately owned registration. Preserve all original baseline failures.
+
+Static readiness: engine-only and complete patches both passed git apply --check
+against the recorded current source. Independent class_scope_design review of
+complete patch b566a8ce found no concrete compiler/ownership/test-construction
+blocker. No compiler, runtime, fixture or benchmark was run by either reviewer.
+Parent must run the original unchanged five-group fixture plus new Python/C++
+checks before accepting the correctness change, then the normal fixed gate.
+No performance gain or completed goal is claimed. SQLite exporter untouched.

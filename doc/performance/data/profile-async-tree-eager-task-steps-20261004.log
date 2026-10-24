@@ -1,0 +1,17 @@
+vm-time: clock_pair_mean_ns=14
+vm-time: opcode=222 calls=55987 self_ns=1518584600 total_ns=16840678300
+vm-time: opcode=234 calls=55986 self_ns=685534800 total_ns=685534800
+vm-time: opcode=246 calls=55986 self_ns=387387900 total_ns=387387900
+vm-time: opcode=227 calls=55987 self_ns=85712700 total_ns=85712700
+vm-time: opcode=232 calls=55987 self_ns=77809700 total_ns=15152376900
+vm-time: opcode=230 calls=55987 self_ns=40340600 total_ns=40340600
+vm-time: opcode=235 calls=55986 self_ns=23062100 total_ns=13978329700
+vm-time: opcode=233 calls=55986 self_ns=15668700 total_ns=15072755900
+vm-time: opcode=229 calls=55987 self_ns=14374300 total_ns=14374300
+vm-time: opcode=226 calls=55987 self_ns=13758600 total_ns=15320495500
+vm-time: opcode=221 calls=55987 self_ns=4640400 total_ns=16852286300
+vm-time: opcode=224 calls=55987 self_ns=3165300 total_ns=3165300
+vm-time: opcode=225 calls=55987 self_ns=3118700 total_ns=16857067800
+vm-time: opcode=220 calls=55986 self_ns=2213500 total_ns=13953461300
+vm-time: opcode=231 calls=55987 self_ns=2135400 total_ns=2135400
+vm-time: opcode=228 calls=55987 self_ns=1020700 total_ns=1020700

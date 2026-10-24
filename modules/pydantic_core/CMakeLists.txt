@@ -64,6 +64,26 @@ target_include_directories(xlang_pydantic_core_native_package PRIVATE
   ${PROJECT_SOURCE_DIR}/sdk
 )
 
+# The native xlang3 implementation replaces the upstream extension module,
+# while these upstream pure-Python files provide the public package facade and
+# core-schema declarations. Keep them beside the .x3pkg so `import pydantic_core`
+# resolves without installing or loading a CPython extension.
+set(PYDANTIC_CORE_PYTHON_PACKAGE_DIR
+  "${CMAKE_CURRENT_SOURCE_DIR}/python/pydantic_core")
+add_custom_command(TARGET xlang_pydantic_core_native_package POST_BUILD
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${PYDANTIC_CORE_PYTHON_PACKAGE_DIR}"
+    "$<TARGET_FILE_DIR:xlang_pydantic_core_native_package>/pydantic_core"
+  VERBATIM
+)
+install(DIRECTORY "${PYDANTIC_CORE_PYTHON_PACKAGE_DIR}/"
+  DESTINATION "modules/pydantic_core"
+  FILES_MATCHING PATTERN "*.py"
+)
+install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/PYDANTIC_CORE_LICENSE.txt"
+  DESTINATION "licenses/pydantic_core"
+)
+
 if(MSVC)
   set_property(TARGET xlang_pydantic_core_native_package PROPERTY
     MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")

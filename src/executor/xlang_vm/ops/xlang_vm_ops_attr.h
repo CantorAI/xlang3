@@ -31,9 +31,32 @@ limitations under the License.
 
 #include <memory>
 #include <string>
+#include <string_view>
 #include <vector>
 
 namespace xlang3::xlang_vm::ops {
+
+XLANG3_HOT_INLINE bool xlang_vm_class_attr_cacheable_name(
+    std::string_view name) {
+  // These names have explicit type-object behavior before ordinary class-map
+  // lookup; keep their identity, lazy creation, and layout semantics live.
+  return name != "__class__" && name != "__name__" && name != "__base__" &&
+      name != "__bases__" && name != "__mro__" && name != "__flags__" &&
+      name != "__dictoffset__" && name != "__weakrefoffset__" &&
+      name != "__dict__" && name != "__weakref__" &&
+      name != "__annotations__" && name != "__annotate__" &&
+      name != "__doc__" && name != "__text_signature__";
+}
+
+XLANG3_HOT_INLINE bool xlang_vm_class_attr_cacheable_value(
+    const Value& value) {
+  if (value_as_static_method(value) != nullptr ||
+      value_as_class_method(value) != nullptr) return false;
+  // Class access unwraps these descriptor wrappers. Descriptor instances can
+  // also run custom __get__ logic; leave both shapes on ordinary lookup.
+  return value_as_instance(value) == nullptr ||
+      !object_value_is_descriptor(value);
+}
 
 XLANG3_HOT_INLINE Value xlang_vm_attribute_error(
     Runtime& runtime,
@@ -89,6 +112,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_get(
     return XlangVMOpFlow::Next;
   }
   auto* instance = value_as_instance(receiver);
+  std::string owner_error;
+  if (!slot_descriptor_validate_receiver_owner(descriptor, receiver, owner_error)) {
+    return raise_exception_value(runtime.make_exception("TypeError", owner_error))
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
   if (instance != nullptr) {
     if (xlang_vm_effective_slot_index(descriptor, *instance) ==
         std::numeric_limits<uint32_t>::max()) {
@@ -164,6 +192,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_set(
     RaiseRuntimeError&& raise_runtime_error,
     RaiseExceptionValue&& raise_exception_value) {
   auto* instance = value_as_instance(receiver);
+  std::string owner_error;
+  if (!slot_descriptor_validate_receiver_owner(descriptor, receiver, owner_error)) {
+    return raise_exception_value(runtime.make_exception("TypeError", owner_error))
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
   if (instance != nullptr) {
     if (xlang_vm_effective_slot_index(descriptor, *instance) ==
         std::numeric_limits<uint32_t>::max()) {
@@ -207,12 +240,19 @@ XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_set(
   return XlangVMOpFlow::Next;
 }
 
-template <typename RaiseRuntimeError>
+template <typename RaiseRuntimeError, typename RaiseExceptionValue>
 XLANG3_HOT_INLINE XlangVMOpFlow slot_descriptor_delete(
     const SlotDescriptorObject& descriptor,
     const Value& receiver,
-    RaiseRuntimeError&& raise_runtime_error) {
+    Runtime& runtime,
+    RaiseRuntimeError&& raise_runtime_error,
+    RaiseExceptionValue&& raise_exception_value) {
   auto* instance = value_as_instance(receiver);
+  std::string owner_error;
+  if (!slot_descriptor_validate_receiver_owner(descriptor, receiver, owner_error)) {
+    return raise_exception_value(runtime.make_exception("TypeError", owner_error))
+        ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+  }
   if (instance != nullptr) {
     if (xlang_vm_effective_slot_index(descriptor, *instance) ==
         std::numeric_limits<uint32_t>::max()) {
@@ -394,7 +434,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
     const std::shared_ptr<const ir::Module>& module_owner,
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
-    std::vector<XlangVMInstrCache>& instr_cache,
+    XlangVMInstrCacheStorage& instr_cache,
     std::vector<Value>& native_call_args,
     size_t& ip,
     RuntimeResult& result,
@@ -412,6 +452,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
   // A stable class without a custom __getattribute__ hook can use the raw
   // instance cache before running the descriptor-oriented cases below.  This
   // is the same shape/version guard used by CPython's specialized LOAD_ATTR.
+  // Native attribute hooks can attach to one instance without changing its
+  // class version. Recheck the receiver at both warm slot read entries.
   if (attr_name != "__class__") {
     if (auto* instance = value_as_instance(regs[in.a])) {
       if (auto* klass = value_as_class(instance->klass);
@@ -419,6 +461,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
         auto& cache = instr_cache[ip].attr;
         if (cache.owner == &klass->header && cache.version == klass->version) {
           if (cache.kind == AttrSiteKind::InstanceSlot &&
+              instance->native_get_attr == nullptr &&
               cache.index < instance_slot_count(instance)) {
             const auto& slot_value = instance_slot_at(instance, cache.index);
             if (slot_value.tag != ValueTag::Invalid) {
@@ -474,7 +517,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
     // base changes, metaclass descriptors, or pointer reuse. Dunder names and
     // custom metaclass hooks stay on the generic semantics path below.
     if (metaclass != nullptr && !metaclass->has_getattribute_hook &&
-        attr_name.rfind("__", 0) != 0) {
+        xlang_vm_class_attr_cacheable_name(attr_name)) {
       auto& cache = instr_cache[ip].attr;
       if (cache.kind == AttrSiteKind::ClassValue &&
           cache.owner == &metaclass->header &&
@@ -540,6 +583,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
       auto& cache = instr_cache[ip].attr;
       if (cache.owner == &klass->header && cache.version == klass->version) {
         if (cache.kind == AttrSiteKind::InstanceSlot &&
+            instance->native_get_attr == nullptr &&
             cache.index < instance_slot_count(instance)) {
           const auto& slot_value = instance_slot_at(instance, cache.index);
           if (slot_value.tag != ValueTag::Invalid) {
@@ -569,7 +613,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
           }
         }
       }
-      if (cache.getter_inline && cache.owner == &klass->header && cache.version == klass->version) {
+      if (cache.getter_inline && cache.owner == &klass->header && cache.version == klass->version &&
+          cache.accessor_function != nullptr &&
+          cache.accessor_code_version == cache.accessor_function->code_version) {
         std::string error;
         if (cache.kind == AttrSiteKind::PropertyInstanceAttr) {
           bool matched = false;
@@ -596,11 +642,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
   if (auto* receiver_class = value_as_class(regs[in.a])) {
     auto* metaclass = value_as_class(receiver_class->metaclass);
     if (metaclass != nullptr && !metaclass->has_getattribute_hook &&
-        attr_name.rfind("__", 0) != 0) {
+        xlang_vm_class_attr_cacheable_name(attr_name)) {
       const auto direct_attr = receiver_class->attrs.find(attr_name);
       if (direct_attr != receiver_class->attrs.end() &&
           direct_attr->second.tag != ValueTag::Invalid &&
-          !object_value_is_descriptor(direct_attr->second)) {
+          xlang_vm_class_attr_cacheable_value(direct_attr->second)) {
         Value meta_descriptor;
         std::string meta_error;
         const bool meta_data_descriptor =
@@ -611,6 +657,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
         if (!meta_data_descriptor) {
           auto& cache = instr_cache[ip].attr;
           cache = AttrSiteCache{};
+          // Class access returns functions and method descriptors as their raw
+          // class-dictionary values. Cache that pointer too, but only after
+          // proving the metaclass has no data descriptor with precedence.
+          // Static/class-method wrappers and descriptor instances that are
+          // transformed by class lookup stay on the generic path.
           cache.kind = AttrSiteKind::ClassValue;
           cache.owner = &metaclass->header;
           cache.version = metaclass->version;
@@ -769,6 +820,11 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
        loaded_attr_kind == AttrSiteKind::InstanceSlot);
   if (!loaded_from_instance) if (auto* slot = value_as_slot_descriptor(attr)) {
     if (auto* instance = value_as_instance(regs[in.a])) {
+      std::string owner_error;
+      if (!slot_descriptor_validate_receiver_owner(*slot, regs[in.a], owner_error)) {
+        return raise_exception_value(runtime.make_exception("TypeError", owner_error))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
       if (slot->index < instance_slot_count(instance) &&
           instance_slot_at(instance, slot->index).tag == ValueTag::Invalid) {
         bool has_fallback_value = false;
@@ -831,7 +887,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
       if (instance != nullptr) {
         auto* klass = value_as_class(instance->klass);
         if (cache.getter_inline &&
-            (klass == nullptr || cache.owner != &klass->header || cache.version != klass->version)) {
+            (klass == nullptr || cache.owner != &klass->header || cache.version != klass->version ||
+               cache.accessor_function != fn_obj || cache.accessor_code_version != fn_obj->code_version)) {
           cache.getter_inline = false;
           cache.kind = AttrSiteKind::Empty;
           value_set_invalid(cache.value);
@@ -847,6 +904,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
               cache.owner = &klass->header;
               cache.version = klass->version;
             }
+            cache.accessor_function = fn_obj;
+            cache.accessor_code_version = fn_obj->code_version;
             cache.getter_inline = true;
           } else if (analyze_property_instance_attr_accessor(module, *fn_obj, false, inline_spec)) {
             uint32_t attr_index = 0;
@@ -856,6 +915,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
               cache.getter_has_const = inline_spec.has_const;
               value_assign_fast(cache.getter_const, inline_spec.constant);
               cache_property_instance_attr(cache, *klass, inline_spec, attr_index);
+              cache.accessor_function = fn_obj;
+              cache.accessor_code_version = fn_obj->code_version;
               cache.getter_inline = true;
             }
           }
@@ -923,7 +984,30 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_attr(
       regs[in.dst] = std::move(native_result);
       return XlangVMOpFlow::Next;
     }
-    return raise_runtime_error("property getter is not callable") ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    // A property getter may be a callable object (for example attrgetter),
+    // a bound method or a staticmethod wrapper. Keep the proven function and
+    // native paths above; other getters use property.__get__'s generic runtime
+    // dispatch once, without adding guards to warmed inline property reads.
+    // Own the selected getter and receiver across callbacks/class replacement,
+    // and restore the complete execution depth before cleanup can reenter.
+    Value getter(property->fget);
+    Value getter_result;
+    bool ok = false;
+    {
+      XlangRuntimeExecutionSuspension suspension;
+      ok = runtime_call_callable(runtime, getter, self_arg, 1, getter_result, error);
+    }
+    if (!ok) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        return raise_exception_value(std::move(pending))
+            ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+      }
+      return raise_runtime_error(error.empty() ? "property getter failed" : error)
+          ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
+    }
+    regs[in.dst] = std::move(getter_result);
+    return XlangVMOpFlow::Next;
   }
   if (!loaded_from_instance && object_value_has_descriptor_get(attr)) {
     if (auto* instance = value_as_instance(regs[in.a])) {
@@ -998,7 +1082,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_local_attr(
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
     XlangVMSmallValueBuffer& locals,
-    std::vector<XlangVMInstrCache>& instr_cache,
+    XlangVMInstrCacheStorage& instr_cache,
     std::vector<Value>& native_call_args,
     size_t& ip,
     RuntimeResult& result,
@@ -1037,7 +1121,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
     const std::shared_ptr<const ir::Module>& module_owner,
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
-    std::vector<XlangVMInstrCache>& instr_cache,
+    XlangVMInstrCacheStorage& instr_cache,
     std::vector<Value>& native_call_args,
     size_t& ip,
     RuntimeResult& result,
@@ -1070,7 +1154,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
   if (auto* instance = value_as_instance(regs[in.dst])) {
     if (auto* klass = value_as_class(instance->klass)) {
       auto& cache = instr_cache[ip].attr;
-      if (cache.setter_inline && cache.owner == &klass->header && cache.version == klass->version) {
+      if (cache.setter_inline && cache.owner == &klass->header && cache.version == klass->version &&
+          cache.accessor_function != nullptr &&
+          cache.accessor_code_version == cache.accessor_function->code_version) {
         std::string error;
         if (cache.kind == AttrSiteKind::PropertyInstanceAttr) {
           bool matched = false;
@@ -1146,7 +1232,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
         if (instance != nullptr) {
           auto* klass = value_as_class(instance->klass);
           if (cache.setter_inline &&
-              (klass == nullptr || cache.owner != &klass->header || cache.version != klass->version)) {
+              (klass == nullptr || cache.owner != &klass->header || cache.version != klass->version ||
+               cache.accessor_function != fn_obj || cache.accessor_code_version != fn_obj->code_version)) {
             cache.setter_inline = false;
             cache.kind = AttrSiteKind::Empty;
             value_set_invalid(cache.value);
@@ -1162,6 +1249,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
                 cache.owner = &klass->header;
                 cache.version = klass->version;
               }
+              cache.accessor_function = fn_obj;
+              cache.accessor_code_version = fn_obj->code_version;
               cache.setter_inline = true;
             } else if (analyze_property_instance_attr_accessor(module, *fn_obj, true, inline_spec)) {
               uint32_t attr_index = 0;
@@ -1171,6 +1260,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
                 cache.setter_has_const = inline_spec.has_const;
                 value_assign_fast(cache.setter_const, inline_spec.constant);
                 cache_property_instance_attr(cache, *klass, inline_spec, attr_index);
+                cache.accessor_function = fn_obj;
+                cache.accessor_code_version = fn_obj->code_version;
                 cache.setter_inline = true;
               }
             }
@@ -1202,7 +1293,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
           call_module_owner = fn_obj->module;
         }
         ++ip;
-        if (!push_frame(*call_module, fn_obj->function_id, property_args, fn_obj->closure, fn_obj->defaults,
+        if (!push_frame(*call_module, fn_obj->function_id, property_args.with_keyword_defaults(*fn_obj), fn_obj->closure, fn_obj->defaults,
                         fn_obj->globals_module, std::move(call_module_owner), in.b)) {
           return XlangVMOpFlow::ReturnResult;
         }
@@ -1262,6 +1353,9 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
     }
     if (error.find("immutable type") != std::string::npos ||
         error.rfind("__dict__ must be", 0) == 0 ||
+        error.rfind("__defaults__ must be", 0) == 0 ||
+        error.rfind("__kwdefaults__ must be", 0) == 0 ||
+        error.rfind("__code__ must be", 0) == 0 ||
         error.rfind("can only assign string to ", 0) == 0) {
       return raise_exception_value(runtime.make_exception("TypeError", error))
           ? XlangVMOpFlow::ContinueLoop
@@ -1272,7 +1366,8 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
           ? XlangVMOpFlow::ContinueLoop
           : XlangVMOpFlow::ReturnResult;
     }
-    if (error == "traceback loop detected") {
+    if (error == "traceback loop detected" ||
+        error == "__code__ requires a matching number of free variables") {
       return raise_exception_value(runtime.make_exception("ValueError", error))
           ? XlangVMOpFlow::ContinueLoop
           : XlangVMOpFlow::ReturnResult;
@@ -1296,7 +1391,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_attr(
     const std::shared_ptr<const ir::Module>& module_owner,
     Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs,
-    std::vector<XlangVMInstrCache>& instr_cache,
+    XlangVMInstrCacheStorage& instr_cache,
     std::vector<Value>& native_call_args,
     size_t& ip,
     RuntimeResult& result,
@@ -1364,7 +1459,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_attr(
   }
   if (has_descriptor) {
     if (auto* slot = value_as_slot_descriptor(descriptor)) {
-      return slot_descriptor_delete(*slot, regs[in.dst], raise_runtime_error);
+      return slot_descriptor_delete(*slot, regs[in.dst], runtime, raise_runtime_error, raise_exception_value);
     }
     if (auto* property = value_as_property(descriptor)) {
       if (property->fdel.tag == ValueTag::None || property->fdel.tag == ValueTag::Invalid) {
@@ -1379,11 +1474,16 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_attr(
         auto* instance = value_as_instance(regs[in.dst]);
         auto& cache = instr_cache[ip].attr;
         if (instance != nullptr) {
+          if (cache.accessor_function != fn_obj || cache.accessor_code_version != fn_obj->code_version) {
+            cache.deleter_inline = false;
+          }
           if (!cache.deleter_inline) {
             InlinePropertyAccess inline_spec;
             if (analyze_property_deleter(module, *fn_obj, inline_spec)) {
               cache.deleter_slot = inline_spec.slot;
               value_assign_fast(cache.deleter_const, inline_spec.constant);
+              cache.accessor_function = fn_obj;
+              cache.accessor_code_version = fn_obj->code_version;
               cache.deleter_inline = true;
             }
           }
@@ -1401,7 +1501,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow delete_attr(
           call_module_owner = fn_obj->module;
         }
         ++ip;
-        if (!push_frame(*call_module, fn_obj->function_id, property_args, fn_obj->closure, fn_obj->defaults,
+        if (!push_frame(*call_module, fn_obj->function_id, property_args.with_keyword_defaults(*fn_obj), fn_obj->closure, fn_obj->defaults,
                         fn_obj->globals_module, std::move(call_module_owner), in.dst)) {
           return XlangVMOpFlow::ReturnResult;
         }

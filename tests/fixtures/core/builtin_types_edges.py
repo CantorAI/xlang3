@@ -77,3 +77,18 @@ for fmt in ["", "Z", "2B", "<H"]:
 writable = memoryview(bytearray(b"\x00\x00\x00\x00")).cast("h")
 outcome("assign-h", lambda: writable.__setitem__(0, -2))
 print("assigned-bytes", writable.tobytes())
+
+# Tornado's IOStream appends a memoryview over each received socket chunk.
+outcome("bytearray-memoryview-add", lambda: bytearray() + memoryview(b"chunk"))
+
+
+# Native-call argument buffers may reuse capacity but must not retain temporary
+# views after a synchronous callback, or the following bytearray resize fails.
+def resize_after_temporary_memoryview_call():
+    owner = bytearray(b"abcdef")
+    result = memoryview(owner)[:2].tobytes()
+    del owner[:2]
+    return result, owner
+
+
+outcome("memoryview-call-releases-export", resize_after_temporary_memoryview_call)

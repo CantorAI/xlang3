@@ -1,0 +1,56 @@
+{
+  "scope": "Scratch-only proposal. Static generation only; no build, fixture, or benchmark execution.",
+  "parent_proposal_sha256": "0049a6c2f7c23052dc900a4324b511aa280447c2c075e9939d3857b1afdd76a4",
+  "input_sha256": {
+    "sdk/xlang3/abi/xmodule.h": "4ad93277885703915101abffa82e634668ecf07543ad657615d397f4789b07de",
+    "src/import/native_package_loader.cpp": "d7651be61272ed7463fab0bd34b2aa66f756c9c2b30dc2a54089efe5999cf286",
+    "modules/sqlite/sqlite_package.cpp": "8a31e2fb2c95fa72b4d92b88be77ce7b18069f7cc009af0e47ff827967b01d3a",
+    "modules/sqlite/sqlite_values.cpp": "fff384ec7afd777a15f4169bae042bb5d93e16e2da177ccb480c6a312678a4c9",
+    "tests/cpp/interpreter_tests.cpp": "2e1c801963399e23f02d5f35e198949f102a8b665eebe3fcdcfebd453ce2342c",
+    "tests/run_fixtures.py": "b0c4703154a9fc647ed7a37d83f28a6efd9ca6e9053c74c1362912105ed4d61b",
+    "tests/run_fixtures.ps1": "44569c930115e7034fb6f127793cdf8aae9e99b9701a6f074fef9b7471e3a480"
+  },
+  "artifact_input_sha256": {
+    "scratch/performance/sqlite-aggregate-abi-cases-r5-proposed-20261008.h": "44ee04161715b5138583f9ff693dc930aba3c20136be6e4cf8d817fabe1a69ad",
+    "scratch/performance/sqlite-aggregate-sdk-probe-r5-proposed-20261008.py": "1ce595463ae5e1bd5ce08e509e51cee31d168ac76d80effeb3cb8e7a846bb304",
+    "scratch/performance/sqlite-aggregate-fixture-r2-20261008.py": "fbe5b52e43fe633499200963b87dd932466a96685a188eb763f72531c8d92373"
+  },
+  "patch_sha256": "d1a27657ead30eca5a1ee27c84d89a9d2264b5a46e2d0db683ac5c68c05d746b",
+  "candidate_source_sha256": {
+    "sdk/xlang3/abi/xmodule.h": "fcc0163bd4d60721aceed69f186978363a36332546a52d72aa0ab33cde33a518",
+    "src/import/native_package_loader.cpp": "9aa0b1b18b802512d9d57e80abad4d6a95c847c16cde026c8b2bc280f0a619ce",
+    "modules/sqlite/sqlite_package.cpp": "a910a6b01d80d108b0f5747dd269e88c3d5ade96e0bf9f76f566013f4f6da54c",
+    "modules/sqlite/sqlite_values.cpp": "85bf0d2862fe2e844cd598b15b41ca669572975ce1bc6da0814b23b7c8e36e77",
+    "tests/cpp/interpreter_tests.cpp": "aa656d98750448941b895d255209f49dd646e04d3060711022d1c35f091ab99c",
+    "tests/run_fixtures.py": "faa1cc0b36ccde399dd6d1a5ba6922f889fbd65fc7e26345cc8e068363ae6310",
+    "tests/run_fixtures.ps1": "299d3c2cae1622bc44c2091473d2c0f4e922286377866678883613cbd02dd6fa",
+    "tests/cpp/sqlite_aggregate_abi_cases.h": "44ee04161715b5138583f9ff693dc930aba3c20136be6e4cf8d817fabe1a69ad",
+    "tests/cpp/sqlite_aggregate_sdk_probe.py": "1ce595463ae5e1bd5ce08e509e51cee31d168ac76d80effeb3cb8e7a846bb304",
+    "tests/fixtures/core/sqlite_native_aggregate.py": "fbe5b52e43fe633499200963b87dd932466a96685a188eb763f72531c8d92373",
+    "tests/fixtures/expected/sqlite_native_aggregate.out": "dc9aac238d3522da842d0e0627564e507ae1a17996a0c5a727af3effee168a6f"
+  },
+  "files": [
+    "sdk/xlang3/abi/xmodule.h",
+    "src/import/native_package_loader.cpp",
+    "modules/sqlite/sqlite_package.cpp",
+    "modules/sqlite/sqlite_values.cpp",
+    "tests/cpp/interpreter_tests.cpp",
+    "tests/run_fixtures.py",
+    "tests/run_fixtures.ps1",
+    "tests/cpp/sqlite_aggregate_abi_cases.h",
+    "tests/cpp/sqlite_aggregate_sdk_probe.py",
+    "tests/fixtures/core/sqlite_native_aggregate.py",
+    "tests/fixtures/expected/sqlite_native_aggregate.out"
+  ],
+  "validation_requirements": [
+    "Build own SQLite package, runtime and existing xlang3_interpreter_tests without CMake changes",
+    "Run fresh CPython 3.14.7/R2 fixture and candidate fixture",
+    "Run existing xlang3_interpreter_tests with real sibling modules directory",
+    "Run accepted full correctness and fixed performance gate before original sqlite_synth pyperformance"
+  ],
+  "known_limitations": [
+    "SQLite does not publish callback factory edges using the existing SDK instance_set_native_gc_references facility; cyclic collection is not claimed",
+    "Pre-existing scalar registration failure double-destroy is deliberately not changed",
+    "Complete sqlite3 DB-API conformance is outside this bounded proposal"
+  ]
+}

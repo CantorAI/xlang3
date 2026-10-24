@@ -1,0 +1,1168 @@
+/*
+Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+*/
+#include "xlang3/ir_codec.h"
+
+#include "xlang3/value.h"
+#include "xlang3/expression.h"
+
+#include <cstring>
+#include <limits>
+#include <utility>
+
+namespace xlang3::ir {
+namespace {
+
+constexpr uint32_t kMagic = 0x33524958u; // XIR3
+constexpr uint32_t kVersion = 63;
+constexpr uint32_t kMaxVectorItems = 1u << 20u;
+constexpr uint32_t kMaxStringBytes = 16u << 20u;
+
+enum class ConstTag : uint8_t {
+  None = 1,
+  Bool = 2,
+  Int64 = 3,
+  Double = 4,
+  String = 5,
+  Bytes = 6,
+  Expression = 7,
+  Tuple = 8,
+  Invalid = 9,
+  Complex = 10,
+  TypeParam = 11,
+  BigInt = 12,
+};
+
+struct Writer {
+  std::vector<uint8_t> bytes;
+
+  void u8(uint8_t value) {
+    bytes.push_back(value);
+  }
+
+  void u16(uint16_t value) {
+    bytes.push_back(static_cast<uint8_t>(value & 0xffu));
+    bytes.push_back(static_cast<uint8_t>((value >> 8u) & 0xffu));
+  }
+
+  void u32(uint32_t value) {
+    for (int i = 0; i < 4; ++i) {
+      bytes.push_back(static_cast<uint8_t>((value >> (i * 8)) & 0xffu));
+    }
+  }
+
+  void u64(uint64_t value) {
+    for (int i = 0; i < 8; ++i) {
+      bytes.push_back(static_cast<uint8_t>((value >> (i * 8)) & 0xffu));
+    }
+  }
+
+  void i64(int64_t value) {
+    u64(static_cast<uint64_t>(value));
+  }
+
+  void f64(double value) {
+    uint64_t bits = 0;
+    static_assert(sizeof(bits) == sizeof(value), "double must be 64-bit");
+    std::memcpy(&bits, &value, sizeof(bits));
+    u64(bits);
+  }
+
+  bool string(const std::string& value, std::string& error) {
+    if (value.size() > std::numeric_limits<uint32_t>::max()) {
+      error = "IR string is too large";
+      return false;
+    }
+    u32(static_cast<uint32_t>(value.size()));
+    bytes.insert(bytes.end(), value.begin(), value.end());
+    return true;
+  }
+};
+
+struct Reader {
+  const uint8_t* data = nullptr;
+  std::size_t size = 0;
+  std::size_t pos = 0;
+
+  bool take(std::size_t count, const uint8_t*& out) {
+    if (count > size || pos > size - count) {
+      return false;
+    }
+    out = data + pos;
+    pos += count;
+    return true;
+  }
+
+  bool u8(uint8_t& out) {
+    const uint8_t* p = nullptr;
+    if (!take(1, p)) {
+      return false;
+    }
+    out = p[0];
+    return true;
+  }
+
+  bool u16(uint16_t& out) {
+    const uint8_t* p = nullptr;
+    if (!take(2, p)) {
+      return false;
+    }
+    out = static_cast<uint16_t>(p[0]) | (static_cast<uint16_t>(p[1]) << 8u);
+    return true;
+  }
+
+  bool u32(uint32_t& out) {
+    const uint8_t* p = nullptr;
+    if (!take(4, p)) {
+      return false;
+    }
+    out = static_cast<uint32_t>(p[0]) |
+          (static_cast<uint32_t>(p[1]) << 8u) |
+          (static_cast<uint32_t>(p[2]) << 16u) |
+          (static_cast<uint32_t>(p[3]) << 24u);
+    return true;
+  }
+
+  bool u64(uint64_t& out) {
+    const uint8_t* p = nullptr;
+    if (!take(8, p)) {
+      return false;
+    }
+    out = 0;
+    for (int i = 0; i < 8; ++i) {
+      out |= static_cast<uint64_t>(p[i]) << (i * 8);
+    }
+    return true;
+  }
+
+  bool i64(int64_t& out) {
+    uint64_t value = 0;
+    if (!u64(value)) {
+      return false;
+    }
+    out = static_cast<int64_t>(value);
+    return true;
+  }
+
+  bool f64(double& out) {
+    uint64_t bits = 0;
+    if (!u64(bits)) {
+      return false;
+    }
+    std::memcpy(&out, &bits, sizeof(out));
+    return true;
+  }
+
+  bool string(std::string& out) {
+    uint32_t count = 0;
+    if (!u32(count) || count > kMaxStringBytes) {
+      return false;
+    }
+    const uint8_t* p = nullptr;
+    if (!take(count, p)) {
+      return false;
+    }
+    out.assign(reinterpret_cast<const char*>(p), count);
+    return true;
+  }
+};
+
+bool check_count(uint32_t count, std::string& error) {
+  if (count > kMaxVectorItems) {
+    error = "IR vector is too large";
+    return false;
+  }
+  return true;
+}
+
+bool write_count(Writer& w, std::size_t count, std::string& error) {
+  if (count > std::numeric_limits<uint32_t>::max()) {
+    error = "IR vector is too large";
+    return false;
+  }
+  w.u32(static_cast<uint32_t>(count));
+  return true;
+}
+
+bool write_u32_vector(Writer& w, const std::vector<uint32_t>& values, std::string& error) {
+  if (!write_count(w, values.size(), error)) {
+    return false;
+  }
+  for (uint32_t value : values) {
+    w.u32(value);
+  }
+  return true;
+}
+
+bool read_u32_vector(Reader& r, std::vector<uint32_t>& values, std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  values.resize(count);
+  for (uint32_t& value : values) {
+    if (!r.u32(value)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool write_string_vector(Writer& w, const std::vector<std::string>& values, std::string& error) {
+  if (!write_count(w, values.size(), error)) {
+    return false;
+  }
+  for (const auto& value : values) {
+    if (!w.string(value, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool read_string_vector(Reader& r, std::vector<std::string>& values, std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  values.resize(count);
+  for (auto& value : values) {
+    if (!r.string(value)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool write_u32_pair_vector(
+    Writer& w,
+    const std::vector<std::pair<uint32_t, uint32_t>>& values,
+    std::string& error) {
+  if (!write_count(w, values.size(), error)) {
+    return false;
+  }
+  for (const auto& pair : values) {
+    w.u32(pair.first);
+    w.u32(pair.second);
+  }
+  return true;
+}
+
+bool read_u32_pair_vector(
+    Reader& r,
+    std::vector<std::pair<uint32_t, uint32_t>>& values,
+    std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  values.resize(count);
+  for (auto& pair : values) {
+    if (!r.u32(pair.first) || !r.u32(pair.second)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool write_source_positions(Writer& w, const std::vector<SourcePosition>& values, std::string& error) {
+  if (!write_count(w, values.size(), error)) {
+    return false;
+  }
+  for (const auto& value : values) {
+    w.u32(value.line);
+    w.u32(value.end_line);
+    w.u32(value.column);
+    w.u32(value.end_column);
+  }
+  return true;
+}
+
+bool read_source_positions(Reader& r, std::vector<SourcePosition>& values, std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  values.resize(count);
+  for (auto& value : values) {
+    if (!r.u32(value.line) ||
+        !r.u32(value.end_line) ||
+        !r.u32(value.column) ||
+        !r.u32(value.end_column)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool write_string_u32_pair_vector(
+    Writer& w,
+    const std::vector<std::pair<std::string, uint32_t>>& values,
+    std::string& error) {
+  if (!write_count(w, values.size(), error)) {
+    return false;
+  }
+  for (const auto& pair : values) {
+    if (!w.string(pair.first, error)) {
+      return false;
+    }
+    w.u32(pair.second);
+  }
+  return true;
+}
+
+bool read_string_u32_pair_vector(
+    Reader& r,
+    std::vector<std::pair<std::string, uint32_t>>& values,
+    std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  values.resize(count);
+  for (auto& pair : values) {
+    if (!r.string(pair.first) || !r.u32(pair.second)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool write_nested_u32_vectors(Writer& w, const std::vector<std::vector<uint32_t>>& values, std::string& error) {
+  if (!write_count(w, values.size(), error)) {
+    return false;
+  }
+  for (const auto& value : values) {
+    if (!write_u32_vector(w, value, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool read_nested_u32_vectors(Reader& r, std::vector<std::vector<uint32_t>>& values, std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  values.resize(count);
+  for (auto& value : values) {
+    if (!read_u32_vector(r, value, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool write_nested_dict_items(
+    Writer& w,
+    const std::vector<std::vector<std::pair<uint32_t, uint32_t>>>& values,
+    std::string& error) {
+  if (!write_count(w, values.size(), error)) {
+    return false;
+  }
+  for (const auto& value : values) {
+    if (!write_u32_pair_vector(w, value, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool read_nested_dict_items(
+    Reader& r,
+    std::vector<std::vector<std::pair<uint32_t, uint32_t>>>& values,
+    std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  values.resize(count);
+  for (auto& value : values) {
+    if (!read_u32_pair_vector(r, value, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool write_nested_class_attrs(
+    Writer& w,
+    const std::vector<std::vector<std::pair<std::string, uint32_t>>>& values,
+    std::string& error) {
+  if (!write_count(w, values.size(), error)) {
+    return false;
+  }
+  for (const auto& value : values) {
+    if (!write_string_u32_pair_vector(w, value, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool read_nested_class_attrs(
+    Reader& r,
+    std::vector<std::vector<std::pair<std::string, uint32_t>>>& values,
+    std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  values.resize(count);
+  for (auto& value : values) {
+    if (!read_string_u32_pair_vector(r, value, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool write_nested_string_vectors(Writer& w, const std::vector<std::vector<std::string>>& values, std::string& error) {
+  if (!write_count(w, values.size(), error)) {
+    return false;
+  }
+  for (const auto& value : values) {
+    if (!write_string_vector(w, value, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool read_nested_string_vectors(Reader& r, std::vector<std::vector<std::string>>& values, std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  values.resize(count);
+  for (auto& value : values) {
+    if (!read_string_vector(r, value, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool write_params(Writer& w, const std::vector<Param>& params, std::string& error) {
+  if (!write_count(w, params.size(), error)) {
+    return false;
+  }
+  for (const auto& param : params) {
+    if (!w.string(param.name, error)) {
+      return false;
+    }
+    w.u8(static_cast<uint8_t>(param.kind));
+    w.u32(param.default_reg);
+  }
+  return true;
+}
+
+bool read_params(Reader& r, std::vector<Param>& params, std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  params.resize(count);
+  for (auto& param : params) {
+    uint8_t kind = 0;
+    if (!r.string(param.name) || !r.u8(kind) || !r.u32(param.default_reg)) {
+      return false;
+    }
+    if (kind > static_cast<uint8_t>(ParamKind::KwArgs)) {
+      error = "IR parameter kind is invalid";
+      return false;
+    }
+    param.kind = static_cast<ParamKind>(kind);
+  }
+  return true;
+}
+
+bool write_call_keyword_args(Writer& w, const std::vector<CallKeywordArg>& values, std::string& error) {
+  if (!write_count(w, values.size(), error)) {
+    return false;
+  }
+  for (const auto& value : values) {
+    if (!w.string(value.name, error)) {
+      return false;
+    }
+    w.u32(value.value_reg);
+  }
+  return true;
+}
+
+bool read_call_keyword_args(Reader& r, std::vector<CallKeywordArg>& values, std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  values.resize(count);
+  for (auto& value : values) {
+    if (!r.string(value.name) || !r.u32(value.value_reg)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool write_call_specs(Writer& w, const std::vector<CallSpec>& specs, std::string& error) {
+  if (!write_count(w, specs.size(), error)) {
+    return false;
+  }
+  for (const auto& spec : specs) {
+    if (!write_u32_vector(w, spec.positional, error) ||
+        !write_call_keyword_args(w, spec.keywords, error)) {
+      return false;
+    }
+    w.u32(spec.star_arg);
+    w.u32(spec.kw_star_arg);
+    if (!write_u32_vector(w, spec.star_args, error) ||
+        !write_u32_vector(w, spec.kw_star_args, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool read_call_specs(Reader& r, std::vector<CallSpec>& specs, std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  specs.resize(count);
+  for (auto& spec : specs) {
+    if (!read_u32_vector(r, spec.positional, error) ||
+        !read_call_keyword_args(r, spec.keywords, error) ||
+        !r.u32(spec.star_arg) ||
+        !r.u32(spec.kw_star_arg)) {
+      return false;
+    }
+    if (!read_u32_vector(r, spec.star_args, error) ||
+        !read_u32_vector(r, spec.kw_star_args, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool write_value(Writer& w, const Value& value, std::string& error, uint32_t depth = 0) {
+  if (depth > 256) { error = "IR constant nesting exceeds limit"; return false; }
+  switch (value.tag) {
+    case ValueTag::Invalid:
+      w.u8(static_cast<uint8_t>(ConstTag::Invalid));
+      return true;
+    case ValueTag::None:
+      w.u8(static_cast<uint8_t>(ConstTag::None));
+      return true;
+    case ValueTag::Bool:
+      w.u8(static_cast<uint8_t>(ConstTag::Bool));
+      w.u8(value.as.b ? 1 : 0);
+      return true;
+    case ValueTag::Int64:
+      w.u8(static_cast<uint8_t>(ConstTag::Int64));
+      w.i64(value.as.i64);
+      return true;
+    case ValueTag::Double:
+      w.u8(static_cast<uint8_t>(ConstTag::Double));
+      w.f64(value.as.f64);
+      return true;
+    case ValueTag::Object:
+      if (auto* tuple = value_as_tuple(value)) {
+        w.u8(static_cast<uint8_t>(ConstTag::Tuple));
+        if (!write_count(w, tuple->items.size(), error)) return false;
+        for (const auto& item : tuple->items) if (!write_value(w, item, error, depth + 1)) return false;
+        return true;
+      }
+      if (auto* complex = value_as_complex(value)) {
+        w.u8(static_cast<uint8_t>(ConstTag::Complex));
+        w.f64(complex->real);
+        w.f64(complex->imag);
+        return true;
+      }
+      if (value_as_bigint(value) != nullptr) {
+        w.u8(static_cast<uint8_t>(ConstTag::BigInt));
+        return w.string(value_bigint_to_string(value), error);
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::String) {
+        w.u8(static_cast<uint8_t>(ConstTag::String));
+        return w.string(string_object_to_string(*reinterpret_cast<StringObject*>(value.as.obj)), error);
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Expression) {
+        std::string bytes;
+        if (!encode_expression(value, bytes, error)) return false;
+        w.u8(static_cast<uint8_t>(ConstTag::Expression));
+        return w.string(bytes, error);
+      }
+      if (value.as.obj != nullptr && value.as.obj->kind == ObjectKind::Bytes) {
+        w.u8(static_cast<uint8_t>(ConstTag::Bytes));
+        return w.string(bytes_object_to_string(*reinterpret_cast<BytesObject*>(value.as.obj)), error);
+      }
+      if (auto* type_param = value_as_type_param(value)) {
+        w.u8(static_cast<uint8_t>(ConstTag::TypeParam));
+        return w.string(type_param->name, error);
+      }
+      break;
+    default:
+      break;
+  }
+  error = "IR constant type is not serializable: tag=" + std::to_string(static_cast<uint32_t>(value.tag)) +
+      (value.tag == ValueTag::Object && value.as.obj ? ", kind=" + std::to_string(static_cast<uint32_t>(value.as.obj->kind)) : std::string());
+  return false;
+}
+
+bool read_value(Reader& r, Value& value, uint32_t depth = 0) {
+  if (depth > 256) return false;
+  uint8_t tag = 0;
+  if (!r.u8(tag)) {
+    return false;
+  }
+  switch (static_cast<ConstTag>(tag)) {
+    case ConstTag::Invalid: value = Value::invalid(); return true;
+    case ConstTag::Tuple: {
+      uint32_t count = 0;
+      if (!r.u32(count) || count > kMaxVectorItems || count > r.size - r.pos) return false;
+      value = Value::tuple_reserved(count);
+      for (uint32_t i = 0; i < count; ++i) {
+        Value item;
+        if (!read_value(r, item, depth + 1)) return false;
+        value_as_tuple(value)->items.push_back(std::move(item));
+      }
+      tuple_object_complete_construction(*value_as_tuple(value));
+      return true;
+    }
+    case ConstTag::None:
+      value = Value::none();
+      return true;
+    case ConstTag::Bool: {
+      uint8_t b = 0;
+      if (!r.u8(b)) {
+        return false;
+      }
+      value = Value::boolean(b != 0);
+      return true;
+    }
+    case ConstTag::Int64: {
+      int64_t i = 0;
+      if (!r.i64(i)) {
+        return false;
+      }
+      value = Value::int64(i);
+      return true;
+    }
+    case ConstTag::Double: {
+      double d = 0;
+      if (!r.f64(d)) {
+        return false;
+      }
+      value = Value::number(d);
+      return true;
+    }
+    case ConstTag::Complex: {
+      double real = 0.0;
+      double imag = 0.0;
+      if (!r.f64(real) || !r.f64(imag)) return false;
+      value = Value::complex(real, imag);
+      return true;
+    }
+    case ConstTag::BigInt: {
+      std::string digits;
+      std::string error;
+      if (!r.string(digits)) return false;
+      value = value_bigint_from_decimal(digits, 10, error);
+      return value.tag != ValueTag::Invalid;
+    }
+    case ConstTag::TypeParam: {
+      std::string name;
+      if (!r.string(name)) return false;
+      value = Value::type_param(std::move(name));
+      return true;
+    }
+    case ConstTag::String: {
+      std::string s;
+      if (!r.string(s)) {
+        return false;
+      }
+      value = Value::string(std::move(s));
+      return true;
+    }
+    case ConstTag::Expression: {
+      std::string bytes;
+      std::string error;
+      return r.string(bytes) && decode_expression(bytes, value, error);
+    }
+    case ConstTag::Bytes: {
+      std::string s;
+      if (!r.string(s)) {
+        return false;
+      }
+      value = Value::bytes(std::move(s));
+      return true;
+    }
+  }
+  return false;
+}
+
+bool write_values(Writer& w, const std::vector<Value>& values, std::string& error) {
+  if (!write_count(w, values.size(), error)) {
+    return false;
+  }
+  for (const auto& value : values) {
+    if (!write_value(w, value, error)) {
+      return false;
+    }
+  }
+  return true;
+}
+
+bool read_values(Reader& r, std::vector<Value>& values, std::string& error) {
+  uint32_t count = 0;
+  if (!r.u32(count) || !check_count(count, error)) {
+    return false;
+  }
+  values.clear();
+  values.reserve(count);
+  for (uint32_t i = 0; i < count; ++i) {
+    Value value;
+    if (!read_value(r, value)) {
+      return false;
+    }
+    values.push_back(std::move(value));
+  }
+  return true;
+}
+
+bool write_function(Writer& w, const Function& fn, std::string& error) {
+  if (!w.string(fn.name, error) ||
+      !w.string(fn.qualname, error) ||
+      !w.string(fn.doc, error)) {
+    return false;
+  }
+  w.u8(fn.is_generator ? 1 : 0);
+  w.u8(fn.is_async ? 1 : 0);
+  w.u8(fn.is_coroutine ? 1 : 0);
+  w.u32(fn.first_line);
+  if (!write_string_vector(w, fn.params, error) ||
+      !write_string_vector(w, fn.type_params, error) ||
+      !write_params(w, fn.signature, error) ||
+      !write_string_vector(w, fn.locals, error) ||
+      !write_u32_vector(w, fn.cell_slots, error) ||
+      !write_string_vector(w, fn.free_vars, error)) {
+    return false;
+  }
+  w.u32(fn.register_count);
+  if (!write_values(w, fn.constants, error) ||
+      !write_string_vector(w, fn.names, error)) {
+    return false;
+  }
+  if (!write_count(w, fn.raw_blocks.size(), error)) {
+    return false;
+  }
+  for (const auto& block : fn.raw_blocks) {
+    if (!w.string(block.language, error) ||
+        !w.string(block.provider, error) ||
+        !w.string(block.body, error)) {
+      return false;
+    }
+  }
+  if (!write_nested_u32_vectors(w, fn.call_args, error) ||
+      !write_call_specs(w, fn.call_specs, error) ||
+      !write_nested_u32_vectors(w, fn.function_defaults, error) ||
+      !write_nested_class_attrs(w, fn.function_annotations, error) ||
+      !write_nested_class_attrs(w, fn.function_kwdefaults, error) ||
+      !write_nested_u32_vectors(w, fn.tuple_items, error) ||
+      !write_nested_u32_vectors(w, fn.list_items, error) ||
+      !write_nested_u32_vectors(w, fn.set_items, error) ||
+      !write_nested_dict_items(w, fn.dict_items, error) ||
+      !write_nested_u32_vectors(w, fn.function_closures, error) ||
+      !write_nested_class_attrs(w, fn.class_attrs, error) ||
+      !write_nested_string_vectors(w, fn.class_instance_slots, error) ||
+      !write_u32_pair_vector(w, fn.range_specs, error) ||
+      !write_u32_pair_vector(w, fn.string_replace_specs, error)) {
+    return false;
+  }
+  if (!write_count(w, fn.guarded_local_numeric_exprs.size(), error)) return false;
+  for (const auto& spec : fn.guarded_local_numeric_exprs) {
+    if (spec.nodes.empty() || spec.nodes.size() > kMaxGuardedLocalNumericExprNodes ||
+        spec.fallback_span == 0) {
+      error = "invalid guarded local numeric expression";
+      return false;
+    }
+    if (!write_count(w, spec.nodes.size(), error)) return false;
+    w.u32(spec.fallback_span);
+    for (size_t index = 0; index < spec.nodes.size(); ++index) {
+      const auto& node = spec.nodes[index];
+      switch (node.kind) {
+        case GuardedLocalNumericExprNodeKind::Local:
+          if (node.a >= fn.locals.size()) {
+            error = "invalid guarded numeric local slot";
+            return false;
+          }
+          break;
+        case GuardedLocalNumericExprNodeKind::Constant:
+          if (node.a >= fn.constants.size()) {
+            error = "invalid guarded numeric constant";
+            return false;
+          }
+          break;
+        case GuardedLocalNumericExprNodeKind::Add:
+        case GuardedLocalNumericExprNodeKind::Sub:
+        case GuardedLocalNumericExprNodeKind::Mul:
+          if (node.a >= index || node.b >= index) {
+            error = "invalid guarded numeric expression node reference";
+            return false;
+          }
+          break;
+        default:
+          error = "unknown guarded numeric expression node";
+          return false;
+      }
+      w.u8(static_cast<uint8_t>(node.kind));
+      w.u32(node.a);
+      w.u32(node.b);
+    }
+  }
+  if (!write_count(w, fn.code.size(), error)) {
+    return false;
+  }
+  for (size_t ip = 0; ip < fn.code.size(); ++ip) {
+    const auto& instr = fn.code[ip];
+    if (instr.op == Op::GuardedLocalNumericExpr &&
+        (instr.a >= fn.guarded_local_numeric_exprs.size() ||
+         fn.guarded_local_numeric_exprs[instr.a].fallback_span == 0 ||
+         fn.guarded_local_numeric_exprs[instr.a].fallback_span >= fn.code.size() - ip)) {
+      error = "invalid guarded local numeric expression reference";
+      return false;
+    }
+    w.u16(static_cast<uint16_t>(instr.op));
+    w.u32(instr.dst);
+    w.u32(instr.a);
+    w.u32(instr.b);
+    w.u32(instr.c);
+  }
+  if (!write_u32_vector(w, fn.source_lines, error) ||
+      !write_source_positions(w, fn.source_positions, error)) {
+    return false;
+  }
+  if (!write_count(w, fn.logical_frame_ranges.size(), error)) return false;
+  for (const auto& range : fn.logical_frame_ranges) {
+    w.u32(range.start_instruction);
+    w.u32(range.end_instruction);
+    w.u32(range.function_id);
+    w.u32(range.locals_slot);
+  }
+  return true;
+}
+
+bool read_function(Reader& r, Function& fn, std::string& error) {
+  uint8_t is_generator = 0;
+  uint8_t is_async = 0;
+  uint8_t is_coroutine = 0;
+  if (!r.string(fn.name) ||
+      !r.string(fn.qualname) ||
+      !r.string(fn.doc) ||
+      !r.u8(is_generator) ||
+      !r.u8(is_async) ||
+      !r.u8(is_coroutine) ||
+      !r.u32(fn.first_line) ||
+      !read_string_vector(r, fn.params, error) ||
+      !read_string_vector(r, fn.type_params, error) ||
+      !read_params(r, fn.signature, error) ||
+      !read_string_vector(r, fn.locals, error) ||
+      !read_u32_vector(r, fn.cell_slots, error) ||
+      !read_string_vector(r, fn.free_vars, error) ||
+      !r.u32(fn.register_count) ||
+      !read_values(r, fn.constants, error) ||
+      !read_string_vector(r, fn.names, error)) {
+    return false;
+  }
+  fn.is_generator = is_generator != 0;
+  fn.is_async = is_async != 0;
+  fn.is_coroutine = is_coroutine != 0;
+  uint32_t raw_count = 0;
+  if (!r.u32(raw_count) || !check_count(raw_count, error)) {
+    return false;
+  }
+  fn.raw_blocks.resize(raw_count);
+  for (auto& block : fn.raw_blocks) {
+    if (!r.string(block.language) || !r.string(block.provider) || !r.string(block.body)) {
+      return false;
+    }
+  }
+  if (!read_nested_u32_vectors(r, fn.call_args, error) ||
+      !read_call_specs(r, fn.call_specs, error) ||
+      !read_nested_u32_vectors(r, fn.function_defaults, error) ||
+      !read_nested_class_attrs(r, fn.function_annotations, error) ||
+      !read_nested_class_attrs(r, fn.function_kwdefaults, error) ||
+      !read_nested_u32_vectors(r, fn.tuple_items, error) ||
+      !read_nested_u32_vectors(r, fn.list_items, error) ||
+      !read_nested_u32_vectors(r, fn.set_items, error) ||
+      !read_nested_dict_items(r, fn.dict_items, error) ||
+      !read_nested_u32_vectors(r, fn.function_closures, error) ||
+      !read_nested_class_attrs(r, fn.class_attrs, error) ||
+      !read_nested_string_vectors(r, fn.class_instance_slots, error) ||
+      !read_u32_pair_vector(r, fn.range_specs, error) ||
+      !read_u32_pair_vector(r, fn.string_replace_specs, error)) {
+    return false;
+  }
+  uint32_t guarded_expr_count = 0;
+  if (!r.u32(guarded_expr_count) || !check_count(guarded_expr_count, error)) return false;
+  fn.guarded_local_numeric_exprs.resize(guarded_expr_count);
+  for (auto& spec : fn.guarded_local_numeric_exprs) {
+    uint32_t node_count = 0;
+    if (!r.u32(node_count) || !check_count(node_count, error) ||
+        node_count == 0 || node_count > kMaxGuardedLocalNumericExprNodes ||
+        !r.u32(spec.fallback_span) || spec.fallback_span == 0) {
+      error = "invalid guarded local numeric expression";
+      return false;
+    }
+    spec.nodes.resize(node_count);
+    for (size_t index = 0; index < spec.nodes.size(); ++index) {
+      auto& node = spec.nodes[index];
+      uint8_t kind = 0;
+      if (!r.u8(kind) || !r.u32(node.a) || !r.u32(node.b)) return false;
+      node.kind = static_cast<GuardedLocalNumericExprNodeKind>(kind);
+      switch (node.kind) {
+        case GuardedLocalNumericExprNodeKind::Local:
+          if (node.a >= fn.locals.size()) {
+            error = "invalid guarded numeric local slot";
+            return false;
+          }
+          break;
+        case GuardedLocalNumericExprNodeKind::Constant:
+          if (node.a >= fn.constants.size()) {
+            error = "invalid guarded numeric constant";
+            return false;
+          }
+          break;
+        case GuardedLocalNumericExprNodeKind::Add:
+        case GuardedLocalNumericExprNodeKind::Sub:
+        case GuardedLocalNumericExprNodeKind::Mul:
+          if (node.a >= index || node.b >= index) {
+            error = "invalid guarded numeric expression node reference";
+            return false;
+          }
+          break;
+        default:
+          error = "unknown guarded numeric expression node";
+          return false;
+      }
+    }
+  }
+  uint32_t code_count = 0;
+  if (!r.u32(code_count) || !check_count(code_count, error)) {
+    return false;
+  }
+  fn.code.resize(code_count);
+  for (auto& instr : fn.code) {
+    uint16_t op = 0;
+    if (!r.u16(op) || !r.u32(instr.dst) || !r.u32(instr.a) || !r.u32(instr.b) || !r.u32(instr.c)) {
+      return false;
+    }
+    instr.op = static_cast<Op>(op);
+  }
+  for (size_t ip = 0; ip < fn.code.size(); ++ip) {
+    const auto& instr = fn.code[ip];
+    if (instr.op == Op::GuardedLocalNumericExpr) {
+      if (instr.a >= fn.guarded_local_numeric_exprs.size()) {
+        error = "invalid guarded local numeric expression reference";
+        return false;
+      }
+      const size_t span = fn.guarded_local_numeric_exprs[instr.a].fallback_span;
+      if (span == 0 || span >= fn.code.size() - ip) {
+        error = "invalid guarded local numeric expression fallback";
+        return false;
+      }
+    } else if (instr.op == Op::ReversePrefixSliceAssign) {
+      if (instr.dst >= fn.locals.size() || instr.a >= fn.locals.size() ||
+          instr.c == 0 || instr.c >= fn.code.size() - ip) {
+        error = "invalid reverse-prefix slice assignment";
+        return false;
+      }
+    } else if (instr.op == Op::GuardedLocalListGetItem) {
+      const bool constant_index =
+          (instr.c & kGuardedLocalListGetItemConstFlag) != 0;
+      const uint32_t span = instr.c & kGuardedLocalListGetItemSpanMask;
+      if (instr.dst >= fn.register_count || instr.a >= fn.locals.size() ||
+          (constant_index ? instr.b >= fn.constants.size() : instr.b >= fn.locals.size()) ||
+          span == 0 || span >= fn.code.size() - ip) {
+        error = "invalid guarded local list subscript";
+        return false;
+      }
+    } else if (instr.op == Op::GuardedLocalListAugmentConst) {
+      const uint32_t span = instr.c & kGuardedLocalListAugmentSpanMask;
+      if (instr.dst >= fn.locals.size() || instr.a >= fn.locals.size() ||
+          instr.b >= fn.constants.size() || span == 0 || span >= fn.code.size() - ip) {
+        error = "invalid guarded local list augmented assignment";
+        return false;
+      }
+    } else if (instr.op == Op::WhileReversePrefixCount) {
+      if (instr.dst >= fn.locals.size() || instr.a >= fn.locals.size() ||
+          instr.b >= fn.locals.size() || instr.c == 0 ||
+          instr.c >= fn.code.size() - ip) {
+        error = "invalid reverse-prefix loop";
+        return false;
+      }
+    } else if (instr.op == Op::ListPopFrontInsert) {
+      if (instr.dst >= fn.locals.size() || instr.a >= fn.locals.size() ||
+          instr.b >= fn.locals.size() || instr.c == 0 ||
+          instr.c >= fn.code.size() - ip) {
+        error = "invalid list pop-insert fusion";
+        return false;
+      }
+    } else if (instr.op == Op::WhileResetCount) {
+      if (instr.dst >= fn.locals.size() || instr.a >= fn.locals.size() ||
+          instr.c == 0 || instr.c >= fn.code.size() - ip) {
+        error = "invalid count-reset loop fusion";
+        return false;
+      }
+    } else if (instr.op == Op::GuardedLocalListCompare) {
+      const bool index_constant = (instr.c & kGuardedLocalListCompareIndexConstFlag) != 0;
+      const bool rhs_constant = (instr.c & kGuardedLocalListCompareRhsConstFlag) != 0;
+      const bool branch = (instr.c & kGuardedLocalListCompareBranchFlag) != 0;
+      const uint32_t span = instr.c & kGuardedLocalListCompareSpanMask;
+      if (instr.dst >= fn.register_count || instr.a >= fn.locals.size() ||
+          instr.b >= fn.call_args.size() ||
+          fn.call_args[instr.b].size() != (branch ? 4u : 3u) ||
+          (index_constant ? fn.call_args[instr.b][0] >= fn.constants.size()
+                           : fn.call_args[instr.b][0] >= fn.locals.size()) ||
+          (rhs_constant ? fn.call_args[instr.b][1] >= fn.constants.size()
+                        : fn.call_args[instr.b][1] >= fn.locals.size()) ||
+          fn.call_args[instr.b][2] > static_cast<uint32_t>(CompareOp::Ge) ||
+          (branch && fn.call_args[instr.b][3] > fn.code.size()) ||
+          (branch && (span + 1 >= fn.code.size() - ip ||
+                      (fn.code[ip + span + 1].op != Op::JumpIfFalse &&
+                       fn.code[ip + span + 1].op != Op::MoveJumpIfFalse) ||
+                      fn.code[ip + span + 1].a != instr.dst ||
+                      (fn.code[ip + span + 1].op == Op::JumpIfFalse
+                           ? fn.code[ip + span + 1].dst
+                           : fn.code[ip + span + 1].b) != fn.call_args[instr.b][3] ||
+                      (fn.code[ip + span + 1].op == Op::MoveJumpIfFalse &&
+                       fn.code[ip + span + 1].dst >= fn.register_count))) ||
+          span == 0 || span >= fn.code.size() - ip) {
+        error = "invalid guarded list comparison";
+        return false;
+      }
+    } else if (instr.op == Op::WhileListPermutationAdvance) {
+      if (instr.dst >= fn.locals.size() || instr.a >= fn.locals.size() ||
+          instr.b >= fn.locals.size() || instr.c >= fn.call_args.size() ||
+          fn.call_args[instr.c].size() != 4 ||
+          fn.call_args[instr.c][0] >= fn.locals.size() ||
+          fn.call_args[instr.c][1] >= fn.locals.size() ||
+          fn.call_args[instr.c][2] == 0 ||
+          fn.call_args[instr.c][2] >= fn.code.size() - ip ||
+          fn.call_args[instr.c][3] >=
+              fn.code.size() - ip - fn.call_args[instr.c][2]) {
+        error = "invalid list permutation loop fusion";
+        return false;
+      }
+    }
+  }
+  if (!read_u32_vector(r, fn.source_lines, error) ||
+      !read_source_positions(r, fn.source_positions, error)) {
+    return false;
+  }
+  uint32_t logical_range_count = 0;
+  if (!r.u32(logical_range_count) || !check_count(logical_range_count, error)) return false;
+  fn.logical_frame_ranges.resize(logical_range_count);
+  for (auto& range : fn.logical_frame_ranges) {
+    if (!r.u32(range.start_instruction) || !r.u32(range.end_instruction) ||
+        !r.u32(range.function_id) || !r.u32(range.locals_slot) ||
+        range.start_instruction >= range.end_instruction ||
+        range.end_instruction > fn.code.size() || range.locals_slot >= fn.locals.size()) {
+      error = "invalid logical frame range";
+      return false;
+    }
+  }
+  return true;
+}
+
+} // namespace
+
+uint64_t source_hash64(const uint8_t* data, std::size_t size) {
+  uint64_t hash = 14695981039346656037ull;
+  for (std::size_t i = 0; i < size; ++i) {
+    hash ^= data[i];
+    hash *= 1099511628211ull;
+  }
+  return hash;
+}
+
+bool encode_module(const Module& module, uint64_t source_hash, EncodedModule& out, std::string& error) {
+  Writer w;
+  w.u32(kMagic);
+  w.u32(kVersion);
+  w.u64(source_hash);
+  w.u32(module.entry);
+  if (!w.string(module.source_file, error)) {
+    return false;
+  }
+  if (!write_string_vector(w, module.global_slots, error)) {
+    return false;
+  }
+  if (!write_count(w, module.functions.size(), error)) {
+    return false;
+  }
+  for (const auto& fn : module.functions) {
+    if (!write_function(w, fn, error)) {
+      return false;
+    }
+  }
+  out.source_hash = source_hash;
+  out.bytes = std::move(w.bytes);
+  return true;
+}
+
+bool decode_module(const uint8_t* data, std::size_t size, uint64_t expected_source_hash, Module& out, std::string& error) {
+  Reader r{data, size, 0};
+  uint32_t magic = 0;
+  uint32_t version = 0;
+  uint64_t source_hash = 0;
+  if (!r.u32(magic) || !r.u32(version) || !r.u64(source_hash)) {
+    error = "IR cache is truncated";
+    return false;
+  }
+  if (magic != kMagic || version != kVersion) {
+    error = "IR cache has unsupported format";
+    return false;
+  }
+  if (source_hash != expected_source_hash) {
+    error = "IR cache source hash mismatch";
+    return false;
+  }
+  Module module;
+  uint32_t function_count = 0;
+  if (!r.u32(module.entry) ||
+      !r.string(module.source_file) ||
+      !read_string_vector(r, module.global_slots, error) ||
+      !r.u32(function_count) ||
+      !check_count(function_count, error)) {
+    error = error.empty() ? "IR cache is malformed" : error;
+    return false;
+  }
+  module.functions.resize(function_count);
+  for (auto& fn : module.functions) {
+    if (!read_function(r, fn, error)) {
+      error = error.empty() ? "IR cache is malformed" : error;
+      return false;
+    }
+  }
+  if (module.entry >= module.functions.size() || r.pos != r.size) {
+    error = "IR cache is malformed";
+    return false;
+  }
+  out = std::move(module);
+  return true;
+}
+
+} // namespace xlang3::ir

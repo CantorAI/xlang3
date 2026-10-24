@@ -1,0 +1,38 @@
+{
+  "status": "finished",
+  "started_utc": "2026-10-07T16:33:53.332408+00:00",
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "source_base_commit": "30e9b0eafd9416d7b5dace9bd6e9e7c81e335506",
+  "engine_source": "Uncommitted canonical builtin literal namespace registration",
+  "source_sha256": {
+    "src/builtins/object_type_builtins.cpp": "6c9c022a4b7eba99ac41b01197950f2dd2860dfee7d8901675fd62986e466b99",
+    "src/runtime/modules/system/ast_module.cpp": "0cd5e2ed9c9db84a6870ac2b1e4c65e421a7a1c1b052e8bed96003b9eabd1a1d",
+    "src/builtins/builtin_modules.cpp": "05709d2af467b5778795114f47ff63132a041cc6da6fd9f1daf0e98dcbdde173",
+    "tests/run_fixtures.py": "c1b9159914ca2051cb83e20c74628042f955bb786e766ecc8dd320032ddc68b9",
+    "tests/fixtures/core/builtin_literal_namespace.py": "15a90565505f2de42849fa56c2a5dc84f9e5ef8861cf0b9a49363f6f8c92ae58",
+    "tests/fixtures/expected/builtin_literal_namespace.out": "5769377bc2efbcd42bfd624905cfc3852a0d40aabb7e946d87ed1418dd714db5"
+  },
+  "sha256_start": {
+    "exe": "b1e8973ae266243f545920a83a5ac7e1686f56baaf443193514be59f43dd4afb",
+    "dll": "d4e32e597b41b1876a171d5d65222d74bf8cec0dfdb02b327d7bea6ea26f846f",
+    "hashlib": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239"
+  },
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "mode": "fast",
+  "benchmarks": "chameleon",
+  "expected_definitions": 1,
+  "case_timeout_seconds": 300,
+  "cpython_reference": "pyperformance-cpython314-clean-release-full-fast-20261002.json",
+  "cpython_reference_provenance_limits": "cpython3147-saved-reference-provenance-audit-20261007.json",
+  "fixed_gate": "release-builtin-constants-fixed-gate-20261007.json",
+  "fixed_gate_exit_code": 0,
+  "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+  "exit_code": 0,
+  "completed_utc": "2026-10-07T16:34:28.041767+00:00",
+  "sha256_end": {
+    "exe": "b1e8973ae266243f545920a83a5ac7e1686f56baaf443193514be59f43dd4afb",
+    "dll": "d4e32e597b41b1876a171d5d65222d74bf8cec0dfdb02b327d7bea6ea26f846f",
+    "hashlib": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239"
+  }
+}

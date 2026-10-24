@@ -1,0 +1,123 @@
+{
+  "probe": "profile_inspect_static_primitives.py 20000",
+  "samples": {
+    "xlang3": [
+      {
+        "object_getattribute_dict": 0.01988759997766465,
+        "dict_get": 0.021866300026886165,
+        "inspect_check_instance": 0.03926410002168268,
+        "inspect_check_class": 0.22086320002563298,
+        "inspect_getattr_static": 0.43486929999198765,
+        "inspect_shadowed_dict": 0.08801049995236099
+      },
+      {
+        "object_getattribute_dict": 0.019457000016700476,
+        "dict_get": 0.020914699998684227,
+        "inspect_check_instance": 0.039620300056412816,
+        "inspect_check_class": 0.22077690000878647,
+        "inspect_getattr_static": 0.42440129996975884,
+        "inspect_shadowed_dict": 0.08614299999317154
+      },
+      {
+        "object_getattribute_dict": 0.01965629996266216,
+        "dict_get": 0.021920799976214767,
+        "inspect_check_instance": 0.03885329997865483,
+        "inspect_check_class": 0.22084480000194162,
+        "inspect_getattr_static": 0.4281172000337392,
+        "inspect_shadowed_dict": 0.08733619999838993
+      },
+      {
+        "object_getattribute_dict": 0.019033299991860986,
+        "dict_get": 0.021673700015526265,
+        "inspect_check_instance": 0.03989710001042113,
+        "inspect_check_class": 0.2230079000000842,
+        "inspect_getattr_static": 0.43171189998975024,
+        "inspect_shadowed_dict": 0.08595729997614399
+      },
+      {
+        "object_getattribute_dict": 0.019515399995725602,
+        "dict_get": 0.0210493000340648,
+        "inspect_check_instance": 0.04031439998652786,
+        "inspect_check_class": 0.22572919999947771,
+        "inspect_getattr_static": 0.43422569998074323,
+        "inspect_shadowed_dict": 0.08751020004274324
+      }
+    ],
+    "cpython3147": [
+      {
+        "object_getattribute_dict": 0.0013442999916151166,
+        "dict_get": 0.0013837000005878508,
+        "inspect_check_instance": 0.002697699994314462,
+        "inspect_check_class": 0.013717200024984777,
+        "inspect_getattr_static": 0.024043900019023567,
+        "inspect_shadowed_dict": 0.00504940003156662
+      },
+      {
+        "object_getattribute_dict": 0.0013228000025264919,
+        "dict_get": 0.0012817999813705683,
+        "inspect_check_instance": 0.0025260999682359397,
+        "inspect_check_class": 0.013623900013044477,
+        "inspect_getattr_static": 0.024676700006239116,
+        "inspect_shadowed_dict": 0.005142799986060709
+      },
+      {
+        "object_getattribute_dict": 0.001401500019710511,
+        "dict_get": 0.001347700017504394,
+        "inspect_check_instance": 0.002937300014309585,
+        "inspect_check_class": 0.01395390002289787,
+        "inspect_getattr_static": 0.024527600035071373,
+        "inspect_shadowed_dict": 0.005268500011879951
+      },
+      {
+        "object_getattribute_dict": 0.0013862000196240842,
+        "dict_get": 0.0013522999943234026,
+        "inspect_check_instance": 0.0025473999558016658,
+        "inspect_check_class": 0.013814300007652491,
+        "inspect_getattr_static": 0.024752900004386902,
+        "inspect_shadowed_dict": 0.005005899991374463
+      },
+      {
+        "object_getattribute_dict": 0.0013490999699570239,
+        "dict_get": 0.0014047999866306782,
+        "inspect_check_instance": 0.002504899981431663,
+        "inspect_check_class": 0.01373279996914789,
+        "inspect_getattr_static": 0.02407319995108992,
+        "inspect_shadowed_dict": 0.0054005999700166285
+      }
+    ]
+  },
+  "medians_seconds": {
+    "xlang3": {
+      "object_getattribute_dict": 0.019515399995725602,
+      "dict_get": 0.021673700015526265,
+      "inspect_check_instance": 0.039620300056412816,
+      "inspect_check_class": 0.22086320002563298,
+      "inspect_getattr_static": 0.43171189998975024,
+      "inspect_shadowed_dict": 0.08733619999838993
+    },
+    "cpython3147": {
+      "object_getattribute_dict": 0.0013490999699570239,
+      "dict_get": 0.0013522999943234026,
+      "inspect_check_instance": 0.0025473999558016658,
+      "inspect_check_class": 0.01373279996914789,
+      "inspect_getattr_static": 0.024527600035071373,
+      "inspect_shadowed_dict": 0.005142799986060709
+    }
+  },
+  "xlang3_over_cpython": {
+    "object_getattribute_dict": 14.465495834491252,
+    "dict_get": 16.02728692339475,
+    "inspect_check_instance": 15.553231037072985,
+    "inspect_check_class": 16.082896461160452,
+    "inspect_getattr_static": 17.601065712603624,
+    "inspect_shadowed_dict": 16.98222762602282
+  },
+  "previous_xlang3_medians_seconds": {
+    "object_getattribute_dict": 0.019590799987781793,
+    "dict_get": 0.021304499998223037,
+    "inspect_check_instance": 0.0392297999933362,
+    "inspect_check_class": 0.22063209995394573,
+    "inspect_getattr_static": 0.42406150000169873,
+    "inspect_shadowed_dict": 0.08482330001424998
+  }
+}

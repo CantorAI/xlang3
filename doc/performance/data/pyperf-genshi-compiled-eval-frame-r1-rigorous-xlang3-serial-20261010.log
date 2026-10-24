@@ -1,0 +1,41 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (genshi)
+
+(trying common venv first)
+
+[1/1] genshi...
+.........................................
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+genshi_text: Mean +- std dev: 300 ms +- 15 ms
+.........................................
+WARNING: the benchmark result may be unstable
+* the standard deviation (1.57 sec) is 78% of the mean (2.00 sec)
+* the minimum (810 ms) is 60% smaller than the mean (2.00 sec)
+* the maximum (6.39 sec) is 219% greater than the mean (2.00 sec)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+genshi_xml: Mean +- std dev: 2.00 sec +- 1.57 sec
+
+Performance version: 1.14.0
+
+### genshi_text ###
+Mean +- std dev: 300 ms +- 15 ms
+
+### genshi_xml ###
+Mean +- std dev: 2.00 sec +- 1.57 sec
+

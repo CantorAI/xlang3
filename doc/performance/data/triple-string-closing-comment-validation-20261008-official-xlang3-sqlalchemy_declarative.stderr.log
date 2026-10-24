@@ -1,0 +1,91 @@
+D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\sqltypes.py:2030: DeprecationWarning: datetime.datetime.utcfromtimestamp() is deprecated and scheduled for removal in a future version. Use timezone-aware objects to represent datetimes in UTC: datetime.datetime.fromtimestamp(t, datetime.UTC).
+  epoch = dt.datetime.utcfromtimestamp(0)
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_sqlalchemy_declarative\run_benchmark.py", line 12, in <module>
+    class Person(Base):
+    ^^^^^^^^^^^^^^^^^^^
+    ...<7 lines>...
+    class Address(Base):
+    
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\orm\decl_api.py", line 72, in __init__
+    _as_declarative(reg, cls, dict_)
+    ~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\orm\decl_base.py", line 126, in _as_declarative
+    return _MapperConfig.setup_mapping(registry, cls, dict_, None, {})
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\orm\decl_base.py", line 177, in setup_mapping
+    return cfg_cls(registry, cls_, dict_, table, mapper_kw)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\orm\decl_base.py", line 301, in __init__
+        with mapperlib._CONFIGURE_MUTEX:
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<14 lines>...
+    def _setup_declared_events(self):
+    ^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\orm\decl_base.py", line 310, in __init__
+    self._setup_table(table)
+    ~~~~~~~~~~~~~~~~~^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\orm\decl_base.py", line 799, in _setup_table
+    table_cls(
+    ~~~~~~~~~^
+        tablename,
+        ^^^^^^^^^^
+    ...<2 lines>...
+        **table_kw
+        ^^^^^^^^^^
+    ),
+    ^
+  File "<string>", line 2, in __new__
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\util\deprecations.py", line 298, in warned
+    return fn(*args, **kwargs)
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\schema.py", line 599, in __new__
+                with util.safe_reraise():
+                ^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<2 lines>...
+    def __init__(self, *args, **kw):
+    ^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\util\langhelpers.py", line 70, in __exit__
+    compat.raise_(
+    ~~~~~~~~~~~~~^
+        exc_value,
+        ^^^^^^^^^^
+        with_traceback=exc_tb,
+        ^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\util\compat.py", line 207, in raise_
+    raise exception
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\schema.py", line 595, in __new__
+    table._init(name, metadata, *args, **kw)
+    ~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\schema.py", line 630, in _init
+    PrimaryKeyConstraint(
+    ~~~~~~~~~~~~~~~~~~~~~
+        _implicit_generated=True
+        ~~~~~~~~~~~~~~~~~~~~~~~~
+    )._set_parent_with_dispatch(self)
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\base.py", line 1025, in _set_parent_with_dispatch
+    self._set_parent(parent, **kw)
+    ~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^
+  File "D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages\sqlalchemy\sql\schema.py", line 3852, in _set_parent
+    table_pks = [c for c in table.c if c.primary_key]
+                            ^^^^^^^
+RuntimeError: property getter is not callable
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 157, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died

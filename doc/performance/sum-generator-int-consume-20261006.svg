@@ -1,0 +1,29 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="820" height="240" viewBox="0 0 820 240" role="img" aria-labelledby="title desc">
+  <title id="title">Hexiom speed ratio versus CPython 3.14.7</title>
+  <desc id="desc">Horizontal speed ratio bars for the fixed XLang3 control at 0.081x and candidate at 0.113x CPython speed, with CPython at 1x.</desc>
+  <rect width="820" height="240" fill="#fff"/>
+  <text x="28" y="34" font-family="Segoe UI, Arial, sans-serif" font-size="20" font-weight="600" fill="#172033">hexiom speed ratio · higher is faster</text>
+  <text x="28" y="61" font-family="Segoe UI, Arial, sans-serif" font-size="13" fill="#526077">CPython 3.14.7 / elapsed time · horizontal bars share a 0–1× scale</text>
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="14" fill="#263247">
+    <text x="28" y="103">CPython 3.14.7</text>
+    <text x="28" y="151">XLang3 control</text>
+    <text x="28" y="199">XLang3 candidate</text>
+  </g>
+  <g fill="#edf1f6">
+    <rect x="210" y="83" width="480" height="27" rx="5"/>
+    <rect x="210" y="131" width="480" height="27" rx="5"/>
+    <rect x="210" y="179" width="480" height="27" rx="5"/>
+  </g>
+  <g>
+    <rect x="210" y="83" width="480" height="27" rx="5" fill="#2d7ff9"/>
+    <rect x="210" y="131" width="38.9" height="27" rx="5" fill="#a6b1c2"/>
+    <rect x="210" y="179" width="54.2" height="27" rx="5" fill="#22a06b"/>
+  </g>
+  <g font-family="Segoe UI, Arial, sans-serif" font-size="13" font-weight="600" fill="#263247">
+    <text x="702" y="102">1.00×</text>
+    <text x="259" y="150">0.081×</text>
+    <text x="274" y="198">0.113×</text>
+  </g>
+  <text x="210" y="228" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#657187">0×</text>
+  <text x="669" y="228" font-family="Segoe UI, Arial, sans-serif" font-size="12" fill="#657187">1×</text>
+</svg>

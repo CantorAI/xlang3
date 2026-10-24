@@ -1,0 +1,12 @@
+local_slots              pass         1.004x
+scalar_arithmetic        pass         1.016x
+range_for                pass         0.991x
+function_calls           pass         1.006x
+class_construct          pass         1.008x
+list_append              pass         1.016x
+property_access          pass         0.992x
+deepcopy_memo            pass         0.915x
+json_dumps               pass         1.012x
+gc_traversal             pass         0.751x
+subparsers               pass         0.940x
+Performance check: pass. Report: doc\performance\data\release-builtin-constants-fixed-gate-20261007.json

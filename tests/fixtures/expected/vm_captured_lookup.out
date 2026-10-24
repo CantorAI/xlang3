@@ -1,0 +1,10 @@
+warm direct calls read live captured cells and Counter misses: OK
+warm bound calls preserve leading self and live closure binding: OK
+warm code replacement and handled exception state remain visible: OK
+default keyword expansion and argument error fallbacks retain binding: OK
+overrides missing hooks and failing lookup traceback retain Python entry: OK
+custom hash and equality callbacks are never speculated or skipped: OK
+constructor property and subscription contexts retain return modes: OK
+trace and profile observe every warmed ordinary call: OK
+local monitoring observes warmed function entry and return: OK
+previous output finalizers refresh monitoring before the next call: OK

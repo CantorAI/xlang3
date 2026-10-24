@@ -1,0 +1,141 @@
+{
+  "status": "terminal_policy_tests_passed",
+  "terminal": true,
+  "cpython_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "helper_sha256": "4063d997ff08551eba3a909e3b897758518854645a6521efee32bda0307f5be4",
+  "test_source_sha256": "7d6891b513e689c9346f14fa5c6f4f0b533fdc750412a151822f227db0e9295e",
+  "test_count": 26,
+  "cases": [
+    {
+      "case": "verified-idle-allowed",
+      "passed": true,
+      "expected_valid": true
+    },
+    {
+      "case": "own-timed-subtree-allowed",
+      "passed": true,
+      "expected_valid": true
+    },
+    {
+      "case": "worker-KernelModeTime-activity",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "worker-UserModeTime-activity",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "console-KernelModeTime-activity",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "console-UserModeTime-activity",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "same-sum-counter-change-rejected",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "worker-pid-reuse-creation",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "worker-missing",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "console-pid-reuse-creation",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "console-missing",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "parent-pid-reuse-creation",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "parent-missing",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "worker-command-changed",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "worker-executable-changed",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "console-command-changed",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "integer-string-counters-allowed",
+      "passed": true,
+      "expected_valid": true
+    },
+    {
+      "case": "float-counter-rejected",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "bool-counter-rejected",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "unknown-direct-child",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "unknown-grandchild",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "unrelated-compiler",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "other-reusable-worker-not-allowed",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "unrelated-runtime",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "duplicate-pid",
+      "passed": true,
+      "expected_valid": false
+    },
+    {
+      "case": "scanner-failure",
+      "passed": true,
+      "expected_valid": false
+    }
+  ],
+  "scope": "Pure synthetic process snapshots; no OS scan, subprocess, runtime fixture or benchmark"
+}

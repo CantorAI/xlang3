@@ -1,0 +1,59 @@
+{
+  "status": "frozen_static_export_proposal_unexecuted",
+  "root": "D:/CantorAI/xlang3",
+  "controller": "scratch/performance/export-python-new-vm-continuation-r4-checkpoint-proposed-20261009.py",
+  "controller_sha256": "856335fbad40812e5f11b84e344e694769437ed9f119c724e295cdd893b31a52",
+  "plan": "scratch/performance/python-new-vm-continuation-r4-checkpoint-export-inputs-proposed-20261009.json",
+  "plan_sha256": "b3a9b70f97fc473218073423c214f77a4af6027d7c0af7a60a9f08b0e4bfb932",
+  "report_template": "scratch/performance/python-new-vm-continuation-r4-checkpoint-report-proposed-20261009.md",
+  "report_template_sha256": "5bd66cdb69a722cc9e7156d58e95816670558154dfd2cb2a3f066c75fe3ca4bd",
+  "base_exporter": "scratch/performance/export-lambda-eager-comprehension-capture-r5-checkpoint-proposed-20261009.py",
+  "base_exporter_sha256": "4cdcc7c263abd4979bd73e1a3dbd0183e8301938740bb4c433580212a54bc6c0",
+  "actual_receipts": {
+    "constructor": "5b383d45955524043dd91bc4e20b4d5e440f2f88db7c6876a20200a8241bc70e",
+    "validation": "e54d2177dff93b238313fc1b51877331b110ea59093944dc1ab108f966ee3bd3",
+    "eligibility": "6bc4b61484212562f73d584019b05a797cd0ec9c43cff59c538d57f39a7cde56",
+    "parent_manifest": "9271314856ede7f173396b2f39449a01d785f61a1579ce5f93c7786a2961dfad",
+    "application": "2c89133fbe3c3a4c0d13a1652b62362d69be1c79b07e197186682eac664cb0a8",
+    "correctness": "9c631bc3ff95060b59b77ab19c42b0c22816dc51b61da9e0ead8d8aac15ce8dc"
+  },
+  "copy_row_count": 267,
+  "unique_safe_destination_count": 267,
+  "expected_publication_file_count_including_manifest": 277,
+  "source_scope": {
+    "owned_targets": 10,
+    "current_recorded": 132,
+    "new_targets": 4,
+    "parent_inputs": 6,
+    "fixed_baseline_files": 177,
+    "no_binary_object_copies": true,
+    "source_closure": "Current10+six128-parent inputs only, immutable proposals/raw receipts; prior accepted source128 archives referenced",
+    "runtime_files": 178
+  },
+  "outputs": {
+    "all_official_values": 40,
+    "all_gate_arrays_preserved": true,
+    "report": "doc/performance/python-new-vm-continuation-r4-checkpoint-20261009.md",
+    "preview": "scratch/performance/python-new-vm-continuation-r4-checkpoint-export-preview-proposed-20261009",
+    "manifest": "doc/performance/data/python-new-vm-continuation-r4-checkpoint-20261009-publication.json",
+    "publication": "scratch/performance/python-new-vm-continuation-r4-checkpoint-export-preview-proposed-20261009/publication",
+    "all_constructor_values": 72,
+    "owned_attributes": "scratch/performance/python-new-vm-continuation-r4-checkpoint-export-preview-proposed-20261009/staging/owned-attributes-additions.txt"
+  },
+  "validation_scope": "Same-candidate403/11/3,nine CTest,two APIs,default11 21/5/.10 pass; fresh original unpickle CP/X20 each; raw untimed false measurement flags retained",
+  "comparison_scope": "Artificial balanced previous-X/candidate constructor ratios separate from fresh sequential unpaired official CP gap14.3775x; no official candidate or whole-suite gain claim",
+  "whole97_status": "pending; two strict preflight refusals, zero benchmark children started",
+  "no_git_mutation": true,
+  "no_live_doc_source_or_attrs_writes": true,
+  "preserve_working_attrs_and_index": true,
+  "execution": {
+    "build": false,
+    "staging": false,
+    "python": false,
+    "tests": false,
+    "runtime": false,
+    "export": false,
+    "ast": false
+  },
+  "root_launch": "C:/Python/Python314/python.exe -I scratch/performance/export-python-new-vm-continuation-r4-checkpoint-proposed-20261009.py --plan-sha256 b3a9b70f97fc473218073423c214f77a4af6027d7c0af7a60a9f08b0e4bfb932 --proof-sha256 <THIS_PROOF_SHA256>"
+}

@@ -1,0 +1,23 @@
+diff --git a/src/executor/xlang_vm/xlang_frame.h b/src/executor/xlang_vm/xlang_frame.h
+index 840b043..05a9baf 100644
+--- a/src/executor/xlang_vm/xlang_frame.h
++++ b/src/executor/xlang_vm/xlang_frame.h
+@@ -459,6 +459,18 @@ private:
+             old.kind == CallSiteKind::InlineSelfSlotMethod ||
+             old.kind == CallSiteKind::InlineSmallSelfMethod ||
+             old.kind == CallSiteKind::BuiltinMethodSpec;
++        const bool has_owned_payload =
++            old.retained_callee.tag != ValueTag::Invalid ||
++            old.inline_const.tag != ValueTag::Invalid ||
++            !old.slot_constructor_args.empty() ||
++            !old.cached_values.empty();
++        // These warmed kinds are guarded by the receiver class version and
++        // hold only non-owning target pointers. CPython keeps equivalent
++        // method guards at their code sites; preserve XLang3's guard in place
++        // when its owning payloads are empty instead of rebuilding it on each
++        // return. A future specialization that adds a Value or owning vector
++        // still takes the cleanup path below.
++        if (keep && !has_owned_payload) break;
+         const CallSiteKind kind = old.kind;
+         Object* callee_object = old.callee_object;
+         FunctionObject* function = old.function;

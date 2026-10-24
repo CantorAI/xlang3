@@ -1,0 +1,44 @@
+profiled workload deepcopy 0.04519550019176677
+profiled Python calls, grouped by source/function
+[[["copy.py","deepcopy"],18000],[["copy.py","_keep_alive"],3600],[["copy.py","_deepcopy_dict"],1800],[["copy.py","_deepcopy_list"],1200],[["copy.py","<genexpr>"],1200],[["copy.py","_deepcopy_tuple"],600],[["copyreg.py","__newobj__"],600],[["copy.py","_reconstruct"],600],[["<string>","__init__"],1],[["copyreg.py","_slotnames"],1],[["run_benchmark.py","benchmark"],1],[["profile_pyperformance_calls_direct.py","<lambda>"],1]]
+profiled benchmark function times (inclusive/self seconds)
+copy.py deepcopy 18000 0.079439 0.01698
+profile_pyperformance_calls_direct.py <lambda> 1 0.045605 8e-06
+run_benchmark.py benchmark 1 0.045597 0.002139
+copy.py _deepcopy_dict 1800 0.032704 0.011007
+copy.py _reconstruct 600 0.01744 0.003427
+copy.py _deepcopy_list 1200 0.006694 0.005603
+copy.py _keep_alive 3600 0.002837 0.002837
+copy.py _deepcopy_tuple 600 0.002782 0.002326
+copy.py <genexpr> 1200 0.001117 0.000949
+copyreg.py __newobj__ 600 0.000326 0.000326
+copyreg.py _slotnames 1 2e-06 2e-06
+<string> __init__ 1 1e-06 1e-06
+profiled benchmark-frame calls 27604
+profiled workload deepcopy_reduce 0.0005304999940562993
+profiled Python calls, grouped by source/function
+[[["copy.py","deepcopy"],120],[["copy.py","_keep_alive"],40],[["run_benchmark.py","__init__"],21],[["run_benchmark.py","__reduce__"],20],[["copy.py","_deepcopy_dict"],20],[["run_benchmark.py","__setstate__"],20],[["copy.py","_reconstruct"],20],[["run_benchmark.py","C"],1],[["run_benchmark.py","benchmark_reduce"],1],[["profile_pyperformance_calls_direct.py","<lambda>"],1]]
+profiled benchmark function times (inclusive/self seconds)
+copy.py deepcopy 120 0.000749 0.000234
+profile_pyperformance_calls_direct.py <lambda> 1 0.000563 4e-06
+run_benchmark.py benchmark_reduce 1 0.000559 5.5e-05
+copy.py _reconstruct 20 0.00034 9.5e-05
+copy.py _deepcopy_dict 20 0.000131 0.000108
+copy.py _keep_alive 40 3.8e-05 3.8e-05
+run_benchmark.py __setstate__ 20 1.4e-05 1.4e-05
+run_benchmark.py __reduce__ 20 7e-06 7e-06
+run_benchmark.py __init__ 21 6e-06 6e-06
+run_benchmark.py C 1 2e-06 2e-06
+profiled benchmark-frame calls 264
+profiled workload deepcopy_memo 0.007570400004624389
+profiled Python calls, grouped by source/function
+[[["copy.py","deepcopy"],4160],[["copy.py","_keep_alive"],80],[["copy.py","_deepcopy_list"],40],[["copy.py","_deepcopy_tuple"],20],[["copy.py","_deepcopy_dict"],20],[["run_benchmark.py","benchmark_memo"],1],[["profile_pyperformance_calls_direct.py","<lambda>"],1]]
+profiled benchmark function times (inclusive/self seconds)
+copy.py deepcopy 4160 0.020064 0.002384
+profile_pyperformance_calls_direct.py <lambda> 1 0.007578 5e-06
+run_benchmark.py benchmark_memo 1 0.007573 3.3e-05
+copy.py _deepcopy_dict 20 0.007463 0.000103
+copy.py _deepcopy_list 40 0.006985 0.004901
+copy.py _deepcopy_tuple 20 0.003166 8.5e-05
+copy.py _keep_alive 80 6.7e-05 6.7e-05
+profiled benchmark-frame calls 4322

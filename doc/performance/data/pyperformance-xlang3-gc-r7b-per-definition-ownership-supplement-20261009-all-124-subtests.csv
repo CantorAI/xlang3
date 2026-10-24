@@ -1,0 +1,125 @@
+﻿benchmark,subtest,origin,XLang3 status,CPython 3.14.7 historical seconds,XLang3 seconds,CPython / XLang3 speedup,XLang3 / CPython elapsed factor,unit,scored values,score
+2to3,2to3,original-v1,completed,0.3150170249980874,2.7214327499998037,0.1157541096681923,8.639002130174795,second,20,scored historical unpaired
+argparse,many_optionals,original-v1,completed,0.0006380507812366431,0.008576981562328001,0.07439106363934642,13.4424748226222,second,20,scored historical unpaired
+argparse_subparsers,subparsers,original-v1,completed,0.007881169687425426,0.13118247499805874,0.0600779158004303,16.64505145820717,second,20,scored historical unpaired
+async_generators,async_generators,original-v1,completed,0.28619900499179496,2.483544664998772,0.11523811470970122,8.677684484158052,second,20,scored historical unpaired
+async_tree,async_tree_none,supplement-v2,completed,0.22933892500004732,3.7817046850017504,0.060644324214316904,16.489589305439406,second,20,scored historical unpaired
+async_tree_cpu_io_mixed,async_tree_cpu_io_mixed,original-v1,completed,0.4279714699965552,4.921291070003645,0.08696325088453634,11.499110139382086,second,20,scored historical unpaired
+async_tree_cpu_io_mixed_tg,async_tree_cpu_io_mixed_tg,supplement-v2,completed,0.4250310799965519,4.822617480001645,0.08813286182432344,11.34650548388313,second,20,scored historical unpaired
+async_tree_eager,async_tree_eager,supplement-v2,completed,0.0857069199984835,1.32225750501093,0.06481863001244605,15.427663309267514,second,20,scored historical unpaired
+async_tree_eager_cpu_io_mixed,async_tree_eager_cpu_io_mixed,original-v1,completed,0.3381988099979935,2.727185464996728,0.12401019818371584,8.063852930212581,second,20,scored historical unpaired
+async_tree_eager_cpu_io_mixed_tg,async_tree_eager_cpu_io_mixed_tg,original-v1,completed,0.3853572100008023,4.922256604995345,0.07828872830598126,12.773230855042513,second,20,scored historical unpaired
+async_tree_eager_io,async_tree_eager_io,supplement-v2,failed,0.5621624950013938,,,,second,,unscored
+async_tree_eager_io_tg,async_tree_eager_io_tg,supplement-v2,failed,0.5548197600030107,,,,second,,unscored
+async_tree_eager_memoization,async_tree_eager_memoization,original-v1,completed,0.18753615500027082,3.5053709100029664,0.053499660896116734,18.691707260383495,second,20,scored historical unpaired
+async_tree_eager_memoization_tg,async_tree_eager_memoization_tg,original-v1,completed,0.26599351500044577,5.688567940003122,0.04675931056917284,21.386115146429752,second,20,scored historical unpaired
+async_tree_eager_tg,async_tree_eager_tg,supplement-v2,completed,0.1930750600004103,3.4638580250059023,0.055739888473079466,17.940473642730144,second,20,scored historical unpaired
+async_tree_io,async_tree_io,supplement-v2,failed,0.5621618600038346,,,,second,,unscored
+async_tree_io_tg,async_tree_io_tg,supplement-v2,failed,0.5467337250011042,,,,second,,unscored
+async_tree_memoization,async_tree_memoization,original-v1,completed,0.2785381249967031,5.4752679149940375,0.05087205399281478,19.65715793864429,second,20,scored historical unpaired
+async_tree_memoization_tg,async_tree_memoization_tg,original-v1,completed,0.27578274000115927,5.561383734995616,0.04958887088940945,20.165815072300166,second,20,scored historical unpaired
+async_tree_tg,async_tree_none_tg,original-v1,completed,0.23935289999935777,3.774691680006799,0.06340992067434939,15.77040294902183,second,20,scored historical unpaired
+asyncio_tcp,asyncio_tcp,original-v1,completed,0.5853085849958006,3.8840644000010798,0.15069487133005258,6.63592590228101,second,20,scored historical unpaired
+asyncio_tcp_ssl,asyncio_tcp_ssl,supplement-v2,failed,1.61255231500254,,,,second,,unscored
+asyncio_websockets,asyncio_websockets,original-v1,completed,0.17636337500007357,0.4712385649967473,0.3742549699880588,2.6719752045828717,second,20,scored historical unpaired
+base64,base64_small,supplement-v2,failed,0.00027160111328043967,,,,second,,unscored
+base64,base64_large,supplement-v2,failed,0.007899350624757061,,,,second,,unscored
+base64,urlsafe_base64_small,supplement-v2,failed,0.00041324339844663884,,,,second,,unscored
+base64,base32_small,supplement-v2,failed,0.007575751249805762,,,,second,,unscored
+base64,base32_large,supplement-v2,failed,0.3828911650023656,,,,second,,unscored
+base64,base16_small,supplement-v2,failed,0.00029239957031279573,,,,second,,unscored
+base64,base16_large,supplement-v2,failed,0.006198293437455505,,,,second,,unscored
+base64,ascii85_small,supplement-v2,failed,0.016041177500301273,,,,second,,unscored
+base64,ascii85_large,supplement-v2,failed,0.8517642799997702,,,,second,,unscored
+base64,base85_small,supplement-v2,failed,0.005483616874926156,,,,second,,unscored
+base64,base85_large,supplement-v2,failed,0.29958322000311455,,,,second,,unscored
+bpe_tokeniser,bpe_tokeniser,supplement-v2,failed,3.5859225999971387,,,,second,,unscored
+chameleon,chameleon,original-v1,completed,0.011600350312619412,0.1396302250068402,0.08307907770005481,12.036724861226286,second,20,scored historical unpaired
+chaos,chaos,original-v1,completed,0.04817312999985006,0.45028685499564747,0.10698320296362128,9.347261741079498,second,20,scored historical unpaired
+comprehensions,comprehensions,supplement-v2,completed,1.3962078246798626e-05,0.00017042748535232022,0.08192386467438155,12.206455395807401,second,20,scored historical unpaired
+concurrent_imap,bench_mp_pool,supplement-v2,failed,0.1538580449981964,,,,second,,unscored
+concurrent_imap,bench_thread_pool,supplement-v2,failed,0.0010066017187455145,,,,second,,unscored
+coroutines,coroutines,original-v1,completed,0.01741064562502288,0.13636989499500488,0.12767220819272918,7.8325581906630575,second,20,scored historical unpaired
+coverage,coverage,original-v1,completed,0.06551303999949595,4.933091650001006,0.013280320871290238,75.29938543592178,second,20,scored historical unpaired
+crypto_pyaes,crypto_pyaes,original-v1,completed,0.05755440500288387,0.3334722700034035,0.17259127723662437,5.794035573588056,second,20,scored historical unpaired
+dask,dask,supplement-v2,failed,0.9258233700049459,,,,second,,unscored
+deepcopy,deepcopy,original-v1,completed,0.00021082302700676793,0.002567927500058431,0.08209851212776482,12.180488709025102,second,20,scored historical unpaired
+deepcopy,deepcopy_reduce,original-v1,completed,2.2129241943114052e-06,2.7300568848431795e-05,0.08105780530058518,12.336874854823892,second,20,scored historical unpaired
+deepcopy,deepcopy_memo,original-v1,completed,2.1829866332900848e-05,0.00028243938477885423,0.07729044711662045,12.938209536957913,second,20,scored historical unpaired
+deltablue,deltablue,original-v1,completed,0.0025156373437539513,0.03916316624745377,0.06423477938067655,15.56789031801089,second,20,scored historical unpaired
+django_template,django_template,original-v1,completed,0.028871788749893313,0.5084480650053592,0.05678414519994091,17.610549502487547,second,20,scored historical unpaired
+docutils,docutils,supplement-v2,failed,1.8156428899790626,,,,second,,unscored
+dulwich_log,dulwich_log,supplement-v2,failed,0.051007207498696513,,,,second,,unscored
+fannkuch,fannkuch,original-v1,completed,0.3171762000041781,0.2832653700024821,1.1197139982250528,0.8930851999574705,second,20,scored historical unpaired
+fastapi,fastapi_http,supplement-v2,failed,0.36570830500277224,,,,second,,unscored
+float,float,original-v1,completed,0.05520404749840964,0.07633887250121915,0.723144653433649,1.3828491924150739,second,20,scored historical unpaired
+gc_collect,create_gc_cycles,original-v1,completed,0.0014685333199167872,0.002075202577998425,0.7076578139822943,1.4131123549283948,second,20,scored historical unpaired
+gc_traversal,gc_traversal,original-v1,completed,0.002140122656692256,0.002034290858728127,1.0520239264262814,0.9505487231616429,second,20,scored historical unpaired
+generators,generators,original-v1,completed,0.026628107499709584,0.32508556499960833,0.08191107316543467,12.208361596976196,second,20,scored historical unpaired
+genshi,genshi_text,original-v1,completed,0.019366402499872492,0.3876268949970836,0.04996145197824367,20.015431105474324,second,20,scored historical unpaired
+genshi,genshi_xml,original-v1,completed,0.04250269875046797,0.8881775549933082,0.0478538311529255,20.896968453880334,second,20,scored historical unpaired
+go,go,original-v1,completed,0.09573363000017707,0.9040206799953012,0.10589761066159975,9.443083689541796,second,20,scored historical unpaired
+hexiom,hexiom,original-v1,completed,0.005091329062497607,0.04561108625057386,0.11162481495238562,8.95858148052973,second,20,scored historical unpaired
+html5lib,html5lib,original-v1,completed,0.042616976250428706,0.6700888550083619,0.06359899277819939,15.7235194508109,second,20,scored historical unpaired
+json_dumps,json_dumps,original-v1,completed,0.007635830312574398,0.03456186249968596,0.2209322577058392,4.52627429957038,second,20,scored historical unpaired
+json_loads,json_loads,original-v1,completed,1.8102728515287935e-05,8.089526757430576e-05,0.22377982121957635,4.468678161194811,second,20,scored historical unpaired
+logging,logging_format,original-v1,completed,7.5514152830180595e-06,9.354281641435591e-05,0.08072683261500722,12.387454921823586,second,20,scored historical unpaired
+logging,logging_silent,original-v1,completed,6.911743736126574e-08,1.0982785644664262e-06,0.06293251966985705,15.890035950347821,second,20,scored historical unpaired
+logging,logging_simple,original-v1,completed,6.937068115391298e-06,8.732742968959428e-05,0.07943744754711247,12.588521294153157,second,20,scored historical unpaired
+mako,mako,supplement-v2,failed,0.007846611562763428,,,,second,,unscored
+mdp,mdp,supplement-v2,failed,0.9804054349981015,,,,second,,unscored
+meteor_contest,meteor_contest,original-v1,completed,0.08946473999894806,1.1976013999956194,0.07470326938435051,13.386294980678432,second,20,scored historical unpaired
+nbody,nbody,original-v1,completed,0.0828502499993192,0.288373684999533,0.2873017002208554,3.4806616154073478,second,20,scored historical unpaired
+networkx,shortest_path,original-v1,completed,0.42576683499792123,1.0060594199952901,0.42320247346813217,2.3629351497051245,second,20,scored historical unpaired
+networkx_connected_components,connected_components,original-v1,completed,0.3809294949984178,0.742385509997257,0.5131154768899318,1.9488790438775045,second,20,scored historical unpaired
+networkx_k_core,k_core,supplement-v2,completed,2.08462056999997,5.866496555006597,0.3553433553490983,2.8141795391602997,second,20,scored historical unpaired
+nqueens,nqueens,original-v1,completed,0.07688421500206459,0.8514649250020738,0.09029639712038325,11.074638987719512,second,20,scored historical unpaired
+pathlib,pathlib,original-v1,completed,0.04231274999947345,0.5649381150113186,0.07489802666018686,13.351486609079977,second,20,scored historical unpaired
+pickle,pickle,supplement-v2,completed,9.425414062320669e-06,1.9858342772636208e-05,0.4746324590241444,2.106893409810243,second,20,scored historical unpaired
+pickle_dict,pickle_dict,original-v1,completed,2.3592998046240156e-05,2.3962975586186985e-05,0.9845604508248093,1.015681667044676,second,20,scored historical unpaired
+pickle_list,pickle_list,original-v1,completed,4.024053344693357e-06,3.932891723650301e-06,1.0231792857390045,0.9773458219277154,second,20,scored historical unpaired
+pickle_pure_python,pickle_pure_python,original-v1,completed,0.0002574978671850658,0.0036026571250113194,0.0714744307465165,13.99101734082349,second,20,scored historical unpaired
+pidigits,pidigits,original-v1,completed,0.1629757500049891,0.22028733499755618,0.7398325918591603,1.3516571329833587,second,20,scored historical unpaired
+pprint,pprint_safe_repr,supplement-v2,failed,0.5987035650003236,,,,second,,unscored
+pprint,pprint_pformat,supplement-v2,failed,1.2333045300038066,,,,second,,unscored
+pyflate,pyflate,original-v1,completed,0.3449285399998189,2.588949919998413,0.13323105917785785,7.505757337446685,second,20,scored historical unpaired
+python_startup,python_startup,supplement-v2,completed,0.018596449167004418,0.03279789708249155,0.5670012659723764,1.7636644925034766,second,60,scored historical unpaired
+python_startup_no_site,python_startup_no_site,original-v1,completed,0.01575238624979344,0.019485533958504674,0.8084144003104486,1.2369893455831296,second,60,scored historical unpaired
+raytrace,raytrace,original-v1,completed,0.22728903999959585,2.1662104199873284,0.1049247284116219,9.530641776617035,second,20,scored historical unpaired
+regex_compile,regex_compile,original-v1,completed,0.09806937999965157,1.238411209997139,0.07918967400164129,12.627909037474684,second,20,scored historical unpaired
+regex_dna,regex_dna,original-v1,completed,0.13741668500151719,0.21332492000074127,0.6441661152435434,1.5523946018519221,second,20,scored historical unpaired
+regex_effbot,regex_effbot,supplement-v2,completed,0.001860119000011764,0.012475257999903988,0.14910465178564483,6.706698872397459,second,20,scored historical unpaired
+regex_v8,regex_v8,supplement-v2,completed,0.015717228750145296,0.06327099249901949,0.24841128816477576,4.025581958806484,second,20,scored historical unpaired
+richards,richards,original-v1,completed,0.03413938125013374,0.3561184750025859,0.09586523487692077,10.431310174995948,second,20,scored historical unpaired
+richards_super,richards_super,original-v1,completed,0.03841441999975359,0.4390210300131002,0.0875001819357203,11.428547665587983,second,20,scored historical unpaired
+scimark,scimark_fft,original-v1,completed,0.22737258499982999,0.9313255899993237,0.24413866368688,4.096032905638206,second,20,scored historical unpaired
+scimark,scimark_lu,original-v1,completed,0.07529356250015554,1.3725618600059533,0.05485622520490913,18.229471609915095,second,20,scored historical unpaired
+scimark,scimark_monte_carlo,original-v1,completed,0.052833005002321444,0.5466717999981483,0.09664483333967547,10.34716461753648,second,20,scored historical unpaired
+scimark,scimark_sor,original-v1,completed,0.09752913500196883,0.8627320799976588,0.11304683952662743,8.845890820012325,second,20,scored historical unpaired
+scimark,scimark_sparse_mat_mult,original-v1,completed,0.003143898906250797,0.016984780624989072,0.18510094275961952,5.402457627126434,second,20,scored historical unpaired
+spectral_norm,spectral_norm,original-v1,completed,0.07579268000044977,0.5099340049986495,0.14863233135560452,6.728011266993375,second,20,scored historical unpaired
+sphinx,sphinx,supplement-v2,failed,0.7424070949986344,,,,second,,unscored
+sqlalchemy_declarative,sqlalchemy_declarative,original-v1,completed,0.08923364250440499,1.3240266799955862,0.06739565286154389,14.837752251682723,second,20,scored historical unpaired
+sqlalchemy_imperative,sqlalchemy_imperative,original-v1,completed,0.011236707813350223,0.22965473999793176,0.04892869972312097,20.437902614596887,second,20,scored historical unpaired
+sqlglot_v2,sqlglot_v2_normalize,original-v1,completed,0.09040939749684185,1.6127807650016621,0.056058082697153615,17.838640779107052,second,20,scored historical unpaired
+sqlglot_v2_optimize,sqlglot_v2_optimize,original-v1,completed,0.04247305125063576,0.7535345700045581,0.05636509981271176,17.741474836783215,second,20,scored historical unpaired
+sqlglot_v2_parse,sqlglot_v2_parse,original-v1,completed,0.0009882882422175498,0.019004028750350697,0.052004143710807214,19.22923691544575,second,20,scored historical unpaired
+sqlglot_v2_transpile,sqlglot_v2_transpile,original-v1,completed,0.0012255100389893415,0.02269100062403595,0.05400863801886253,18.51555670873888,second,20,scored historical unpaired
+sqlite_synth,sqlite_synth,original-v1,completed,1.8329872131461756e-06,6.192282562089702e-06,0.29601155870503426,3.3782464589380004,second,20,scored historical unpaired
+sympy,sympy_expand,supplement-v2,failed,0.34923413500509926,,,,second,,unscored
+sympy,sympy_integrate,supplement-v2,failed,0.014647172499098814,,,,second,,unscored
+sympy,sympy_sum,supplement-v2,failed,0.10420133500010706,,,,second,,unscored
+sympy,sympy_str,supplement-v2,failed,0.2027500299969688,,,,second,,unscored
+telco,telco,original-v1,completed,0.005709924218854212,0.04251614375098143,0.13430014378296964,7.446008409462389,second,20,scored historical unpaired
+tomli_loads,tomli_loads,supplement-v2,failed,1.754608770001505,,,,second,,unscored
+tornado_http,tornado_http,original-v1,completed,0.1401357549984823,1.457686204998754,0.09613574891353388,10.401957765985856,second,20,scored historical unpaired
+typing_runtime_protocols,typing_runtime_protocols,original-v1,completed,0.00012812606445038454,0.0028964822655780154,0.0442350591864632,22.60650304060223,second,20,scored historical unpaired
+unpack_sequence,unpack_sequence,original-v1,completed,3.6580442808631374e-08,1.567873718251178e-07,0.23331243060463802,4.286098247780721,second,20,scored historical unpaired
+unpickle,unpickle,original-v1,completed,9.831685546970447e-06,6.508465234333017e-05,0.15105996871746355,6.619887508849942,second,20,scored historical unpaired
+unpickle_list,unpickle_list,original-v1,completed,3.2152910156568737e-06,1.0786479979856267e-05,0.29808529025793623,3.354744540177376,second,20,scored historical unpaired
+unpickle_pure_python,unpickle_pure_python,original-v1,completed,0.00016826502344201798,0.0023808255625408494,0.07067507426392182,14.149259981895478,second,20,scored historical unpaired
+xdsl,xdsl_constant_fold,supplement-v2,failed,0.03364588750046096,,,,second,,unscored
+xml_etree,xml_etree_parse,supplement-v2,failed,0.12668185999937123,,,,second,,unscored
+xml_etree,xml_etree_iterparse,supplement-v2,failed,0.07517462750038248,,,,second,,unscored
+xml_etree,xml_etree_generate,supplement-v2,failed,0.06944088500167708,,,,second,,unscored
+xml_etree,xml_etree_process,supplement-v2,failed,0.048565014999257985,,,,second,,unscored

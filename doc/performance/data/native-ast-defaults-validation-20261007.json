@@ -1,0 +1,50 @@
+{
+  "status": "rejected_performance_gate",
+  "manager_version": "3.14.7",
+  "source_base_commit": "f9bc17730a57a0caf96afd7e557dec8adf64d0a1",
+  "source_files": {
+    "src/internal/xlang3/builtins.h": "7af41e6bb4504b252ec60ce526c2463c37b9ecae330cdcacdc3bd93f271cf535",
+    "src/builtins/functional_builtins.cpp": "ff86e531bd6bb24701a876c2f197088c911aeecc236303ff5b6b7a97b406d6f0",
+    "src/runtime/modules/system/warnings_module.cpp": "72d6e1b0f098caba205d4ccaa96b6531b34ed9c4285fe2cea50b34c72a63c8b8",
+    "src/runtime/modules/system/ast_module.cpp": "bc58ebeb6f6be8cd24b6daa4e364e77bf2b47ec70ba5b07b02a7d7b2c99f16d4",
+    "src/runtime/modules/system/ast_field_schema.inc": "28871c8d988eb93fd8c9b753b2b7becef415939c3652d42cfcab085b4c094476",
+    "tests/run_fixtures.py": "d87344d224cb02aa859b13bd3d8d33eee8cfa6830b564e43f4be62dfa1ee7839",
+    "tests/fixtures/core/ast_constructor_defaults.py": "4395bdfdd6e9d914e8af428b6ee454705f44a246116cd9bacebe1fd831c5c8c2",
+    "tests/fixtures/expected/ast_constructor_defaults.out": "d8684cded21e53b70e782a63fcddd6dc206255f1c94c8496b3318827a528f05d",
+    "benchmarks/diagnostics/export_native_ast_schema.py": "434bacbcb4e7b1be29917a4429f8923d1a44612a25b9460b291bd9afd75eb172",
+    "benchmarks/diagnostics/check_native_ast_schema.py": "aa9fe93c495355718432a2010e186304d4d9d89f81e06238e06fb7abaae614e4"
+  },
+  "sha256_start": {
+    "exe": "e62bcbebf1030ecfa98d48a57f2a4f1be348f415d837735d7991bdd7bf1566bd",
+    "dll": "5e9decde90d1d57eee216daf5d4b0d284fbeae74bf58bd72d97e758389b14061"
+  },
+  "full_fixtures": {
+    "exit_code": 0,
+    "verified_exec_session": 55937,
+    "core_cases": 354,
+    "section_cases": 11,
+    "expected_failure_cases": 3,
+    "stdout": "empty on success"
+  },
+  "schema_check": {
+    "exit_code": 0,
+    "classes": 126,
+    "log": "native-ast-schema-xlang3-20261007.log"
+  },
+  "cpp_sdk": {
+    "exit_code": 0,
+    "tests_passed": 8,
+    "log": "native-ast-defaults-cpp-sdk-20261007.log"
+  },
+  "fixed_gate": {
+    "exit_code": 2,
+    "status": "inconclusive",
+    "gc_confirmation_status": "regression",
+    "report": "release-native-ast-defaults-fixed-gate-20261007.json",
+    "accepted": false
+  },
+  "official_chameleon": {
+    "status": "not_yet_run"
+  },
+  "next_candidate": "Actual native _ast module owner reference; separate validation required"
+}

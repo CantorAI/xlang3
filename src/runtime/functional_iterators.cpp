@@ -17,6 +17,7 @@ limitations under the License.
 #include "xlang3/builtins.h"
 #include "xlang3/generator.h"
 #include "xlang3/interpreter.h"
+#include "xlang3/interpreter_events.h"
 #include "xlang3/attribute.h"
 #include "xlang3/mapping.h"
 #include "xlang3/module_object.h"
@@ -24,6 +25,7 @@ limitations under the License.
 #include "xlang3/perf_counters.h"
 #include "xlang3/sequence.h"
 #include "xlang3/value_hash.h"
+#include "../executor/xlang_vm/xlang_vm_inline_call.h"
 
 #include <utility>
 
@@ -335,17 +337,61 @@ bool runtime_call_callable(
     CallArgsView call_args;
     call_args.leading = args;
     call_args.leading_count = argc;
-    Value caller_active_exception = runtime.active_exception();
+    if (function->module != nullptr &&
+        function->function_id < function->module->functions.size()) {
+      const auto& target = function->module->functions[function->function_id];
+      XlangVMTrivialFunctionSpec spec;
+      // Native callbacks use the same guarded IR shortcut as ordinary VM calls.
+      // Counter.__missing__ and constant-key callbacks otherwise construct an
+      // interpreter/frame for every key. Keep Python authoritative: inspect the
+      // current code/signature, require a capture-free trivial body, and retain
+      // normal entry for async/generators, argument errors and observability.
+      // Native loops lack the surrounding VM safepoint: queued asynchronous
+      // work must also take normal entry so it cannot be starved by inlining.
+      // This is generic function optimization, not a native library replacement.
+      if (!target.is_generator && !target.is_async && !target.is_coroutine &&
+          xlang_vm_analyze_trivial_function(*function->module, *function, argc, spec) &&
+          interpreter_pending_events() == 0 &&
+          xlang_vm_inline_python_function_allowed(runtime, *function->module, *function)) {
+        return xlang_vm_execute_trivial_function(call_args, spec, out);
+      }
+      XlangVMCapturedItemFunctionSpec item_spec;
+      if (xlang_vm_analyze_captured_item_function(*function->module, *function, argc, item_spec) &&
+          interpreter_pending_events() == 0 &&
+          xlang_vm_inline_python_function_allowed(runtime, *function->module, *function)) {
+        const auto* cell = value_as_cell(function->closure[item_spec.free_slot]);
+        // Captured names/arguments already bind by index. A proven, nonfallible
+        // dict hit can reuse those slots without constructing an Interpreter.
+        // Resolve the live cell on every call; retain the Python frame for
+        // misses, overrides, hashing/equality callbacks and observability.
+        // Do not speculate with user code then replay it in the fallback.
+        // Receiver/key stay borrowed: own only the hit result before releasing
+        // old output, just as normal entry releases its frame before assignment.
+        if (cell != nullptr && mapping_get_intrinsic_item_if_present(
+                cell->value, args[item_spec.argument], out)) return true;
+      }
+      // Native comparison callbacks do not pass through a VM CALL site. Keep
+      // a narrowly proven, current-IR slot/double comparison inlineable there;
+      // do not replace asyncio or heapq semantics, and retain the interpreter
+      // for hooks, tracing, class/global changes, non-slot values, and all
+      // shapes outside the exact isinstance/NotImplemented pattern.
+      XlangVMIsinstanceSlotDoubleCompareSpec compare_spec;
+      if (argc == 2 && target.code.size() == 12 &&
+          xlang_vm_analyze_isinstance_slot_double_compare(
+              *function->module, *function, compare_spec) &&
+          interpreter_pending_events() == 0 &&
+          xlang_vm_try_isinstance_slot_double_compare(
+              runtime, *function->module, *function, call_args,
+              compare_spec, out)) {
+        return true;
+      }
+    }
     Interpreter interpreter(runtime);
     RuntimeResult result = interpreter.run_function_value(function, call_args);
-    // A nested Python call has its own handled-exception stack.  Restore the
-    // caller's active exception so sys.exception()/sys.exc_info() inside an
-    // outer except block survive helpers that catch exceptions internally.
-    if (caller_active_exception.tag == ValueTag::Invalid) {
-      runtime.clear_active_exception();
-    } else {
-      runtime.set_active_exception(caller_active_exception);
-    }
+    // run_function() owns the handled-exception boundary and restores the
+    // caller's active exception. Do not snapshot/restore it again here: native
+    // callbacks such as Context.run can enter this path for every event-loop
+    // callback, so the duplicate ownership work is on a hot re-entry path.
     if (!result.errors.empty()) {
       if (result.exception.tag != ValueTag::Invalid) {
         error = result.errors.front();
@@ -464,6 +510,19 @@ bool runtime_call_callable(
   }
 
   if (auto* bound = value_as_bound_method(callable)) {
+    if (argc == 0) {
+      // Hashing and other native protocol callbacks often call a bound Python
+      // method with only self. Keep its argument on the stack instead of
+      // allocating a one-element vector for every native-to-Python entry.
+      // Own both fields before dispatch: output may alias the LAST callable
+      // owner, and a native callback can replace output then reread args or
+      // collect/reenter. Release self before the target, like BoundMethod.
+      // Ordinary dispatch retains binding, tracing, monitoring and errors;
+      // explicit arguments keep the existing general vector path below.
+      Value function = bound->function;
+      Value self = bound->self;
+      return runtime_call_callable(runtime, function, &self, 1, out, error);
+    }
     std::vector<Value> bound_args;
     bound_args.reserve(static_cast<size_t>(argc) + 1);
     bound_args.push_back(bound->self);

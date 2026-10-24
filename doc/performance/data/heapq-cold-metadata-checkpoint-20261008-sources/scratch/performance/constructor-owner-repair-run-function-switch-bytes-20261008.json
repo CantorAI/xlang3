@@ -1,0 +1,1358 @@
+{
+  "analysis": "Read-only PE byte comparison of immutable C/D; trailing149 switch RVAs normalized to function start, not disassembled as instructions",
+  "C_image": "build-repro/controls/failed-cross-activation-constructor-before-ownership-repair-20261008/xlang3_runtime.dll",
+  "C_sha256": "3d3a9733d81521de65cfabf32de9f1e75a679e791bf7bb516ee6877ae46fca75",
+  "D_image": "build-repro/controls/constructor-ownership-repair-held-20261008/xlang3_runtime.dll",
+  "D_sha256": "54fc3603b59987eb8cc333e05cb85cc18bd56830e46891d6889593c4b0baaa40",
+  "C_run_rva": "0x784450",
+  "D_run_rva": "0x784480",
+  "run_range_bytes": 99744,
+  "code_prefix_bytes": 99148,
+  "raw_code_bytes_different": 5407,
+  "switch_rva_count": 149,
+  "switch_relative_equal": 149,
+  "switch_both_in_range": 149,
+  "switch_entries": [
+    {
+      "index": 0,
+      "C_rva": "0x78942a",
+      "D_rva": "0x78945a",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 1,
+      "C_rva": "0x789669",
+      "D_rva": "0x789699",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 2,
+      "C_rva": "0x789693",
+      "D_rva": "0x7896c3",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 3,
+      "C_rva": "0x789f3d",
+      "D_rva": "0x789f6d",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 4,
+      "C_rva": "0x78a1e3",
+      "D_rva": "0x78a213",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 5,
+      "C_rva": "0x78a405",
+      "D_rva": "0x78a435",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 6,
+      "C_rva": "0x78a639",
+      "D_rva": "0x78a669",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 7,
+      "C_rva": "0x78aef4",
+      "D_rva": "0x78af24",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 8,
+      "C_rva": "0x78b107",
+      "D_rva": "0x78b137",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 9,
+      "C_rva": "0x78b366",
+      "D_rva": "0x78b396",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 10,
+      "C_rva": "0x78b38e",
+      "D_rva": "0x78b3be",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 11,
+      "C_rva": "0x78b5a1",
+      "D_rva": "0x78b5d1",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 12,
+      "C_rva": "0x78b7aa",
+      "D_rva": "0x78b7da",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 13,
+      "C_rva": "0x78bc50",
+      "D_rva": "0x78bc80",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 14,
+      "C_rva": "0x78c3a1",
+      "D_rva": "0x78c3d1",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 15,
+      "C_rva": "0x78c5e6",
+      "D_rva": "0x78c616",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 16,
+      "C_rva": "0x78c63d",
+      "D_rva": "0x78c66d",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 17,
+      "C_rva": "0x78c6bb",
+      "D_rva": "0x78c6eb",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 18,
+      "C_rva": "0x78b7d2",
+      "D_rva": "0x78b802",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 19,
+      "C_rva": "0x78ba28",
+      "D_rva": "0x78ba58",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 20,
+      "C_rva": "0x78f89c",
+      "D_rva": "0x78f8cc",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 21,
+      "C_rva": "0x78fab2",
+      "D_rva": "0x78fae2",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 22,
+      "C_rva": "0x78fcc8",
+      "D_rva": "0x78fcf8",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 23,
+      "C_rva": "0x78feeb",
+      "D_rva": "0x78ff1b",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 24,
+      "C_rva": "0x790101",
+      "D_rva": "0x790131",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 25,
+      "C_rva": "0x78c91a",
+      "D_rva": "0x78c94a",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 26,
+      "C_rva": "0x78d101",
+      "D_rva": "0x78d131",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 27,
+      "C_rva": "0x78d38c",
+      "D_rva": "0x78d3bc",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 28,
+      "C_rva": "0x78d617",
+      "D_rva": "0x78d647",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 29,
+      "C_rva": "0x78d828",
+      "D_rva": "0x78d858",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 30,
+      "C_rva": "0x790343",
+      "D_rva": "0x790373",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 31,
+      "C_rva": "0x790559",
+      "D_rva": "0x790589",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 32,
+      "C_rva": "0x7907aa",
+      "D_rva": "0x7907da",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 33,
+      "C_rva": "0x7909a6",
+      "D_rva": "0x7909d6",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 34,
+      "C_rva": "0x790ba2",
+      "D_rva": "0x790bd2",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 35,
+      "C_rva": "0x790da6",
+      "D_rva": "0x790dd6",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 36,
+      "C_rva": "0x790fa2",
+      "D_rva": "0x790fd2",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 37,
+      "C_rva": "0x79119e",
+      "D_rva": "0x7911ce",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 38,
+      "C_rva": "0x7913b7",
+      "D_rva": "0x7913e7",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 39,
+      "C_rva": "0x7915d0",
+      "D_rva": "0x791600",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 40,
+      "C_rva": "0x7917c4",
+      "D_rva": "0x7917f4",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 41,
+      "C_rva": "0x7919bd",
+      "D_rva": "0x7919ed",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 42,
+      "C_rva": "0x791bce",
+      "D_rva": "0x791bfe",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 43,
+      "C_rva": "0x792005",
+      "D_rva": "0x792035",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 44,
+      "C_rva": "0x792216",
+      "D_rva": "0x792246",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 45,
+      "C_rva": "0x792427",
+      "D_rva": "0x792457",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 46,
+      "C_rva": "0x792620",
+      "D_rva": "0x792650",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 47,
+      "C_rva": "0x792851",
+      "D_rva": "0x792881",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 48,
+      "C_rva": "0x793ef4",
+      "D_rva": "0x793f24",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 49,
+      "C_rva": "0x79437f",
+      "D_rva": "0x7943af",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 50,
+      "C_rva": "0x794590",
+      "D_rva": "0x7945c0",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 51,
+      "C_rva": "0x7947e8",
+      "D_rva": "0x794818",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 52,
+      "C_rva": "0x7949f9",
+      "D_rva": "0x794a29",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 53,
+      "C_rva": "0x794e8c",
+      "D_rva": "0x794ebc",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 54,
+      "C_rva": "0x79509f",
+      "D_rva": "0x7950cf",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 55,
+      "C_rva": "0x795521",
+      "D_rva": "0x795551",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 56,
+      "C_rva": "0x795792",
+      "D_rva": "0x7957c2",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 57,
+      "C_rva": "0x795a03",
+      "D_rva": "0x795a33",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 58,
+      "C_rva": "0x795c74",
+      "D_rva": "0x795ca4",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 59,
+      "C_rva": "0x795ee5",
+      "D_rva": "0x795f15",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 60,
+      "C_rva": "0x796156",
+      "D_rva": "0x796186",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 61,
+      "C_rva": "0x7963c7",
+      "D_rva": "0x7963f7",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 62,
+      "C_rva": "0x796645",
+      "D_rva": "0x796675",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 63,
+      "C_rva": "0x79683e",
+      "D_rva": "0x79686e",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 64,
+      "C_rva": "0x796aaf",
+      "D_rva": "0x796adf",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 65,
+      "C_rva": "0x796d20",
+      "D_rva": "0x796d50",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 66,
+      "C_rva": "0x796f91",
+      "D_rva": "0x796fc1",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 67,
+      "C_rva": "0x79718a",
+      "D_rva": "0x7971ba",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 68,
+      "C_rva": "0x797383",
+      "D_rva": "0x7973b3",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 69,
+      "C_rva": "0x79759c",
+      "D_rva": "0x7975cc",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 70,
+      "C_rva": "0x7977b8",
+      "D_rva": "0x7977e8",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 71,
+      "C_rva": "0x797c0c",
+      "D_rva": "0x797c3c",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 72,
+      "C_rva": "0x798306",
+      "D_rva": "0x798336",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 73,
+      "C_rva": "0x798591",
+      "D_rva": "0x7985c1",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 74,
+      "C_rva": "0x7989f0",
+      "D_rva": "0x798a20",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 75,
+      "C_rva": "0x798c61",
+      "D_rva": "0x798c91",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 76,
+      "C_rva": "0x798ed2",
+      "D_rva": "0x798f02",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 77,
+      "C_rva": "0x799149",
+      "D_rva": "0x799179",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 78,
+      "C_rva": "0x799a81",
+      "D_rva": "0x799ab1",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 79,
+      "C_rva": "0x799f38",
+      "D_rva": "0x799f68",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 80,
+      "C_rva": "0x799f4d",
+      "D_rva": "0x799f7d",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 81,
+      "C_rva": "0x799f62",
+      "D_rva": "0x799f92",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 82,
+      "C_rva": "0x79a153",
+      "D_rva": "0x79a183",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 83,
+      "C_rva": "0x79a380",
+      "D_rva": "0x79a3b0",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 84,
+      "C_rva": "0x79a593",
+      "D_rva": "0x79a5c3",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 85,
+      "C_rva": "0x79a7b1",
+      "D_rva": "0x79a7e1",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 86,
+      "C_rva": "0x79a7eb",
+      "D_rva": "0x79a81b",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 87,
+      "C_rva": "0x79a813",
+      "D_rva": "0x79a843",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 88,
+      "C_rva": "0x79a846",
+      "D_rva": "0x79a876",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 89,
+      "C_rva": "0x78f5df",
+      "D_rva": "0x78f60f",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 90,
+      "C_rva": "0x78ecc8",
+      "D_rva": "0x78ecf8",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 91,
+      "C_rva": "0x78efed",
+      "D_rva": "0x78f01d",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 92,
+      "C_rva": "0x78e9ec",
+      "D_rva": "0x78ea1c",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 93,
+      "C_rva": "0x78e0ac",
+      "D_rva": "0x78e0dc",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 94,
+      "C_rva": "0x79b131",
+      "D_rva": "0x79b161",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 95,
+      "C_rva": "0x79a896",
+      "D_rva": "0x79a8c6",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 96,
+      "C_rva": "0x79b3b4",
+      "D_rva": "0x79b3e4",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 97,
+      "C_rva": "0x79c515",
+      "D_rva": "0x79c545",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 98,
+      "C_rva": "0x79aaff",
+      "D_rva": "0x79ab2f",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 99,
+      "C_rva": "0x78967e",
+      "D_rva": "0x7896ae",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 100,
+      "C_rva": "0x79a86e",
+      "D_rva": "0x79a89e",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 101,
+      "C_rva": "0x795310",
+      "D_rva": "0x795340",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 102,
+      "C_rva": "0x78aa94",
+      "D_rva": "0x78aac4",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 103,
+      "C_rva": "0x78da21",
+      "D_rva": "0x78da51",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 104,
+      "C_rva": "0x78de91",
+      "D_rva": "0x78dec1",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 105,
+      "C_rva": "0x7898dc",
+      "D_rva": "0x78990c",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 106,
+      "C_rva": "0x789b25",
+      "D_rva": "0x789b55",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 107,
+      "C_rva": "0x789d34",
+      "D_rva": "0x789d64",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 108,
+      "C_rva": "0x789faf",
+      "D_rva": "0x789fdf",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 109,
+      "C_rva": "0x799812",
+      "D_rva": "0x799842",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 110,
+      "C_rva": "0x78cba5",
+      "D_rva": "0x78cbd5",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 111,
+      "C_rva": "0x78e3c4",
+      "D_rva": "0x78e3f4",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 112,
+      "C_rva": "0x78f29a",
+      "D_rva": "0x78f2ca",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 113,
+      "C_rva": "0x7979c9",
+      "D_rva": "0x7979f9",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 114,
+      "C_rva": "0x797c52",
+      "D_rva": "0x797c82",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 115,
+      "C_rva": "0x79938c",
+      "D_rva": "0x7993bc",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 116,
+      "C_rva": "0x789f76",
+      "D_rva": "0x789fa6",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 117,
+      "C_rva": "0x7995cf",
+      "D_rva": "0x7995ff",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 118,
+      "C_rva": "0x79ad08",
+      "D_rva": "0x79ad38",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 119,
+      "C_rva": "0x79af11",
+      "D_rva": "0x79af41",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 120,
+      "C_rva": "0x78beaf",
+      "D_rva": "0x78bedf",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 121,
+      "C_rva": "0x78c128",
+      "D_rva": "0x78c158",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 122,
+      "C_rva": "0x78e6cc",
+      "D_rva": "0x78e6fc",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 123,
+      "C_rva": "0x791ddf",
+      "D_rva": "0x791e0f",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 124,
+      "C_rva": "0x78dc59",
+      "D_rva": "0x78dc89",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 125,
+      "C_rva": "0x794c3c",
+      "D_rva": "0x794c6c",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 126,
+      "C_rva": "0x7987ad",
+      "D_rva": "0x7987dd",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 127,
+      "C_rva": "0x78ce4d",
+      "D_rva": "0x78ce7d",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 128,
+      "C_rva": "0x792abd",
+      "D_rva": "0x792aed",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 129,
+      "C_rva": "0x78acc4",
+      "D_rva": "0x78acf4",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 130,
+      "C_rva": "0x799cd6",
+      "D_rva": "0x799d06",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 131,
+      "C_rva": "0x7980ce",
+      "D_rva": "0x7980fe",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 132,
+      "C_rva": "0x78a86d",
+      "D_rva": "0x78a89d",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 133,
+      "C_rva": "0x79b620",
+      "D_rva": "0x79b650",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 134,
+      "C_rva": "0x79b854",
+      "D_rva": "0x79b884",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 135,
+      "C_rva": "0x79bae4",
+      "D_rva": "0x79bb14",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 136,
+      "C_rva": "0x79bd74",
+      "D_rva": "0x79bda4",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 137,
+      "C_rva": "0x79c011",
+      "D_rva": "0x79c041",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 138,
+      "C_rva": "0x79c287",
+      "D_rva": "0x79c2b7",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 139,
+      "C_rva": "0x792d50",
+      "D_rva": "0x792d80",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 140,
+      "C_rva": "0x794158",
+      "D_rva": "0x794188",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 141,
+      "C_rva": "0x792fc9",
+      "D_rva": "0x792ff9",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 142,
+      "C_rva": "0x7931fd",
+      "D_rva": "0x79322d",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 143,
+      "C_rva": "0x793424",
+      "D_rva": "0x793454",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 144,
+      "C_rva": "0x79364b",
+      "D_rva": "0x79367b",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 145,
+      "C_rva": "0x793872",
+      "D_rva": "0x7938a2",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 146,
+      "C_rva": "0x793a99",
+      "D_rva": "0x793ac9",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 147,
+      "C_rva": "0x793ccd",
+      "D_rva": "0x793cfd",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    },
+    {
+      "index": 148,
+      "C_rva": "0x797e90",
+      "D_rva": "0x797ec0",
+      "delta": 48,
+      "relative_equal": true,
+      "C_inside": true,
+      "D_inside": true
+    }
+  ]
+}

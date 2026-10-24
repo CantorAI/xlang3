@@ -1,0 +1,4 @@
+[0/2] Re-checking globbed directories...
+[1/27] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\gc_module.cpp.obj
+[2/27] Linking CXX static library Release\xlang3_system_runtime.lib
+[3/27] Linking CXX shared library Release\xlang3_runtime.dll

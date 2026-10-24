@@ -1,0 +1,14 @@
+{
+  "observed_utc": "2026-10-07T21:03:02.814742+00:00",
+  "pid": 13400,
+  "cwd": "D:\\CantorAI\\xlang3",
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "-"
+  ],
+  "created_timestamp": 1791338881.5051403,
+  "cpu_seconds": 66751.703125,
+  "one_second_cpu_percent": 98.4,
+  "action": "Terminate leftover task-local stdin Python process with no children or current live job handle",
+  "limitation": "Original stdin script cannot be recovered; previous fast samples remain nominal and may have shared machine load"
+}

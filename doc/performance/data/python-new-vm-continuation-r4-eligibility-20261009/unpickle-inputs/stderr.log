@@ -1,0 +1,5 @@
+debug: wrote IR D:\CantorAI\xlang3\doc\performance\data\python-new-vm-continuation-r4-eligibility-20261009\unpickle-inputs\python-new-original-unpickle-probe-root-20261009.ir.txt
+Traceback (most recent call last):
+  File "D:\CantorAI\xlang3\scratch\performance\python-new-original-unpickle-probe-root-20261009.py", line 29, in <module>
+    assert selected_class.__module__ == '_pydatetime'
+AssertionError

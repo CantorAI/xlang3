@@ -1,0 +1,15 @@
+{
+  "definition": "xml_etree",
+  "definition_status": "failed",
+  "exit_code": 124,
+  "partial_output": "xml_etree-6c6e8ab8515c13d6.json",
+  "sha256": "6c6e8ab8515c13d69a769aee0056f1917200581e1a27e803b1fa2a8824b78109",
+  "bytes": 1638,
+  "json_valid": true,
+  "timed_subtests": [
+    {
+      "name": "xml_etree_pure_python_parse",
+      "values": 20
+    }
+  ]
+}

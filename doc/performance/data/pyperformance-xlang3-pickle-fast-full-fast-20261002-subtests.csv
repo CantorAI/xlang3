@@ -1,0 +1,115 @@
+﻿subtest,benchmark,CPython 3.14 seconds,XLang3 seconds,speedup CPython/XLang3 (>1 means XLang3 faster),XLang3 status,XLang3 evidence
+2to3,2to3,0.346661715012,,,failed: Benchmark died,
+ascii85_large,base64,0.854,,,failed: timed out,
+ascii85_small,base64,0.0161,,,failed: timed out,
+async_generators,async_generators,0.287507919999,2.534489885,0.11343818,completed,pyperf JSON
+async_tree_cpu_io_mixed,async_tree_cpu_io_mixed,0.428552909993,,,failed: timed out,
+async_tree_cpu_io_mixed_tg,async_tree_cpu_io_mixed_tg,0.425600589992,,,failed: timed out,
+async_tree_eager,async_tree_eager,0.0866194049988,3.64,0.02379654,completed,benchmark log (partial definition)
+async_tree_eager_cpu_io_mixed,async_tree_eager_cpu_io_mixed,0.33615309,,,failed: timed out,
+async_tree_eager_cpu_io_mixed_tg,async_tree_eager_cpu_io_mixed_tg,0.388308339991,,,failed: timed out,
+async_tree_eager_io,async_tree_eager_io,0.559068474997,,,failed: timed out,
+async_tree_eager_io_tg,async_tree_eager_io_tg,0.555330054997,,,failed: timed out,
+async_tree_eager_memoization,async_tree_eager_memoization,0.189147139998,,,failed: timed out,
+async_tree_eager_memoization_tg,async_tree_eager_memoization_tg,0.261126149999,,,failed: timed out,
+async_tree_eager_tg,async_tree_eager_tg,0.196329584997,,,failed: timed out,
+async_tree_io,async_tree_io,0.552144319998,,,failed: timed out,
+async_tree_io_tg,async_tree_io_tg,0.553944165001,,,failed: timed out,
+async_tree_memoization,async_tree_memoization,0.280833555001,,,failed: timed out,
+async_tree_memoization_tg,async_tree_memoization_tg,0.281769494989,,,failed: timed out,
+async_tree_none,async_tree,0.227372095,,,failed: timed out,
+async_tree_none_tg,async_tree_tg,0.238341695009,,,failed: timed out,
+asyncio_tcp,asyncio_tcp,0.741418969998,4.47,0.16586554,completed,benchmark log (partial definition)
+asyncio_websockets,asyncio_websockets,0.188728164989,,,failed: Benchmark died,
+base16_large,base64,0.00608,,,failed: timed out,
+base16_small,base64,0.000293,,,failed: timed out,
+base32_large,base64,0.381,,,failed: timed out,
+base32_small,base64,0.00759,,,failed: timed out,
+base64_large,base64,0.00791,,,failed: timed out,
+base64_small,base64,0.000273,,,failed: timed out,
+bench_mp_pool,concurrent_imap,0.164095405,,,failed: Benchmark died,
+bench_thread_pool,concurrent_imap,0.00122031499998,,,failed: Benchmark died,
+chameleon,chameleon,0.0118507712499,,,failed: Benchmark died,
+chaos,chaos,0.0477537137493,0.48251121,0.098969128,completed,pyperf JSON
+comprehensions,comprehensions,1.42214581292e-05,,,failed: Benchmark died,
+connected_components,networkx_connected_components,0.423193770001,,,failed: Benchmark died,
+coroutines,coroutines,0.017857578125,0.180073115,0.099168486,completed,pyperf JSON
+coverage,coverage,0.0603600324946,,,failed: Benchmark died,
+create_gc_cycles,gc_collect,0.00162273917917,,,failed: Benchmark died,
+crypto_pyaes,crypto_pyaes,0.0679188450013,,,failed: Benchmark died,
+dask,dask,0.810638810002,,,failed: Benchmark died,
+deepcopy,deepcopy,0.000217795097274,,,failed: Benchmark died,
+deepcopy_memo,deepcopy,2.36476062007e-05,,,failed: Benchmark died,
+deepcopy_reduce,deepcopy,2.31418365479e-06,,,failed: Benchmark died,
+deltablue,deltablue,0.0030036176563,0.042645515,0.070432205,completed,pyperf JSON
+docutils,docutils,1.87244503996,,,failed: Benchmark died,
+dulwich_log,dulwich_log,0.0475084499994,,,failed: Benchmark died,
+fannkuch,fannkuch,0.324031669999,0.3099013,1.0455964,completed,pyperf JSON
+fastapi_http,fastapi,0.579600865001,,,failed: Benchmark died,
+float,float,0.0579548049995,0.0818918875,0.70769898,completed,pyperf JSON
+gc_traversal,gc_traversal,0.00233244593692,0.00142794511718,1.6334283,completed,pyperf JSON
+generators,generators,0.0314166025004,0.379266535,0.082835156,completed,pyperf JSON
+genshi_text,genshi,0.0244620299985,,,failed: Benchmark died,
+genshi_xml,genshi,0.0456495574988,,,failed: Benchmark died,
+go,go,0.103655199998,1.033753645,0.1002707,completed,pyperf JSON
+hexiom,hexiom,0.00544018328119,0.0686950750001,0.079193207,completed,pyperf JSON
+html5lib,html5lib,0.0496102612487,,,failed: Benchmark died,
+json_dumps,json_dumps,0.00806267000007,0.03804249,0.21193855,completed,pyperf JSON
+json_loads,json_loads,1.93283457025e-05,0.00010769334375,0.17947577,completed,pyperf JSON
+logging_format,logging,9.75519238352e-06,0.000102397859375,0.095267542,completed,pyperf JSON
+logging_silent,logging,7.00283012389e-08,1.22317321777e-06,0.057251336,completed,pyperf JSON
+logging_simple,logging,7.51427172887e-06,9.63547812501e-05,0.077985458,completed,pyperf JSON
+mako,mako,0.00855420374937,,,failed: Benchmark died,
+many_optionals,argparse,0.000667935234355,0.00790645875001,0.084479696,completed,pyperf JSON
+mdp,mdp,1.09331347499,,,failed: Benchmark died,
+meteor_contest,meteor_contest,0.120215382501,1.40719107,0.085429324,completed,pyperf JSON
+nbody,nbody,0.0903956025009,0.335574835,0.26937539,completed,pyperf JSON
+nqueens,nqueens,0.0769275974933,0.927344405,0.082954722,completed,pyperf JSON
+pathlib,pathlib,0.0505641675009,0.614410575,0.082297033,completed,pyperf JSON
+pickle,pickle,9.8386953124e-06,2.01338232422e-05,0.48866503,completed,pyperf JSON
+pickle_dict,pickle_dict,2.64134355456e-05,2.65221552735e-05,0.9959008,completed,pyperf JSON
+pickle_list,pickle_list,4.62463647452e-06,4.55739721679e-06,1.0147539,completed,pyperf JSON
+pickle_pure_python,pickle_pure_python,0.000273545726568,0.005934707,0.046092541,completed,pyperf JSON
+pidigits,pidigits,0.164826545,0.41094266,0.40109378,completed,pyperf JSON
+pprint_pformat,pprint,1.32836348001,,,failed: Benchmark died,
+pprint_safe_repr,pprint,0.657793924992,,,failed: Benchmark died,
+pyflate,pyflate,0.366486204995,3.243762525,0.11298182,completed,pyperf JSON
+python_startup,python_startup,0.0249388231248,,,failed: Benchmark died,
+python_startup_no_site,python_startup_no_site,0.0206847008331,,,failed: Benchmark died,
+raytrace,raytrace,0.272154480001,2.37183227,0.1147444,completed,pyperf JSON
+regex_compile,regex_compile,0.118608994997,,,failed: Benchmark died,
+regex_dna,regex_dna,0.142710170007,0.226489345,0.63009662,completed,pyperf JSON
+regex_effbot,regex_effbot,0.00199546956243,0.0136734205,0.14593785,completed,pyperf JSON
+regex_v8,regex_v8,0.0188103931254,0.0685443925,0.27442643,completed,pyperf JSON
+richards,richards,0.036596374998,0.383079915,0.09553196,completed,pyperf JSON
+richards_super,richards_super,0.0413650612492,0.530717645,0.077941749,completed,pyperf JSON
+scimark_fft,scimark,0.250560574996,,,failed: Benchmark died,
+scimark_lu,scimark,0.0766406900002,,,failed: Benchmark died,
+scimark_monte_carlo,scimark,0.060260909998,,,failed: Benchmark died,
+scimark_sor,scimark,0.105248185003,,,failed: Benchmark died,
+scimark_sparse_mat_mult,scimark,0.00324937179698,,,failed: Benchmark died,
+shortest_path,networkx,0.469990285003,,,failed: Benchmark died,
+spectral_norm,spectral_norm,0.103798085003,0.538392075,0.19279274,completed,pyperf JSON
+sphinx,sphinx,0.818992210008,,,failed: Benchmark died,
+sqlalchemy_declarative,sqlalchemy_declarative,0.0955269350001,,,failed: Benchmark died,
+sqlalchemy_imperative,sqlalchemy_imperative,0.0114546881252,,,failed: Benchmark died,
+sqlglot_v2_normalize,sqlglot_v2,0.0983904050023,,,failed: Benchmark died,
+sqlglot_v2_optimize,sqlglot_v2_optimize,0.0416106837496,,,failed: Benchmark died,
+sqlglot_v2_parse,sqlglot_v2_parse,0.00101021671849,,,failed: Benchmark died,
+sqlglot_v2_transpile,sqlglot_v2_transpile,0.00130193761738,,,failed: Benchmark died,
+sqlite_synth,sqlite_synth,1.91163917544e-06,,,failed: Benchmark died,
+subparsers,argparse_subparsers,0.00815085781214,0.25076131,0.032504447,completed,pyperf JSON
+telco,telco,0.00575494359364,0.275805385,0.020865958,completed,pyperf JSON
+tomli_loads,tomli_loads,1.84457279001,,,failed: timed out,
+tornado_http,tornado_http,0.274707864996,,,failed: Benchmark died,
+typing_runtime_protocols,typing_runtime_protocols,0.000132394477541,0.000272850058594,0.48522796,completed,pyperf JSON
+unpack_sequence,unpack_sequence,4.46682022144e-08,1.79309429932e-07,0.2491124,completed,pyperf JSON
+unpickle,unpickle,1.05842377923e-05,7.57943710937e-05,0.13964411,completed,pyperf JSON
+unpickle_list,unpickle_list,3.36482434093e-06,1.36252905273e-05,0.24695432,completed,pyperf JSON
+unpickle_pure_python,unpickle_pure_python,0.000205261125002,0.00368968125001,0.055631127,completed,pyperf JSON
+urlsafe_base64_small,base64,0.000413,,,failed: timed out,
+xdsl_constant_fold,xdsl,0.03577515875,,,failed: Benchmark died,
+xml_etree_generate,xml_etree,0.080221907502,,,failed: Benchmark died,
+xml_etree_iterparse,xml_etree,0.0726689324976,,,failed: Benchmark died,
+xml_etree_parse,xml_etree,0.115982455004,,,failed: Benchmark died,
+xml_etree_process,xml_etree,0.0510394899997,,,failed: Benchmark died,

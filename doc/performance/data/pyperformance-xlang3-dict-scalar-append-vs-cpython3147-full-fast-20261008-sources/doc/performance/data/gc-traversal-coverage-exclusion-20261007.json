@@ -1,0 +1,29 @@
+{
+  "classification": "Speed score withheld for incomplete collection work; worker status and raw timing retained",
+  "invalid_subtest": "gc_traversal",
+  "source_base_commit": "0ab4624f500e0677364ebdcafbbb35ff0c329fc9",
+  "source_sha256": {
+    "src/runtime/modules/system/gc_module.cpp": {
+      "raw_sha256": "6901925b5e1768ac0bf76c2ea89da99359a8303310ffaa36ff41009bfbce35f8",
+      "canonical_lf_sha256": "e837819ae1df08bceabde7305d58d3cd1ebb56a7bb51dbea933ac181b54ea5c2"
+    },
+    "src/runtime/modules/system/weakref_module.cpp": {
+      "raw_sha256": "b17237a4f270ac911b4679c8892642667c9dae41d2938c4799d232cab0ad65ae",
+      "canonical_lf_sha256": "b17237a4f270ac911b4679c8892642667c9dae41d2938c4799d232cab0ad65ae"
+    },
+    "src/runtime/object_model.cpp": {
+      "raw_sha256": "92d5597f776f74eeff07c1135a9476c8f0727350e70cc9e3f840edc92a40605b",
+      "canonical_lf_sha256": "f3182986ac61566217f9ce20bf5257ba38b4c7690d51d131af3d9db7616a5169"
+    }
+  },
+  "source_findings": [
+    "gc.collect delegates to weakref_collect_cycles",
+    "Collector seeds local classes, weakref targets and native-payload instances, not the generic tracked heap",
+    "Ordinary benchmark Node instances and the retained list graph have no weakref/native-payload candidate seed",
+    "Native GC registry insertion requires native traversal/reference and clear hooks"
+  ],
+  "observed_gc_collect_definition_status": "Benchmark died",
+  "actual_returned_collection_count": "Not recorded by the assertion traceback; focused observation still pending",
+  "xlang_full_json_sha256": "df70a5c4cf13cc2e323812850be53af2f1e04317a99f41260723ce97903041dd",
+  "scope": "Source coverage evidence plus official collection failure; no invented count or completed-work equivalence claim"
+}

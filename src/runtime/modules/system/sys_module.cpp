@@ -1173,6 +1173,8 @@ Value make_structseq(
   return instance;
 }
 
+std::string path_utf8(const std::filesystem::path& path);
+
 std::string executable_path() {
 #if defined(_WIN32)
   std::wstring buffer(32768, L'\0');
@@ -1187,7 +1189,16 @@ std::string executable_path() {
 #endif
   std::error_code ec;
   auto path = std::filesystem::current_path(ec) / "xlang3";
+  return path_utf8(path);
+}
+
+std::string path_utf8(const std::filesystem::path& path) {
+#if defined(_WIN32)
+  const auto encoded = path.u8string();
+  return {reinterpret_cast<const char*>(encoded.data()), encoded.size()};
+#else
   return path.string();
+#endif
 }
 
 std::string runtime_prefix(const Runtime& runtime) {
@@ -1200,23 +1211,23 @@ std::string runtime_prefix(const Runtime& runtime) {
     // source-backed standard library as third-party code.
     if (std::filesystem::is_regular_file(root / "os.py", ec)) {
 #ifdef _WIN32
-      if (root.filename() == "Lib") return root.parent_path().string();
+      if (root.filename() == "Lib") return path_utf8(root.parent_path());
 #else
       if (root.filename() == "python3.14" && root.parent_path().filename() == "lib")
-        return root.parent_path().parent_path().string();
+        return path_utf8(root.parent_path().parent_path());
 #endif
-      return root.parent_path().string();
+      return path_utf8(root.parent_path());
     }
     ec.clear();
     if (std::filesystem::is_regular_file(root / "Lib" / "os.py", ec)) {
-      return root.string();
+      return path_utf8(root);
     }
     ec.clear();
   }
   if (!roots.empty()) {
-    return roots.front().string();
+    return path_utf8(roots.front());
   }
-  return std::filesystem::current_path(ec).string();
+  return path_utf8(std::filesystem::current_path(ec));
 }
 
 std::string runtime_stdlib_dir(const Runtime& runtime) {
@@ -1224,19 +1235,19 @@ std::string runtime_stdlib_dir(const Runtime& runtime) {
   const auto& roots = runtime.import_roots();
   for (const auto& root : roots) {
     if (std::filesystem::is_regular_file(root / "os.py", ec)) {
-      return root.string();
+      return path_utf8(root);
     }
     ec.clear();
     const auto lib = root / "Lib";
     if (std::filesystem::is_regular_file(lib / "os.py", ec)) {
-      return lib.string();
+      return path_utf8(lib);
     }
     ec.clear();
   }
 #ifdef _WIN32
-  return (std::filesystem::path(runtime_prefix(runtime)) / "Lib").string();
+  return path_utf8(std::filesystem::path(runtime_prefix(runtime)) / "Lib");
 #else
-  return (std::filesystem::path(runtime_prefix(runtime)) / "lib" / "python3.14").string();
+  return path_utf8(std::filesystem::path(runtime_prefix(runtime)) / "lib" / "python3.14");
 #endif
 }
 

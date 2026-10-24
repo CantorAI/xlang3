@@ -1,0 +1,3298 @@
+{
+  "method": "Full containing .pdata run_function ranges; compare exact relative instruction offsets and text with only external 64-bit VA operands anonymized",
+  "C_start": "0x784450",
+  "D_start": "0x784480",
+  "C_end": "0x79c9f0",
+  "D_end": "0x79ca20",
+  "range_bytes": 99744,
+  "C_instructions": 20081,
+  "D_instructions": 20098,
+  "structural_differences": 219,
+  "differences": [
+    {
+      "index": 19862,
+      "C": {
+        "offset": 99148,
+        "bytes": "2A 94 78 00 69 96",
+        "text": "sub         dl,byte ptr [rax+rdi*2+0000000078966900h]",
+        "normalized": "sub         dl,byte ptr [rax+rdi*2+external-addressh]"
+      },
+      "D": {
+        "offset": 99148,
+        "bytes": "5A",
+        "text": "pop         rdx",
+        "normalized": "pop         rdx"
+      }
+    },
+    {
+      "index": 19863,
+      "C": {
+        "offset": 99155,
+        "bytes": "00 93 96 78 00 3D",
+        "text": "add         byte ptr [rbx+000000003D007896h],dl",
+        "normalized": "add         byte ptr [rbx+external-addressh],dl"
+      },
+      "D": {
+        "offset": 99149,
+        "bytes": "94",
+        "text": "xchg        eax,esp",
+        "normalized": "xchg        eax,esp"
+      }
+    },
+    {
+      "index": 19864,
+      "C": {
+        "offset": 99161,
+        "bytes": "9F",
+        "text": "lahf",
+        "normalized": "lahf"
+      },
+      "D": {
+        "offset": 99150,
+        "bytes": "78 00",
+        "text": "js          000000018079C7D0",
+        "normalized": "js          self+0x18350"
+      }
+    },
+    {
+      "index": 19865,
+      "C": {
+        "offset": 99162,
+        "bytes": "78 00",
+        "text": "js          000000018079C7AC",
+        "normalized": "js          self+0x1835c"
+      },
+      "D": {
+        "offset": 99152,
+        "bytes": "99",
+        "text": "cdq",
+        "normalized": "cdq"
+      }
+    },
+    {
+      "index": 19866,
+      "C": {
+        "offset": 99164,
+        "bytes": "E3 A1",
+        "text": "jrcxz       000000018079C74F",
+        "normalized": "jrcxz       self+0x182ff"
+      },
+      "D": {
+        "offset": 99153,
+        "bytes": "96",
+        "text": "xchg        eax,esi",
+        "normalized": "xchg        eax,esi"
+      }
+    },
+    {
+      "index": 19867,
+      "C": {
+        "offset": 99166,
+        "bytes": "78 00",
+        "text": "js          000000018079C7B0",
+        "normalized": "js          self+0x18360"
+      },
+      "D": {
+        "offset": 99154,
+        "bytes": "78 00",
+        "text": "js          000000018079C7D4",
+        "normalized": "js          self+0x18354"
+      }
+    },
+    {
+      "index": 19868,
+      "C": {
+        "offset": 99168,
+        "bytes": "05 A4 78 00 39",
+        "text": "add         eax,390078A4h",
+        "normalized": "add         eax,390078A4h"
+      },
+      "D": {
+        "offset": 99156,
+        "bytes": "C3",
+        "text": "ret",
+        "normalized": "ret"
+      }
+    },
+    {
+      "index": 19869,
+      "C": {
+        "offset": 99173,
+        "bytes": "A6",
+        "text": "cmps        byte ptr [rsi],byte ptr [rdi]",
+        "normalized": "cmps        byte ptr [rsi],byte ptr [rdi]"
+      },
+      "D": {
+        "offset": 99157,
+        "bytes": "96",
+        "text": "xchg        eax,esi",
+        "normalized": "xchg        eax,esi"
+      }
+    },
+    {
+      "index": 19870,
+      "C": {
+        "offset": 99174,
+        "bytes": "78 00",
+        "text": "js          000000018079C7B8",
+        "normalized": "js          self+0x18368"
+      },
+      "D": {
+        "offset": 99158,
+        "bytes": "78 00",
+        "text": "js          000000018079C7D8",
+        "normalized": "js          self+0x18358"
+      }
+    },
+    {
+      "index": 19871,
+      "C": {
+        "offset": 99176,
+        "bytes": "F4",
+        "text": "hlt",
+        "normalized": "hlt"
+      },
+      "D": {
+        "offset": 99160,
+        "bytes": "6D",
+        "text": "ins         dword ptr [rdi],dx",
+        "normalized": "ins         dword ptr [rdi],dx"
+      }
+    },
+    {
+      "index": 19872,
+      "C": {
+        "offset": 99177,
+        "bytes": "AE",
+        "text": "scas        byte ptr [rdi]",
+        "normalized": "scas        byte ptr [rdi]"
+      },
+      "D": {
+        "offset": 99161,
+        "bytes": "9F",
+        "text": "lahf",
+        "normalized": "lahf"
+      }
+    },
+    {
+      "index": 19873,
+      "C": {
+        "offset": 99178,
+        "bytes": "78 00",
+        "text": "js          000000018079C7BC",
+        "normalized": "js          self+0x1836c"
+      },
+      "D": {
+        "offset": 99162,
+        "bytes": "78 00",
+        "text": "js          000000018079C7DC",
+        "normalized": "js          self+0x1835c"
+      }
+    },
+    {
+      "index": 19874,
+      "C": {
+        "offset": 99181,
+        "bytes": "B1 78",
+        "text": "mov         cl,78h",
+        "normalized": "mov         cl,78h"
+      },
+      "D": {
+        "offset": 99164,
+        "bytes": "13 A2 78 00 35 A4",
+        "text": "adc         esp,dword ptr [rdx+FFFFFFFFA4350078h]",
+        "normalized": "adc         esp,dword ptr [rdx+external-addressh]"
+      }
+    },
+    {
+      "index": 19875,
+      "C": {
+        "offset": 99183,
+        "bytes": "00 66 B3",
+        "text": "add         byte ptr [rsi-4Dh],ah",
+        "normalized": "add         byte ptr [rsi-4Dh],ah"
+      },
+      "D": {
+        "offset": 99170,
+        "bytes": "78 00",
+        "text": "js          000000018079C7E4",
+        "normalized": "js          self+0x18364"
+      }
+    },
+    {
+      "index": 19876,
+      "C": {
+        "offset": 99186,
+        "bytes": "78 00",
+        "text": "js          000000018079C7C4",
+        "normalized": "js          self+0x18374"
+      },
+      "D": {
+        "offset": 99172,
+        "bytes": "69 A6 78 00 24 AF",
+        "text": "imul        esp,dword ptr [rsi+FFFFFFFFAF240078h],0B1370078h",
+        "normalized": "imul        esp,dword ptr [rsi+external-addressh],0B1370078h"
+      }
+    },
+    {
+      "index": 19877,
+      "C": {
+        "offset": 99188,
+        "bytes": "8E B3 78 00 A1 B5",
+        "text": "mov         st(-2),word ptr [rbx+FFFFFFFFB5A10078h]",
+        "normalized": "mov         st(-2),word ptr [rbx+external-addressh]"
+      },
+      "D": {
+        "offset": 99182,
+        "bytes": "78 00",
+        "text": "js          000000018079C7F0",
+        "normalized": "js          self+0x18370"
+      }
+    },
+    {
+      "index": 19878,
+      "C": {
+        "offset": 99194,
+        "bytes": "78 00",
+        "text": "js          000000018079C7CC",
+        "normalized": "js          self+0x1837c"
+      },
+      "D": {
+        "offset": 99184,
+        "bytes": "96",
+        "text": "xchg        eax,esi",
+        "normalized": "xchg        eax,esi"
+      }
+    },
+    {
+      "index": 19879,
+      "C": {
+        "offset": 99196,
+        "bytes": "AA",
+        "text": "stos        byte ptr [rdi]",
+        "normalized": "stos        byte ptr [rdi]"
+      },
+      "D": {
+        "offset": 99185,
+        "bytes": "B3 78",
+        "text": "mov         bl,78h",
+        "normalized": "mov         bl,78h"
+      }
+    },
+    {
+      "index": 19880,
+      "C": {
+        "offset": 99197,
+        "bytes": "B7 78",
+        "text": "mov         bh,78h",
+        "normalized": "mov         bh,78h"
+      },
+      "D": {
+        "offset": 99187,
+        "bytes": "00 BE B3 78 00 D1",
+        "text": "add         byte ptr [rsi+FFFFFFFFD10078B3h],bh",
+        "normalized": "add         byte ptr [rsi+external-addressh],bh"
+      }
+    },
+    {
+      "index": 19881,
+      "C": {
+        "offset": 99199,
+        "bytes": "00 50 BC",
+        "text": "add         byte ptr [rax-44h],dl",
+        "normalized": "add         byte ptr [rax-44h],dl"
+      },
+      "D": {
+        "offset": 99193,
+        "bytes": "B5 78",
+        "text": "mov         ch,78h",
+        "normalized": "mov         ch,78h"
+      }
+    },
+    {
+      "index": 19882,
+      "C": {
+        "offset": 99202,
+        "bytes": "78 00",
+        "text": "js          000000018079C7D4",
+        "normalized": "js          self+0x18384"
+      },
+      "D": {
+        "offset": 99195,
+        "bytes": "00 DA",
+        "text": "add         dl,bl",
+        "normalized": "add         dl,bl"
+      }
+    },
+    {
+      "index": 19883,
+      "C": {
+        "offset": 99204,
+        "bytes": "A1 C3 78 00 E6 C5",
+        "text": "mov         eax,dword ptr [3D0078C5E60078C3h]",
+        "normalized": "mov         eax,dword ptr [external-addressh]"
+      },
+      "D": {
+        "offset": 99197,
+        "bytes": "B7 78",
+        "text": "mov         bh,78h",
+        "normalized": "mov         bh,78h"
+      }
+    },
+    {
+      "index": 19884,
+      "C": {
+        "offset": 99213,
+        "bytes": "C6 78 00 BB",
+        "text": "xabort      0BBh",
+        "normalized": "xabort      0BBh"
+      },
+      "D": {
+        "offset": 99199,
+        "bytes": "00 80 BC 78 00 D1",
+        "text": "add         byte ptr [rax+FFFFFFFFD10078BCh],al",
+        "normalized": "add         byte ptr [rax+external-addressh],al"
+      }
+    },
+    {
+      "index": 19885,
+      "C": {
+        "offset": 99217,
+        "bytes": "C6 78 00 D2",
+        "text": "xabort      0D2h",
+        "normalized": "xabort      0D2h"
+      },
+      "D": {
+        "offset": 99205,
+        "bytes": "C3",
+        "text": "ret",
+        "normalized": "ret"
+      }
+    },
+    {
+      "index": 19886,
+      "C": {
+        "offset": 99221,
+        "bytes": "B7 78",
+        "text": "mov         bh,78h",
+        "normalized": "mov         bh,78h"
+      },
+      "D": {
+        "offset": 99206,
+        "bytes": "78 00",
+        "text": "js          000000018079C808",
+        "normalized": "js          self+0x18388"
+      }
+    },
+    {
+      "index": 19887,
+      "C": {
+        "offset": 99223,
+        "bytes": "00 28",
+        "text": "add         byte ptr [rax],ch",
+        "normalized": "add         byte ptr [rax],ch"
+      },
+      "D": {
+        "offset": 99209,
+        "bytes": "C6 78 00 6D",
+        "text": "xabort      6Dh",
+        "normalized": "xabort      6Dh"
+      }
+    },
+    {
+      "index": 19888,
+      "C": {
+        "offset": 99225,
+        "bytes": "BA 78 00 9C F8",
+        "text": "mov         edx,0F89C0078h",
+        "normalized": "mov         edx,0F89C0078h"
+      },
+      "D": {
+        "offset": 99213,
+        "bytes": "C6 78 00 EB",
+        "text": "xabort      0EBh",
+        "normalized": "xabort      0EBh"
+      }
+    },
+    {
+      "index": 19889,
+      "C": {
+        "offset": 99230,
+        "bytes": "78 00",
+        "text": "js          000000018079C7F0",
+        "normalized": "js          self+0x183a0"
+      },
+      "D": {
+        "offset": 99217,
+        "bytes": "C6 78 00 02",
+        "text": "xabort      2",
+        "normalized": "xabort      2"
+      }
+    },
+    {
+      "index": 19890,
+      "C": {
+        "offset": 99232,
+        "bytes": "B2 FA",
+        "text": "mov         dl,0FAh",
+        "normalized": "mov         dl,0FAh"
+      },
+      "D": {
+        "offset": 99221,
+        "bytes": "B8 78 00 58 BA",
+        "text": "mov         eax,0BA580078h",
+        "normalized": "mov         eax,0BA580078h"
+      }
+    },
+    {
+      "index": 19891,
+      "C": {
+        "offset": 99234,
+        "bytes": "78 00",
+        "text": "js          000000018079C7F4",
+        "normalized": "js          self+0x183a4"
+      },
+      "D": {
+        "offset": 99226,
+        "bytes": "78 00",
+        "text": "js          000000018079C81C",
+        "normalized": "js          self+0x1839c"
+      }
+    },
+    {
+      "index": 19892,
+      "C": {
+        "offset": 99236,
+        "bytes": "C8 FC 78 00",
+        "text": "enter       78FCh,0",
+        "normalized": "enter       78FCh,0"
+      },
+      "D": {
+        "offset": 99228,
+        "bytes": "CC",
+        "text": "int         3",
+        "normalized": "int         3"
+      }
+    },
+    {
+      "index": 19893,
+      "C": {
+        "offset": 99240,
+        "bytes": "EB FE",
+        "text": "jmp         000000018079C7F8",
+        "normalized": "jmp         self+0x183a8"
+      },
+      "D": {
+        "offset": 99229,
+        "bytes": "F8",
+        "text": "clc",
+        "normalized": "clc"
+      }
+    },
+    {
+      "index": 19894,
+      "C": {
+        "offset": 99242,
+        "bytes": "78 00",
+        "text": "js          000000018079C7FC",
+        "normalized": "js          self+0x183ac"
+      },
+      "D": {
+        "offset": 99230,
+        "bytes": "78 00",
+        "text": "js          000000018079C820",
+        "normalized": "js          self+0x183a0"
+      }
+    },
+    {
+      "index": 19895,
+      "C": {
+        "offset": 99244,
+        "bytes": "01 01",
+        "text": "add         dword ptr [rcx],eax",
+        "normalized": "add         dword ptr [rcx],eax"
+      },
+      "D": {
+        "offset": 99232,
+        "bytes": "E2 FA",
+        "text": "loop        000000018079C81C",
+        "normalized": "loop        self+0x1839c"
+      }
+    },
+    {
+      "index": 19896,
+      "C": {
+        "offset": 99246,
+        "bytes": "79 00",
+        "text": "jns         000000018079C800",
+        "normalized": "jns         self+0x183b0"
+      },
+      "D": {
+        "offset": 99234,
+        "bytes": "78 00",
+        "text": "js          000000018079C824",
+        "normalized": "js          self+0x183a4"
+      }
+    },
+    {
+      "index": 19897,
+      "C": {
+        "offset": 99248,
+        "bytes": "1A C9",
+        "text": "sbb         cl,cl",
+        "normalized": "sbb         cl,cl"
+      },
+      "D": {
+        "offset": 99236,
+        "bytes": "F8",
+        "text": "clc",
+        "normalized": "clc"
+      }
+    },
+    {
+      "index": 19898,
+      "C": {
+        "offset": 99250,
+        "bytes": "78 00",
+        "text": "js          000000018079C804",
+        "normalized": "js          self+0x183b4"
+      },
+      "D": {
+        "offset": 99237,
+        "bytes": "FC",
+        "text": "cld",
+        "normalized": "cld"
+      }
+    },
+    {
+      "index": 19899,
+      "C": {
+        "offset": 99252,
+        "bytes": "01 D1",
+        "text": "add         ecx,edx",
+        "normalized": "add         ecx,edx"
+      },
+      "D": {
+        "offset": 99238,
+        "bytes": "78 00",
+        "text": "js          000000018079C828",
+        "normalized": "js          self+0x183a8"
+      }
+    },
+    {
+      "index": 19900,
+      "C": {
+        "offset": 99254,
+        "bytes": "78 00",
+        "text": "js          000000018079C808",
+        "normalized": "js          self+0x183b8"
+      },
+      "D": {
+        "offset": 99240,
+        "bytes": "1B FF",
+        "text": "sbb         edi,edi",
+        "normalized": "sbb         edi,edi"
+      }
+    },
+    {
+      "index": 19901,
+      "C": {
+        "offset": 99256,
+        "bytes": "8C D3",
+        "text": "mov         ebx,ss",
+        "normalized": "mov         ebx,ss"
+      },
+      "D": {
+        "offset": 99242,
+        "bytes": "78 00",
+        "text": "js          000000018079C82C",
+        "normalized": "js          self+0x183ac"
+      }
+    },
+    {
+      "index": 19902,
+      "C": {
+        "offset": 99258,
+        "bytes": "78 00",
+        "text": "js          000000018079C80C",
+        "normalized": "js          self+0x183bc"
+      },
+      "D": {
+        "offset": 99244,
+        "bytes": "31 01",
+        "text": "xor         dword ptr [rcx],eax",
+        "normalized": "xor         dword ptr [rcx],eax"
+      }
+    },
+    {
+      "index": 19903,
+      "C": {
+        "offset": 99262,
+        "bytes": "78 00",
+        "text": "js          000000018079C810",
+        "normalized": "js          self+0x183c0"
+      },
+      "D": {
+        "offset": 99246,
+        "bytes": "79 00",
+        "text": "jns         000000018079C830",
+        "normalized": "jns         self+0x183b0"
+      }
+    },
+    {
+      "index": 19904,
+      "C": {
+        "offset": 99264,
+        "bytes": "28 D8",
+        "text": "sub         al,bl",
+        "normalized": "sub         al,bl"
+      },
+      "D": {
+        "offset": 99248,
+        "bytes": "4A C9",
+        "text": "leave",
+        "normalized": "leave"
+      }
+    },
+    {
+      "index": 19905,
+      "C": {
+        "offset": 99266,
+        "bytes": "78 00",
+        "text": "js          000000018079C814",
+        "normalized": "js          self+0x183c4"
+      },
+      "D": {
+        "offset": 99250,
+        "bytes": "78 00",
+        "text": "js          000000018079C834",
+        "normalized": "js          self+0x183b4"
+      }
+    },
+    {
+      "index": 19906,
+      "C": {
+        "offset": 99268,
+        "bytes": "43 03 79 00",
+        "text": "add         edi,dword ptr [r9]",
+        "normalized": "add         edi,dword ptr [r9]"
+      },
+      "D": {
+        "offset": 99252,
+        "bytes": "31 D1",
+        "text": "xor         ecx,edx",
+        "normalized": "xor         ecx,edx"
+      }
+    },
+    {
+      "index": 19907,
+      "C": {
+        "offset": 99272,
+        "bytes": "59",
+        "text": "pop         rcx",
+        "normalized": "pop         rcx"
+      },
+      "D": {
+        "offset": 99254,
+        "bytes": "78 00",
+        "text": "js          000000018079C838",
+        "normalized": "js          self+0x183b8"
+      }
+    },
+    {
+      "index": 19908,
+      "C": {
+        "offset": 99273,
+        "bytes": "05 79 00 AA 07",
+        "text": "add         eax,7AA0079h",
+        "normalized": "add         eax,7AA0079h"
+      },
+      "D": {
+        "offset": 99256,
+        "bytes": "BC D3 78 00 47",
+        "text": "mov         esp,470078D3h",
+        "normalized": "mov         esp,470078D3h"
+      }
+    },
+    {
+      "index": 19909,
+      "C": {
+        "offset": 99278,
+        "bytes": "79 00",
+        "text": "jns         000000018079C820",
+        "normalized": "jns         self+0x183d0"
+      },
+      "D": {
+        "offset": 99262,
+        "bytes": "78 00",
+        "text": "js          000000018079C840",
+        "normalized": "js          self+0x183c0"
+      }
+    },
+    {
+      "index": 19910,
+      "C": {
+        "offset": 99280,
+        "bytes": "A6",
+        "text": "cmps        byte ptr [rsi],byte ptr [rdi]",
+        "normalized": "cmps        byte ptr [rsi],byte ptr [rdi]"
+      },
+      "D": {
+        "offset": 99264,
+        "bytes": "58",
+        "text": "pop         rax",
+        "normalized": "pop         rax"
+      }
+    },
+    {
+      "index": 19911,
+      "C": {
+        "offset": 99281,
+        "bytes": "09 79 00",
+        "text": "or          dword ptr [rcx],edi",
+        "normalized": "or          dword ptr [rcx],edi"
+      },
+      "D": {
+        "offset": 99265,
+        "bytes": "D8 78 00",
+        "text": "fdivr       dword ptr [rax]",
+        "normalized": "fdivr       dword ptr [rax]"
+      }
+    },
+    {
+      "index": 19912,
+      "C": {
+        "offset": 99284,
+        "bytes": "A2 0B 79 00 A6 0D",
+        "text": "mov         byte ptr [A200790DA600790Bh],al",
+        "normalized": "mov         byte ptr [external-addressh],al"
+      },
+      "D": {
+        "offset": 99268,
+        "bytes": "73 03",
+        "text": "jae         000000018079C849",
+        "normalized": "jae         self+0x183c9"
+      }
+    },
+    {
+      "index": 19913,
+      "C": {
+        "offset": 99293,
+        "bytes": "0F 79 00",
+        "text": "vmwrite     rax,qword ptr [rax]",
+        "normalized": "vmwrite     rax,qword ptr [rax]"
+      },
+      "D": {
+        "offset": 99270,
+        "bytes": "79 00",
+        "text": "jns         000000018079C848",
+        "normalized": "jns         self+0x183c8"
+      }
+    },
+    {
+      "index": 19914,
+      "C": {
+        "offset": 99296,
+        "bytes": "9E",
+        "text": "sahf",
+        "normalized": "sahf"
+      },
+      "D": {
+        "offset": 99272,
+        "bytes": "89 05 79 00 DA 07",
+        "text": "mov         dword ptr [000000018853C8C7h],eax",
+        "normalized": "mov         dword ptr [external-addressh],eax"
+      }
+    },
+    {
+      "index": 19915,
+      "C": {
+        "offset": 99297,
+        "bytes": "11 79 00",
+        "text": "adc         dword ptr [rcx],edi",
+        "normalized": "adc         dword ptr [rcx],edi"
+      },
+      "D": {
+        "offset": 99278,
+        "bytes": "79 00",
+        "text": "jns         000000018079C850",
+        "normalized": "jns         self+0x183d0"
+      }
+    },
+    {
+      "index": 19916,
+      "C": {
+        "offset": 99300,
+        "bytes": "B7 13",
+        "text": "mov         bh,13h",
+        "normalized": "mov         bh,13h"
+      },
+      "D": {
+        "offset": 99281,
+        "bytes": "09 79 00",
+        "text": "or          dword ptr [rcx],edi",
+        "normalized": "or          dword ptr [rcx],edi"
+      }
+    },
+    {
+      "index": 19917,
+      "C": {
+        "offset": 99302,
+        "bytes": "79 00",
+        "text": "jns         000000018079C838",
+        "normalized": "jns         self+0x183e8"
+      },
+      "D": {
+        "offset": 99284,
+        "bytes": "D2 0B",
+        "text": "ror         byte ptr [rbx],cl",
+        "normalized": "ror         byte ptr [rbx],cl"
+      }
+    },
+    {
+      "index": 19918,
+      "C": {
+        "offset": 99304,
+        "bytes": "D0 15 79 00 C4 17",
+        "text": "rcl         byte ptr [00000001983DC8B7h],1",
+        "normalized": "rcl         byte ptr [external-addressh],1"
+      },
+      "D": {
+        "offset": 99286,
+        "bytes": "79 00",
+        "text": "jns         000000018079C858",
+        "normalized": "jns         self+0x183d8"
+      }
+    },
+    {
+      "index": 19919,
+      "C": {
+        "offset": 99310,
+        "bytes": "79 00",
+        "text": "jns         000000018079C840",
+        "normalized": "jns         self+0x183f0"
+      },
+      "D": {
+        "offset": 99289,
+        "bytes": "0D 79 00 D2 0F",
+        "text": "or          eax,0FD20079h",
+        "normalized": "or          eax,0FD20079h"
+      }
+    },
+    {
+      "index": 19920,
+      "C": {
+        "offset": 99312,
+        "bytes": "BD 19 79 00 CE",
+        "text": "mov         ebp,0CE007919h",
+        "normalized": "mov         ebp,0CE007919h"
+      },
+      "D": {
+        "offset": 99294,
+        "bytes": "79 00",
+        "text": "jns         000000018079C860",
+        "normalized": "jns         self+0x183e0"
+      }
+    },
+    {
+      "index": 19921,
+      "C": {
+        "offset": 99317,
+        "bytes": "1B 79 00",
+        "text": "sbb         edi,dword ptr [rcx]",
+        "normalized": "sbb         edi,dword ptr [rcx]"
+      },
+      "D": {
+        "offset": 99297,
+        "bytes": "11 79 00",
+        "text": "adc         dword ptr [rcx],edi",
+        "normalized": "adc         dword ptr [rcx],edi"
+      }
+    },
+    {
+      "index": 19922,
+      "C": {
+        "offset": 99320,
+        "bytes": "05 20 79 00 16",
+        "text": "add         eax,16007920h",
+        "normalized": "add         eax,16007920h"
+      },
+      "D": {
+        "offset": 99300,
+        "bytes": "E7 13",
+        "text": "out         13h,eax",
+        "normalized": "out         13h,eax"
+      }
+    },
+    {
+      "index": 19923,
+      "C": {
+        "offset": 99325,
+        "bytes": "22 79 00",
+        "text": "and         bh,byte ptr [rcx]",
+        "normalized": "and         bh,byte ptr [rcx]"
+      },
+      "D": {
+        "offset": 99302,
+        "bytes": "79 00",
+        "text": "jns         000000018079C868",
+        "normalized": "jns         self+0x183e8"
+      }
+    },
+    {
+      "index": 19924,
+      "C": {
+        "offset": 99329,
+        "bytes": "24 79",
+        "text": "and         al,79h",
+        "normalized": "and         al,79h"
+      },
+      "D": {
+        "offset": 99304,
+        "bytes": "00 16",
+        "text": "add         byte ptr [rsi],dl",
+        "normalized": "add         byte ptr [rsi],dl"
+      }
+    },
+    {
+      "index": 19925,
+      "C": {
+        "offset": 99331,
+        "bytes": "00 20",
+        "text": "add         byte ptr [rax],ah",
+        "normalized": "add         byte ptr [rax],ah"
+      },
+      "D": {
+        "offset": 99306,
+        "bytes": "79 00",
+        "text": "jns         000000018079C86C",
+        "normalized": "jns         self+0x183ec"
+      }
+    },
+    {
+      "index": 19926,
+      "C": {
+        "offset": 99333,
+        "bytes": "26 79 00",
+        "text": "jns         000000018079C858",
+        "normalized": "jns         self+0x18408"
+      },
+      "D": {
+        "offset": 99308,
+        "bytes": "F4",
+        "text": "hlt",
+        "normalized": "hlt"
+      }
+    },
+    {
+      "index": 19927,
+      "C": {
+        "offset": 99336,
+        "bytes": "51",
+        "text": "push        rcx",
+        "normalized": "push        rcx"
+      },
+      "D": {
+        "offset": 99310,
+        "bytes": "79 00",
+        "text": "jns         000000018079C870",
+        "normalized": "jns         self+0x183f0"
+      }
+    },
+    {
+      "index": 19928,
+      "C": {
+        "offset": 99337,
+        "bytes": "28 79 00",
+        "text": "sub         byte ptr [rcx],bh",
+        "normalized": "sub         byte ptr [rcx],bh"
+      },
+      "D": {
+        "offset": 99312,
+        "bytes": "ED",
+        "text": "in          eax,dx",
+        "normalized": "in          eax,dx"
+      }
+    },
+    {
+      "index": 19929,
+      "C": {
+        "offset": 99340,
+        "bytes": "F4",
+        "text": "hlt",
+        "normalized": "hlt"
+      },
+      "D": {
+        "offset": 99313,
+        "bytes": "19 79 00",
+        "text": "sbb         dword ptr [rcx],edi",
+        "normalized": "sbb         dword ptr [rcx],edi"
+      }
+    },
+    {
+      "index": 19930,
+      "C": {
+        "offset": 99341,
+        "bytes": "3E 79 00",
+        "text": "ht jns      000000018079C860",
+        "normalized": "ht jns      self+0x18410"
+      },
+      "D": {
+        "offset": 99317,
+        "bytes": "1B 79 00",
+        "text": "sbb         edi,dword ptr [rcx]",
+        "normalized": "sbb         edi,dword ptr [rcx]"
+      }
+    },
+    {
+      "index": 19931,
+      "C": {
+        "offset": 99344,
+        "bytes": "7F 43",
+        "text": "jg          000000018079C8A5",
+        "normalized": "jg          self+0x18455"
+      },
+      "D": {
+        "offset": 99320,
+        "bytes": "35 20 79 00 46",
+        "text": "xor         eax,46007920h",
+        "normalized": "xor         eax,46007920h"
+      }
+    },
+    {
+      "index": 19932,
+      "C": {
+        "offset": 99346,
+        "bytes": "79 00",
+        "text": "jns         000000018079C864",
+        "normalized": "jns         self+0x18414"
+      },
+      "D": {
+        "offset": 99325,
+        "bytes": "22 79 00",
+        "text": "and         bh,byte ptr [rcx]",
+        "normalized": "and         bh,byte ptr [rcx]"
+      }
+    },
+    {
+      "index": 19933,
+      "C": {
+        "offset": 99348,
+        "bytes": "90",
+        "text": "nop",
+        "normalized": "nop"
+      },
+      "D": {
+        "offset": 99328,
+        "bytes": "57",
+        "text": "push        rdi",
+        "normalized": "push        rdi"
+      }
+    },
+    {
+      "index": 19934,
+      "C": {
+        "offset": 99349,
+        "bytes": "45 79 00",
+        "text": "jns         000000018079C868",
+        "normalized": "jns         self+0x18418"
+      },
+      "D": {
+        "offset": 99329,
+        "bytes": "24 79",
+        "text": "and         al,79h",
+        "normalized": "and         al,79h"
+      }
+    },
+    {
+      "index": 19935,
+      "C": {
+        "offset": 99352,
+        "bytes": "E8 47 79 00 F9",
+        "text": "call        00000001797A41B4",
+        "normalized": "call        external-address"
+      },
+      "D": {
+        "offset": 99331,
+        "bytes": "00 50 26",
+        "text": "add         byte ptr [rax+26h],dl",
+        "normalized": "add         byte ptr [rax+26h],dl"
+      }
+    },
+    {
+      "index": 19936,
+      "C": {
+        "offset": 99357,
+        "bytes": "49 79 00",
+        "text": "jns         000000018079C870",
+        "normalized": "jns         self+0x18420"
+      },
+      "D": {
+        "offset": 99334,
+        "bytes": "79 00",
+        "text": "jns         000000018079C888",
+        "normalized": "jns         self+0x18408"
+      }
+    },
+    {
+      "index": 19937,
+      "C": {
+        "offset": 99360,
+        "bytes": "8C 4E 79",
+        "text": "mov         word ptr [rsi+79h],cs",
+        "normalized": "mov         word ptr [rsi+79h],cs"
+      },
+      "D": {
+        "offset": 99336,
+        "bytes": "81 28 79 00 24 3F",
+        "text": "sub         dword ptr [rax],3F240079h",
+        "normalized": "sub         dword ptr [rax],3F240079h"
+      }
+    },
+    {
+      "index": 19938,
+      "C": {
+        "offset": 99363,
+        "bytes": "00 9F 50 79 00 21",
+        "text": "add         byte ptr [rdi+0000000021007950h],bl",
+        "normalized": "add         byte ptr [rdi+external-addressh],bl"
+      },
+      "D": {
+        "offset": 99342,
+        "bytes": "79 00",
+        "text": "jns         000000018079C890",
+        "normalized": "jns         self+0x18410"
+      }
+    },
+    {
+      "index": 19939,
+      "C": {
+        "offset": 99369,
+        "bytes": "55",
+        "text": "push        rbp",
+        "normalized": "push        rbp"
+      },
+      "D": {
+        "offset": 99344,
+        "bytes": "AF",
+        "text": "scas        dword ptr [rdi]",
+        "normalized": "scas        dword ptr [rdi]"
+      }
+    },
+    {
+      "index": 19940,
+      "C": {
+        "offset": 99370,
+        "bytes": "79 00",
+        "text": "jns         000000018079C87C",
+        "normalized": "jns         self+0x1842c"
+      },
+      "D": {
+        "offset": 99345,
+        "bytes": "43 79 00",
+        "text": "jns         000000018079C894",
+        "normalized": "jns         self+0x18414"
+      }
+    },
+    {
+      "index": 19941,
+      "C": {
+        "offset": 99372,
+        "bytes": "92",
+        "text": "xchg        eax,edx",
+        "normalized": "xchg        eax,edx"
+      },
+      "D": {
+        "offset": 99348,
+        "bytes": "C0 45 79 00",
+        "text": "rol         byte ptr [rbp+79h],0",
+        "normalized": "rol         byte ptr [rbp+79h],0"
+      }
+    },
+    {
+      "index": 19942,
+      "C": {
+        "offset": 99373,
+        "bytes": "57",
+        "text": "push        rdi",
+        "normalized": "push        rdi"
+      },
+      "D": {
+        "offset": 99352,
+        "bytes": "18 48 79",
+        "text": "sbb         byte ptr [rax+79h],cl",
+        "normalized": "sbb         byte ptr [rax+79h],cl"
+      }
+    },
+    {
+      "index": 19943,
+      "C": {
+        "offset": 99374,
+        "bytes": "79 00",
+        "text": "jns         000000018079C880",
+        "normalized": "jns         self+0x18430"
+      },
+      "D": {
+        "offset": 99355,
+        "bytes": "00 29",
+        "text": "add         byte ptr [rcx],ch",
+        "normalized": "add         byte ptr [rcx],ch"
+      }
+    },
+    {
+      "index": 19944,
+      "C": {
+        "offset": 99376,
+        "bytes": "03 5A 79",
+        "text": "add         ebx,dword ptr [rdx+79h]",
+        "normalized": "add         ebx,dword ptr [rdx+79h]"
+      },
+      "D": {
+        "offset": 99357,
+        "bytes": "4A 79 00",
+        "text": "jns         000000018079C8A0",
+        "normalized": "jns         self+0x18420"
+      }
+    },
+    {
+      "index": 19945,
+      "C": {
+        "offset": 99379,
+        "bytes": "00 74 5C 79",
+        "text": "add         byte ptr [rsp+rbx*2+79h],dh",
+        "normalized": "add         byte ptr [rsp+rbx*2+79h],dh"
+      },
+      "D": {
+        "offset": 99360,
+        "bytes": "BC 4E 79 00 CF",
+        "text": "mov         esp,0CF00794Eh",
+        "normalized": "mov         esp,0CF00794Eh"
+      }
+    },
+    {
+      "index": 19946,
+      "C": {
+        "offset": 99383,
+        "bytes": "00 E5",
+        "text": "add         ch,ah",
+        "normalized": "add         ch,ah"
+      },
+      "D": {
+        "offset": 99365,
+        "bytes": "50",
+        "text": "push        rax",
+        "normalized": "push        rax"
+      }
+    },
+    {
+      "index": 19947,
+      "C": {
+        "offset": 99385,
+        "bytes": "5E",
+        "text": "pop         rsi",
+        "normalized": "pop         rsi"
+      },
+      "D": {
+        "offset": 99366,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8A8",
+        "normalized": "jns         self+0x18428"
+      }
+    },
+    {
+      "index": 19948,
+      "C": {
+        "offset": 99386,
+        "bytes": "79 00",
+        "text": "jns         000000018079C88C",
+        "normalized": "jns         self+0x1843c"
+      },
+      "D": {
+        "offset": 99368,
+        "bytes": "51",
+        "text": "push        rcx",
+        "normalized": "push        rcx"
+      }
+    },
+    {
+      "index": 19949,
+      "C": {
+        "offset": 99388,
+        "bytes": "56",
+        "text": "push        rsi",
+        "normalized": "push        rsi"
+      },
+      "D": {
+        "offset": 99369,
+        "bytes": "55",
+        "text": "push        rbp",
+        "normalized": "push        rbp"
+      }
+    },
+    {
+      "index": 19950,
+      "C": {
+        "offset": 99390,
+        "bytes": "79 00",
+        "text": "jns         000000018079C890",
+        "normalized": "jns         self+0x18440"
+      },
+      "D": {
+        "offset": 99370,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8AC",
+        "normalized": "jns         self+0x1842c"
+      }
+    },
+    {
+      "index": 19951,
+      "C": {
+        "offset": 99393,
+        "bytes": "63 79 00",
+        "text": "movsxd      edi,dword ptr [rcx]",
+        "normalized": "movsxd      edi,dword ptr [rcx]"
+      },
+      "D": {
+        "offset": 99372,
+        "bytes": "C2 57 79",
+        "text": "ret         7957h",
+        "normalized": "ret         7957h"
+      }
+    },
+    {
+      "index": 19952,
+      "C": {
+        "offset": 99397,
+        "bytes": "66 79 00",
+        "text": "jns         000000000000C898",
+        "normalized": "jns         external-address"
+      },
+      "D": {
+        "offset": 99375,
+        "bytes": "00 33",
+        "text": "add         byte ptr [rbx],dh",
+        "normalized": "add         byte ptr [rbx],dh"
+      }
+    },
+    {
+      "index": 19953,
+      "C": {
+        "offset": 99400,
+        "bytes": "3E 68 79 00 AF 6A",
+        "text": "push        6AAF0079h",
+        "normalized": "push        6AAF0079h"
+      },
+      "D": {
+        "offset": 99377,
+        "bytes": "5A",
+        "text": "pop         rdx",
+        "normalized": "pop         rdx"
+      }
+    },
+    {
+      "index": 19954,
+      "C": {
+        "offset": 99406,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8A0",
+        "normalized": "jns         self+0x18450"
+      },
+      "D": {
+        "offset": 99378,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8B4",
+        "normalized": "jns         self+0x18434"
+      }
+    },
+    {
+      "index": 19955,
+      "C": {
+        "offset": 99408,
+        "bytes": "20 6D 79",
+        "text": "and         byte ptr [rbp+79h],ch",
+        "normalized": "and         byte ptr [rbp+79h],ch"
+      },
+      "D": {
+        "offset": 99380,
+        "bytes": "A4",
+        "text": "movs        byte ptr [rdi],byte ptr [rsi]",
+        "normalized": "movs        byte ptr [rdi],byte ptr [rsi]"
+      }
+    },
+    {
+      "index": 19956,
+      "C": {
+        "offset": 99411,
+        "bytes": "00 91 6F 79 00 8A",
+        "text": "add         byte ptr [rcx+FFFFFFFF8A00796Fh],dl",
+        "normalized": "add         byte ptr [rcx+external-addressh],dl"
+      },
+      "D": {
+        "offset": 99381,
+        "bytes": "5C",
+        "text": "pop         rsp",
+        "normalized": "pop         rsp"
+      }
+    },
+    {
+      "index": 19957,
+      "C": {
+        "offset": 99417,
+        "bytes": "71 79",
+        "text": "jno         000000018079C924",
+        "normalized": "jno         self+0x184d4"
+      },
+      "D": {
+        "offset": 99382,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8B8",
+        "normalized": "jns         self+0x18438"
+      }
+    },
+    {
+      "index": 19958,
+      "C": {
+        "offset": 99419,
+        "bytes": "00 83 73 79 00 9C",
+        "text": "add         byte ptr [rbx+FFFFFFFF9C007973h],al",
+        "normalized": "add         byte ptr [rbx+external-addressh],al"
+      },
+      "D": {
+        "offset": 99384,
+        "bytes": "15 5F 79 00 86",
+        "text": "adc         eax,8600795Fh",
+        "normalized": "adc         eax,8600795Fh"
+      }
+    },
+    {
+      "index": 19959,
+      "C": {
+        "offset": 99425,
+        "bytes": "75 79",
+        "text": "jne         000000018079C92C",
+        "normalized": "jne         self+0x184dc"
+      },
+      "D": {
+        "offset": 99390,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8C0",
+        "normalized": "jns         self+0x18440"
+      }
+    },
+    {
+      "index": 19960,
+      "C": {
+        "offset": 99427,
+        "bytes": "00 B8 77 79 00 0C",
+        "text": "add         byte ptr [rax+000000000C007977h],bh",
+        "normalized": "add         byte ptr [rax+external-addressh],bh"
+      },
+      "D": {
+        "offset": 99392,
+        "bytes": "F7 63 79",
+        "text": "mul         eax,dword ptr [rbx+79h]",
+        "normalized": "mul         eax,dword ptr [rbx+79h]"
+      }
+    },
+    {
+      "index": 19961,
+      "C": {
+        "offset": 99433,
+        "bytes": "7C 79",
+        "text": "jl          000000018079C934",
+        "normalized": "jl          self+0x184e4"
+      },
+      "D": {
+        "offset": 99395,
+        "bytes": "00 75 66",
+        "text": "add         byte ptr [rbp+66h],dh",
+        "normalized": "add         byte ptr [rbp+66h],dh"
+      }
+    },
+    {
+      "index": 19962,
+      "C": {
+        "offset": 99435,
+        "bytes": "00 06",
+        "text": "add         byte ptr [rsi],al",
+        "normalized": "add         byte ptr [rsi],al"
+      },
+      "D": {
+        "offset": 99398,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8C8",
+        "normalized": "jns         self+0x18448"
+      }
+    },
+    {
+      "index": 19963,
+      "C": {
+        "offset": 99437,
+        "bytes": "83 79 00 91",
+        "text": "cmp         dword ptr [rcx],0FFFFFF91h",
+        "normalized": "cmp         dword ptr [rcx],0FFFFFF91h"
+      },
+      "D": {
+        "offset": 99400,
+        "bytes": "6E",
+        "text": "outs        dx,byte ptr [rsi]",
+        "normalized": "outs        dx,byte ptr [rsi]"
+      }
+    },
+    {
+      "index": 19964,
+      "C": {
+        "offset": 99441,
+        "bytes": "85 79 00",
+        "text": "test        dword ptr [rcx],edi",
+        "normalized": "test        dword ptr [rcx],edi"
+      },
+      "D": {
+        "offset": 99401,
+        "bytes": "68 79 00 DF 6A",
+        "text": "push        6ADF0079h",
+        "normalized": "push        6ADF0079h"
+      }
+    },
+    {
+      "index": 19965,
+      "C": {
+        "offset": 99444,
+        "bytes": "F0 89 79 00",
+        "text": "lock mov    dword ptr [rcx],edi",
+        "normalized": "lock mov    dword ptr [rcx],edi"
+      },
+      "D": {
+        "offset": 99406,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8D0",
+        "normalized": "jns         self+0x18450"
+      }
+    },
+    {
+      "index": 19966,
+      "C": {
+        "offset": 99449,
+        "bytes": "8C 79 00",
+        "text": "mov         word ptr [rcx],st(-1)",
+        "normalized": "mov         word ptr [rcx],st(-1)"
+      },
+      "D": {
+        "offset": 99408,
+        "bytes": "50",
+        "text": "push        rax",
+        "normalized": "push        rax"
+      }
+    },
+    {
+      "index": 19967,
+      "C": {
+        "offset": 99452,
+        "bytes": "D2 8E 79 00 49 91",
+        "text": "ror         byte ptr [rsi+FFFFFFFF91490079h],cl",
+        "normalized": "ror         byte ptr [rsi+external-addressh],cl"
+      },
+      "D": {
+        "offset": 99409,
+        "bytes": "6D",
+        "text": "ins         dword ptr [rdi],dx",
+        "normalized": "ins         dword ptr [rdi],dx"
+      }
+    },
+    {
+      "index": 19968,
+      "C": {
+        "offset": 99458,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8D4",
+        "normalized": "jns         self+0x18484"
+      },
+      "D": {
+        "offset": 99410,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8D4",
+        "normalized": "jns         self+0x18454"
+      }
+    },
+    {
+      "index": 19969,
+      "C": {
+        "offset": 99460,
+        "bytes": "81 9A 79 00 38 9F",
+        "text": "sbb         dword ptr [rdx+FFFFFFFF9F380079h],9F4D0079h",
+        "normalized": "sbb         dword ptr [rdx+external-addressh],9F4D0079h"
+      },
+      "D": {
+        "offset": 99412,
+        "bytes": "C1 6F 79 00",
+        "text": "shr         dword ptr [rdi+79h],0",
+        "normalized": "shr         dword ptr [rdi+79h],0"
+      }
+    },
+    {
+      "index": 19970,
+      "C": {
+        "offset": 99470,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8E0",
+        "normalized": "jns         self+0x18490"
+      },
+      "D": {
+        "offset": 99416,
+        "bytes": "BA 71 79 00 B3",
+        "text": "mov         edx,0B3007971h",
+        "normalized": "mov         edx,0B3007971h"
+      }
+    },
+    {
+      "index": 19971,
+      "C": {
+        "offset": 99473,
+        "bytes": "9F",
+        "text": "lahf",
+        "normalized": "lahf"
+      },
+      "D": {
+        "offset": 99421,
+        "bytes": "73 79",
+        "text": "jae         000000018079C958",
+        "normalized": "jae         self+0x184d8"
+      }
+    },
+    {
+      "index": 19972,
+      "C": {
+        "offset": 99474,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8E4",
+        "normalized": "jns         self+0x18494"
+      },
+      "D": {
+        "offset": 99423,
+        "bytes": "00 CC",
+        "text": "add         ah,cl",
+        "normalized": "add         ah,cl"
+      }
+    },
+    {
+      "index": 19973,
+      "C": {
+        "offset": 99476,
+        "bytes": "53",
+        "text": "push        rbx",
+        "normalized": "push        rbx"
+      },
+      "D": {
+        "offset": 99425,
+        "bytes": "75 79",
+        "text": "jne         000000018079C95C",
+        "normalized": "jne         self+0x184dc"
+      }
+    },
+    {
+      "index": 19974,
+      "C": {
+        "offset": 99477,
+        "bytes": "A1 79 00 80 A3 79",
+        "text": "mov         eax,dword ptr [A5930079A3800079h]",
+        "normalized": "mov         eax,dword ptr [external-addressh]"
+      },
+      "D": {
+        "offset": 99427,
+        "bytes": "00 E8",
+        "text": "add         al,ch",
+        "normalized": "add         al,ch"
+      }
+    },
+    {
+      "index": 19975,
+      "C": {
+        "offset": 99486,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8F0",
+        "normalized": "jns         self+0x184a0"
+      },
+      "D": {
+        "offset": 99429,
+        "bytes": "77 79",
+        "text": "ja          000000018079C960",
+        "normalized": "ja          self+0x184e0"
+      }
+    },
+    {
+      "index": 19976,
+      "C": {
+        "offset": 99488,
+        "bytes": "B1 A7",
+        "text": "mov         cl,0A7h",
+        "normalized": "mov         cl,0A7h"
+      },
+      "D": {
+        "offset": 99431,
+        "bytes": "00 3C 7C",
+        "text": "add         byte ptr [rsp+rdi*2],bh",
+        "normalized": "add         byte ptr [rsp+rdi*2],bh"
+      }
+    },
+    {
+      "index": 19977,
+      "C": {
+        "offset": 99490,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8F4",
+        "normalized": "jns         self+0x184a4"
+      },
+      "D": {
+        "offset": 99434,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8EC",
+        "normalized": "jns         self+0x1846c"
+      }
+    },
+    {
+      "index": 19978,
+      "C": {
+        "offset": 99492,
+        "bytes": "EB A7",
+        "text": "jmp         000000018079C89D",
+        "normalized": "jmp         self+0x1844d"
+      },
+      "D": {
+        "offset": 99436,
+        "bytes": "36 83 79 00 C1",
+        "text": "cmp         dword ptr ss:[rcx],0FFFFFFC1h",
+        "normalized": "cmp         dword ptr ss:[rcx],0FFFFFFC1h"
+      }
+    },
+    {
+      "index": 19979,
+      "C": {
+        "offset": 99494,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8F8",
+        "normalized": "jns         self+0x184a8"
+      },
+      "D": {
+        "offset": 99441,
+        "bytes": "85 79 00",
+        "text": "test        dword ptr [rcx],edi",
+        "normalized": "test        dword ptr [rcx],edi"
+      }
+    },
+    {
+      "index": 19980,
+      "C": {
+        "offset": 99496,
+        "bytes": "13 A8 79 00 46 A8",
+        "text": "adc         ebp,dword ptr [rax+FFFFFFFFA8460079h]",
+        "normalized": "adc         ebp,dword ptr [rax+external-addressh]"
+      },
+      "D": {
+        "offset": 99444,
+        "bytes": "20 8A 79 00 91 8C",
+        "text": "and         byte ptr [rdx+FFFFFFFF8C910079h],cl",
+        "normalized": "and         byte ptr [rdx+external-addressh],cl"
+      }
+    },
+    {
+      "index": 19981,
+      "C": {
+        "offset": 99502,
+        "bytes": "79 00",
+        "text": "jns         000000018079C900",
+        "normalized": "jns         self+0x184b0"
+      },
+      "D": {
+        "offset": 99450,
+        "bytes": "79 00",
+        "text": "jns         000000018079C8FC",
+        "normalized": "jns         self+0x1847c"
+      }
+    },
+    {
+      "index": 19982,
+      "C": {
+        "offset": 99504,
+        "bytes": "DF F5",
+        "text": "fcomip      st,st(5)",
+        "normalized": "fcomip      st,st(5)"
+      },
+      "D": {
+        "offset": 99452,
+        "bytes": "02 8F 79 00 79 91",
+        "text": "add         cl,byte ptr [rdi+FFFFFFFF91790079h]",
+        "normalized": "add         cl,byte ptr [rdi+external-addressh]"
+      }
+    },
+    {
+      "index": 19983,
+      "C": {
+        "offset": 99506,
+        "bytes": "78 00",
+        "text": "js          000000018079C904",
+        "normalized": "js          self+0x184b4"
+      },
+      "D": {
+        "offset": 99458,
+        "bytes": "79 00",
+        "text": "jns         000000018079C904",
+        "normalized": "jns         self+0x18484"
+      }
+    },
+    {
+      "index": 19984,
+      "C": {
+        "offset": 99508,
+        "bytes": "C8 EC 78 00",
+        "text": "enter       78ECh,0",
+        "normalized": "enter       78ECh,0"
+      },
+      "D": {
+        "offset": 99460,
+        "bytes": "B1 9A",
+        "text": "mov         cl,9Ah",
+        "normalized": "mov         cl,9Ah"
+      }
+    },
+    {
+      "index": 19985,
+      "C": {
+        "offset": 99512,
+        "bytes": "ED",
+        "text": "in          eax,dx",
+        "normalized": "in          eax,dx"
+      },
+      "D": {
+        "offset": 99462,
+        "bytes": "79 00",
+        "text": "jns         000000018079C908",
+        "normalized": "jns         self+0x18488"
+      }
+    },
+    {
+      "index": 19986,
+      "C": {
+        "offset": 99513,
+        "bytes": "EF",
+        "text": "out         dx,eax",
+        "normalized": "out         dx,eax"
+      },
+      "D": {
+        "offset": 99464,
+        "bytes": "68 9F 79 00 7D",
+        "text": "push        7D00799Fh",
+        "normalized": "push        7D00799Fh"
+      }
+    },
+    {
+      "index": 19987,
+      "C": {
+        "offset": 99514,
+        "bytes": "78 00",
+        "text": "js          000000018079C90C",
+        "normalized": "js          self+0x184bc"
+      },
+      "D": {
+        "offset": 99469,
+        "bytes": "9F",
+        "text": "lahf",
+        "normalized": "lahf"
+      }
+    },
+    {
+      "index": 19988,
+      "C": {
+        "offset": 99516,
+        "bytes": "EC",
+        "text": "in          al,dx",
+        "normalized": "in          al,dx"
+      },
+      "D": {
+        "offset": 99470,
+        "bytes": "79 00",
+        "text": "jns         000000018079C910",
+        "normalized": "jns         self+0x18490"
+      }
+    },
+    {
+      "index": 19989,
+      "C": {
+        "offset": 99517,
+        "bytes": "E9 78 00 AC E0",
+        "text": "jmp         000000016125C98A",
+        "normalized": "jmp         external-address"
+      },
+      "D": {
+        "offset": 99472,
+        "bytes": "92",
+        "text": "xchg        eax,edx",
+        "normalized": "xchg        eax,edx"
+      }
+    },
+    {
+      "index": 19990,
+      "C": {
+        "offset": 99522,
+        "bytes": "78 00",
+        "text": "js          000000018079C914",
+        "normalized": "js          self+0x184c4"
+      },
+      "D": {
+        "offset": 99473,
+        "bytes": "9F",
+        "text": "lahf",
+        "normalized": "lahf"
+      }
+    },
+    {
+      "index": 19991,
+      "C": {
+        "offset": 99524,
+        "bytes": "31 B1 79 00 96 A8",
+        "text": "xor         dword ptr [rcx+FFFFFFFFA8960079h],esi",
+        "normalized": "xor         dword ptr [rcx+external-addressh],esi"
+      },
+      "D": {
+        "offset": 99474,
+        "bytes": "79 00",
+        "text": "jns         000000018079C914",
+        "normalized": "jns         self+0x18494"
+      }
+    },
+    {
+      "index": 19992,
+      "C": {
+        "offset": 99530,
+        "bytes": "79 00",
+        "text": "jns         000000018079C91C",
+        "normalized": "jns         self+0x184cc"
+      },
+      "D": {
+        "offset": 99476,
+        "bytes": "83 A1 79 00 B0 A3",
+        "text": "and         dword ptr [rcx+FFFFFFFFA3B00079h],79h",
+        "normalized": "and         dword ptr [rcx+external-addressh],79h"
+      }
+    },
+    {
+      "index": 19993,
+      "C": {
+        "offset": 99532,
+        "bytes": "B4 B3",
+        "text": "mov         ah,0B3h",
+        "normalized": "mov         ah,0B3h"
+      },
+      "D": {
+        "offset": 99483,
+        "bytes": "00 C3",
+        "text": "add         bl,al",
+        "normalized": "add         bl,al"
+      }
+    },
+    {
+      "index": 19994,
+      "C": {
+        "offset": 99534,
+        "bytes": "79 00",
+        "text": "jns         000000018079C920",
+        "normalized": "jns         self+0x184d0"
+      },
+      "D": {
+        "offset": 99485,
+        "bytes": "A5",
+        "text": "movs        dword ptr [rdi],dword ptr [rsi]",
+        "normalized": "movs        dword ptr [rdi],dword ptr [rsi]"
+      }
+    },
+    {
+      "index": 19995,
+      "C": {
+        "offset": 99536,
+        "bytes": "15 C5 79 00 FF",
+        "text": "adc         eax,0FF0079C5h",
+        "normalized": "adc         eax,0FF0079C5h"
+      },
+      "D": {
+        "offset": 99486,
+        "bytes": "79 00",
+        "text": "jns         000000018079C920",
+        "normalized": "jns         self+0x184a0"
+      }
+    },
+    {
+      "index": 19996,
+      "C": {
+        "offset": 99541,
+        "bytes": "AA",
+        "text": "stos        byte ptr [rdi]",
+        "normalized": "stos        byte ptr [rdi]"
+      },
+      "D": {
+        "offset": 99488,
+        "bytes": "E1 A7",
+        "text": "loope       000000018079C8C9",
+        "normalized": "loope       self+0x18449"
+      }
+    },
+    {
+      "index": 19997,
+      "C": {
+        "offset": 99542,
+        "bytes": "79 00",
+        "text": "jns         000000018079C928",
+        "normalized": "jns         self+0x184d8"
+      },
+      "D": {
+        "offset": 99490,
+        "bytes": "79 00",
+        "text": "jns         000000018079C924",
+        "normalized": "jns         self+0x184a4"
+      }
+    },
+    {
+      "index": 19998,
+      "C": {
+        "offset": 99544,
+        "bytes": "7E 96",
+        "text": "jle         000000018079C8C0",
+        "normalized": "jle         self+0x18470"
+      },
+      "D": {
+        "offset": 99492,
+        "bytes": "1B A8 79 00 43 A8",
+        "text": "sbb         ebp,dword ptr [rax+FFFFFFFFA8430079h]",
+        "normalized": "sbb         ebp,dword ptr [rax+external-addressh]"
+      }
+    },
+    {
+      "index": 19999,
+      "C": {
+        "offset": 99546,
+        "bytes": "78 00",
+        "text": "js          000000018079C92C",
+        "normalized": "js          self+0x184dc"
+      },
+      "D": {
+        "offset": 99498,
+        "bytes": "79 00",
+        "text": "jns         000000018079C92C",
+        "normalized": "jns         self+0x184ac"
+      }
+    },
+    {
+      "index": 20000,
+      "C": {
+        "offset": 99548,
+        "bytes": "6E",
+        "text": "outs        dx,byte ptr [rsi]",
+        "normalized": "outs        dx,byte ptr [rsi]"
+      },
+      "D": {
+        "offset": 99500,
+        "bytes": "76 A8",
+        "text": "jbe         000000018079C8D6",
+        "normalized": "jbe         self+0x18456"
+      }
+    },
+    {
+      "index": 20001,
+      "C": {
+        "offset": 99549,
+        "bytes": "A8 79",
+        "text": "test        al,79h",
+        "normalized": "test        al,79h"
+      },
+      "D": {
+        "offset": 99502,
+        "bytes": "79 00",
+        "text": "jns         000000018079C930",
+        "normalized": "jns         self+0x184b0"
+      }
+    },
+    {
+      "index": 20002,
+      "C": {
+        "offset": 99551,
+        "bytes": "00 10",
+        "text": "add         byte ptr [rax],dl",
+        "normalized": "add         byte ptr [rax],dl"
+      },
+      "D": {
+        "offset": 99504,
+        "bytes": "0F F6 78 00",
+        "text": "psadbw      mm7,mmword ptr [rax]",
+        "normalized": "psadbw      mm7,mmword ptr [rax]"
+      }
+    },
+    {
+      "index": 20003,
+      "C": {
+        "offset": 99553,
+        "bytes": "53",
+        "text": "push        rbx",
+        "normalized": "push        rbx"
+      },
+      "D": {
+        "offset": 99508,
+        "bytes": "F8",
+        "text": "clc",
+        "normalized": "clc"
+      }
+    },
+    {
+      "index": 20004,
+      "C": {
+        "offset": 99554,
+        "bytes": "79 00",
+        "text": "jns         000000018079C934",
+        "normalized": "jns         self+0x184e4"
+      },
+      "D": {
+        "offset": 99509,
+        "bytes": "EC",
+        "text": "in          al,dx",
+        "normalized": "in          al,dx"
+      }
+    },
+    {
+      "index": 20005,
+      "C": {
+        "offset": 99556,
+        "bytes": "94",
+        "text": "xchg        eax,esp",
+        "normalized": "xchg        eax,esp"
+      },
+      "D": {
+        "offset": 99510,
+        "bytes": "78 00",
+        "text": "js          000000018079C938",
+        "normalized": "js          self+0x184b8"
+      }
+    },
+    {
+      "index": 20006,
+      "C": {
+        "offset": 99557,
+        "bytes": "AA",
+        "text": "stos        byte ptr [rdi]",
+        "normalized": "stos        byte ptr [rdi]"
+      },
+      "D": {
+        "offset": 99512,
+        "bytes": "1D F0 78 00 1C",
+        "text": "sbb         eax,1C0078F0h",
+        "normalized": "sbb         eax,1C0078F0h"
+      }
+    },
+    {
+      "index": 20007,
+      "C": {
+        "offset": 99558,
+        "bytes": "78 00",
+        "text": "js          000000018079C938",
+        "normalized": "js          self+0x184e8"
+      },
+      "D": {
+        "offset": 99518,
+        "bytes": "78 00",
+        "text": "js          000000018079C940",
+        "normalized": "js          self+0x184c0"
+      }
+    },
+    {
+      "index": 20008,
+      "C": {
+        "offset": 99560,
+        "bytes": "21 DA",
+        "text": "and         edx,ebx",
+        "normalized": "and         edx,ebx"
+      },
+      "D": {
+        "offset": 99520,
+        "bytes": "DC E0",
+        "text": "fsubr       st(0),st",
+        "normalized": "fsubr       st(0),st"
+      }
+    },
+    {
+      "index": 20009,
+      "C": {
+        "offset": 99562,
+        "bytes": "78 00",
+        "text": "js          000000018079C93C",
+        "normalized": "js          self+0x184ec"
+      },
+      "D": {
+        "offset": 99522,
+        "bytes": "78 00",
+        "text": "js          000000018079C944",
+        "normalized": "js          self+0x184c4"
+      }
+    },
+    {
+      "index": 20010,
+      "C": {
+        "offset": 99564,
+        "bytes": "91",
+        "text": "xchg        eax,ecx",
+        "normalized": "xchg        eax,ecx"
+      },
+      "D": {
+        "offset": 99525,
+        "bytes": "B1 79",
+        "text": "mov         cl,79h",
+        "normalized": "mov         cl,79h"
+      }
+    },
+    {
+      "index": 20011,
+      "C": {
+        "offset": 99565,
+        "bytes": "DE 78 00",
+        "text": "fidivr      word ptr [rax]",
+        "normalized": "fidivr      word ptr [rax]"
+      },
+      "D": {
+        "offset": 99527,
+        "bytes": "00 C6",
+        "text": "add         dh,al",
+        "normalized": "add         dh,al"
+      }
+    },
+    {
+      "index": 20012,
+      "C": {
+        "offset": 99568,
+        "bytes": "DC 98 78 00 25 9B",
+        "text": "fcomp       qword ptr [rax+FFFFFFFF9B250078h]",
+        "normalized": "fcomp       qword ptr [rax+external-addressh]"
+      },
+      "D": {
+        "offset": 99529,
+        "bytes": "A8 79",
+        "text": "test        al,79h",
+        "normalized": "test        al,79h"
+      }
+    },
+    {
+      "index": 20013,
+      "C": {
+        "offset": 99574,
+        "bytes": "78 00",
+        "text": "js          000000018079C948",
+        "normalized": "js          self+0x184f8"
+      },
+      "D": {
+        "offset": 99531,
+        "bytes": "00 E4",
+        "text": "add         ah,ah",
+        "normalized": "add         ah,ah"
+      }
+    },
+    {
+      "index": 20014,
+      "C": {
+        "offset": 99576,
+        "bytes": "34 9D",
+        "text": "xor         al,9Dh",
+        "normalized": "xor         al,9Dh"
+      },
+      "D": {
+        "offset": 99533,
+        "bytes": "B3 79",
+        "text": "mov         bl,79h",
+        "normalized": "mov         bl,79h"
+      }
+    },
+    {
+      "index": 20015,
+      "C": {
+        "offset": 99578,
+        "bytes": "78 00",
+        "text": "js          000000018079C94C",
+        "normalized": "js          self+0x184fc"
+      },
+      "D": {
+        "offset": 99535,
+        "bytes": "00 45 C5",
+        "text": "add         byte ptr [rbp-3Bh],al",
+        "normalized": "add         byte ptr [rbp-3Bh],al"
+      }
+    },
+    {
+      "index": 20016,
+      "C": {
+        "offset": 99580,
+        "bytes": "AF",
+        "text": "scas        dword ptr [rdi]",
+        "normalized": "scas        dword ptr [rdi]"
+      },
+      "D": {
+        "offset": 99538,
+        "bytes": "79 00",
+        "text": "jns         000000018079C954",
+        "normalized": "jns         self+0x184d4"
+      }
+    },
+    {
+      "index": 20017,
+      "C": {
+        "offset": 99581,
+        "bytes": "9F",
+        "text": "lahf",
+        "normalized": "lahf"
+      },
+      "D": {
+        "offset": 99541,
+        "bytes": "AB",
+        "text": "stos        dword ptr [rdi]",
+        "normalized": "stos        dword ptr [rdi]"
+      }
+    },
+    {
+      "index": 20018,
+      "C": {
+        "offset": 99582,
+        "bytes": "78 00",
+        "text": "js          000000018079C950",
+        "normalized": "js          self+0x18500"
+      },
+      "D": {
+        "offset": 99542,
+        "bytes": "79 00",
+        "text": "jns         000000018079C958",
+        "normalized": "jns         self+0x184d8"
+      }
+    },
+    {
+      "index": 20019,
+      "C": {
+        "offset": 99584,
+        "bytes": "12 98 79 00 A5 CB",
+        "text": "adc         bl,byte ptr [rax+FFFFFFFFCBA50079h]",
+        "normalized": "adc         bl,byte ptr [rax+external-addressh]"
+      },
+      "D": {
+        "offset": 99544,
+        "bytes": "AE",
+        "text": "scas        byte ptr [rdi]",
+        "normalized": "scas        byte ptr [rdi]"
+      }
+    },
+    {
+      "index": 20020,
+      "C": {
+        "offset": 99590,
+        "bytes": "78 00",
+        "text": "js          000000018079C958",
+        "normalized": "js          self+0x18508"
+      },
+      "D": {
+        "offset": 99545,
+        "bytes": "96",
+        "text": "xchg        eax,esi",
+        "normalized": "xchg        eax,esi"
+      }
+    },
+    {
+      "index": 20021,
+      "C": {
+        "offset": 99593,
+        "bytes": "E3 78",
+        "text": "jrcxz       000000018079C9D3",
+        "normalized": "jrcxz       self+0x18583"
+      },
+      "D": {
+        "offset": 99546,
+        "bytes": "78 00",
+        "text": "js          000000018079C95C",
+        "normalized": "js          self+0x184dc"
+      }
+    },
+    {
+      "index": 20022,
+      "C": {
+        "offset": 99595,
+        "bytes": "00 9A F2 78 00 C9",
+        "text": "add         byte ptr [rdx+FFFFFFFFC90078F2h],bl",
+        "normalized": "add         byte ptr [rdx+external-addressh],bl"
+      },
+      "D": {
+        "offset": 99548,
+        "bytes": "9E",
+        "text": "sahf",
+        "normalized": "sahf"
+      }
+    },
+    {
+      "index": 20023,
+      "C": {
+        "offset": 99601,
+        "bytes": "79 79",
+        "text": "jns         000000018079C9DC",
+        "normalized": "jns         self+0x1858c"
+      },
+      "D": {
+        "offset": 99549,
+        "bytes": "A8 79",
+        "text": "test        al,79h",
+        "normalized": "test        al,79h"
+      }
+    },
+    {
+      "index": 20024,
+      "C": {
+        "offset": 99603,
+        "bytes": "00 52 7C",
+        "text": "add         byte ptr [rdx+7Ch],dl",
+        "normalized": "add         byte ptr [rdx+7Ch],dl"
+      },
+      "D": {
+        "offset": 99551,
+        "bytes": "00 40 53",
+        "text": "add         byte ptr [rax+53h],al",
+        "normalized": "add         byte ptr [rax+53h],al"
+      }
+    },
+    {
+      "index": 20025,
+      "C": {
+        "offset": 99606,
+        "bytes": "79 00",
+        "text": "jns         000000018079C968",
+        "normalized": "jns         self+0x18518"
+      },
+      "D": {
+        "offset": 99554,
+        "bytes": "79 00",
+        "text": "jns         000000018079C964",
+        "normalized": "jns         self+0x184e4"
+      }
+    },
+    {
+      "index": 20026,
+      "C": {
+        "offset": 99608,
+        "bytes": "8C 93 79 00 76 9F",
+        "text": "mov         word ptr [rbx+FFFFFFFF9F760079h],ss",
+        "normalized": "mov         word ptr [rbx+external-addressh],ss"
+      },
+      "D": {
+        "offset": 99557,
+        "bytes": "AA",
+        "text": "stos        byte ptr [rdi]",
+        "normalized": "stos        byte ptr [rdi]"
+      }
+    },
+    {
+      "index": 20027,
+      "C": {
+        "offset": 99614,
+        "bytes": "78 00",
+        "text": "js          000000018079C970",
+        "normalized": "js          self+0x18520"
+      },
+      "D": {
+        "offset": 99558,
+        "bytes": "78 00",
+        "text": "js          000000018079C968",
+        "normalized": "js          self+0x184e8"
+      }
+    },
+    {
+      "index": 20028,
+      "C": {
+        "offset": 99616,
+        "bytes": "CF",
+        "text": "iretd",
+        "normalized": "iretd"
+      },
+      "D": {
+        "offset": 99560,
+        "bytes": "51",
+        "text": "push        rcx",
+        "normalized": "push        rcx"
+      }
+    },
+    {
+      "index": 20029,
+      "C": {
+        "offset": 99617,
+        "bytes": "95",
+        "text": "xchg        eax,ebp",
+        "normalized": "xchg        eax,ebp"
+      },
+      "D": {
+        "offset": 99561,
+        "bytes": "DA 78 00",
+        "text": "fidivr      dword ptr [rax]",
+        "normalized": "fidivr      dword ptr [rax]"
+      }
+    },
+    {
+      "index": 20030,
+      "C": {
+        "offset": 99618,
+        "bytes": "79 00",
+        "text": "jns         000000018079C974",
+        "normalized": "jns         self+0x18524"
+      },
+      "D": {
+        "offset": 99564,
+        "bytes": "C1 DE 78",
+        "text": "rcr         esi,78h",
+        "normalized": "rcr         esi,78h"
+      }
+    },
+    {
+      "index": 20031,
+      "C": {
+        "offset": 99620,
+        "bytes": "08 AD 79 00 11 AF",
+        "text": "or          byte ptr [rbp+FFFFFFFFAF110079h],ch",
+        "normalized": "or          byte ptr [rbp+external-addressh],ch"
+      },
+      "D": {
+        "offset": 99567,
+        "bytes": "00 0C 99",
+        "text": "add         byte ptr [rcx+rbx*4],cl",
+        "normalized": "add         byte ptr [rcx+rbx*4],cl"
+      }
+    },
+    {
+      "index": 20032,
+      "C": {
+        "offset": 99626,
+        "bytes": "79 00",
+        "text": "jns         000000018079C97C",
+        "normalized": "jns         self+0x1852c"
+      },
+      "D": {
+        "offset": 99570,
+        "bytes": "78 00",
+        "text": "js          000000018079C974",
+        "normalized": "js          self+0x184f4"
+      }
+    },
+    {
+      "index": 20033,
+      "C": {
+        "offset": 99628,
+        "bytes": "AF",
+        "text": "scas        dword ptr [rdi]",
+        "normalized": "scas        dword ptr [rdi]"
+      },
+      "D": {
+        "offset": 99572,
+        "bytes": "55",
+        "text": "push        rbp",
+        "normalized": "push        rbp"
+      }
+    },
+    {
+      "index": 20034,
+      "C": {
+        "offset": 99629,
+        "bytes": "BE 78 00 28 C1",
+        "text": "mov         esi,0C1280078h",
+        "normalized": "mov         esi,0C1280078h"
+      },
+      "D": {
+        "offset": 99573,
+        "bytes": "9B",
+        "text": "wait",
+        "normalized": "wait"
+      }
+    },
+    {
+      "index": 20035,
+      "C": {
+        "offset": 99634,
+        "bytes": "78 00",
+        "text": "js          000000018079C984",
+        "normalized": "js          self+0x18534"
+      },
+      "D": {
+        "offset": 99574,
+        "bytes": "78 00",
+        "text": "js          000000018079C978",
+        "normalized": "js          self+0x184f8"
+      }
+    },
+    {
+      "index": 20036,
+      "C": {
+        "offset": 99636,
+        "bytes": "CC",
+        "text": "int         3",
+        "normalized": "int         3"
+      },
+      "D": {
+        "offset": 99576,
+        "bytes": "64 9D",
+        "text": "popfq",
+        "normalized": "popfq"
+      }
+    },
+    {
+      "index": 20037,
+      "C": {
+        "offset": 99637,
+        "bytes": "E6 78",
+        "text": "out         78h,al",
+        "normalized": "out         78h,al"
+      },
+      "D": {
+        "offset": 99578,
+        "bytes": "78 00",
+        "text": "js          000000018079C97C",
+        "normalized": "js          self+0x184fc"
+      }
+    },
+    {
+      "index": 20038,
+      "C": {
+        "offset": 99639,
+        "bytes": "00 DF",
+        "text": "add         bh,bl",
+        "normalized": "add         bh,bl"
+      },
+      "D": {
+        "offset": 99580,
+        "bytes": "DF 9F 78 00 42 98",
+        "text": "fistp       word ptr [rdi+FFFFFFFF98420078h]",
+        "normalized": "fistp       word ptr [rdi+external-addressh]"
+      }
+    },
+    {
+      "index": 20039,
+      "C": {
+        "offset": 99641,
+        "bytes": "1D 79 00 59 DC",
+        "text": "sbb         eax,0DC590079h",
+        "normalized": "sbb         eax,0DC590079h"
+      },
+      "D": {
+        "offset": 99586,
+        "bytes": "79 00",
+        "text": "jns         000000018079C984",
+        "normalized": "jns         self+0x18504"
+      }
+    },
+    {
+      "index": 20040,
+      "C": {
+        "offset": 99646,
+        "bytes": "78 00",
+        "text": "js          000000018079C990",
+        "normalized": "js          self+0x18540"
+      },
+      "D": {
+        "offset": 99588,
+        "bytes": "D5 CB 78 00",
+        "text": "vmread      qword ptr [r8],r16",
+        "normalized": "vmread      qword ptr [r8],r16"
+      }
+    },
+    {
+      "index": 20041,
+      "C": {
+        "offset": 99648,
+        "bytes": "3C 4C",
+        "text": "cmp         al,4Ch",
+        "normalized": "cmp         al,4Ch"
+      },
+      "D": {
+        "offset": 99592,
+        "bytes": "F4",
+        "text": "hlt",
+        "normalized": "hlt"
+      }
+    },
+    {
+      "index": 20042,
+      "C": {
+        "offset": 99650,
+        "bytes": "79 00",
+        "text": "jns         000000018079C994",
+        "normalized": "jns         self+0x18544"
+      },
+      "D": {
+        "offset": 99593,
+        "bytes": "E3 78",
+        "text": "jrcxz       000000018079CA03",
+        "normalized": "jrcxz       self+0x18583"
+      }
+    },
+    {
+      "index": 20043,
+      "C": {
+        "offset": 99652,
+        "bytes": "AD",
+        "text": "lods        dword ptr [rsi]",
+        "normalized": "lods        dword ptr [rsi]"
+      },
+      "D": {
+        "offset": 99595,
+        "bytes": "00 CA",
+        "text": "add         dl,cl",
+        "normalized": "add         dl,cl"
+      }
+    },
+    {
+      "index": 20044,
+      "C": {
+        "offset": 99653,
+        "bytes": "87 79 00",
+        "text": "xchg        edi,dword ptr [rcx]",
+        "normalized": "xchg        edi,dword ptr [rcx]"
+      },
+      "D": {
+        "offset": 99597,
+        "bytes": "F2 78 00",
+        "text": "bnd js      000000018079C990",
+        "normalized": "bnd js      self+0x18510"
+      }
+    },
+    {
+      "index": 20045,
+      "C": {
+        "offset": 99658,
+        "bytes": "78 00",
+        "text": "js          000000018079C99C",
+        "normalized": "js          self+0x1854c"
+      },
+      "D": {
+        "offset": 99600,
+        "bytes": "F9",
+        "text": "stc",
+        "normalized": "stc"
+      }
+    },
+    {
+      "index": 20046,
+      "C": {
+        "offset": 99660,
+        "bytes": "BD 2A 79 00 C4",
+        "text": "mov         ebp,0C400792Ah",
+        "normalized": "mov         ebp,0C400792Ah"
+      },
+      "D": {
+        "offset": 99601,
+        "bytes": "79 79",
+        "text": "jns         000000018079CA0C",
+        "normalized": "jns         self+0x1858c"
+      }
+    },
+    {
+      "index": 20047,
+      "C": {
+        "offset": 99665,
+        "bytes": "AC",
+        "text": "lods        byte ptr [rsi]",
+        "normalized": "lods        byte ptr [rsi]"
+      },
+      "D": {
+        "offset": 99603,
+        "bytes": "00 82 7C 79 00 BC",
+        "text": "add         byte ptr [rdx+FFFFFFFFBC00797Ch],al",
+        "normalized": "add         byte ptr [rdx+external-addressh],al"
+      }
+    },
+    {
+      "index": 20048,
+      "C": {
+        "offset": 99666,
+        "bytes": "78 00",
+        "text": "js          000000018079C9A4",
+        "normalized": "js          self+0x18554"
+      },
+      "D": {
+        "offset": 99609,
+        "bytes": "93",
+        "text": "xchg        eax,ebx",
+        "normalized": "xchg        eax,ebx"
+      }
+    },
+    {
+      "index": 20049,
+      "C": {
+        "offset": 99669,
+        "bytes": "9C",
+        "text": "pushfq",
+        "normalized": "pushfq"
+      },
+      "D": {
+        "offset": 99610,
+        "bytes": "79 00",
+        "text": "jns         000000018079C99C",
+        "normalized": "jns         self+0x1851c"
+      }
+    },
+    {
+      "index": 20050,
+      "C": {
+        "offset": 99670,
+        "bytes": "79 00",
+        "text": "jns         000000018079C9A8",
+        "normalized": "jns         self+0x18558"
+      },
+      "D": {
+        "offset": 99612,
+        "bytes": "A6",
+        "text": "cmps        byte ptr [rsi],byte ptr [rdi]",
+        "normalized": "cmps        byte ptr [rsi],byte ptr [rdi]"
+      }
+    },
+    {
+      "index": 20051,
+      "C": {
+        "offset": 99673,
+        "bytes": "80 79 00 6D",
+        "text": "cmp         byte ptr [rcx],6Dh",
+        "normalized": "cmp         byte ptr [rcx],6Dh"
+      },
+      "D": {
+        "offset": 99613,
+        "bytes": "9F",
+        "text": "lahf",
+        "normalized": "lahf"
+      }
+    },
+    {
+      "index": 20052,
+      "C": {
+        "offset": 99677,
+        "bytes": "A8 78",
+        "text": "test        al,78h",
+        "normalized": "test        al,78h"
+      },
+      "D": {
+        "offset": 99614,
+        "bytes": "78 00",
+        "text": "js          000000018079C9A0",
+        "normalized": "js          self+0x18520"
+      }
+    },
+    {
+      "index": 20053,
+      "C": {
+        "offset": 99679,
+        "bytes": "00 20",
+        "text": "add         byte ptr [rax],ah",
+        "normalized": "add         byte ptr [rax],ah"
+      },
+      "D": {
+        "offset": 99616,
+        "bytes": "FF 95 79 00 38 AD",
+        "text": "call        qword ptr [rbp+FFFFFFFFAD380079h]",
+        "normalized": "call        qword ptr [rbp+external-addressh]"
+      }
+    },
+    {
+      "index": 20054,
+      "C": {
+        "offset": 99681,
+        "bytes": "B6 79",
+        "text": "mov         dh,79h",
+        "normalized": "mov         dh,79h"
+      },
+      "D": {
+        "offset": 99622,
+        "bytes": "79 00",
+        "text": "jns         000000018079C9A8",
+        "normalized": "jns         self+0x18528"
+      }
+    },
+    {
+      "index": 20055,
+      "C": {
+        "offset": 99683,
+        "bytes": "00 54 B8 79",
+        "text": "add         byte ptr [rax+rdi*4+79h],dl",
+        "normalized": "add         byte ptr [rax+rdi*4+79h],dl"
+      },
+      "D": {
+        "offset": 99624,
+        "bytes": "41 AF",
+        "text": "scas        dword ptr [rdi]",
+        "normalized": "scas        dword ptr [rdi]"
+      }
+    },
+    {
+      "index": 20056,
+      "C": {
+        "offset": 99687,
+        "bytes": "00 E4",
+        "text": "add         ah,ah",
+        "normalized": "add         ah,ah"
+      },
+      "D": {
+        "offset": 99626,
+        "bytes": "79 00",
+        "text": "jns         000000018079C9AC",
+        "normalized": "jns         self+0x1852c"
+      }
+    },
+    {
+      "index": 20057,
+      "C": {
+        "offset": 99689,
+        "bytes": "BA 79 00 74 BD",
+        "text": "mov         edx,0BD740079h",
+        "normalized": "mov         edx,0BD740079h"
+      },
+      "D": {
+        "offset": 99628,
+        "bytes": "DF BE 78 00 58 C1",
+        "text": "fistp       qword ptr [rsi+FFFFFFFFC1580078h]",
+        "normalized": "fistp       qword ptr [rsi+external-addressh]"
+      }
+    },
+    {
+      "index": 20058,
+      "C": {
+        "offset": 99694,
+        "bytes": "79 00",
+        "text": "jns         000000018079C9C0",
+        "normalized": "jns         self+0x18570"
+      },
+      "D": {
+        "offset": 99634,
+        "bytes": "78 00",
+        "text": "js          000000018079C9B4",
+        "normalized": "js          self+0x18534"
+      }
+    },
+    {
+      "index": 20059,
+      "C": {
+        "offset": 99696,
+        "bytes": "11 C0",
+        "text": "adc         eax,eax",
+        "normalized": "adc         eax,eax"
+      },
+      "D": {
+        "offset": 99636,
+        "bytes": "FC",
+        "text": "cld",
+        "normalized": "cld"
+      }
+    },
+    {
+      "index": 20060,
+      "C": {
+        "offset": 99698,
+        "bytes": "79 00",
+        "text": "jns         000000018079C9C4",
+        "normalized": "jns         self+0x18574"
+      },
+      "D": {
+        "offset": 99637,
+        "bytes": "E6 78",
+        "text": "out         78h,al",
+        "normalized": "out         78h,al"
+      }
+    },
+    {
+      "index": 20061,
+      "C": {
+        "offset": 99700,
+        "bytes": "87 C2",
+        "text": "xchg        eax,edx",
+        "normalized": "xchg        eax,edx"
+      },
+      "D": {
+        "offset": 99639,
+        "bytes": "00 0F",
+        "text": "add         byte ptr [rdi],cl",
+        "normalized": "add         byte ptr [rdi],cl"
+      }
+    },
+    {
+      "index": 20062,
+      "C": {
+        "offset": 99702,
+        "bytes": "79 00",
+        "text": "jns         000000018079C9C8",
+        "normalized": "jns         self+0x18578"
+      },
+      "D": {
+        "offset": 99642,
+        "bytes": "79 00",
+        "text": "jns         000000018079C9BC",
+        "normalized": "jns         self+0x1853c"
+      }
+    },
+    {
+      "index": 20063,
+      "C": {
+        "offset": 99704,
+        "bytes": "50",
+        "text": "push        rax",
+        "normalized": "push        rax"
+      },
+      "D": {
+        "offset": 99644,
+        "bytes": "89 DC",
+        "text": "mov         esp,ebx",
+        "normalized": "mov         esp,ebx"
+      }
+    },
+    {
+      "index": 20064,
+      "C": {
+        "offset": 99705,
+        "bytes": "2D 79 00 58 41",
+        "text": "sub         eax,41580079h",
+        "normalized": "sub         eax,41580079h"
+      },
+      "D": {
+        "offset": 99646,
+        "bytes": "78 00",
+        "text": "js          000000018079C9C0",
+        "normalized": "js          self+0x18540"
+      }
+    },
+    {
+      "index": 20065,
+      "C": {
+        "offset": 99710,
+        "bytes": "79 00",
+        "text": "jns         000000018079C9D0",
+        "normalized": "jns         self+0x18580"
+      },
+      "D": {
+        "offset": 99648,
+        "bytes": "6C",
+        "text": "ins         byte ptr [rdi],dx",
+        "normalized": "ins         byte ptr [rdi],dx"
+      }
+    },
+    {
+      "index": 20066,
+      "C": {
+        "offset": 99712,
+        "bytes": "C9",
+        "text": "leave",
+        "normalized": "leave"
+      },
+      "D": {
+        "offset": 99649,
+        "bytes": "4C 79 00",
+        "text": "jns         000000018079C9C4",
+        "normalized": "jns         self+0x18544"
+      }
+    },
+    {
+      "index": 20067,
+      "C": {
+        "offset": 99714,
+        "bytes": "79 00",
+        "text": "jns         000000018079C9D4",
+        "normalized": "jns         self+0x18584"
+      },
+      "D": {
+        "offset": 99652,
+        "bytes": "DD 87 79 00 7D CE",
+        "text": "fld         qword ptr [rdi+FFFFFFFFCE7D0079h]",
+        "normalized": "fld         qword ptr [rdi+external-addressh]"
+      }
+    },
+    {
+      "index": 20068,
+      "C": {
+        "offset": 99716,
+        "bytes": "FD",
+        "text": "std",
+        "normalized": "std"
+      },
+      "D": {
+        "offset": 99658,
+        "bytes": "78 00",
+        "text": "js          000000018079C9CC",
+        "normalized": "js          self+0x1854c"
+      }
+    },
+    {
+      "index": 20069,
+      "C": {
+        "offset": 99717,
+        "bytes": "31 79 00",
+        "text": "xor         dword ptr [rcx],edi",
+        "normalized": "xor         dword ptr [rcx],edi"
+      },
+      "D": {
+        "offset": 99660,
+        "bytes": "ED",
+        "text": "in          eax,dx",
+        "normalized": "in          eax,dx"
+      }
+    },
+    {
+      "index": 20070,
+      "C": {
+        "offset": 99720,
+        "bytes": "24 34",
+        "text": "and         al,34h",
+        "normalized": "and         al,34h"
+      },
+      "D": {
+        "offset": 99661,
+        "bytes": "2A 79 00",
+        "text": "sub         bh,byte ptr [rcx]",
+        "normalized": "sub         bh,byte ptr [rcx]"
+      }
+    },
+    {
+      "index": 20071,
+      "C": {
+        "offset": 99722,
+        "bytes": "79 00",
+        "text": "jns         000000018079C9DC",
+        "normalized": "jns         self+0x1858c"
+      },
+      "D": {
+        "offset": 99664,
+        "bytes": "F4",
+        "text": "hlt",
+        "normalized": "hlt"
+      }
+    },
+    {
+      "index": 20072,
+      "C": {
+        "offset": 99725,
+        "bytes": "36 79 00",
+        "text": "jns         000000018079C9E0",
+        "normalized": "jns         self+0x18590"
+      },
+      "D": {
+        "offset": 99665,
+        "bytes": "AC",
+        "text": "lods        byte ptr [rsi]",
+        "normalized": "lods        byte ptr [rsi]"
+      }
+    },
+    {
+      "index": 20073,
+      "C": {
+        "offset": 99728,
+        "bytes": "72 38",
+        "text": "jb          000000018079CA1A",
+        "normalized": "jb          external-address"
+      },
+      "D": {
+        "offset": 99666,
+        "bytes": "78 00",
+        "text": "js          000000018079C9D4",
+        "normalized": "js          self+0x18554"
+      }
+    },
+    {
+      "index": 20074,
+      "C": {
+        "offset": 99730,
+        "bytes": "79 00",
+        "text": "jns         000000018079C9E4",
+        "normalized": "jns         self+0x18594"
+      },
+      "D": {
+        "offset": 99669,
+        "bytes": "9D",
+        "text": "popfq",
+        "normalized": "popfq"
+      }
+    },
+    {
+      "index": 20075,
+      "C": {
+        "offset": 99732,
+        "bytes": "99",
+        "text": "cdq",
+        "normalized": "cdq"
+      },
+      "D": {
+        "offset": 99670,
+        "bytes": "79 00",
+        "text": "jns         000000018079C9D8",
+        "normalized": "jns         self+0x18558"
+      }
+    },
+    {
+      "index": 20076,
+      "C": {
+        "offset": 99733,
+        "bytes": "3A 79 00",
+        "text": "cmp         bh,byte ptr [rcx]",
+        "normalized": "cmp         bh,byte ptr [rcx]"
+      },
+      "D": {
+        "offset": 99672,
+        "bytes": "FE 80 79 00 9D A8",
+        "text": "inc         byte ptr [rax+FFFFFFFFA89D0079h]",
+        "normalized": "inc         byte ptr [rax+external-addressh]"
+      }
+    },
+    {
+      "index": 20077,
+      "C": {
+        "offset": 99736,
+        "bytes": "CD 3C",
+        "text": "int         3Ch",
+        "normalized": "int         3Ch"
+      },
+      "D": {
+        "offset": 99678,
+        "bytes": "78 00",
+        "text": "js          000000018079C9E0",
+        "normalized": "js          self+0x18560"
+      }
+    },
+    {
+      "index": 20078,
+      "C": {
+        "offset": 99738,
+        "bytes": "79 00",
+        "text": "jns         000000018079C9EC",
+        "normalized": "jns         self+0x1859c"
+      },
+      "D": {
+        "offset": 99680,
+        "bytes": "50",
+        "text": "push        rax",
+        "normalized": "push        rax"
+      }
+    },
+    {
+      "index": 20079,
+      "C": {
+        "offset": 99740,
+        "bytes": "90",
+        "text": "nop",
+        "normalized": "nop"
+      },
+      "D": {
+        "offset": 99681,
+        "bytes": "B6 79",
+        "text": "mov         dh,79h",
+        "normalized": "mov         dh,79h"
+      }
+    },
+    {
+      "index": 20080,
+      "C": {
+        "offset": 99741,
+        "bytes": "7E 79",
+        "text": "jle         000000018079CA68",
+        "normalized": "jle         external-address"
+      },
+      "D": {
+        "offset": 99683,
+        "bytes": "00 84 B8 79 00 14",
+        "text": "add         byte ptr [rax+rdi*4+FFFFFFFFBB140079h],al",
+        "normalized": "add         byte ptr [rax+rdi*4+external-addressh],al"
+      }
+    }
+  ]
+}

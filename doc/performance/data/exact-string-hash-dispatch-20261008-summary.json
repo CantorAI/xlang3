@@ -1,0 +1,389 @@
+{
+  "status": "terminal_evidence_export",
+  "diagnostic_only_pairs": [
+    {
+      "path": "string_dict_get",
+      "cpython_historical_us_per_op": 0.0312011714242999,
+      "control_us_per_op": 0.09897460806485014,
+      "candidate_us_per_op": 0.09594116079369996,
+      "paired_speed_control_1x": 1.0342496154912344,
+      "faster_pairs": 6,
+      "candidate_vs_historical_cp_speed": 0.3252115272129243
+    },
+    {
+      "path": "python_key_dict_get",
+      "cpython_historical_us_per_op": 0.08068237278280321,
+      "control_us_per_op": 3.0679992679694124,
+      "candidate_us_per_op": 2.870013428690754,
+      "paired_speed_control_1x": 1.0720449211986784,
+      "faster_pairs": 7,
+      "candidate_vs_historical_cp_speed": 0.028112193474860842
+    },
+    {
+      "path": "builtin_hash_string",
+      "cpython_historical_us_per_op": 0.050885009983403506,
+      "control_us_per_op": 0.6185852043927298,
+      "candidate_us_per_op": 0.38104858290921584,
+      "paired_speed_control_1x": 1.6169047814050992,
+      "faster_pairs": 7,
+      "candidate_vs_historical_cp_speed": 0.13353942847630737
+    },
+    {
+      "path": "builtin_hash_python_key",
+      "cpython_historical_us_per_op": 0.1043701161052013,
+      "control_us_per_op": 2.2686950682526685,
+      "candidate_us_per_op": 2.0076354978471045,
+      "paired_speed_control_1x": 1.1282995636469049,
+      "faster_pairs": 7,
+      "candidate_vs_historical_cp_speed": 0.051986586318643495
+    },
+    {
+      "path": "direct_python_hash_method",
+      "cpython_historical_us_per_op": 0.065606689858555,
+      "control_us_per_op": 1.0151123053248057,
+      "candidate_us_per_op": 0.7598144531328899,
+      "paired_speed_control_1x": 1.3360864310624452,
+      "faster_pairs": 7,
+      "candidate_vs_historical_cp_speed": 0.08634567240468186
+    },
+    {
+      "path": "saved_python_hash_method",
+      "cpython_historical_us_per_op": 0.06681518449624946,
+      "control_us_per_op": 0.9819763189256037,
+      "candidate_us_per_op": 0.717895506596733,
+      "paired_speed_control_1x": 1.3643712143430504,
+      "faster_pairs": 7,
+      "candidate_vs_historical_cp_speed": 0.09307090500258819
+    },
+    {
+      "path": "ordinary_python_hash_function",
+      "cpython_historical_us_per_op": 0.06705322341815645,
+      "control_us_per_op": 0.9987731921512477,
+      "candidate_us_per_op": 0.7377502448946416,
+      "paired_speed_control_1x": 1.3613213967065905,
+      "faster_pairs": 7,
+      "candidate_vs_historical_cp_speed": 0.09088878503555407
+    },
+    {
+      "path": "ordinary_python_hash_wrapper",
+      "cpython_historical_us_per_op": 0.11854858428250736,
+      "control_us_per_op": 2.626214600454091,
+      "candidate_us_per_op": 2.3599914555916257,
+      "paired_speed_control_1x": 1.1145957744672363,
+      "faster_pairs": 7,
+      "candidate_vs_historical_cp_speed": 0.050232632835015265
+    }
+  ],
+  "official_unpaired": {
+    "cpython3147_saved": {
+      "mean_ms": 0.9882882422175497,
+      "stdev_ms": 0.010772736398572881,
+      "cv_percent": 1.0900399234135079,
+      "max_ms": 1.004994531513148,
+      "count": 20
+    },
+    "control": {
+      "mean_ms": 18.364054374978878,
+      "stdev_ms": 0.36815329031343513,
+      "cv_percent": 2.004749511170289,
+      "max_ms": 19.500675003655488,
+      "count": 20
+    },
+    "candidate": {
+      "mean_ms": 18.076667501736665,
+      "stdev_ms": 1.028294592090203,
+      "cv_percent": 5.688518594433473,
+      "max_ms": 22.237862500332994,
+      "count": 20
+    }
+  },
+  "official_nominal_control_over_candidate": 1.0158982220154573,
+  "official_conclusion": "neutral",
+  "candidate_vs_saved_cpython_speed": 0.05467203742739654,
+  "diagnostic_values": 600,
+  "official_values": 60,
+  "input_receipts": [
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-paired-20261008.json",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-paired-20261008.json",
+      "sha256": "9680c957645a0167107bccda9a898c5e41ae66129b260907270a068d8e5244f4",
+      "bytes": 57633
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\python-hash-callback-cost-probe-20261008.py",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/scratch/performance/python-hash-callback-cost-probe-20261008.py",
+      "sha256": "3823fc09d47caa35ed158677a5a565ad1118c64b1ef9e345a6584a717f8fca70",
+      "bytes": 4484
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\src\\runtime\\value_hash.cpp",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/compiled-string-source/value_hash.cpp",
+      "sha256": "aeb9abb4697569a3b28485000337e31d21f2cd9227dbf2ea0e76e2e125d439ed",
+      "bytes": 26073
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-applied-source-20261008.json",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-applied-source-20261008.json",
+      "sha256": "6a8c3ef446a4a2a41b8028d14c22184ecf6f3187b76c38483f62608ac3867fc9",
+      "bytes": 369
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\exact-string-hash-dispatch-proposed-20261008.patch",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/scratch/performance/exact-string-hash-dispatch-proposed-20261008.patch",
+      "sha256": "8a0af520a8120302b07f9e7de91297330480a0e24d5e37a83a6fdc386bb443a4",
+      "bytes": 1376
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\build-repro\\controls\\inherited-slot-proof-checkpoint-20261008\\preserved-release-provenance.json",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/build-repro/controls/inherited-slot-proof-checkpoint-20261008/preserved-release-provenance.json",
+      "sha256": "4b997e4dc069393dcd0b08556918494a4bcc63a884af69bed9467a2d5d081bae",
+      "bytes": 16384
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\python-hash-callback-cost-20261008.json",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/python-hash-callback-cost-20261008.json",
+      "sha256": "d58e595a5cff90f4aa21cdb9d99a6e1b62da2890d95f55fc0637464dd76c2680",
+      "bytes": 9062
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\python-hash-callback-cost-cpython3147-20261008.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/python-hash-callback-cost-cpython3147-20261008.log",
+      "sha256": "007126efa74aaf3f4724f76e878e415bd5ad685e00541f83d0e8d342cf15dab8",
+      "bytes": 2192
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\python-hash-callback-cost-accepted_xlang3-20261008.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/python-hash-callback-cost-accepted_xlang3-20261008.log",
+      "sha256": "26d3bc4d4bafb33915cd4e195fbca8a2eaaee5863d5e29ade2bf7de8eb40dc3f",
+      "bytes": 2147
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-accepted-control-reference-20261008.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-accepted-control-reference-20261008.log",
+      "sha256": "8475090c6dc70f0995795724708642c58a44bbcb8b64fcabfad297228af3a9ce",
+      "bytes": 451
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-cpython3147-reference-20261008.json",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-cpython3147-reference-20261008.json",
+      "sha256": "dbebb81b9cfc01cd17f1c273447d51deea1d5f45bc50fd9656e4f5ad8715d6fb",
+      "bytes": 693
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-cpython3147-reference-20261008.stdout.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-cpython3147-reference-20261008.stdout.log",
+      "sha256": "ed8793bedad4f781d719b81cddb118bcf1cefc7cd6127be9de888cd090c380e2",
+      "bytes": 146
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-cpython3147-reference-20261008.stderr.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-cpython3147-reference-20261008.stderr.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\exact-string-hash-fixture-proposed-20261008.py",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/scratch/performance/exact-string-hash-fixture-proposed-20261008.py",
+      "sha256": "8c5661caca2694b1c821e39700a69d2621cdf7b4e67c0b66bcc316566f5aa635",
+      "bytes": 2407
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-paired-20261008-0-control.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-paired-20261008-0-control.log",
+      "sha256": "b9dfadec41e9d63519081307f3c5a2fa5f28cd34f96275c7704ecaa7a8df101e",
+      "bytes": 2154
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-paired-20261008-0-candidate.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-paired-20261008-0-candidate.log",
+      "sha256": "27b27d61c735adcb88bc9285308713e5172e893545a921fdec0cfae7808513dc",
+      "bytes": 2152
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-paired-20261008-1-candidate.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-paired-20261008-1-candidate.log",
+      "sha256": "96ffff1b71eac2bc3d1f2b7d53c3e41e74c67310916833d0f8168147d8bc5114",
+      "bytes": 2156
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-paired-20261008-1-control.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-paired-20261008-1-control.log",
+      "sha256": "be1ff79945cc9836d83b266e38d00820af2170a6a0cc81d1edc3bd5da81b167e",
+      "bytes": 2146
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-paired-20261008-2-control.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-paired-20261008-2-control.log",
+      "sha256": "269f7077bec3ae1e89fdd6b492d1fdafb58f41150aaf6338d412875ea31fa1dc",
+      "bytes": 2152
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-paired-20261008-2-candidate.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-paired-20261008-2-candidate.log",
+      "sha256": "e371f506e14724dfc8a57f098abd1cfb76a3d0511bed46cffe65501ca73e8f5f",
+      "bytes": 2150
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-paired-20261008-3-candidate.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-paired-20261008-3-candidate.log",
+      "sha256": "ba5d97f241da0711d4564a2b6b5957727e795fecbe48da190a463420fb09497a",
+      "bytes": 2145
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-paired-20261008-3-control.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-paired-20261008-3-control.log",
+      "sha256": "57a6b5f60151ae72232eff62b1f1767a892fabef67dc7a72159828a8f9a8a32b",
+      "bytes": 2144
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-paired-20261008-4-control.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-paired-20261008-4-control.log",
+      "sha256": "d35a5d33a04d7f05f0bbc09e59966057cb3d125dbc3b5da6f71b1d93e8d59eff",
+      "bytes": 2143
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-paired-20261008-4-candidate.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-paired-20261008-4-candidate.log",
+      "sha256": "32533362fa86803f2a40ba3dce55ee42b6c53a03f8f48de457c2748baa907b40",
+      "bytes": 2149
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-paired-20261008-5-candidate.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-paired-20261008-5-candidate.log",
+      "sha256": "9ce71702d892670bd5c9c41d2eb2dd163b002694526754453e408f8c7650a13d",
+      "bytes": 2145
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-paired-20261008-5-control.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-paired-20261008-5-control.log",
+      "sha256": "c6def17c1ca0683e8406595487af87e05f9eb4f4ac979f4a83a576ac07b2c07e",
+      "bytes": 2149
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-paired-20261008-6-control.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-paired-20261008-6-control.log",
+      "sha256": "4777946248a333c716973f8db2c75328b1eeb1555f26f1c4896f9a162aee0c90",
+      "bytes": 2142
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-paired-20261008-6-candidate.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-paired-20261008-6-candidate.log",
+      "sha256": "8357d587d2bb33ba85684dd72ac9a2739dc274101a8f5000ed52234821c28186",
+      "bytes": 2151
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-cpython3147-live-eval-full-fast-20261007.json",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007.json",
+      "sha256": "ac474df5576ac85f6f5350363affecc439d4f658b4dfa3dbe291b46964276eb0",
+      "bytes": 217975
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-cpython3147-live-eval-full-fast-20261007-provenance.json",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/pyperformance-cpython3147-live-eval-full-fast-20261007-provenance.json",
+      "sha256": "3d6c8cb2c72c786583c382b835e8e411f56ca285963bc2835f757a13f399f85c",
+      "bytes": 41162
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-control-sqlglot-20261008-receipt.json",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-control-sqlglot-20261008-receipt.json",
+      "sha256": "a5fb30887a383e398b52c32a56ec29609f816da511deb9bb8f66fcaf4f042c6c",
+      "bytes": 1705
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-control-sqlglot-20261008.json",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-control-sqlglot-20261008.json",
+      "sha256": "0ba6da6d24deca35691cfd6d069208e231da02af77e66df2312d22aa31bf4b50",
+      "bytes": 1748
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-control-sqlglot-20261008.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-control-sqlglot-20261008.log",
+      "sha256": "ea5ae763f7ba16ed06ad4b7b7bce0b61a83bb167d507fef0cb0b507af8e412ba",
+      "bytes": 872
+    },
+    {
+      "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/official-benchmark-source/bm_sqlglot_v2/run_benchmark.py",
+      "sha256": "d97aaba24f8c49f2afe5c5c740c568be6e89dde3364d5a964a4b72e5a4768a9b",
+      "bytes": 5220
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\pyperf_compat\\sitecustomize.py",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/benchmarks/diagnostics/pyperf_compat/sitecustomize.py",
+      "sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+      "bytes": 1266
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-official-sqlglot-20261008-receipt.json",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-official-sqlglot-20261008-receipt.json",
+      "sha256": "0790a66f3aadf7e339abbd5053237eeae83f2332495f42d99a33a1853fc05e6d",
+      "bytes": 1643
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-official-sqlglot-20261008.json",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-official-sqlglot-20261008.json",
+      "sha256": "66a5130415ca32ffc6c98ce908b88cc3e8f35434295eaf12125e0037f76ae567",
+      "bytes": 1748
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\exact-string-hash-official-sqlglot-20261008.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/exact-string-hash-official-sqlglot-20261008.log",
+      "sha256": "0256ed87fd17110fb3e5d844f9fa04e2ca7be0d875161c5b522c65d9668745b0",
+      "bytes": 872
+    },
+    {
+      "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/official-benchmark-source/bm_sqlglot_v2/run_benchmark.py",
+      "sha256": "d97aaba24f8c49f2afe5c5c740c568be6e89dde3364d5a964a4b72e5a4768a9b",
+      "bytes": 5220
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\pyperf_compat\\sitecustomize.py",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/benchmarks/diagnostics/pyperf_compat/sitecustomize.py",
+      "sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+      "bytes": 1266
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\measure-exact-string-hash-paired-20261008.py",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/scratch/performance/measure-exact-string-hash-paired-20261008.py",
+      "sha256": "6a87678bc593844d635d4bb395159ff1ef3cf6c6461102ae2d4e2e5630b4a51e",
+      "bytes": 5244
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\check-exact-string-hash-official-20261008.py",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/scratch/performance/check-exact-string-hash-official-20261008.py",
+      "sha256": "c8550a5c62675def264bbfc543e07d19438961cc31a99040faf795f5aabbb47d",
+      "bytes": 3026
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\check-exact-string-hash-control-official-20261008.py",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/scratch/performance/check-exact-string-hash-control-official-20261008.py",
+      "sha256": "2ee24a2551c1cedaf9c4ea03c950accc9b61b150f4dc3d7016151500cd01f778",
+      "bytes": 3049
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\exact-string-hash-dispatch-review-20261008.txt",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/scratch/performance/exact-string-hash-dispatch-review-20261008.txt",
+      "sha256": "61736d59e86fb787d3ee5b5f3878028b02011fb24eae9165314bd186e4a1e2de",
+      "bytes": 6287
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\exact-string-hash-dispatch-provenance-20261008.json",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/scratch/performance/exact-string-hash-dispatch-provenance-20261008.json",
+      "sha256": "8d7ea7964411c4bca50eb3e2ab503e21ea7a4d40dd97268ce355866b01783ec8",
+      "bytes": 2626
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\doc\\performance\\data\\build-exact-string-hash-Release-20261008.log",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/doc/performance/data/build-exact-string-hash-Release-20261008.log",
+      "sha256": "4e8e2353919f0bd1d8ca70141290ef82aa154adc81213f66e538f36710e94f0c",
+      "bytes": 261
+    },
+    {
+      "source": "D:\\CantorAI\\xlang3\\scratch\\performance\\export-exact-string-hash-evidence-20261008.py",
+      "archive_path": "data/exact-string-hash-dispatch-20261008-sources/scratch/performance/export-exact-string-hash-evidence-20261008.py",
+      "sha256": "6c91263b0d80a92ddc7f48583f9cdccf6824a7f99e53b4617e2c14d5c8755e07",
+      "bytes": 20257
+    }
+  ]
+}

@@ -1,0 +1,95 @@
+{
+  "status": "test_integration_draft_not_applied_not_compiled_not_run",
+  "head": "fcee35e37696902da6c10310f74f6976aa7cf3a7",
+  "targets": [
+    "tests/cpp/interpreter_tests.cpp",
+    "tests/run_fixtures.py",
+    "tests/cpp/canonical_slot_read_cases.h",
+    "tests/fixtures/core/canonical_slot_reads.py",
+    "tests/fixtures/expected/canonical_slot_reads.out"
+  ],
+  "cpp_source_sha256_before": "b63716cbe0e08c7d2002d180e48a8edfe64a2e31a62acd6d4d5f374b21890012",
+  "cpp_source_sha256_after": "b63716cbe0e08c7d2002d180e48a8edfe64a2e31a62acd6d4d5f374b21890012",
+  "runner_source_sha256_before": "fb922c1e0ce86bcff0ae46c3207e8c5b655dafd52adb97c0b8141eaddf05a348",
+  "runner_source_sha256_after": "fb922c1e0ce86bcff0ae46c3207e8c5b655dafd52adb97c0b8141eaddf05a348",
+  "check_command": [
+    "git",
+    "apply",
+    "--check",
+    "--",
+    "scratch/performance/canonical-slot-test-integration-20261007.patch"
+  ],
+  "check_exit": 0,
+  "artifacts": [
+    {
+      "path": "tests/cpp/interpreter_tests.cpp",
+      "bytes": 28993,
+      "sha256": "b63716cbe0e08c7d2002d180e48a8edfe64a2e31a62acd6d4d5f374b21890012"
+    },
+    {
+      "path": "tests/run_fixtures.py",
+      "bytes": 12278,
+      "sha256": "fb922c1e0ce86bcff0ae46c3207e8c5b655dafd52adb97c0b8141eaddf05a348"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-test-integration-20261007-interpreter-source.cpp",
+      "bytes": 28993,
+      "sha256": "b63716cbe0e08c7d2002d180e48a8edfe64a2e31a62acd6d4d5f374b21890012"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-test-integration-20261007-runner-source.py",
+      "bytes": 12278,
+      "sha256": "fb922c1e0ce86bcff0ae46c3207e8c5b655dafd52adb97c0b8141eaddf05a348"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-test-integration-20261007-interpreter-candidate.cpp",
+      "bytes": 29089,
+      "sha256": "192a29dd109cae988a35ade62f27a1e7a21c82076c19a9eb4d2afaff2032bf9d"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-test-integration-20261007-runner-candidate.py",
+      "bytes": 12299,
+      "sha256": "cd1271b10af498a86b5b71aa76b5a6af95abb69ca99dad23b2a866dcd19a4d95"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-test-integration-20261007-header-candidate.h",
+      "bytes": 16215,
+      "sha256": "35120b8bccda10082a07fbc6928492a205088030daf3c0312817c6ef630e059d"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-test-integration-20261007-fixture-candidate.py",
+      "bytes": 3898,
+      "sha256": "6afb7f1d5901b77ee02b4aee58a01d3ac035cb714e865ce2131ac54dfc79bd5a"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-test-integration-20261007-expected-candidate.out",
+      "bytes": 664,
+      "sha256": "d1ab7fe480e1fa69e42fb355b8fc8dbb9b78604ad2aa1ff77f707c68160e676c"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-test-integration-20261007.patch",
+      "bytes": 23007,
+      "sha256": "7bfa5b49babb90c027cb7b46fe5d50fc4554d25c91a9e6ebd54b6ada2300e746"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-test-integration-20261007-apply-check.log",
+      "bytes": 106,
+      "sha256": "4f2a722f3a3d90389c0f7bd63ddf824d579a98f7b160269f53236377b287a8ea"
+    },
+    {
+      "path": "scratch/performance/prepare-canonical-slot-test-integration-20261007.ps1",
+      "bytes": 7784,
+      "sha256": "cc86aa10f00be3d54c19c1c5d7d4bedb6c71bffd06c1ea4f45c60df88ee8515b"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-read-extra-cases-20261007.h",
+      "bytes": 8573,
+      "sha256": "180bee4192fa0096a14639f89b42ba0142f8c173d55b9cc615de8a02bdf665df"
+    },
+    {
+      "path": "scratch/performance/canonical-slot-native-hook-cases-draft-20261007.h",
+      "bytes": 7206,
+      "sha256": "29b6240dd52a473562763afc48164edef26eea758d6da323ce7109f9bfe2e82a"
+    }
+  ]
+}

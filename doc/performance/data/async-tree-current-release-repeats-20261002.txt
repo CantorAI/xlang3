@@ -1,0 +1,27 @@
+run 1 start
+run 1 complete 3.526624s
+run 1 loop closed
+run 2 start
+run 2 complete 3.604953s
+run 2 loop closed
+run 3 start
+run 3 complete 3.634177s
+run 3 loop closed
+run 4 start
+run 4 complete 3.524858s
+run 4 loop closed
+run 5 start
+run 5 complete 3.620663s
+run 5 loop closed
+run 6 start
+run 6 complete 3.914272s
+run 6 loop closed
+run 7 start
+run 7 complete 3.543252s
+run 7 loop closed
+run 8 start
+run 8 complete 3.625831s
+run 8 loop closed
+run 9 start
+run 9 complete 3.793674s
+run 9 loop closed

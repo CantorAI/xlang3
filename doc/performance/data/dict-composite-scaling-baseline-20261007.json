@@ -1,0 +1,442 @@
+{
+  "scope": "Serial diagnostic samples only; whole official BPE remains timed out",
+  "candidate_binary_sha256": {
+    "exe": "72dd41692c627ccc5242eda336578cfccc4d404ba63b395cae441698b6ba16a6",
+    "dll": "b0310f599fc7576463dd27c5be00dd96fb7ab9dfe6b11665adb706d8c6114e7d"
+  },
+  "probe_sha256": "8fdc71f472464c997b1766841a296bfc3de9cb4182762d454abfc379bfa8cc1a",
+  "observations": [
+    {
+      "runtime": "cpython3147",
+      "exit_code": 0,
+      "stdout": "{\"purpose\": \"generic dictionary scaling diagnosis only\", \"rounds\": 4, \"rows\": [{\"checksums\": [256, 256, 256], \"counter\": false, \"fresh_pair\": false, \"key_count\": 64, \"samples_seconds\": [1.4199991710484028e-05, 1.4200020814314485e-05, 1.4299992471933365e-05], \"shape\": \"bytes\", \"updates\": 256}, {\"checksums\": [1024, 1024, 1024], \"counter\": false, \"fresh_pair\": false, \"key_count\": 256, \"samples_seconds\": [5.440000677481294e-05, 5.310002597980201e-05, 5.3499999921768904e-05], \"shape\": \"bytes\", \"updates\": 1024}, {\"checksums\": [4096, 4096, 4096], \"counter\": false, \"fresh_pair\": false, \"key_count\": 1024, \"samples_seconds\": [0.000225499999942258, 0.00020979999681003392, 0.00021550001110881567], \"shape\": \"bytes\", \"updates\": 4096}, {\"checksums\": [256, 256, 256], \"counter\": false, \"fresh_pair\": false, \"key_count\": 64, \"samples_seconds\": [1.4699995517730713e-05, 1.4599994756281376e-05, 1.4299992471933365e-05], \"shape\": \"tuple_bytes\", \"updates\": 256}, {\"checksums\": [1024, 1024, 1024], \"counter\": false, \"fresh_pair\": false, \"key_count\": 256, \"samples_seconds\": [5.750000127591193e-05, 5.520001286640763e-05, 5.420000525191426e-05], \"shape\": \"tuple_bytes\", \"updates\": 1024}, {\"checksums\": [4096, 4096, 4096], \"counter\": false, \"fresh_pair\": false, \"key_count\": 1024, \"samples_seconds\": [0.00021169998217374086, 0.00021299999207258224, 0.00022029998945072293], \"shape\": \"tuple_bytes\", \"updates\": 4096}, {\"checksums\": [256, 256, 256], \"counter\": false, \"fresh_pair\": true, \"key_count\": 64, \"samples_seconds\": [2.3399974452331662e-05, 2.300000051036477e-05, 2.300000051036477e-05], \"shape\": \"tuple_bytes\", \"updates\": 256}, {\"checksums\": [1024, 1024, 1024], \"counter\": false, \"fresh_pair\": true, \"key_count\": 256, \"samples_seconds\": [9.339998359791934e-05, 8.820000221021473e-05, 8.769999840296805e-05], \"shape\": \"tuple_bytes\", \"updates\": 1024}, {\"checksums\": [4096, 4096, 4096], \"counter\": false, \"fresh_pair\": true, \"key_count\": 1024, \"samples_seconds\": [0.00035719998413696885, 0.0003558000025805086, 0.00034669999149627984], \"shape\": \"tuple_bytes\", \"updates\": 4096}, {\"checksums\": [256, 256, 256], \"counter\": true, \"fresh_pair\": true, \"key_count\": 64, \"samples_seconds\": [3.290001768618822e-05, 3.350002225488424e-05, 3.300001844763756e-05], \"shape\": \"tuple_bytes\", \"updates\": 256}, {\"checksums\": [1024, 1024, 1024], \"counter\": true, \"fresh_pair\": true, \"key_count\": 256, \"samples_seconds\": [0.00012670000432990491, 0.0001304999750573188, 0.00012739998055621982], \"shape\": \"tuple_bytes\", \"updates\": 1024}, {\"checksums\": [4096, 4096, 4096], \"counter\": true, \"fresh_pair\": true, \"key_count\": 1024, \"samples_seconds\": [0.000515899999300018, 0.0005185999907553196, 0.0005212999822106212], \"shape\": \"tuple_bytes\", \"updates\": 4096}]}\n",
+      "stderr": "",
+      "parsed": {
+        "purpose": "generic dictionary scaling diagnosis only",
+        "rounds": 4,
+        "rows": [
+          {
+            "checksums": [
+              256,
+              256,
+              256
+            ],
+            "counter": false,
+            "fresh_pair": false,
+            "key_count": 64,
+            "samples_seconds": [
+              1.4199991710484028e-05,
+              1.4200020814314485e-05,
+              1.4299992471933365e-05
+            ],
+            "shape": "bytes",
+            "updates": 256
+          },
+          {
+            "checksums": [
+              1024,
+              1024,
+              1024
+            ],
+            "counter": false,
+            "fresh_pair": false,
+            "key_count": 256,
+            "samples_seconds": [
+              5.440000677481294e-05,
+              5.310002597980201e-05,
+              5.3499999921768904e-05
+            ],
+            "shape": "bytes",
+            "updates": 1024
+          },
+          {
+            "checksums": [
+              4096,
+              4096,
+              4096
+            ],
+            "counter": false,
+            "fresh_pair": false,
+            "key_count": 1024,
+            "samples_seconds": [
+              0.000225499999942258,
+              0.00020979999681003392,
+              0.00021550001110881567
+            ],
+            "shape": "bytes",
+            "updates": 4096
+          },
+          {
+            "checksums": [
+              256,
+              256,
+              256
+            ],
+            "counter": false,
+            "fresh_pair": false,
+            "key_count": 64,
+            "samples_seconds": [
+              1.4699995517730713e-05,
+              1.4599994756281376e-05,
+              1.4299992471933365e-05
+            ],
+            "shape": "tuple_bytes",
+            "updates": 256
+          },
+          {
+            "checksums": [
+              1024,
+              1024,
+              1024
+            ],
+            "counter": false,
+            "fresh_pair": false,
+            "key_count": 256,
+            "samples_seconds": [
+              5.750000127591193e-05,
+              5.520001286640763e-05,
+              5.420000525191426e-05
+            ],
+            "shape": "tuple_bytes",
+            "updates": 1024
+          },
+          {
+            "checksums": [
+              4096,
+              4096,
+              4096
+            ],
+            "counter": false,
+            "fresh_pair": false,
+            "key_count": 1024,
+            "samples_seconds": [
+              0.00021169998217374086,
+              0.00021299999207258224,
+              0.00022029998945072293
+            ],
+            "shape": "tuple_bytes",
+            "updates": 4096
+          },
+          {
+            "checksums": [
+              256,
+              256,
+              256
+            ],
+            "counter": false,
+            "fresh_pair": true,
+            "key_count": 64,
+            "samples_seconds": [
+              2.3399974452331662e-05,
+              2.300000051036477e-05,
+              2.300000051036477e-05
+            ],
+            "shape": "tuple_bytes",
+            "updates": 256
+          },
+          {
+            "checksums": [
+              1024,
+              1024,
+              1024
+            ],
+            "counter": false,
+            "fresh_pair": true,
+            "key_count": 256,
+            "samples_seconds": [
+              9.339998359791934e-05,
+              8.820000221021473e-05,
+              8.769999840296805e-05
+            ],
+            "shape": "tuple_bytes",
+            "updates": 1024
+          },
+          {
+            "checksums": [
+              4096,
+              4096,
+              4096
+            ],
+            "counter": false,
+            "fresh_pair": true,
+            "key_count": 1024,
+            "samples_seconds": [
+              0.00035719998413696885,
+              0.0003558000025805086,
+              0.00034669999149627984
+            ],
+            "shape": "tuple_bytes",
+            "updates": 4096
+          },
+          {
+            "checksums": [
+              256,
+              256,
+              256
+            ],
+            "counter": true,
+            "fresh_pair": true,
+            "key_count": 64,
+            "samples_seconds": [
+              3.290001768618822e-05,
+              3.350002225488424e-05,
+              3.300001844763756e-05
+            ],
+            "shape": "tuple_bytes",
+            "updates": 256
+          },
+          {
+            "checksums": [
+              1024,
+              1024,
+              1024
+            ],
+            "counter": true,
+            "fresh_pair": true,
+            "key_count": 256,
+            "samples_seconds": [
+              0.00012670000432990491,
+              0.0001304999750573188,
+              0.00012739998055621982
+            ],
+            "shape": "tuple_bytes",
+            "updates": 1024
+          },
+          {
+            "checksums": [
+              4096,
+              4096,
+              4096
+            ],
+            "counter": true,
+            "fresh_pair": true,
+            "key_count": 1024,
+            "samples_seconds": [
+              0.000515899999300018,
+              0.0005185999907553196,
+              0.0005212999822106212
+            ],
+            "shape": "tuple_bytes",
+            "updates": 4096
+          }
+        ]
+      }
+    },
+    {
+      "runtime": "xlang3",
+      "exit_code": 0,
+      "stdout": "{\"purpose\": \"generic dictionary scaling diagnosis only\", \"rounds\": 4, \"rows\": [{\"checksums\": [256, 256, 256], \"counter\": false, \"fresh_pair\": false, \"key_count\": 64, \"samples_seconds\": [0.0012237000046297908, 0.0012361000117380172, 0.0012289000151213259], \"shape\": \"bytes\", \"updates\": 256}, {\"checksums\": [1024, 1024, 1024], \"counter\": false, \"fresh_pair\": false, \"key_count\": 256, \"samples_seconds\": [0.015880999999353662, 0.015893699979642406, 0.016249100008280948], \"shape\": \"bytes\", \"updates\": 1024}, {\"checksums\": [4096, 4096, 4096], \"counter\": false, \"fresh_pair\": false, \"key_count\": 1024, \"samples_seconds\": [0.2371986000216566, 0.23679320001974702, 0.25289469998097047], \"shape\": \"bytes\", \"updates\": 4096}, {\"checksums\": [256, 256, 256], \"counter\": false, \"fresh_pair\": false, \"key_count\": 64, \"samples_seconds\": [0.002533300023060292, 0.002535699983127415, 0.0025652000040281564], \"shape\": \"tuple_bytes\", \"updates\": 256}, {\"checksums\": [1024, 1024, 1024], \"counter\": false, \"fresh_pair\": false, \"key_count\": 256, \"samples_seconds\": [0.03465469999355264, 0.03413000001455657, 0.03400119999423623], \"shape\": \"tuple_bytes\", \"updates\": 1024}, {\"checksums\": [4096, 4096, 4096], \"counter\": false, \"fresh_pair\": false, \"key_count\": 1024, \"samples_seconds\": [0.5137632999976631, 0.5060728999960702, 0.4911275000195019], \"shape\": \"tuple_bytes\", \"updates\": 4096}, {\"checksums\": [256, 256, 256], \"counter\": false, \"fresh_pair\": true, \"key_count\": 64, \"samples_seconds\": [0.0025749999913387, 0.0025812000094447285, 0.0025610000011511147], \"shape\": \"tuple_bytes\", \"updates\": 256}, {\"checksums\": [1024, 1024, 1024], \"counter\": false, \"fresh_pair\": true, \"key_count\": 256, \"samples_seconds\": [0.033963699999731034, 0.035808100015856326, 0.03377429998363368], \"shape\": \"tuple_bytes\", \"updates\": 1024}, {\"checksums\": [4096, 4096, 4096], \"counter\": false, \"fresh_pair\": true, \"key_count\": 1024, \"samples_seconds\": [0.5152831000159495, 0.5139791000110563, 0.5138501000183169], \"shape\": \"tuple_bytes\", \"updates\": 4096}, {\"checksums\": [256, 256, 256], \"counter\": true, \"fresh_pair\": true, \"key_count\": 64, \"samples_seconds\": [0.002833499980624765, 0.0028329000051598996, 0.0028480000037234277], \"shape\": \"tuple_bytes\", \"updates\": 256}, {\"checksums\": [1024, 1024, 1024], \"counter\": true, \"fresh_pair\": true, \"key_count\": 256, \"samples_seconds\": [0.03490709999459796, 0.03418400001828559, 0.03388130001258105], \"shape\": \"tuple_bytes\", \"updates\": 1024}, {\"checksums\": [4096, 4096, 4096], \"counter\": true, \"fresh_pair\": true, \"key_count\": 1024, \"samples_seconds\": [0.4985927000234369, 0.5036238999746274, 0.5187575000163633], \"shape\": \"tuple_bytes\", \"updates\": 4096}]}\n",
+      "stderr": "",
+      "parsed": {
+        "purpose": "generic dictionary scaling diagnosis only",
+        "rounds": 4,
+        "rows": [
+          {
+            "checksums": [
+              256,
+              256,
+              256
+            ],
+            "counter": false,
+            "fresh_pair": false,
+            "key_count": 64,
+            "samples_seconds": [
+              0.0012237000046297908,
+              0.0012361000117380172,
+              0.0012289000151213259
+            ],
+            "shape": "bytes",
+            "updates": 256
+          },
+          {
+            "checksums": [
+              1024,
+              1024,
+              1024
+            ],
+            "counter": false,
+            "fresh_pair": false,
+            "key_count": 256,
+            "samples_seconds": [
+              0.015880999999353662,
+              0.015893699979642406,
+              0.016249100008280948
+            ],
+            "shape": "bytes",
+            "updates": 1024
+          },
+          {
+            "checksums": [
+              4096,
+              4096,
+              4096
+            ],
+            "counter": false,
+            "fresh_pair": false,
+            "key_count": 1024,
+            "samples_seconds": [
+              0.2371986000216566,
+              0.23679320001974702,
+              0.25289469998097047
+            ],
+            "shape": "bytes",
+            "updates": 4096
+          },
+          {
+            "checksums": [
+              256,
+              256,
+              256
+            ],
+            "counter": false,
+            "fresh_pair": false,
+            "key_count": 64,
+            "samples_seconds": [
+              0.002533300023060292,
+              0.002535699983127415,
+              0.0025652000040281564
+            ],
+            "shape": "tuple_bytes",
+            "updates": 256
+          },
+          {
+            "checksums": [
+              1024,
+              1024,
+              1024
+            ],
+            "counter": false,
+            "fresh_pair": false,
+            "key_count": 256,
+            "samples_seconds": [
+              0.03465469999355264,
+              0.03413000001455657,
+              0.03400119999423623
+            ],
+            "shape": "tuple_bytes",
+            "updates": 1024
+          },
+          {
+            "checksums": [
+              4096,
+              4096,
+              4096
+            ],
+            "counter": false,
+            "fresh_pair": false,
+            "key_count": 1024,
+            "samples_seconds": [
+              0.5137632999976631,
+              0.5060728999960702,
+              0.4911275000195019
+            ],
+            "shape": "tuple_bytes",
+            "updates": 4096
+          },
+          {
+            "checksums": [
+              256,
+              256,
+              256
+            ],
+            "counter": false,
+            "fresh_pair": true,
+            "key_count": 64,
+            "samples_seconds": [
+              0.0025749999913387,
+              0.0025812000094447285,
+              0.0025610000011511147
+            ],
+            "shape": "tuple_bytes",
+            "updates": 256
+          },
+          {
+            "checksums": [
+              1024,
+              1024,
+              1024
+            ],
+            "counter": false,
+            "fresh_pair": true,
+            "key_count": 256,
+            "samples_seconds": [
+              0.033963699999731034,
+              0.035808100015856326,
+              0.03377429998363368
+            ],
+            "shape": "tuple_bytes",
+            "updates": 1024
+          },
+          {
+            "checksums": [
+              4096,
+              4096,
+              4096
+            ],
+            "counter": false,
+            "fresh_pair": true,
+            "key_count": 1024,
+            "samples_seconds": [
+              0.5152831000159495,
+              0.5139791000110563,
+              0.5138501000183169
+            ],
+            "shape": "tuple_bytes",
+            "updates": 4096
+          },
+          {
+            "checksums": [
+              256,
+              256,
+              256
+            ],
+            "counter": true,
+            "fresh_pair": true,
+            "key_count": 64,
+            "samples_seconds": [
+              0.002833499980624765,
+              0.0028329000051598996,
+              0.0028480000037234277
+            ],
+            "shape": "tuple_bytes",
+            "updates": 256
+          },
+          {
+            "checksums": [
+              1024,
+              1024,
+              1024
+            ],
+            "counter": true,
+            "fresh_pair": true,
+            "key_count": 256,
+            "samples_seconds": [
+              0.03490709999459796,
+              0.03418400001828559,
+              0.03388130001258105
+            ],
+            "shape": "tuple_bytes",
+            "updates": 1024
+          },
+          {
+            "checksums": [
+              4096,
+              4096,
+              4096
+            ],
+            "counter": true,
+            "fresh_pair": true,
+            "key_count": 1024,
+            "samples_seconds": [
+              0.4985927000234369,
+              0.5036238999746274,
+              0.5187575000163633
+            ],
+            "shape": "tuple_bytes",
+            "updates": 4096
+          }
+        ]
+      }
+    }
+  ]
+}

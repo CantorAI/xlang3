@@ -2037,8 +2037,6 @@ inline uint64_t Response::get_header_value_u64(const std::string &key,
 inline void default_socket_options(socket_t sock) {
   int opt = 1;
 #ifdef _WIN32
-  setsockopt(sock, SOL_SOCKET, SO_REUSEADDR,
-             reinterpret_cast<const char *>(&opt), sizeof(opt));
   setsockopt(sock, SOL_SOCKET, SO_EXCLUSIVEADDRUSE,
              reinterpret_cast<const char *>(&opt), sizeof(opt));
 #else

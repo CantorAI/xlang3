@@ -1,0 +1,3 @@
+builtin literal namespace and identity True
+Python symbol mapping retains None call arguments True
+keyword literals remain independent of builtin rebinding True

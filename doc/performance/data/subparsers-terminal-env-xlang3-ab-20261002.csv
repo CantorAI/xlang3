@@ -1,0 +1,15 @@
+pair,order,environment,seconds
+1,missing-set,missing,0.256337800
+1,missing-set,set,0.213852300
+2,set-missing,set,0.216846400
+2,set-missing,missing,0.251748400
+3,missing-set,missing,0.257331100
+3,missing-set,set,0.212125000
+4,set-missing,set,0.219852800
+4,set-missing,missing,0.262427200
+5,missing-set,missing,0.263796400
+5,missing-set,set,0.221621000
+6,set-missing,set,0.224852000
+6,set-missing,missing,0.310479100
+7,missing-set,missing,0.258083200
+7,missing-set,set,0.215312200

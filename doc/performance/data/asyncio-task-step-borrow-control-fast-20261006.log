@@ -1,0 +1,17 @@
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (async_tree)
+
+(trying common venv first)
+
+[1/1] async_tree...
+...........
+async_tree_none: Mean +- std dev: 4.41 sec +- 0.04 sec
+
+Performance version: 1.14.0
+
+### async_tree_none ###
+Mean +- std dev: 4.41 sec +- 0.04 sec
+

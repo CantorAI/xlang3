@@ -1,0 +1,1052 @@
+diff --git a/modules/sqlite/sqlite_handles.h b/modules/sqlite/sqlite_handles.h
+index b752cb9f..42e28d12 100644
+--- a/modules/sqlite/sqlite_handles.h
++++ b/modules/sqlite/sqlite_handles.h
+@@ -16,9 +16,13 @@ limitations under the License.
+ 
+ #include "xlang3/xlang3.h"
+ 
+-#include "sqlite3.h"
++#include "../../third_party/sqlite/sqlite3.h"
+ 
++#include <cstddef>
++#include <cstdint>
++#include <list>
+ #include <string>
++#include <unordered_map>
+ #include <vector>
+ 
+ namespace xlang3_sqlite {
+@@ -27,10 +31,27 @@ constexpr const char* kConnectionType = "xlang3.sqlite.Connection";
+ constexpr const char* kCursorType = "xlang3.sqlite.Cursor";
+ constexpr const char* kStatementType = "xlang3.sqlite.Statement";
+ 
++struct CachedStatement {
++  sqlite3_stmt* stmt = nullptr;
++  std::string sql;
++  uint32_t refcnt = 1;
++  uint64_t generation = 0;
++  bool cached = false;
++  bool leased = false;
++};
++
+ struct ConnectionHandle {
+   sqlite3* db = nullptr;
+   uint32_t refcnt = 1;
+   bool closed = false;
++  size_t statement_cache_capacity = 128;
++  uint64_t statement_cache_generation = 0;
++  uint32_t statement_cache_invalidation_depth = 0;
++  // Explicit cursor prepare attempts only; excludes implicit transactions and
++  // SQLite's automatic schema reprepares. Internal resource proof, no API.
++  uint64_t cursor_prepare_count = 0;
++  std::list<CachedStatement*> statement_cache_lru;
++  std::unordered_map<std::string, std::list<CachedStatement*>::iterator> statement_cache;
+ };
+ 
+ struct CursorHandle {
+@@ -42,6 +63,7 @@ struct CursorHandle {
+   std::vector<std::string> column_names;
+   ConnectionHandle* connection = nullptr;
+   sqlite3_stmt* stmt = nullptr;
++  CachedStatement* cached_statement = nullptr;
+   sqlite3_int64 lastrowid = 0;
+   sqlite3_int64 rowcount = -1;
+   bool has_lastrowid = false;
+@@ -58,6 +80,10 @@ void cleanup_cursor(void* data);
+ void cleanup_statement(void* data);
+ void retain_connection(ConnectionHandle* handle);
+ void release_connection(ConnectionHandle* handle);
++void close_connection(ConnectionHandle* handle);
++void clear_connection_statement_cache(ConnectionHandle* handle);
++int prepare_cursor_statement(CursorHandle* cursor, const std::string& sql);
++void release_cursor_statement(CursorHandle* cursor, bool reusable = false);
+ 
+ ConnectionHandle* connection_from(const X3PackageHost* host, X3Value self);
+ CursorHandle* cursor_from(const X3PackageHost* host, X3Value self);
+diff --git a/modules/sqlite/sqlite_handles.cpp b/modules/sqlite/sqlite_handles.cpp
+index 03a19a53..88aca75e 100644
+--- a/modules/sqlite/sqlite_handles.cpp
++++ b/modules/sqlite/sqlite_handles.cpp
+@@ -14,8 +14,163 @@ limitations under the License.
+ */
+ #include "sqlite_handles.h"
+ 
++#include <memory>
++#include <new>
++
+ namespace xlang3_sqlite {
+ 
++namespace {
++
++void release_cached_statement(CachedStatement* statement) {
++  if (statement == nullptr || --statement->refcnt != 0) return;
++  sqlite3_stmt* detached = statement->stmt;
++  statement->stmt = nullptr;
++  if (detached != nullptr) sqlite3_finalize(detached);
++  delete statement;
++}
++
++void discard_cache_owner(ConnectionHandle* connection, CachedStatement* statement) {
++  if (!statement->cached) return;
++  auto found = connection->statement_cache.find(statement->sql);
++  if (found != connection->statement_cache.end() && *found->second == statement) {
++    connection->statement_cache_lru.erase(found->second);
++    connection->statement_cache.erase(found);
++  }
++  statement->cached = false;
++  // The finishing cursor still owns its lease; this cannot finalize it yet.
++  release_cached_statement(statement);
++}
++
++} // namespace
++
++void clear_connection_statement_cache(ConnectionHandle* connection) {
++  if (connection == nullptr) return;
++  ++connection->statement_cache_generation;
++  ++connection->statement_cache_invalidation_depth;
++  // Detach each cache owner before finalization. A destructor may close the
++  // connection, invalidate the remaining cache, or execute unrelated SQL.
++  // Nested calls run uncached until every outer invalidation has completed.
++  while (!connection->statement_cache_lru.empty()) {
++    CachedStatement* statement = connection->statement_cache_lru.back();
++    connection->statement_cache.erase(statement->sql);
++    connection->statement_cache_lru.pop_back();
++    statement->cached = false;
++    release_cached_statement(statement);
++  }
++  --connection->statement_cache_invalidation_depth;
++}
++
++void close_connection(ConnectionHandle* connection) {
++  if (connection == nullptr) return;
++  sqlite3* db = connection->db;
++  // Publish closed state before idle-statement or factory destruction calls
++  // Python. Active cursor leases keep their SQLite DB alive via close_v2 and
++  // must never return their statement into this connection's cache.
++  connection->db = nullptr;
++  connection->closed = true;
++  clear_connection_statement_cache(connection);
++  if (db != nullptr) sqlite3_close_v2(db);
++}
++
++int prepare_cursor_statement(CursorHandle* cursor, const std::string& sql) {
++  auto* connection = cursor->connection;
++  const bool cache_enabled = connection->statement_cache_capacity != 0 &&
++      connection->statement_cache_invalidation_depth == 0;
++  if (cache_enabled) {
++    auto found = connection->statement_cache.find(sql);
++    if (found != connection->statement_cache.end()) {
++      CachedStatement* statement = *found->second;
++      connection->statement_cache_lru.splice(connection->statement_cache_lru.begin(),
++          connection->statement_cache_lru, found->second);
++      if (!statement->leased) {
++        // SQLite reports busy only after stepping. Lease before binding:
++        // __len__/__getitem__, adapters, and nested native callbacks can enter
++        // this same connection while the prepared VM is not yet busy.
++        statement->leased = true;
++        ++statement->refcnt;
++        cursor->cached_statement = statement;
++        cursor->stmt = statement->stmt;
++        return SQLITE_OK;
++      }
++    }
++  }
++  sqlite3* db = connection->db;
++  const uint64_t generation = connection->statement_cache_generation;
++  ++connection->cursor_prepare_count;
++  const int rc = sqlite3_prepare_v2(db, sql.c_str(), -1, &cursor->stmt, nullptr);
++  if (rc != SQLITE_OK || cursor->stmt == nullptr || !cache_enabled ||
++      connection->closed || connection->db != db ||
++      connection->statement_cache_generation != generation ||
++      connection->statement_cache_invalidation_depth != 0 ||
++      connection->statement_cache.find(sql) != connection->statement_cache.end())
++    return rc;
++
++  // The cursor owns the raw VM until every cache allocation succeeds. A cache
++  // allocation failure is an uncached execution, never a leaked/lost lease.
++  std::unique_ptr<CachedStatement> statement;
++  try {
++    statement = std::make_unique<CachedStatement>();
++    statement->sql = sql;
++    statement->stmt = cursor->stmt;
++    statement->generation = generation;
++    connection->statement_cache_lru.push_front(statement.get());
++    try {
++      const auto inserted = connection->statement_cache.emplace(
++          statement->sql, connection->statement_cache_lru.begin());
++      if (!inserted.second) {
++        connection->statement_cache_lru.pop_front();
++        return rc;
++      }
++    } catch (...) {
++      connection->statement_cache_lru.pop_front();
++      throw;
++    }
++  } catch (const std::bad_alloc&) {
++    return rc;
++  }
++  statement->cached = true;
++  statement->leased = true;
++  statement->refcnt = 2; // cache + cursor; no connection-reference cycle
++  cursor->cached_statement = statement.release();
++  if (connection->statement_cache.size() > connection->statement_cache_capacity) {
++    CachedStatement* evicted = connection->statement_cache_lru.back();
++    connection->statement_cache.erase(evicted->sql);
++    connection->statement_cache_lru.pop_back();
++    evicted->cached = false;
++    // No cache iterator survives this callback-capable finalization. The new
++    // cursor lease is already published if eviction closes or mutates the DB.
++    release_cached_statement(evicted);
++  }
++  return rc;
++}
++
++void release_cursor_statement(CursorHandle* cursor, bool reusable) {
++  sqlite3_stmt* statement = cursor->stmt;
++  CachedStatement* cached = cursor->cached_statement;
++  cursor->stmt = nullptr;
++  cursor->cached_statement = nullptr;
++  cursor->has_row = false;
++  if (cached == nullptr) {
++    if (statement != nullptr) sqlite3_finalize(statement);
++    return;
++  }
++  auto* connection = cursor->connection;
++  // Keep leased=true throughout reset/binding destruction. They may call
++  // Python, evict this entry, close the DB or perform same-SQL nested work.
++  bool ready = reusable && cached->cached && !connection->closed &&
++      connection->db != nullptr && cached->generation == connection->statement_cache_generation;
++  if (ready) {
++    ready = sqlite3_reset(statement) == SQLITE_OK;
++    if (ready) ready = sqlite3_clear_bindings(statement) == SQLITE_OK;
++    ready = ready && cached->cached && !connection->closed && connection->db != nullptr &&
++        cached->generation == connection->statement_cache_generation;
++  }
++  if (ready) cached->leased = false;
++  else discard_cache_owner(connection, cached);
++  release_cached_statement(cached);
++}
++
++
+ void retain_connection(ConnectionHandle* handle) {
+   if (handle != nullptr) {
+     ++handle->refcnt;
+@@ -29,10 +184,7 @@ void release_connection(ConnectionHandle* handle) {
+   if (--handle->refcnt != 0) {
+     return;
+   }
+-  if (handle->db != nullptr) {
+-    sqlite3_close_v2(handle->db);
+-    handle->db = nullptr;
+-  }
++  close_connection(handle);
+   delete handle;
+ }
+ 
+@@ -41,11 +193,7 @@ void cleanup_connection(void* data) {
+   if (handle == nullptr) {
+     return;
+   }
+-  if (handle->db != nullptr) {
+-    sqlite3_close_v2(handle->db);
+-    handle->db = nullptr;
+-  }
+-  handle->closed = true;
++  close_connection(handle);
+   release_connection(handle);
+ }
+ 
+@@ -54,10 +202,7 @@ void cleanup_cursor(void* data) {
+   if (handle == nullptr) {
+     return;
+   }
+-  if (handle->stmt != nullptr) {
+-    sqlite3_finalize(handle->stmt);
+-    handle->stmt = nullptr;
+-  }
++  release_cursor_statement(handle);
+   release_connection(handle->connection);
+   delete handle;
+ }
+diff --git a/modules/sqlite/sqlite_package.cpp b/modules/sqlite/sqlite_package.cpp
+index c0e841f2..6b796772 100644
+--- a/modules/sqlite/sqlite_package.cpp
++++ b/modules/sqlite/sqlite_package.cpp
+@@ -229,34 +229,90 @@ bool set_public_dbapi_module(X3PackageHost* host, X3Value klass) {
+   return ok;
+ }
+ 
+-X3Status sqlite3_connect_kw(
+-    X3CallContext* context,
+-    X3Runtime* runtime,
+-    void* user_data,
+-    const X3Value* args,
+-    uint32_t argc,
+-    const X3KeywordArg* kwargs,
+-    uint32_t kwargc,
+-    X3Value* result) {
+-  auto* state = state_from(user_data);
++struct SqlCacheOwnedValue {
++  const X3PackageHost* host;
++  X3Value value = x3_value_invalid();
++  explicit SqlCacheOwnedValue(const X3PackageHost* owner) : host(owner) {}
++  ~SqlCacheOwnedValue() { host->value_release(value); }
++};
++
++bool sqlite_cache_size(PackageState* state, X3CallContext* context,
++    X3Runtime* runtime, X3Value value, size_t& capacity) {
++  auto* host = state->host;
++  X3Value integer = value;
++  SqlCacheOwnedValue coerced(host);
++  if (integer.tag != X3_TAG_INT64 && integer.tag != X3_TAG_BOOL) {
++    if (host->value_index(runtime, value, &coerced.value) != X3_STATUS_OK) return false;
++    integer = coerced.value;
++  }
++  if (integer.tag == X3_TAG_UINT64 && integer.as.u64 <= static_cast<uint64_t>(INT_MAX)) {
++    capacity = static_cast<size_t>(integer.as.u64);
++    return true;
++  }
++  if (integer.tag != X3_TAG_INT64 && integer.tag != X3_TAG_BOOL) {
++    host->raise_class_error(context, "OverflowError", "Python int too large to convert to C int");
++    return false;
++  }
++  const int64_t number = integer.tag == X3_TAG_BOOL ? (integer.as.b ? 1 : 0) : integer.as.i64;
++  if (number < INT_MIN || number > INT_MAX) {
++    host->raise_class_error(context, "OverflowError", "Python int too large to convert to C int");
++    return false;
++  }
++  capacity = number < 0 ? 0 : static_cast<size_t>(number);
++  return true;
++}
++
++bool sqlite_connect_options(PackageState* state, X3CallContext* context,
++    X3Runtime* runtime, const X3KeywordArg* kwargs, uint32_t kwargc, size_t& capacity) {
++  bool seen_cache_size = false;
+   for (uint32_t index = 0; index < kwargc; ++index) {
+     const char* name = kwargs[index].name;
+-    if (name == nullptr || std::string_view(name) != "check_same_thread") {
+-      const std::string message = std::string("'") +
+-          (name == nullptr ? "" : name) +
++    if (name != nullptr && std::string_view(name) == "cached_statements") {
++      if (seen_cache_size) {
++        state->host->raise_class_error(context, "TypeError", "multiple values for cached_statements");
++        return false;
++      }
++      seen_cache_size = true;
++      if (!sqlite_cache_size(state, context, runtime, kwargs[index].value, capacity)) return false;
++    } else if (name != nullptr && std::string_view(name) == "check_same_thread") {
++      if (kwargs[index].value.tag != X3_TAG_BOOL && kwargs[index].value.tag != X3_TAG_INT64) {
++        state->host->raise_class_error(context, "TypeError", "check_same_thread must be a boolean");
++        return false;
++      }
++    } else {
++      const std::string message = std::string("'") + (name == nullptr ? "" : name) +
+           "' is an invalid keyword argument for Connection()";
+       state->host->raise_class_error(context, "TypeError", message.c_str());
+-      return X3_STATUS_ERROR;
+-    }
+-    if (kwargs[index].value.tag != X3_TAG_BOOL && kwargs[index].value.tag != X3_TAG_INT64) {
+-      state->host->raise_class_error(
+-          context, "TypeError", "check_same_thread must be a boolean");
+-      return X3_STATUS_ERROR;
++      return false;
+     }
+   }
+-  return sqlite3_connect(context, runtime, user_data, args, argc, result);
++  return true;
+ }
+ 
++X3Status connection_init_kw(
++    X3CallContext* context, X3Runtime* runtime, void* user_data,
++    const X3Value* args, uint32_t argc, const X3KeywordArg* kwargs,
++    uint32_t kwargc, X3Value* result) {
++  auto* state = state_from(user_data);
++  size_t capacity = 128;
++  if (!sqlite_connect_options(state, context, runtime, kwargs, kwargc, capacity)) return X3_STATUS_ERROR;
++  const X3Status status = connection_init(context, runtime, user_data, args, argc, result);
++  if (status == X3_STATUS_OK)
++    xlang3_sqlite::connection_from(state->host, args[0])->statement_cache_capacity = capacity;
++  return status;
++}
++X3Status sqlite3_connect_kw(
++    X3CallContext* context, X3Runtime* runtime, void* user_data,
++    const X3Value* args, uint32_t argc, const X3KeywordArg* kwargs,
++    uint32_t kwargc, X3Value* result) {
++  auto* state = state_from(user_data);
++  size_t capacity = 128;
++  if (!sqlite_connect_options(state, context, runtime, kwargs, kwargc, capacity)) return X3_STATUS_ERROR;
++  const X3Status status = sqlite3_connect(context, runtime, user_data, args, argc, result);
++  if (status == X3_STATUS_OK)
++    xlang3_sqlite::connection_from(state->host, *result)->statement_cache_capacity = capacity;
++  return status;
++}
+ struct ScalarFunction {
+   const X3PackageHost* host = nullptr;
+   X3Runtime* runtime = nullptr;
+@@ -405,11 +461,17 @@ X3Status connection_create_function_kw(
+     host->raise_class_error(context, "TypeError", "create_function() narg must be an integer");
+     return X3_STATUS_ERROR;
+   }
++  const std::string owned_name(name);
++  xlang3_sqlite::clear_connection_statement_cache(connection);
++  if (connection->db == nullptr || connection->closed) {
++    host->raise_error(context, state->programming_error_class, "sqlite connection is closed");
++    return X3_STATUS_ERROR;
++  }
+   auto* function = new ScalarFunction{host, runtime, args[3]};
+   host->value_retain(function->callable);
+   const int flags = SQLITE_UTF8 | (deterministic ? SQLITE_DETERMINISTIC : 0);
+   const int rc = sqlite3_create_function_v2(
+-      connection->db, name, static_cast<int>(args[2].as.i64), flags,
++      connection->db, owned_name.c_str(), static_cast<int>(args[2].as.i64), flags,
+       function, invoke_scalar_function, nullptr, nullptr, destroy_scalar_function);
+   if (rc != SQLITE_OK) {
+     destroy_scalar_function(function);
+@@ -858,6 +920,11 @@ X3Status connection_create_aggregate_kw(
+     host->raise_error(context, state->programming_error_class, message.c_str());
+     return X3_STATUS_ERROR;
+   }
++  xlang3_sqlite::clear_connection_statement_cache(connection);
++  if (connection->db == nullptr || connection->closed) {
++    host->raise_error(context, state->programming_error_class, "Cannot operate on a closed database.");
++    return X3_STATUS_ERROR;
++  }
+   auto* function = new (std::nothrow) SqlAggregateFunction{host, runtime, parameters[2]};
+   if (!function) {
+     host->raise_class_error(context, "MemoryError", "cannot allocate aggregate registration");
+@@ -1034,18 +1101,14 @@ X3Status connection_close(
+   auto* host = state_from(user_data)->host;
+   if (!check_argc(host, context, argc, 1, "Connection.close()")) return X3_STATUS_ERROR;
+   auto* connection = xlang3_sqlite::connection_from(host, args[0]);
+-  if (connection != nullptr && connection->db != nullptr) {
+-    sqlite3_close_v2(connection->db);
+-    connection->db = nullptr;
+-    connection->closed = true;
+-  }
++  if (connection != nullptr) xlang3_sqlite::close_connection(connection);
+   *result = x3_value_none();
+   return X3_STATUS_OK;
+ }
+ 
+-// Completed statements must release their SQLite resources even while a
+-// Python cursor remains live. Reset-only cursors can keep a close-v2 zombie DB
+-// and its registered factories alive; cached column names preserve description.
++// Completed cursors release their active lease even while Python retains the
++// cursor. Only successfully reset VMs remain owned by the connection cache;
++// close/invalidation drops those owners before close_v2 can retain factories.
+ struct CursorCallLock {
+   xlang3_sqlite::CursorHandle* cursor;
+   explicit CursorCallLock(xlang3_sqlite::CursorHandle* value) : cursor(value) {
+@@ -1064,11 +1127,8 @@ bool check_cursor_unlocked(PackageState* state, X3CallContext* context,
+   return true;
+ }
+ 
+-void finish_cursor_statement(xlang3_sqlite::CursorHandle* cursor) {
+-  sqlite3_stmt* statement = cursor->stmt;
+-  cursor->stmt = nullptr;
+-  cursor->has_row = false;
+-  if (statement != nullptr) sqlite3_finalize(statement);
++void finish_cursor_statement(xlang3_sqlite::CursorHandle* cursor, bool reusable = false) {
++  xlang3_sqlite::release_cursor_statement(cursor, reusable);
+ }
+ 
+ X3Status cursor_close(
+@@ -1168,7 +1228,7 @@ X3Status cursor_execute(
+     raise_sqlite_error(state, context, cursor->connection->db, "begin transaction failed");
+     return X3_STATUS_ERROR;
+   }
+-  if (sqlite3_prepare_v2(cursor->connection->db, sql, -1, &cursor->stmt, nullptr) != SQLITE_OK) {
++  if (xlang3_sqlite::prepare_cursor_statement(cursor, owned_sql) != SQLITE_OK) {
+     raise_sqlite_error(state, context, cursor->connection->db, "prepare failed");
+     finish_cursor_statement(cursor);
+     return X3_STATUS_ERROR;
+@@ -1216,7 +1276,7 @@ X3Status cursor_execute(
+   }
+   if (rc == SQLITE_DONE) {
+     if (cursor->write_statement) cursor->rowcount = sqlite3_changes64(db);
+-    finish_cursor_statement(cursor);
++    finish_cursor_statement(cursor, true);
+   }
+   *result = args[0];
+   return X3_STATUS_OK;
+@@ -1450,7 +1510,7 @@ X3Status cursor_fetchone(
+   const int rc = sqlite3_step(cursor->stmt);
+   if (rc == SQLITE_DONE) {
+     if (cursor->write_statement) cursor->rowcount = sqlite3_changes64(db);
+-    finish_cursor_statement(cursor);
++    finish_cursor_statement(cursor, true);
+   } else if (rc != SQLITE_ROW) {
+     raise_sqlite_error(state, context, db, "fetchone failed");
+     finish_cursor_statement(cursor);
+@@ -1963,9 +2023,9 @@ X3Status register_sqlite_package(X::Package<xlang_sqlite3>* package) {
+   // Read appended callbacks only after checking the host struct's byte size.
+   // Existing packages remain prefix-compatible; this package needs exception
+   // transport because SQLite may finalize a callback outside a native call.
+-  const size_t required = offsetof(X3PackageHost, runtime_restore_exception) +
+-      sizeof(host->runtime_restore_exception);
+-  if (host->size < required || !host->runtime_take_exception || !host->runtime_restore_exception)
++  const size_t required = offsetof(X3PackageHost, value_index) +
++      sizeof(host->value_index);
++  if (host->size < required || !host->runtime_take_exception || !host->runtime_restore_exception || !host->value_index)
+     return X3_STATUS_ERROR;
+   auto* state = new PackageState();
+   state->host = host;
+@@ -2009,7 +2069,7 @@ X3Status register_sqlite_package(X::Package<xlang_sqlite3>* package) {
+   host->module_add_value(sqlite, "DataError", state->data_error_class);
+ 
+   X3NativeFunctionDef connection_methods[12]{};
+-  def_method(connection_methods[0], "__init__", connection_init, state);
++  def_method(connection_methods[0], "__init__", connection_init, state, connection_init_kw);
+   def_method(connection_methods[1], "cursor", connection_cursor, state);
+   def_method(connection_methods[2], "commit", connection_commit, state);
+   def_method(connection_methods[3], "rollback", connection_rollback, state);
+diff --git a/tests/cpp/interpreter_tests.cpp b/tests/cpp/interpreter_tests.cpp
+index 2e9866bd..4b6bd0d7 100644
+--- a/tests/cpp/interpreter_tests.cpp
++++ b/tests/cpp/interpreter_tests.cpp
+@@ -14,6 +14,7 @@ limitations under the License.
+ */
+ #include "test_harness.h"
+ #include "sqlite_aggregate_abi_cases.h"
++#include "sqlite_statement_cache_cases.h"
+ #include "canonical_slot_read_cases.h"
+ #include "native_bound_zero_args_cases.h"
+ #include "identity_last_use_cases.h"
+@@ -26,6 +27,7 @@ limitations under the License.
+ int main(int argc, char** argv) {
+   xlang3::test::CaseResult result;
+   xlang3::test::check_sqlite_aggregate_abi(result, argc > 0 ? argv[0] : nullptr);
++  xlang3::test::check_sqlite_statement_cache(result, argc > 0 ? argv[0] : nullptr);
+   xlang3::test::check_canonical_slot_read_cases(result);
+   xlang3::test::check_native_bound_zero_args(result);
+   xlang3::test::check_identity_last_use_cases(result);
+diff --git a/tests/run_fixtures.py b/tests/run_fixtures.py
+index 175ff604..613944f1 100644
+--- a/tests/run_fixtures.py
++++ b/tests/run_fixtures.py
+@@ -9,6 +9,7 @@ import tempfile
+ 
+ 
+ CORE_CASES = """
++sqlite_statement_cache
+ native_bound_zero_args
+ hash_exception_preservation
+ identity_last_use
+diff --git a/tests/run_fixtures.ps1 b/tests/run_fixtures.ps1
+index 5cbaaa0f..a2375559 100644
+--- a/tests/run_fixtures.ps1
++++ b/tests/run_fixtures.ps1
+@@ -22,6 +22,7 @@ if (-not $XLang3) {
+ 
+ $root = $PSScriptRoot
+ $cases = @(
++    "sqlite_statement_cache",
+     "native_bound_zero_args",
+     "identity_last_use",
+     "hash_exception_preservation",
+diff --git a/sdk/xlang3/abi/xmodule.h b/sdk/xlang3/abi/xmodule.h
+index 896b5434..145facf9 100644
+--- a/sdk/xlang3/abi/xmodule.h
++++ b/sdk/xlang3/abi/xmodule.h
+@@ -180,6 +180,9 @@ typedef struct X3PackageHost {
+      edits runtime_last_error, whose text describes the last failed SDK call. */
+   X3Status (*runtime_take_exception)(X3Runtime*, X3Value*);
+   X3Status (*runtime_restore_exception)(X3Runtime*, X3Value);
++  /* Intrinsic integer/index protocol; owned result, no public operator lookup.
++     Appended optional callback preserves all existing package-host prefixes. */
++  X3Status (*value_index)(X3Runtime*, X3Value, X3Value*);
+ } X3PackageHost;
+ 
+ typedef X3Status (*X3PackageInitFn)(void* host, X3Value cur_module);
+diff --git a/src/import/native_package_loader.cpp b/src/import/native_package_loader.cpp
+index 9d75c2db..cab14fcc 100644
+--- a/src/import/native_package_loader.cpp
++++ b/src/import/native_package_loader.cpp
+@@ -15,6 +15,8 @@ limitations under the License.
+ #include "xlang3/native_package_loader.h"
+ 
+ #include "xlang3/attribute.h"
++#include "xlang3/builtins.h"
++#include "xlang3/functional_iterators.h"
+ #include "xlang3/c_api_bridge.h"
+ #include "xlang3/module_object.h"
+ #include "xlang3/mapping.h"
+@@ -814,6 +816,54 @@ X3Status host_runtime_restore_exception(X3Runtime* runtime, X3Value raw) {
+   return X3_STATUS_OK;
+ }
+ 
++// Intrinsic native-to-Python integer-index conversion. Public operator.index,
++// instance attributes and __getattribute__ overrides do not define this
++// protocol; use the runtime's existing type-level special-method binding.
++X3Status host_value_index(X3Runtime* runtime, X3Value raw, X3Value* out) {
++  XlangRuntimeExecutionGuard guard;
++  if (runtime == nullptr || out == nullptr) return X3_STATUS_ERROR;
++  auto* rt = reinterpret_cast<Runtime*>(runtime);
++  std::string error;
++  Value input = from_c_value(raw, error);
++  if (!error.empty()) { rt->set_last_error(error); return X3_STATUS_ERROR; }
++  Value integer;
++  if (input.tag == ValueTag::Bool) integer = Value::int64(input.as.b ? 1 : 0);
++  else if (input.tag == ValueTag::Int64 || value_as_bigint(input) != nullptr) integer = input;
++  else {
++    Value method;
++    if (!object_get_special_method(*rt, input, "__index__", method, error)) {
++      Value pending;
++      if (rt->take_pending_exception(pending)) rt->set_pending_exception(std::move(pending));
++      else {
++        error = "'" + std::string(value_binary_type_name(input)) + "' object cannot be interpreted as an integer";
++        rt->raise_class_error("TypeError", error);
++      }
++      rt->set_last_error(error);
++      return X3_STATUS_ERROR;
++    }
++    if (!runtime_call_callable(*rt, method, nullptr, 0, integer, error)) {
++      rt->set_last_error(error);
++      return X3_STATUS_ERROR;
++    }
++    if (integer.tag == ValueTag::Bool) {
++      const auto* category = rt->find_builtin("DeprecationWarning");
++      const Value message = Value::string("__index__ returned non-int (type bool).  The ability to return an instance of a strict subclass of int is deprecated, and may be removed in a future version of Python.");
++      if (category == nullptr || !runtime_warn(*rt, message, *category, 1, error)) {
++        rt->set_last_error(error);
++        return X3_STATUS_ERROR;
++      }
++      integer = Value::int64(integer.as.b ? 1 : 0);
++    } else if (integer.tag != ValueTag::Int64 && value_as_bigint(integer) == nullptr) {
++      error = "__index__ returned non-int (type " + std::string(value_binary_type_name(integer)) + ")";
++      rt->raise_class_error("TypeError", error);
++      rt->set_last_error(error);
++      return X3_STATUS_ERROR;
++    }
++  }
++  *out = to_c_value(integer); // an owned ABI result; callback exceptions stay pending on failure
++  return X3_STATUS_OK;
++}
++
+ const X3PackageHost kPackageHostTemplate = {
+     X3_ABI_VERSION,
+     sizeof(X3PackageHost),
+@@ -900,6 +950,7 @@ const X3PackageHost kPackageHostTemplate = {
+     x3_buffer_release,
+     host_runtime_take_exception,
+     host_runtime_restore_exception,
++    host_value_index,
+ };
+ 
+ std::vector<std::filesystem::path> collect_native_library_candidates(
+diff --git a/tests/cpp/sqlite_statement_cache_cases.h b/tests/cpp/sqlite_statement_cache_cases.h
+new file mode 100644
+index 00000000..72a2d12c
+--- /dev/null
++++ b/tests/cpp/sqlite_statement_cache_cases.h
+@@ -0,0 +1,138 @@
++#pragma once
++#include "test_harness.h"
++#include "sqlite_aggregate_abi_cases.h"
++#include "../../modules/sqlite/sqlite_handles.h"
++#include <filesystem>
++#include <stdexcept>
++
++namespace xlang3::test::sqlite_cache_probe {
++
++inline void require(bool ok, const char* message) {
++  if (!ok) throw std::runtime_error(message);
++}
++
++inline xlang3_sqlite::ConnectionHandle* connection_handle(X::Runtime& runtime, const X::Value& value) {
++  auto* handle = static_cast<xlang3_sqlite::ConnectionHandle*>(
++      runtime.host()->instance_get_native_data(value.raw(), xlang3_sqlite::kConnectionType));
++  require(handle != nullptr, "missing actual native cache connection handle");
++  return handle;
++}
++
++inline xlang3_sqlite::CursorHandle* cursor_handle(X::Runtime& runtime, const X::Value& value) {
++  auto* handle = static_cast<xlang3_sqlite::CursorHandle*>(
++      runtime.host()->instance_get_native_data(value.raw(), xlang3_sqlite::kCursorType));
++  require(handle != nullptr, "missing actual native cache cursor lease");
++  return handle;
++}
++
++inline void check(X::Runtime& runtime) {
++  X::Module module(runtime, "sqlite_statement_cache_sdk_probe");
++  X::Value connection, result;
++  require(module["connect"].Call({}, connection), "cannot open default cached connection");
++  auto* handle = connection_handle(runtime, connection);
++  require(handle->statement_cache_capacity == 128, "default native cache capacity differs from 3.14");
++  require(module["setup"].Call({connection}, result), "cannot create native cache table");
++  const auto before = handle->cursor_prepare_count;
++  for (int index = 0; index < 8; ++index)
++    require(module["insert"].Call({connection, X::Value(index)}, result), "repeated native shortcut INSERT failed");
++  require(handle->cursor_prepare_count == before + 1 && handle->statement_cache.size() == 2 &&
++      handle->statement_cache_lru.size() == 2, "identical INSERT across fresh cursors did not reuse one actual prepare");
++  require(module["omitted_binding"].Call({connection}, result) && result.IsNone(),
++      "cache retained a prior binding instead of the accepted uncached NULL behavior");
++  require(module["failed_binding"].Call({connection}, result) &&
++      handle->statement_cache.count("INSERT INTO cache_rows VALUES (?)") == 0,
++      "a failed binding retained its unusable cache lease");
++  require(module["insert"].Call({connection, X::Value(0)}, result), "cannot re-prime INSERT lease");
++  const auto nested_before = handle->cursor_prepare_count;
++  require(module["bind_nested"].Call({connection}, result) &&
++      handle->cursor_prepare_count == nested_before + 1,
++      "same-SQL nested binding reused an unstepped leased VM or missed the busy fallback");
++
++  X::Value first, second;
++  require(module["open_rows"].Call({connection}, first), "cannot open first cached SELECT lease");
++  auto* first_handle = cursor_handle(runtime, first);
++  require(first_handle->cached_statement != nullptr && first_handle->cached_statement->leased,
++      "row-producing cursor did not publish a cache lease before callbacks");
++  const auto busy_before = handle->cursor_prepare_count;
++  require(module["open_rows"].Call({connection}, second), "cannot open independent busy SELECT");
++  auto* second_handle = cursor_handle(runtime, second);
++  require(handle->cursor_prepare_count == busy_before + 1 && second_handle->cached_statement == nullptr &&
++      first_handle->stmt != second_handle->stmt, "active identical SQL aliased its cached cursor statement");
++  require(first["fetchall"].Call({}, result) && second["fetchall"].Call({}, result),
++      "independent row leases did not finish");
++  require(first_handle->stmt == nullptr && second_handle->stmt == nullptr,
++      "completed cursor retained a published active VM");
++  require(connection["close"].Call({}, result) && handle->statement_cache.empty() &&
++      handle->statement_cache_lru.empty(), "explicit close retained native cached SQLite resources");
++
++  X::Value disabled;
++  require(module["connect"].Call({X::Value(0)}, disabled), "cached_statements=0 rejected");
++  auto* uncached = connection_handle(runtime, disabled);
++  require(module["setup"].Call({disabled}, result), "cannot set up uncached connection");
++  const auto disabled_before = uncached->cursor_prepare_count;
++  for (int index = 0; index < 3; ++index)
++    require(module["insert"].Call({disabled, X::Value(index)}, result), "uncached INSERT failed");
++  require(uncached->statement_cache_capacity == 0 && uncached->statement_cache.empty() &&
++      uncached->cursor_prepare_count == disabled_before + 3, "cache disable option did not preserve uncached preparation");
++
++  X::Value lru;
++  require(module["connect"].Call({X::Value(2)}, lru), "cannot open bounded LRU connection");
++  auto* bounded = connection_handle(runtime, lru);
++  for (const char* sql : {"SELECT 1", "SELECT 2", "SELECT 1", "SELECT 3"})
++    require(module["scalar"].Call({lru, X::Value(runtime, sql)}, result), "LRU scalar execution failed");
++  require(bounded->cursor_prepare_count == 3 && bounded->statement_cache.size() == 2 &&
++      bounded->statement_cache.count("SELECT 1") == 1 && bounded->statement_cache.count("SELECT 2") == 0,
++      "bounded cache did not retain the touched statement and evict the least recently used SQL");
++  require(module["scalar"].Call({lru, X::Value(runtime, "SELECT 2")}, result) &&
++      bounded->cursor_prepare_count == 4, "evicted SQL did not require a new native prepare");
++
++  X::Module aggregate(runtime, "sqlite_aggregate_sdk_probe");
++  auto counters = std::make_shared<sqlite_aggregate_probe::FactoryCounters>();
++  auto callback = sqlite_aggregate_probe::factory(runtime, aggregate["Sum"], counters);
++  require(lru["create_aggregate"].Call({X::Value(runtime, "sdk_sum"), X::Value(1), callback}, result),
++      "cannot register cached aggregate factory");
++  callback = X::Value();
++  require(aggregate["query"].Call({lru}, result) && result.ToInt64() == 6 && counters->called == 1,
++      "cached aggregate did not execute its Python algorithm");
++  require(lru["create_aggregate"].Call({X::Value(runtime, "sdk_sum"), X::Value(1), aggregate["Sum"]}, result) &&
++      counters->destroyed == 1 && bounded->statement_cache.empty(),
++      "cache invalidation changed accepted immediate aggregate replacement lifetime");
++  require(disabled["close"].Call({}, result) && lru["close"].Call({}, result), "cache test teardown failed");
++}
++
++} // namespace xlang3::test::sqlite_cache_probe
++
++namespace xlang3::test {
++inline void check_sqlite_statement_cache(CaseResult& result, const char* program) {
++  try {
++    using namespace sqlite_cache_probe;
++    require(program != nullptr, "cannot locate native cache test executable");
++    const auto fixtures = std::filesystem::absolute(std::filesystem::path(__FILE__)).parent_path();
++    const auto modules = std::filesystem::absolute(std::filesystem::path(program)).parent_path() / "modules";
++    sqlite_aggregate_probe::ProbeState state;
++    X::Runtime runtime;
++    X3Value package = x3_value_invalid();
++    runtime.check(x3_runtime_register_package(runtime.get(), "sqlite_cache_index_probe",
++        sqlite_aggregate_probe::capture_host, &state, &package));
++    x3_value_release(package);
++    require(state.host != nullptr && state.host->size >= offsetof(X3PackageHost, value_index) +
++        sizeof(state.host->value_index) && state.host->value_index != nullptr,
++        "real package host lacks the prefix-compatible intrinsic index callback");
++    static_assert(offsetof(X3PackageHost, value_index) ==
++        offsetof(X3PackageHost, runtime_restore_exception) + sizeof(X3PackageHost::runtime_restore_exception));
++    X3Value indexed = x3_value_invalid();
++    require(state.host->value_index(runtime.get(), x3_value_bool(1), &indexed) == X3_STATUS_OK &&
++        indexed.tag == X3_TAG_INT64 && indexed.as.i64 == 1,
++        "native intrinsic bool index did not return an owned canonical integer");
++    require(state.host->value_index(nullptr, x3_value_int64(1), &indexed) == X3_STATUS_ERROR &&
++        state.host->value_index(runtime.get(), x3_value_int64(1), nullptr) == X3_STATUS_ERROR,
++        "native intrinsic index accepted null runtime/output");
++    runtime.AddImportRoot(fixtures.string().c_str());
++    runtime.AddImportRoot(modules.string().c_str());
++    check(runtime);
++    expect_true(result, true, "SQLite native prepare reuse, LRU, leases, bindings and callback owners");
++  } catch (const std::exception& error) {
++    expect_true(result, false, std::string("SQLite cache probe: ") + error.what());
++  }
++}
++} // namespace xlang3::test
+diff --git a/tests/cpp/sqlite_statement_cache_sdk_probe.py b/tests/cpp/sqlite_statement_cache_sdk_probe.py
+new file mode 100644
+index 00000000..997121ff
+--- /dev/null
++++ b/tests/cpp/sqlite_statement_cache_sdk_probe.py
+@@ -0,0 +1,56 @@
++"""Real native SQLite cache resource/lease observations for the C++ fixture."""
++import sqlite3
++
++
++def connect(size=128):
++    return sqlite3.connect(':memory:', cached_statements=size)
++
++
++def setup(connection):
++    connection.execute('CREATE TABLE cache_rows(x)')
++
++
++def insert(connection, value):
++    return connection.execute('INSERT INTO cache_rows VALUES (?)', (value,))
++
++
++def scalar(connection, sql):
++    return connection.execute(sql).fetchone()[0]
++
++
++def rows(connection):
++    return connection.execute('SELECT x FROM cache_rows ORDER BY rowid').fetchall()
++
++
++def open_rows(connection):
++    return connection.execute('SELECT 1 UNION ALL SELECT 2')
++
++
++def bind_nested(connection):
++    class Parameters:
++        def __len__(self):
++            return 1
++
++        def __getitem__(self, index):
++            assert index == 0
++            insert(connection, 2)
++            return 1
++
++    return connection.execute('INSERT INTO cache_rows VALUES (?)', Parameters())
++
++
++def failed_binding(connection):
++    try:
++        insert(connection, object())
++    except sqlite3.Error:
++        return True
++    raise AssertionError('unsupported binding did not fail')
++
++
++def omitted_binding(connection):
++    # The accepted own binder's omitted-parameter behavior is an existing
++    # compatibility gap. This C++-only observation proves cache reuse never
++    # resurrects a previous non-NULL binding; it is not a CP reference fixture.
++    connection.execute('INSERT INTO cache_rows VALUES (?)')
++    return connection.execute('SELECT x FROM cache_rows ORDER BY rowid DESC').fetchone()[0]
++
+diff --git a/tests/fixtures/core/sqlite_statement_cache.py b/tests/fixtures/core/sqlite_statement_cache.py
+new file mode 100644
+index 00000000..89f9736c
+--- /dev/null
++++ b/tests/fixtures/core/sqlite_statement_cache.py
+@@ -0,0 +1,190 @@
++"""Prepared SQL reuse preserves native cursor, parameter and callback semantics."""
++import gc
++import operator
++import sqlite3
++import weakref
++
++
++class CacheSize:
++    def __index__(self):
++        return 2
++
++
++for size in (0, -1, 1, CacheSize()):
++    con = sqlite3.connect(':memory:', cached_statements=size)
++    con.execute('CREATE TABLE values_seen(x)')
++    for value in (17, None, 'text\x00payload', b'\x00\xff', ''):
++        cur = con.execute('INSERT INTO values_seen VALUES (?)', (value,))
++        assert cur.rowcount == 1 and cur.lastrowid is not None
++    assert [row[0] for row in con.execute('SELECT x FROM values_seen ORDER BY rowid')] == [
++        17, None, 'text\x00payload', b'\x00\xff', '']
++    con.close()
++for bad in (1.5, '2'):
++    try:
++        sqlite3.connect(':memory:', cached_statements=bad)
++    except TypeError:
++        pass
++    else:
++        raise AssertionError('cache capacity must use the integer index protocol')
++direct = sqlite3.Connection(':memory:', cached_statements=0)
++direct.close()
++print('configurable cache and fresh parameter values')
++
++index_calls = []
++
++
++class IntrinsicSize:
++    def __index__(self):
++        index_calls.append('class')
++        return 2
++
++    def __getattribute__(self, name):
++        if name == '__index__':
++            return lambda: 0
++        return object.__getattribute__(self, name)
++
++
++capacity = IntrinsicSize()
++capacity.__index__ = lambda: 0
++saved_index = operator.index
++operator.index = lambda value: (_ for _ in ()).throw(AssertionError('public operator.index called'))
++try:
++    intrinsic = sqlite3.connect(':memory:', cached_statements=capacity)
++    intrinsic.execute('SELECT 1').fetchone()
++    intrinsic.close()
++finally:
++    operator.index = saved_index
++assert index_calls == ['class']
++marker = LookupError('index failure identity')
++
++
++class FailingSize:
++    def __index__(self):
++        raise marker
++
++
++try:
++    sqlite3.connect(':memory:', cached_statements=FailingSize())
++except LookupError as caught:
++    assert caught is marker
++else:
++    raise AssertionError('index callback exception was replaced')
++
++
++class OverflowSize:
++    def __index__(self):
++        return 2 ** 40
++
++
++for value in (2 ** 40, OverflowSize()):
++    try:
++        sqlite3.connect(':memory:', cached_statements=value)
++    except OverflowError:
++        pass
++    else:
++        raise AssertionError('cache capacity must respect the native C-int range')
++print('intrinsic index ignores public and instance overrides and preserves failures')
++
++con = sqlite3.connect(':memory:', cached_statements=2)
++sql = 'SELECT ? AS x UNION ALL SELECT ?'
++first = con.execute(sql, (1, 2))
++second = con.execute(sql, (3, 4))
++assert tuple(first.fetchone()) == (1,) and tuple(second.fetchone()) == (3,)
++assert tuple(first.fetchone()) == (2,) and tuple(second.fetchone()) == (4,)
++assert first.fetchone() is None and second.fetchone() is None
++assert first.description[0][0] == second.description[0][0] == 'x'
++assert tuple(con.execute(sql, (5, 6)).fetchone()) == (5,)
++print('overlapping identical statements have independent cursor leases')
++
++con.execute('CREATE TABLE nested_values(x)')
++insert = 'INSERT INTO nested_values VALUES (?)'
++con.execute(insert, (0,))
++
++
++class Parameters:
++    def __len__(self):
++        return 1
++
++    def __getitem__(self, index):
++        assert index == 0
++        con.execute(insert, (2,))
++        return 1
++
++
++con.execute(insert, Parameters())
++assert [row[0] for row in con.execute('SELECT x FROM nested_values ORDER BY rowid')] == [0, 2, 1]
++try:
++    con.execute(insert, (object(),))
++except sqlite3.Error:
++    pass
++else:
++    raise AssertionError('unsupported binding did not fail')
++con.execute(insert, (9,))
++assert [row[0] for row in con.execute('SELECT x FROM nested_values ORDER BY rowid')] == [0, 2, 1, 9]
++print('binding callbacks and failures leave reusable statements clean')
++
++con.execute('CREATE TABLE schema_values(x)')
++con.execute('INSERT INTO schema_values VALUES (?)', (1,))
++assert tuple(con.execute('SELECT x FROM schema_values').fetchone()) == (1,)
++con.execute('ALTER TABLE schema_values ADD COLUMN y')
++con.execute('INSERT INTO schema_values(x) VALUES (?)', (2,))
++assert [tuple(row) for row in con.execute('SELECT x FROM schema_values')] == [(1,), (2,)]
++returning = con.execute('INSERT INTO schema_values(x) VALUES (3), (4) RETURNING x')
++assert returning.rowcount == 0 and tuple(returning.fetchone()) == (3,)
++assert tuple(returning.fetchone()) == (4,) and returning.rowcount == 2
++assert returning.fetchone() is None and returning.description[0][0] == 'x'
++print('schema reprepare and returning progression preserve metadata')
++
++
++class Sum:
++    def __init__(self):
++        self.total = 0
++
++    def step(self, value):
++        self.total += value
++
++    def finalize(self):
++        return self.total
++
++
++events = []
++
++
++class Factory:
++    def __call__(self):
++        return Sum()
++
++    def __del__(self):
++        events.append('released')
++
++
++factory = Factory()
++reference = weakref.ref(factory)
++con.create_aggregate('cached_sum', 1, factory)
++del factory
++aggregate_sql = 'SELECT cached_sum(x) FROM (SELECT 1 AS x UNION ALL SELECT 2)'
++retained = con.execute(aggregate_sql)
++assert tuple(retained.fetchone()) == (3,)
++con.create_aggregate('cached_sum', 1, Sum)
++gc.collect()
++assert reference() is None and events == ['released']
++assert retained.description[0][0] == 'cached_sum(x)'
++assert tuple(con.execute(aggregate_sql).fetchone()) == (3,)
++print('cached completion preserves aggregate replacement and factory lifetime')
++
++con.create_function('cached_scalar', 0, lambda: 7)
++assert tuple(con.execute('SELECT cached_scalar()').fetchone()) == (7,)
++con.create_function('cached_scalar', 0, lambda: 8)
++assert tuple(con.execute('SELECT cached_scalar()').fetchone()) == (8,)
++active = con.execute('SELECT 1 UNION ALL SELECT 2')
++con.close()
++try:
++    active.fetchone()
++except sqlite3.ProgrammingError:
++    pass
++else:
++    raise AssertionError('closed connection must reject active cursor use')
++active.close()
++con.close()
++print('scalar replacement and active close keep native ownership safe')
++
+diff --git a/tests/fixtures/expected/sqlite_statement_cache.out b/tests/fixtures/expected/sqlite_statement_cache.out
+new file mode 100644
+index 00000000..b1e07f3c
+--- /dev/null
++++ b/tests/fixtures/expected/sqlite_statement_cache.out
+@@ -0,0 +1,7 @@
++configurable cache and fresh parameter values
++intrinsic index ignores public and instance overrides and preserves failures
++overlapping identical statements have independent cursor leases
++binding callbacks and failures leave reusable statements clean
++schema reprepare and returning progression preserve metadata
++cached completion preserves aggregate replacement and factory lifetime
++scalar replacement and active close keep native ownership safe

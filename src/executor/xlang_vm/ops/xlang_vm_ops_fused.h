@@ -28,7 +28,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow load_module_attr(
     const std::shared_ptr<const ir::Module>& module_owner, Runtime& runtime,
     XlangVMSmallRegisterBuffer& regs, Value& globals_module,
     std::unordered_map<std::string, Value>& globals,
-    std::vector<XlangVMInstrCache>& instr_cache,
+    XlangVMInstrCacheStorage& instr_cache,
     std::vector<Value>& native_call_args, size_t& ip, RuntimeResult& result,
     XlangRuntimeExecutionGuard& execution_lock,
     MakeGeneratorIfNeeded&& make_generator_if_needed, PushFrame&& push_frame,

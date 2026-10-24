@@ -1,0 +1,12 @@
+local_slots              pass         0.978x
+scalar_arithmetic        pass         0.996x
+range_for                pass         1.022x
+function_calls           pass         1.011x
+class_construct          pass         1.006x
+list_append              pass         0.991x
+property_access          pass         0.984x
+deepcopy_memo            pass         0.904x
+json_dumps               pass         0.990x
+gc_traversal             pass         0.757x
+subparsers               pass         0.953x
+Performance check: pass. Report: doc\performance\data\release-weakref-registry-index-fixed-gate-20261007.json

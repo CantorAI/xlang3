@@ -1,0 +1,3 @@
+dict-scalar-append-freshness-diagnostic-root-20261008.cpp
+scratch\performance\dict-scalar-append-freshness-diagnostic-root-20261008.cpp(7): error C2512: 'xlang3::Runtime': no appropriate default constructor available
+src\internal\xlang3/runtime.h(111): note: see declaration of 'xlang3::Runtime'

@@ -619,7 +619,11 @@ bool raise_socket_code_error(Runtime& runtime, const char* operation, int code, 
   }
 #else
   error = std::string(operation) + " failed: " + std::strerror(code);
+  // Nonblocking socket operations use EAGAIN/EWOULDBLOCK to report that no
+  // data is currently available. asyncio relies on this being a
+  // BlockingIOError so selector callbacks can treat the condition as normal.
   switch (code) {
+    case EAGAIN: exception_class = "BlockingIOError"; break;
     case ECONNREFUSED: exception_class = "ConnectionRefusedError"; break;
     case ECONNRESET: exception_class = "ConnectionResetError"; break;
     case ECONNABORTED: exception_class = "ConnectionAbortedError"; break;
@@ -1211,7 +1215,15 @@ bool socket_setsockopt(Runtime& runtime, const Value* args, uint32_t argc, Value
     std::string_view value;
     if (auto* bytes = value_as_bytes(args[3])) value = bytes_object_view(*bytes);
     else if (auto* bytearray = value_as_bytearray(args[3])) value = bytearray->value;
-    else if (auto* view = value_as_memoryview(args[3])) value = memoryview_object_view(*view);
+    else if (auto* view = value_as_memoryview(args[3])) {
+      if (view->released || !view->contiguous) {
+        error = view->released ? "operation forbidden on released memoryview object" :
+            "memoryview: underlying buffer is not C-contiguous";
+        runtime.raise_class_error(view->released ? "ValueError" : "BufferError", error);
+        return false;
+      }
+      value = memoryview_object_view(*view);
+    }
     else {
       error = "socket.setsockopt() value must be an integer or bytes-like object";
       runtime.raise_class_error("TypeError", error);
@@ -1639,8 +1651,17 @@ bool socket_send_impl(Runtime& runtime, const Value* args, uint32_t argc, Value&
 
   size_t total = 0;
   while (total < data.size()) {
-    const int chunk = static_cast<int>(std::min<size_t>(data.size() - total, 65536));
-    const int sent = without_runtime_execution_lock(
+    // Match CPython's single-send contract: pass the caller's remaining buffer
+    // to the OS and let send() report a genuine partial write. Windows accepts
+    // an int length, so clamp only to INT_MAX there. An arbitrary 64 KiB cap
+    // can force extra send/selector calls in bulk asyncio/TLS transfers.
+#ifdef _WIN32
+    const int chunk = static_cast<int>(std::min<size_t>(
+        data.size() - total, static_cast<size_t>(std::numeric_limits<int>::max())));
+#else
+    const size_t chunk = data.size() - total;
+#endif
+    const auto sent = without_runtime_execution_lock(
         [&] { return ::send(fd, data.data() + total, chunk, flags); });
     if (sent < 0) {
       return raise_socket_os_error(runtime, send_all ? "sendall" : "send", error);

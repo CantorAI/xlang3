@@ -1,0 +1,103 @@
+{
+  "status": "correctness_and_fixed_gate_passed_targeted_benchmarks_recorded",
+  "manager": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7",
+  "runtime": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "sha256_start": {
+    "exe": "c92464e9c138cafc8c73791f1d1d81c1e93aa060be244d6fa6b56a55f2e876d2",
+    "dll": "0dad7d89887b1a156c11c0a082e61b17739deff071d6a0becc1008935b7f995c"
+  },
+  "source_files": {
+    "src/builtins/functional_builtins.cpp": "895b8c73c22ca7c3b5197773c2b71a66c7be4596ebd2b33bccc23b56a81c8f80",
+    "src/builtins/object_type_builtins.cpp": "24e7e754796d168f8d8f0bf1460338f18be580ca47746ddcaa98e63b7b7a67d2",
+    "src/internal/xlang3/runtime.h": "18f6de6dd381498f9c03320ce0bdbc4d26e1d592f06fd3b435d6830298fda33c",
+    "src/internal/xlang3/object_model.h": "7a6f732482e2319f8c96a35d8ecc4e053284f7a77d630dd3e5c7ef4fad5e8eda",
+    "src/runtime/modules/system/ast_module.cpp": "8f359d3d3e414345fa9d8bd860c84d5bdb13cbf44888fb5929d28ac842c2d4e7",
+    "src/runtime/object_model.cpp": "12fe87ce71991e38b9058cbce5086d4413b727ebfd297e6d60db47fac0bbc034",
+    "tests/run_fixtures.py": "9923e8d80700dcf39c6c0eb3513251cd931c12cec1f8bc17bd5b9ddb1fe5c989",
+    "tests/fixtures/core/primitive_typecheck_dispatch.py": "b60e61d41a10bbe5f4c549d1e2f908ad7a3e513bae23280993d7cc55648f129c",
+    "tests/fixtures/expected/primitive_typecheck_dispatch.out": "e5b60990c7dcd5e9a5e3c6d59c1ce7427ea44759989ccb1ab455e2a47a681237",
+    "tests/fixtures/core/runtime_protocol_fastcheck.py": "8a2d3a80b2a2944cd418179a1c53ae77e618f3a4ad33251731b91a7f39119133",
+    "tests/fixtures/expected/runtime_protocol_fastcheck.out": "b79508466d23c569f3bb2807bf0814ff412a0ed2c9852441fdcfe6757bbf7816",
+    "tests/fixtures/core/compile_source_identity.py": "ce88ecc8f5795768776e9f71867fa854748d1cf1a8e5934e576210a406f6d8c5",
+    "tests/fixtures/expected/compile_source_identity.out": "63667fde2ffe83875dd27f51e9192d9201590e9514a936b34b5980d953d2572c",
+    "benchmarks/diagnostics/native_subscription_dispatch_probe.py": "9be36f1fd2a1c6435af8d6101503cb72a3cd4574e26580ff2a2828c767462909",
+    "benchmarks/diagnostics/compare_subscription_dispatch.py": "1d1cc6423ce71d9c434aa1c2525c5746c0c6954932b551d891725f3dbcba4127"
+  },
+  "full_fixtures": {
+    "exit_code": 0,
+    "verified_exec_session": 31612,
+    "core_cases": 353,
+    "section_cases": 11,
+    "stdout": "empty; runner exits silently on success",
+    "expected_failure_cases": 3
+  },
+  "cpp_sdk": {
+    "exit_code": 0,
+    "tests_passed": 8,
+    "log": "typecheck-compile-cpp-sdk-20261007.log"
+  },
+  "focused_checks": "typecheck-compile-targeted-xlang3-r2-20261007.json",
+  "fixed_gate": {
+    "status": "pass",
+    "exit_code": 0,
+    "report": "release-typecheck-compile-fixed-gate-20261007.json",
+    "report_sha256": "23a99276c89ff3513165559875321f84671fc8f5e23ddcef854d0321c5619be4",
+    "cases": 11,
+    "paired_repeats": 21,
+    "warmups": 5,
+    "threshold": 0.1,
+    "baseline": "build-repro/Release/xlang3.exe",
+    "baseline_sha256": {
+      "exe": "a5f5028c15e145edce645a5afc25c11fbce77f51e882312b1fbe06e63c72a4af",
+      "dll": "bc1b9c0a8086f7e6fb0c037516dc9c1eea20427fa887e3aa623714bc5ef5da8d"
+    }
+  },
+  "official_targeted_benchmarks": {
+    "status": "finished_with_chameleon_failure",
+    "exit_code": 1,
+    "definitions_attempted": 3,
+    "completed": 2,
+    "failed": 1,
+    "report": "pyperformance-xlang3-typecheck-compile-targeted-fast-20261007.json",
+    "provenance": "pyperformance-xlang3-typecheck-compile-targeted-fast-20261007-provenance.json"
+  },
+  "dispatch_diagnostic": {
+    "status": "finished",
+    "exit_code": 0,
+    "pairs": 7,
+    "workers": 28,
+    "cases": 15,
+    "report": "typecheck-compile-row-dispatch-paired-20261007.json",
+    "sha256_start": [
+      {
+        "exe": "dc18f94d37aa662bb4f1bef4284c79373e784781d74fffe22205937cc5cb82cf",
+        "dll": "990237ad095d6865f54a0a5974ad94e55b95a5d29e06e3ef59ab80dfe9474fff"
+      },
+      {
+        "exe": "c92464e9c138cafc8c73791f1d1d81c1e93aa060be244d6fa6b56a55f2e876d2",
+        "dll": "0dad7d89887b1a156c11c0a082e61b17739deff071d6a0becc1008935b7f995c"
+      }
+    ],
+    "sha256_end": [
+      {
+        "exe": "dc18f94d37aa662bb4f1bef4284c79373e784781d74fffe22205937cc5cb82cf",
+        "dll": "990237ad095d6865f54a0a5974ad94e55b95a5d29e06e3ef59ab80dfe9474fff"
+      },
+      {
+        "exe": "c92464e9c138cafc8c73791f1d1d81c1e93aa060be244d6fa6b56a55f2e876d2",
+        "dll": "0dad7d89887b1a156c11c0a082e61b17739deff071d6a0becc1008935b7f995c"
+      }
+    ]
+  },
+  "sha256_end": {
+    "exe": "C92464E9C138CAFC8C73791F1D1D81C1E93AA060BE244D6FA6B56A55F2E876D2",
+    "dll": "0DAD7D89887B1A156C11C0A082E61B17739DEFF071D6A0BECC1008935B7F995C"
+  },
+  "native_package_identity": {
+    "hashlib_sha256": "5910F087E300459B854DCA0046AC61125287E7D62BF330A3D626631D9A74B239",
+    "verified_in": "pyperformance-xlang3-typecheck-compile-targeted-fast-20261007-provenance.json"
+  },
+  "engine_commit_at_validation": "not_committed",
+  "source_base_commit": "331643bb27ede25c56442d5c92b717d29c539525"
+}

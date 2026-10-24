@@ -1,0 +1,9 @@
+own and inherited expanded initializer binding
+multiple inheritance and live base rebinding
+base subclass replacement and deletion invalidate inherited caches
+initializer code mutation retains live binding
+new override after warmup preserves foreign result
+default metaclass and live call override
+initializer metaclass failure identity cause and traceback
+descriptor defaults and constructed instance ownership
+inherited initializer monitoring remains observable

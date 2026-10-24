@@ -1,0 +1,199 @@
+{
+  "status": "rejected_no_significant_official_gain",
+  "source_base_commit": "0767451529c26f6a66edfb6e346a1bab92b1261d",
+  "official_pidigits_seconds": {
+    "before": 0.24526164500275627,
+    "after": 0.23197399999771734,
+    "cpython3147": 0.17291578499716706
+  },
+  "binary_sha256": {
+    "before": {
+      "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+      "dll": "d425ba688e3a09896eb35f3bc3164af9f8d09fbf785484dab9bf5f357eee0d3a"
+    },
+    "after": {
+      "exe": "9f89802e3eed9431dccfe6906cd04cfede486e77dc951469fbf80cc785152bdc",
+      "dll": "f326f4beb61179e0c8698ca0ff745f866658a254e78a4a964ff11802e23a4f84"
+    },
+    "cpython3147": {
+      "exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+      "dll": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700"
+    }
+  },
+  "official_before_over_after": 1.0572807513133786,
+  "official_time_reduction_fraction": 0.054177427558596,
+  "cpython_over_after": 0.7454101968275263,
+  "paired_body_confirmation": {
+    "before_over_after": [
+      0.9886112187720165,
+      1.028541636055074,
+      1.0238176099578389,
+      1.0355900774533315,
+      0.9878471619608393,
+      1.0331011529362906,
+      1.0315783595023797
+    ],
+    "median_gain": 1.028541636055074,
+    "cpu_affinity": [
+      0
+    ]
+  },
+  "diagnostics": [
+    {
+      "case": "add-one-64",
+      "before_seconds": 3.0843799991998823e-07,
+      "after_seconds": 2.845099999103695e-07,
+      "cpython3147_seconds": 2.4466000031679868e-08,
+      "before_over_after": 1.0841024920640991,
+      "cpython_over_after": 0.08599346258264211
+    },
+    {
+      "case": "multiply-one-64",
+      "before_seconds": 2.6980199967511e-07,
+      "after_seconds": 2.484219998586923e-07,
+      "cpython3147_seconds": 3.019399999175221e-08,
+      "before_over_after": 1.0860632304247575,
+      "cpython_over_after": 0.12154318059160298
+    },
+    {
+      "case": "cancel-64",
+      "before_seconds": 2.2736799961421638e-07,
+      "after_seconds": 2.3642799991648645e-07,
+      "cpython3147_seconds": 1.7419999931007624e-08,
+      "before_over_after": 0.9616796643990123,
+      "cpython_over_after": 0.07367993612076783
+    },
+    {
+      "case": "add-one-128",
+      "before_seconds": 3.1085999973583967e-07,
+      "after_seconds": 2.776540000922978e-07,
+      "cpython3147_seconds": 2.600400010123849e-08,
+      "before_over_after": 1.119594890160068,
+      "cpython_over_after": 0.0936561335064297
+    },
+    {
+      "case": "multiply-one-128",
+      "before_seconds": 2.733740000985563e-07,
+      "after_seconds": 2.5655599951278417e-07,
+      "cpython3147_seconds": 3.024400037247688e-08,
+      "before_over_after": 1.065552942116772,
+      "cpython_over_after": 0.11788459607224978
+    },
+    {
+      "case": "cancel-128",
+      "before_seconds": 2.2910800005774945e-07,
+      "after_seconds": 2.3717799980659038e-07,
+      "cpython3147_seconds": 1.742799999192357e-08,
+      "before_over_after": 0.9659749228199003,
+      "cpython_over_after": 0.0734806769857889
+    },
+    {
+      "case": "add-one-1024",
+      "before_seconds": 3.4378600015770645e-07,
+      "after_seconds": 3.193659998942167e-07,
+      "cpython3147_seconds": 3.747400012798607e-08,
+      "before_over_after": 1.0764639951390518,
+      "cpython_over_after": 0.11733872779318574
+    },
+    {
+      "case": "multiply-one-1024",
+      "before_seconds": 2.9318800021428615e-07,
+      "after_seconds": 2.86861999775283e-07,
+      "cpython3147_seconds": 4.5498000108636914e-08,
+      "before_over_after": 1.0220524169947873,
+      "cpython_over_after": 0.15860588068227352
+    },
+    {
+      "case": "cancel-1024",
+      "before_seconds": 2.4203800014220176e-07,
+      "after_seconds": 2.4311000015586614e-07,
+      "cpython3147_seconds": 2.4900000425986946e-08,
+      "before_over_after": 0.9955904733948538,
+      "cpython_over_after": 0.10242277327145202
+    },
+    {
+      "case": "add-one-4096",
+      "before_seconds": 4.0326400019694117e-07,
+      "after_seconds": 3.749819996301085e-07,
+      "cpython3147_seconds": 1.0718799952883273e-07,
+      "before_over_after": 1.0754222885224645,
+      "cpython_over_after": 0.28584838641472293
+    },
+    {
+      "case": "multiply-one-4096",
+      "before_seconds": 3.7283799960277976e-07,
+      "after_seconds": 3.5075199964921924e-07,
+      "cpython3147_seconds": 1.412419998086989e-07,
+      "before_over_after": 1.062967566758417,
+      "cpython_over_after": 0.4026833772863804
+    },
+    {
+      "case": "cancel-4096",
+      "before_seconds": 2.717760001542047e-07,
+      "after_seconds": 2.7773199952207504e-07,
+      "cpython3147_seconds": 4.973999981302768e-08,
+      "before_over_after": 0.9785548680810293,
+      "cpython_over_after": 0.17909351424618314
+    }
+  ],
+  "source_sha256_raw": {
+    "src/runtime/bigint.cpp": "4cb1749287e0f48186ee3bc6127394c5bee8107b1259f73ef956af2c5185a426",
+    "tests/cpp/bigint_storage_lifetime_cases.h": "5a65e6f4e173065b9e3a228e5edfd75ac78a758faecab8eb1792e93b8d981eef",
+    "benchmarks/diagnostics/bigint_result_allocation.py": "08488caf231e217695f890aef22bac00f6cea82ad5eaa9d3cf74c0dd85135f63"
+  },
+  "source_sha256_canonical_lf": {
+    "src/runtime/bigint.cpp": "8a1d358656610cda287a85059edfe967cbaa38f59a3ccf8c8c964e9715c0cdbc",
+    "tests/cpp/bigint_storage_lifetime_cases.h": "5a65e6f4e173065b9e3a228e5edfd75ac78a758faecab8eb1792e93b8d981eef",
+    "benchmarks/diagnostics/bigint_result_allocation.py": "08488caf231e217695f890aef22bac00f6cea82ad5eaa9d3cf74c0dd85135f63"
+  },
+  "input_sha256": {
+    "pyperformance-bigint-combined-storage-pidigits-before-fast-20261007.json": "0896c37ba03fcb70ae2918b8d6a6b86264f72878672098a294829bc9f97388a6",
+    "pyperformance-bigint-combined-storage-pidigits-before-fast-20261007.log": "bad67cdebce560893622215a955d058e2b244fda2047d2da0b0de2e6dafd9077",
+    "pyperformance-bigint-combined-storage-pidigits-before-fast-20261007-provenance.json": "13c8038d688c053a31c5fecef5de48ee2893473a5e713f9f8d855c774da6b8ea",
+    "pyperformance-bigint-combined-storage-pidigits-after-fast-20261007.json": "1975172f7a3c7d6e1defc6f3a93b557bdb02293386d18c4315eaee7e8acfa2bb",
+    "pyperformance-bigint-combined-storage-pidigits-after-fast-20261007.log": "5ba4d6db9cd94d09664fb6137b7db0edfc568ff60d80ef1d27f35d495a076cd2",
+    "pyperformance-bigint-combined-storage-pidigits-after-fast-20261007-provenance.json": "0719c8c3dec38361f36132b04b2e5e455fe4b729d1b513769b25266823df8393",
+    "pyperformance-bigint-combined-storage-pidigits-cpython3147-fast-20261007.json": "79d663bc86cff4bd522b70949305e69d350d8b33d9d1409256be65b4c6226868",
+    "pyperformance-bigint-combined-storage-pidigits-cpython3147-fast-20261007.log": "e37895585db7f2279bbd19cbb554901bfaabd12b026f8a4118d17db6246fe1c5",
+    "pyperformance-bigint-combined-storage-pidigits-cpython3147-fast-20261007-provenance.json": "67d54255b3a2c956a79308c664b425b7f4b5d7509280107e3711205985d236fe",
+    "bigint-combined-storage-validation-20261007.json": "9be4f4d9f89d06f4b0fa3d8adf7243960d7d3a85cfffac3eca81b564610139b8",
+    "bigint-combined-storage-validation-20261007-fixtures.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bigint-combined-storage-validation-20261007-cpp.log": "863f72a616882d3347bb145db5ddede81a81b2df4e8cc89a10a98d02862f7028",
+    "release-bigint-combined-storage-fixed-gate-20261007.json": "e4c510f6d54fc993ea63243fa19ac051b892ba12b94eddf28ebec2b96aca2035",
+    "release-bigint-combined-storage-fixed-gate-20261007.log": "a09858ec9d659c0875548804a47051f067c20aacceb2c4a2a075cc70c5b8326f",
+    "pidigits-combined-storage-body-correctness-20261007.json": "3fed03393ed0f0683779e2fe6e0d22095ddffab5138847000d584a86b19dd47f",
+    "bigint-combined-storage-baseline-lifetime-20261007.json": "3d393db7f5558b00bf86505ddd08910d4d4f03607e030e12262c3b4502137e86",
+    "bigint-combined-storage-baseline-lifetime-20261007.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "bigint-combined-storage-diagnostic-before-20261007.json": "3f1f7d6482f44c218172d18a6f9caaf5b12d53527b1a9614a1bf30c4e84b681d",
+    "bigint-combined-storage-diagnostic-after-20261007.json": "644f1caff62597f71cc3a93d3a8b1a20c05b0b692d9329ec1d8a8c394e545fac",
+    "bigint-combined-storage-paired-body-followup-20261007.json": "369716447a03da187608321e8fd377455e78552a8d87c4fd6cdd9abfe82c2e8e",
+    "pyperformance-bigint-combined-storage-pidigits-before-rigorous-cpu0-20261007.json": "e4dc7776c597c8a751380030c73a8cb18a8c39fa724a4afc9dd8d1bab2ad6e31",
+    "pyperformance-bigint-combined-storage-pidigits-before-rigorous-cpu0-20261007.log": "b76856630376e6ea01f89b1c7bcde6185dc3d8b8dba7a7a666086b79820e7127",
+    "pyperformance-bigint-combined-storage-pidigits-before-rigorous-cpu0-20261007-provenance.json": "c986cac453ca896147c2a6ffebbf0e1fb5b1ab13ea5f00772dea2ff01e995ecc",
+    "pyperformance-bigint-combined-storage-pidigits-after-rigorous-cpu0-20261007.json": "df31e5edd77e46ed124bfea6f33183c2f8cb71fe9b608fc19a02cfa4f9b3cd0d",
+    "pyperformance-bigint-combined-storage-pidigits-after-rigorous-cpu0-20261007.log": "1542dc09826435887c8085fbacb055c0bc0c5f6de4bdf52a01b046fce58776f1",
+    "pyperformance-bigint-combined-storage-pidigits-after-rigorous-cpu0-20261007-provenance.json": "da2c0aeabd2c85f0f219810b6dec3ca86e83934c577edf813207f461ab1ccf56",
+    "pyperformance-bigint-combined-storage-pidigits-cpython3147-rigorous-cpu0-20261007.json": "56a5b81f89847c1d9cbc7831947b9dbb16eee6377fbb2b6f1fc17e0a93fadce2",
+    "pyperformance-bigint-combined-storage-pidigits-cpython3147-rigorous-cpu0-20261007.log": "23d24ba232c0281f3910100299431eb19685ba505cbb66e9c4287585ce5539ab",
+    "pyperformance-bigint-combined-storage-pidigits-cpython3147-rigorous-cpu0-20261007-provenance.json": "5f0832a229403eba27818ac54fcefd328868b451328ceda8f3fec1d332475106",
+    "bigint-combined-storage-rigorous-comparison-20261007.txt": "9af2162c37b0795a49519ab1cda9d106049c00ea910e5c4a2f3658df78420ffa",
+    "bigint-combined-storage-rejected-source-20261007.patch": "a9fa431ec18fe62ef3e4ea93e5934995fa6533157b41c2aceb4b0bd29f04a2ff"
+  },
+  "limitations": [
+    "Independent sequential fast-mode official runs with stability warnings; not a paired significance result",
+    "Pinned-core body pairs are diagnostic confirmations, not official suite scores",
+    "Only affected official pidigits rerun; full 97-case report remains unchanged"
+  ],
+  "decision": "Restore 07674515 engine; retain generic lifetime tests and measured evidence; no suite speedup claimed",
+  "rigorous_command": [
+    "C:\\Python\\Python314\\python.exe",
+    "-m",
+    "pyperf",
+    "compare_to",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-bigint-combined-storage-pidigits-before-rigorous-cpu0-20261007.json",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-bigint-combined-storage-pidigits-after-rigorous-cpu0-20261007.json",
+    "--table"
+  ],
+  "rigorous_comparison_sha256": "9af2162c37b0795a49519ab1cda9d106049c00ea910e5c4a2f3658df78420ffa",
+  "preserved_trial_source": "D:\\CantorAI\\xlang3\\build-repro\\controls\\bigint-combined-storage-trial-20261007\\source-snapshot\\bigint.cpp"
+}

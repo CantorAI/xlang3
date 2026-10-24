@@ -1,0 +1,7 @@
+[0/2] Re-checking globbed directories...
+[1/30] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\contextvars_module.cpp.obj
+[2/30] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\methods\int_methods.cpp.obj
+[3/30] Building CXX object CMakeFiles\xlang3_runtime_static.dir\Release\src\runtime\methods\int_methods.cpp.obj
+[4/30] Linking CXX static library Release\xlang3_system_runtime.lib
+[5/30] Linking CXX static library Release\xlang3_runtime_static.lib
+[6/30] Linking CXX shared library Release\xlang3_runtime.dll

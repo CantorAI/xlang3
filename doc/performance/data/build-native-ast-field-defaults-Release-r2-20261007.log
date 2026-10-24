@@ -1,0 +1,75 @@
+ninja: Entering directory `build-repro\main-verify-20261006'
+[0/2] Re-checking globbed directories...
+[1/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\opcode_module.cpp.obj
+[2/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\array_module.cpp.obj
+[3/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\random_module.cpp.obj
+[4/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\functools_module.cpp.obj
+[5/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\lsprof_module.cpp.obj
+[6/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\operator_module.cpp.obj
+[7/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\imp_module.cpp.obj
+[8/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\json_module.cpp.obj
+[9/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\itertools_module.cpp.obj
+[10/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\pyexpat_module.cpp.obj
+[11/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\pickle_module.cpp.obj
+[12/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\gc_module.cpp.obj
+[13/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\io_module.cpp.obj
+[14/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\queue_module.cpp.obj
+[15/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\msvcrt_module.cpp.obj
+[16/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\marshal_module.cpp.obj
+[17/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\interpreters_module.cpp.obj
+[18/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\multiprocessing_module.cpp.obj
+[19/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\ast_module.cpp.obj
+[20/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\importlib_module.cpp.obj
+[21/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\overlapped_module.cpp.obj
+[22/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\os_module.cpp.obj
+[23/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\stat_module.cpp.obj
+[24/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\sha2_module.cpp.obj
+[25/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\string_module.cpp.obj
+[26/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\sysconfig_native_module.cpp.obj
+[27/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\struct_module.cpp.obj
+[28/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\unicodedata_module.cpp.obj
+[29/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\posix_process_module.cpp.obj
+[30/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\warnings_module.cpp.obj
+[31/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\typing_module.cpp.obj
+[32/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\zlib_module.cpp.obj
+[33/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\builtins\builtins.cpp.obj
+[34/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\builtins\builtin_modules.cpp.obj
+[35/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\signal_module.cpp.obj
+[36/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\winapi_module.cpp.obj
+[37/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\sre_module.cpp.obj
+[38/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\time_module.cpp.obj
+[39/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\winreg_module.cpp.obj
+[40/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\weakref_module.cpp.obj
+[41/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\socket_select_module.cpp.obj
+[42/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\sys_module.cpp.obj
+[43/74] Building CXX object CMakeFiles\xlang3_system_runtime.dir\Release\src\runtime\modules\system\zipimport_module.cpp.obj
+[44/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\builtins\raw_block_builtins.cpp.obj
+[45/74] Linking CXX static library Release\xlang3_task_runtime.lib
+[46/74] Linking CXX static library Release\xlang3_thread_runtime.lib
+[47/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\builtins\sequence_builtins.cpp.obj
+[48/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\builtins\math_module.cpp.obj
+[49/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\generator.cpp.obj
+[50/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\unicode_names.cpp.obj
+[51/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\value_hash.cpp.obj
+[52/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\methods\set_methods.cpp.obj
+[53/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\builtins\exception_builtins.cpp.obj
+[54/74] Linking CXX static library Release\xlang3_system_runtime.lib
+[55/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\builtins\io_builtins.cpp.obj
+[56/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\functional_iterators.cpp.obj
+[57/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\parser\lexer.cpp.obj
+[58/74] Building CXX object CMakeFiles\xlang3.dir\Release\src\xlang3.cpp.obj
+[59/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\value.cpp.obj
+[60/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\import\import_loader.cpp.obj
+[61/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\methods\string_methods.cpp.obj
+[62/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\builtins\object_type_builtins.cpp.obj
+[63/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\executor\xlang_vm\xlang_interpreter.cpp.obj
+[64/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\runtime.cpp.obj
+[65/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\runtime\object_model.cpp.obj
+[66/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\builtins\functional_builtins.cpp.obj
+[67/74] Building CXX object CMakeFiles\xlang3_runtime.dir\Release\src\executor\xlang_vm\xlang_vm_loop.cpp.obj
+[68/74] Linking CXX shared library Release\xlang3_runtime.dll
+[69/74] Linking CXX executable Release\xlang3_sdk_stream_call_tests.exe
+[70/74] Linking CXX executable Release\xlang3_graph_process_tests.exe
+[71/74] Linking CXX executable Release\xlang3_runtime_value_tests.exe
+[72/74] Linking CXX executable Release\xlang3_interpreter_tests.exe
+[73/74] Linking CXX executable Release\xlang3.exe

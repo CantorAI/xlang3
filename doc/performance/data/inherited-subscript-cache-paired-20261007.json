@@ -1,0 +1,2903 @@
+{
+  "status": "terminal",
+  "scope": "diagnostic only, not official BPE; all values checked",
+  "binaries_sha256": {
+    "control": {
+      "exe": "dbc20688f5363819cb4a539619d28be885c9d0e0e6e3140e24ecb0112c534248",
+      "dll": "10f79613a21077fe280f55477e6f960b0b2484b7b97d395161fc4f66e1d73863"
+    },
+    "candidate": {
+      "exe": "dbc20688f5363819cb4a539619d28be885c9d0e0e6e3140e24ecb0112c534248",
+      "dll": "d640f61da31c3a6486e9eb9c31939fffa52656e4a8b3d8e450d24026aadf2cc2"
+    }
+  },
+  "probe_sha256": "bdd6e1d6b3852e57cb7c9daabdd9f935b1cdd1acdbf021d6e79fe8c431ab8f9c",
+  "pairs": [
+    {
+      "order": [
+        "control",
+        "candidate"
+      ],
+      "runs": {
+        "control": {
+          "purpose": "subscript dispatch diagnosis only, never an official score",
+          "rows": [
+            {
+              "path": "exact_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0017877999925985932,
+                0.00199719998636283,
+                0.0018344999989494681,
+                0.0019789999932982028,
+                0.0020456000056583434
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0040139000047929585,
+                0.0038133999914862216,
+                0.002055099990684539,
+                0.0019212000188417733,
+                0.0019176999921910465
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0023422999947797507,
+                0.0024508000060450286,
+                0.002349700022023171,
+                0.0023498999944422394,
+                0.0023437999770976603
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002418399992166087,
+                0.00234390000696294,
+                0.0025563999952282757,
+                0.0024517000128980726,
+                0.0024508999777026474
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002057500008959323,
+                0.0020627000194508582,
+                0.0020308000093791634,
+                0.0019955999741796404,
+                0.002015399979427457
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0028563999803736806,
+                0.0028541999927256256,
+                0.002892799995606765,
+                0.0028815999976359308,
+                0.0028600999794434756
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0046847999910824,
+                0.004740900010801852,
+                0.0047414000146090984,
+                0.0049368999898433685,
+                0.004671000002417713
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "exact_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007230999995954335,
+                0.007872899994254112,
+                0.007705700001679361,
+                0.007714100007433444,
+                0.007710500009125099
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.00839780000387691,
+                0.008219000010285527,
+                0.008364300010725856,
+                0.008271300001069903,
+                0.008330899989232421
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.010328700009267777,
+                0.010207000013906509,
+                0.009691599989309907,
+                0.009429800003999844,
+                0.010320500005036592
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.010197299998253584,
+                0.010132199997315183,
+                0.010192699992330745,
+                0.01021109998691827,
+                0.010260500013828278
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008030100027099252,
+                0.008391299983486533,
+                0.007706100004725158,
+                0.007693000021390617,
+                0.008799100003670901
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.011579499987419695,
+                0.01151509999181144,
+                0.011648200015770271,
+                0.011675799993099645,
+                0.011535600002389401
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.01855259999865666,
+                0.01801470000646077,
+                0.01910979999229312,
+                0.018984499998623505,
+                0.019133099995087832
+              ],
+              "all_values_verified": true
+            }
+          ]
+        },
+        "candidate": {
+          "purpose": "subscript dispatch diagnosis only, never an official score",
+          "rows": [
+            {
+              "path": "exact_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0017918999947141856,
+                0.0017857000057119876,
+                0.0017968999745789915,
+                0.00251280001248233,
+                0.0038419000047724694
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0019543000089470297,
+                0.001948899996932596,
+                0.0019063000218011439,
+                0.001902199990581721,
+                0.0018924000032711774
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0019037000020034611,
+                0.001965599978575483,
+                0.0021646000095643103,
+                0.0020003000099677593,
+                0.002003300003707409
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002044900000328198,
+                0.0020554000220727175,
+                0.0020662000169977546,
+                0.0020554999937303364,
+                0.0020782999927178025
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002031399984844029,
+                0.002095900010317564,
+                0.002062999992631376,
+                0.0020336000015959144,
+                0.002096899988828227
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002866299997549504,
+                0.0028509999974630773,
+                0.0028560999780893326,
+                0.0028734999941661954,
+                0.0028947999817319214
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0028554000018630177,
+                0.0028669000021182,
+                0.0028366000042296946,
+                0.0028430999955162406,
+                0.0028574000170920044
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "exact_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007727700023679063,
+                0.0077000999881420285,
+                0.008425599982729182,
+                0.007194900012109429,
+                0.007296099996892735
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008241700008511543,
+                0.008358799997949973,
+                0.008223699987865984,
+                0.008259800000814721,
+                0.008285599993541837
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008339799998793751,
+                0.008447100000921637,
+                0.008359700004803017,
+                0.008234100008849055,
+                0.00829260001773946
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008392399991862476,
+                0.008220500021707267,
+                0.00830449999193661,
+                0.008302600006572902,
+                0.00824950000969693
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008435399999143556,
+                0.008258699992438778,
+                0.008292699989397079,
+                0.00780220000888221,
+                0.00765990000218153
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.011693600012222305,
+                0.011644900019746274,
+                0.011665600002743304,
+                0.01192250000895001,
+                0.011515999998664483
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.01187370001571253,
+                0.011604500003159046,
+                0.01168090000282973,
+                0.011596199998166412,
+                0.011813599994638935
+              ],
+              "all_values_verified": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "order": [
+        "candidate",
+        "control"
+      ],
+      "runs": {
+        "candidate": {
+          "purpose": "subscript dispatch diagnosis only, never an official score",
+          "rows": [
+            {
+              "path": "exact_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0018751000170595944,
+                0.0022354999964591116,
+                0.0019037000020034611,
+                0.0017893000040203333,
+                0.0023240000009536743
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002164800011087209,
+                0.002157799986889586,
+                0.002134000009391457,
+                0.002143399993656203,
+                0.0021646000095643103
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0021117000142112374,
+                0.0021041000145487487,
+                0.002103600010741502,
+                0.002095399977406487,
+                0.002153400011593476
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0020923000120092183,
+                0.0020935999928042293,
+                0.0022369000071194023,
+                0.0020844000100623816,
+                0.0021090999944135547
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002052600000752136,
+                0.0020915000059176236,
+                0.0020376000029500574,
+                0.002060500002698973,
+                0.002101199992466718
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0030479000124614686,
+                0.0029233999957796186,
+                0.002864799986127764,
+                0.002730999985942617,
+                0.002697000018088147
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0028725000156555325,
+                0.0028944000077899545,
+                0.0028686999867204577,
+                0.0031288000172935426,
+                0.0029319000022951514
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "exact_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007725800009211525,
+                0.007871999987401068,
+                0.00717389999772422,
+                0.0074025999929290265,
+                0.0073201000050175935
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008022399997571483,
+                0.008058699982939288,
+                0.007683199975872412,
+                0.008046999981161207,
+                0.007957900001201779
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008160199999110773,
+                0.008288500015623868,
+                0.00821410000207834,
+                0.008228599996073171,
+                0.008035800012294203
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008295100007671863,
+                0.008244800003012642,
+                0.008359400002518669,
+                0.00782130000879988,
+                0.008110700000543147
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007662999996682629,
+                0.008313900005305186,
+                0.008444600010989234,
+                0.008165400009602308,
+                0.008156600000802428
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.011664199992083013,
+                0.011772099998779595,
+                0.011826600006315857,
+                0.011585100000957027,
+                0.012263800017535686
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.011690099985571578,
+                0.011020999983884394,
+                0.011040099983802065,
+                0.011473099992144853,
+                0.011698200018145144
+              ],
+              "all_values_verified": true
+            }
+          ]
+        },
+        "control": {
+          "purpose": "subscript dispatch diagnosis only, never an official score",
+          "rows": [
+            {
+              "path": "exact_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0019654000061564147,
+                0.0022149999858811498,
+                0.0018007000035140663,
+                0.0017829999851528555,
+                0.0017822000081650913
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0020114000071771443,
+                0.0019240000110585243,
+                0.0019133999885525554,
+                0.0019230000034440309,
+                0.0019043000065721571
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0025080999766942114,
+                0.0025194999761879444,
+                0.0025502000062260777,
+                0.0025800000003073364,
+                0.0025394999829586595
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002564800000982359,
+                0.002529000019421801,
+                0.0026052999892272055,
+                0.0025708999892231077,
+                0.0025341000000480562
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0020832000009249896,
+                0.0021139000018592924,
+                0.0021078999852761626,
+                0.0021103000035509467,
+                0.002080500009469688
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0029057000065222383,
+                0.002865200018277392,
+                0.0028628000000026077,
+                0.0030543000029865652,
+                0.002729499974520877
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0048405000125057995,
+                0.004597299994202331,
+                0.00448479998158291,
+                0.004608699993696064,
+                0.004757899994729087
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "exact_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007899300020653754,
+                0.0076942000014241785,
+                0.00776359997689724,
+                0.007989299978362396,
+                0.007386399985989556
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008221300027798861,
+                0.008400399994570762,
+                0.0084021000075154,
+                0.008317200001329184,
+                0.008281899994472042
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.009546799992676824,
+                0.010213100002147257,
+                0.010251400002744049,
+                0.010293599974829704,
+                0.010323200025595725
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.010363000008510426,
+                0.010223299992503598,
+                0.010516699985601008,
+                0.01045420000446029,
+                0.0099933999881614
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007954400003654882,
+                0.007837799988919869,
+                0.008040100015932694,
+                0.008284500014269724,
+                0.008203500008676201
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.011723100004019216,
+                0.011352400004398078,
+                0.012693600001512095,
+                0.011633999994955957,
+                0.011559799982933328
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.01794839999638498,
+                0.018423200002871454,
+                0.01898950000759214,
+                0.01892760000191629,
+                0.019017000013263896
+              ],
+              "all_values_verified": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "order": [
+        "control",
+        "candidate"
+      ],
+      "runs": {
+        "control": {
+          "purpose": "subscript dispatch diagnosis only, never an official score",
+          "rows": [
+            {
+              "path": "exact_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0019706999883055687,
+                0.001961200003279373,
+                0.0019100999925285578,
+                0.002002399996854365,
+                0.002002499997615814
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0021560000022873282,
+                0.002098099997965619,
+                0.0020923000120092183,
+                0.0020997999818064272,
+                0.002131600020220503
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002577000006567687,
+                0.002572800003690645,
+                0.002496200002497062,
+                0.0023886999988462776,
+                0.00236610000138171
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002453699999023229,
+                0.0025800000003073364,
+                0.002528499986510724,
+                0.0025110999995376915,
+                0.002674599993042648
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002126000006683171,
+                0.0021176000009290874,
+                0.0021132999972905964,
+                0.0021197999885771424,
+                0.0021034000092186034
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.00294100001337938,
+                0.0029338999884203076,
+                0.002942400024039671,
+                0.0029359999753069133,
+                0.002934500022092834
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.004875500017078593,
+                0.004768799990415573,
+                0.004836400010390207,
+                0.004848300013691187,
+                0.005193800025153905
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "exact_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007489000010536984,
+                0.007405400014249608,
+                0.007359000010183081,
+                0.008767900028033182,
+                0.00798150000628084
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008293399994727224,
+                0.008200000011129305,
+                0.008813199994619936,
+                0.008983499981695786,
+                0.008595899998908862
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.010481700010132045,
+                0.009705500007839873,
+                0.00985549998586066,
+                0.009491800010437146,
+                0.009487500006798655
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.00952229998074472,
+                0.009646499995142221,
+                0.009455799998249859,
+                0.009406500001205131,
+                0.010063899972010404
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007716499996604398,
+                0.007810200011590496,
+                0.007807699992554262,
+                0.007789700001012534,
+                0.008283800008939579
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.010970200004521757,
+                0.010880800022277981,
+                0.011165600008098409,
+                0.010925900016445667,
+                0.010971599986078218
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.0184665999840945,
+                0.018984099995577708,
+                0.017824799986556172,
+                0.018353699997533113,
+                0.01783129997784272
+              ],
+              "all_values_verified": true
+            }
+          ]
+        },
+        "candidate": {
+          "purpose": "subscript dispatch diagnosis only, never an official score",
+          "rows": [
+            {
+              "path": "exact_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0017766999953892082,
+                0.0017899000085890293,
+                0.0017898999794851989,
+                0.0018235000025015324,
+                0.0017707999795675278
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0019092000147793442,
+                0.0019200000097043812,
+                0.001902799995150417,
+                0.0019383000035304576,
+                0.0019111000001430511
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.001924200012581423,
+                0.0019117000047117472,
+                0.0019331999938003719,
+                0.0019241000118199736,
+                0.0019206999859306961
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0019151000014971942,
+                0.0019113000016659498,
+                0.0019008999806828797,
+                0.0019437000155448914,
+                0.0019208999874535948
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0018995999998878688,
+                0.0019060999911744148,
+                0.0019122000085189939,
+                0.0020303999772295356,
+                0.0019287999894004315
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0026800000050570816,
+                0.0027817000227514654,
+                0.0027131999959237874,
+                0.0026587000174913555,
+                0.0026983999996446073
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0026624000165611506,
+                0.0026766000082716346,
+                0.0026879000070039183,
+                0.002660199999809265,
+                0.002670399990165606
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "exact_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007222000014735386,
+                0.0071746000030543655,
+                0.007232200005091727,
+                0.0071886999940034,
+                0.007199199986644089
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007703700015554205,
+                0.007660300005227327,
+                0.0077114999876357615,
+                0.007805600005667657,
+                0.008102099993266165
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007678499998291954,
+                0.007619300013175234,
+                0.007874300004914403,
+                0.008010199991986156,
+                0.007905400008894503
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007819499995093793,
+                0.008116399985738099,
+                0.007773699995595962,
+                0.007650900020962581,
+                0.008370499999728054
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007662699994398281,
+                0.007916700007626787,
+                0.007813300006091595,
+                0.007675899978494272,
+                0.007851999980630353
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.010700500017264858,
+                0.01118609998957254,
+                0.011523499997565523,
+                0.011475499981315807,
+                0.011419000016758218
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.01155349999316968,
+                0.01151209999807179,
+                0.011722800001734868,
+                0.011631000001216307,
+                0.011750000005122274
+              ],
+              "all_values_verified": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "order": [
+        "candidate",
+        "control"
+      ],
+      "runs": {
+        "candidate": {
+          "purpose": "subscript dispatch diagnosis only, never an official score",
+          "rows": [
+            {
+              "path": "exact_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.001823400001740083,
+                0.0020232000097166747,
+                0.0018862000142689794,
+                0.001943000010214746,
+                0.0019526999967638403
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002103600010741502,
+                0.0020942000264767557,
+                0.002063399995677173,
+                0.00204610000946559,
+                0.0020844000100623816
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0020266000065021217,
+                0.002047500020125881,
+                0.002068500005407259,
+                0.0020784000225830823,
+                0.002074799995170906
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0020376000029500574,
+                0.0020624000171665102,
+                0.002094099996611476,
+                0.0020908000005874783,
+                0.0021078999852761626
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0020447999995667487,
+                0.002045500004896894,
+                0.002048900001682341,
+                0.0021204999939072877,
+                0.0020567000028677285
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002869699994334951,
+                0.0029088000010233372,
+                0.002859800006262958,
+                0.0029195999959483743,
+                0.0028609999862965196
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0029306000215001404,
+                0.0028719999827444553,
+                0.0028805999900214374,
+                0.0029255000117700547,
+                0.00295140000525862
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "exact_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007839700003387406,
+                0.007708299992373213,
+                0.007778600003803149,
+                0.008956000005127862,
+                0.007599800010211766
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008395899989409372,
+                0.008319599990500137,
+                0.008348100003786385,
+                0.00825990000157617,
+                0.008308500022394583
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008224999997764826,
+                0.008434499992290512,
+                0.008344600006239489,
+                0.00819769999361597,
+                0.008688800007803366
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007738100015558302,
+                0.007651199994143099,
+                0.008139000012306497,
+                0.008303600014187396,
+                0.008210500003769994
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008204399986425415,
+                0.008354299992788583,
+                0.00823179999133572,
+                0.008182200021110475,
+                0.008212199987610802
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.01163069999893196,
+                0.01158170000417158,
+                0.011998700007097796,
+                0.011560100014321506,
+                0.011671899992506951
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.010807299986481667,
+                0.010985100001562387,
+                0.011103400000138208,
+                0.010684900014894083,
+                0.01079510001000017
+              ],
+              "all_values_verified": true
+            }
+          ]
+        },
+        "control": {
+          "purpose": "subscript dispatch diagnosis only, never an official score",
+          "rows": [
+            {
+              "path": "exact_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.001800900005036965,
+                0.0019967000116594136,
+                0.0018902999872807413,
+                0.0018961000023409724,
+                0.0018378999957349151
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0019229000026825815,
+                0.0019217999943066388,
+                0.002013199991779402,
+                0.0019244999857619405,
+                0.0019201000104658306
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0023375000164378434,
+                0.00234840001212433,
+                0.002510099991923198,
+                0.0024241999781224877,
+                0.0023493999906349927
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0024084000033326447,
+                0.0024673000152688473,
+                0.0023489000159315765,
+                0.002365199994528666,
+                0.002348800015170127
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0019354000105522573,
+                0.002088200009893626,
+                0.0019355999829713255,
+                0.0019181000243406743,
+                0.0019109999993816018
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0027353999903425574,
+                0.0026689000078476965,
+                0.0026559999969322234,
+                0.0027713000017683953,
+                0.002832099999068305
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0046316999942064285,
+                0.004669000016292557,
+                0.004719399992609397,
+                0.004694799979915842,
+                0.0046390000206884
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "exact_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007644199999049306,
+                0.007617100025527179,
+                0.0073114999977406114,
+                0.007327700004680082,
+                0.007275899988599122
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008174699993105605,
+                0.008591199992224574,
+                0.007776600017677993,
+                0.007775300007779151,
+                0.007955600012792274
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.010098400001879781,
+                0.010393100004876032,
+                0.009777400002349168,
+                0.009589499997673556,
+                0.009965500008547679
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.01006749999942258,
+                0.01011189998826012,
+                0.010245399986160919,
+                0.00942610000493005,
+                0.009407300007296726
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007779999985359609,
+                0.00770879999618046,
+                0.008350699994480237,
+                0.00825260000419803,
+                0.008152800000971183
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.010781999997561797,
+                0.010759900003904477,
+                0.011474300001282245,
+                0.011179299996001646,
+                0.01091810001526028
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.01850659999763593,
+                0.01782680000178516,
+                0.017812300007790327,
+                0.017683999991277233,
+                0.018699199979892
+              ],
+              "all_values_verified": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "order": [
+        "control",
+        "candidate"
+      ],
+      "runs": {
+        "control": {
+          "purpose": "subscript dispatch diagnosis only, never an official score",
+          "rows": [
+            {
+              "path": "exact_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0017906999855767936,
+                0.0018795999931171536,
+                0.002046199981123209,
+                0.0019180999952368438,
+                0.0019204000127501786
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002097199991112575,
+                0.0021092999959364533,
+                0.0020978999964427203,
+                0.0020542999845929444,
+                0.0020518999954219908
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0025267000019084662,
+                0.002519000001484528,
+                0.002526399999624118,
+                0.0025652000040281564,
+                0.002518399996915832
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0024846000014804304,
+                0.002524400013498962,
+                0.0025325000169686973,
+                0.002517699991585687,
+                0.0025295999948866665
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002051099989330396,
+                0.0020992000063415617,
+                0.002052600000752136,
+                0.0020523999992292374,
+                0.0020522000268101692
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002892699994845316,
+                0.0028959999908693135,
+                0.0028673000051639974,
+                0.0028667000005953014,
+                0.0028858000005129725
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.004716600000392646,
+                0.004665800021030009,
+                0.004677599994465709,
+                0.0047187999880407006,
+                0.004762899974593893
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "exact_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007805900007952005,
+                0.00776659999974072,
+                0.007723399990936741,
+                0.007719399989582598,
+                0.007807499991031364
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008417700009886175,
+                0.008274299994809553,
+                0.0082836999790743,
+                0.008230699982959777,
+                0.008336600003531203
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.010302499984391034,
+                0.010846499993931502,
+                0.01027200001408346,
+                0.009902399993734434,
+                0.010479900025529787
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.009556599979987368,
+                0.00977999999304302,
+                0.009629400010453537,
+                0.00991349999094382,
+                0.010254799999529496
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007930099993245676,
+                0.00794150002184324,
+                0.008229699975345284,
+                0.007713400002103299,
+                0.008196500013582408
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.010774800000945106,
+                0.011578900011954829,
+                0.011463900009403005,
+                0.011092100001405925,
+                0.011410299979615957
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.018886500009102747,
+                0.018913300009444356,
+                0.01892899998347275,
+                0.018941699992865324,
+                0.018921100010629743
+              ],
+              "all_values_verified": true
+            }
+          ]
+        },
+        "candidate": {
+          "purpose": "subscript dispatch diagnosis only, never an official score",
+          "rows": [
+            {
+              "path": "exact_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0018614000000525266,
+                0.001943600014783442,
+                0.00207419999060221,
+                0.0018466000037733465,
+                0.0019241999834775925
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002096200012601912,
+                0.0023920999956317246,
+                0.0021616000158246607,
+                0.002125200000591576,
+                0.0021095000265631825
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0021243999944999814,
+                0.0025147999986074865,
+                0.0019973000162281096,
+                0.0020118999818805605,
+                0.001988000003620982
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002040899998974055,
+                0.0020970999903511256,
+                0.0020457000064197928,
+                0.00204320001648739,
+                0.0020471000170800835
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0023578999971505255,
+                0.0020472999894991517,
+                0.0020542999845929444,
+                0.002053100004559383,
+                0.0020847000123467296
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002858599997125566,
+                0.002882300002966076,
+                0.0028846999921370298,
+                0.002928100002463907,
+                0.0029325999785214663
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002923799998825416,
+                0.002874600002542138,
+                0.00297499998123385,
+                0.0028726999880746007,
+                0.0028528000111691654
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "exact_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007814800017513335,
+                0.007719699991866946,
+                0.007770600001094863,
+                0.007899199990788475,
+                0.007672599982470274
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.00810579999233596,
+                0.00823180002043955,
+                0.008321900008013472,
+                0.008257899986347184,
+                0.008239499991759658
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008283900009701028,
+                0.008378700003959239,
+                0.008814300002995878,
+                0.008279000001493841,
+                0.008280300011392683
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.0082037000101991,
+                0.008336600003531203,
+                0.00821109997923486,
+                0.008377799997106194,
+                0.008235899993451312
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008325499977217987,
+                0.008254899992607534,
+                0.008298900007503107,
+                0.008424000028753653,
+                0.008287400007247925
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.011525799985975027,
+                0.011672799999359995,
+                0.011588500026846305,
+                0.011676100024487823,
+                0.011462900001788512
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.011629400018136948,
+                0.011708900012308732,
+                0.011758299981011078,
+                0.011619600001722574,
+                0.011530999996466562
+              ],
+              "all_values_verified": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "order": [
+        "candidate",
+        "control"
+      ],
+      "runs": {
+        "candidate": {
+          "purpose": "subscript dispatch diagnosis only, never an official score",
+          "rows": [
+            {
+              "path": "exact_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.001840800017816946,
+                0.001803699997253716,
+                0.0018564999918453395,
+                0.0021071000082883984,
+                0.001964299997780472
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002110100002028048,
+                0.002046400011749938,
+                0.0020506999862845987,
+                0.0020557999960146844,
+                0.002049700007773936
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0019282999855931848,
+                0.0019444999925326556,
+                0.0020377000037115067,
+                0.002046600013272837,
+                0.0020363999938126653
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002086699998471886,
+                0.00203719999990426,
+                0.00205350000760518,
+                0.002045500004896894,
+                0.00212309998460114
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002063599997200072,
+                0.002049800008535385,
+                0.002084099978674203,
+                0.002103099977830425,
+                0.002125200000591576
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002876199985621497,
+                0.0028522000066004694,
+                0.002924400003394112,
+                0.0028992000152356923,
+                0.0028566000110004097
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002860499982489273,
+                0.0028254000062588602,
+                0.0032284999906551093,
+                0.002815700019709766,
+                0.0030041999998502433
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "exact_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007654399989405647,
+                0.0077991999860387295,
+                0.007657200010726228,
+                0.007712199992965907,
+                0.007786700007272884
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.00825690000783652,
+                0.008245000004535541,
+                0.008258799993200228,
+                0.008240900002419949,
+                0.008194399997591972
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008318599982885644,
+                0.008331500022904947,
+                0.008255799999460578,
+                0.008219700015615672,
+                0.008245899982284755
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008191500004613772,
+                0.008334700018167496,
+                0.00825690000783652,
+                0.00804069999139756,
+                0.007880799996200949
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.00821689999429509,
+                0.008346100017661229,
+                0.00831780000589788,
+                0.008253000007243827,
+                0.008251299994299188
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.011515699996380135,
+                0.011512800003401935,
+                0.011532200005603954,
+                0.011487599986139685,
+                0.011716100008925423
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.011563700012629852,
+                0.01163659998564981,
+                0.011446999997133389,
+                0.011539900006027892,
+                0.012284399999771267
+              ],
+              "all_values_verified": true
+            }
+          ]
+        },
+        "control": {
+          "purpose": "subscript dispatch diagnosis only, never an official score",
+          "rows": [
+            {
+              "path": "exact_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0021312999888323247,
+                0.0020696000137832016,
+                0.0019696000090334564,
+                0.001826499996241182,
+                0.0018720999942161143
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002056600002106279,
+                0.00204760002088733,
+                0.0021062000014353544,
+                0.0021172999986447394,
+                0.002095300005748868
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0026156000094488263,
+                0.0024800999963190407,
+                0.002471599989803508,
+                0.002367800014326349,
+                0.0023336999875027686
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0024335000198334455,
+                0.0023373000149149448,
+                0.0023434000031556934,
+                0.0023427999985869974,
+                0.00265650000073947
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002055099990684539,
+                0.002051699993899092,
+                0.0020451000018510967,
+                0.002058199985185638,
+                0.0033359999943058938
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0027147999790031463,
+                0.002670699992449954,
+                0.002687800006242469,
+                0.002800799993565306,
+                0.0029714999836869538
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.004807399993296713,
+                0.004663300001993775,
+                0.004703199985669926,
+                0.004747900005895644,
+                0.004741600016131997
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "exact_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007739499997114763,
+                0.007918799994513392,
+                0.008078099985141307,
+                0.007812199997715652,
+                0.00793260001228191
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008231500018155202,
+                0.00771619999432005,
+                0.008314400009112433,
+                0.007744100003037602,
+                0.008020799985388294
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.010111300012795255,
+                0.010106900008395314,
+                0.01008529998944141,
+                0.010109599999850616,
+                0.010099900013301522
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.010073199984617531,
+                0.010180800018133596,
+                0.010056400002213195,
+                0.01018010001280345,
+                0.010041700006695464
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008252900006482378,
+                0.008227499987697229,
+                0.008321900008013472,
+                0.00824809999903664,
+                0.00821560001350008
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.016281700023682788,
+                0.011504800000693649,
+                0.011585000000195578,
+                0.011517099977936596,
+                0.011460299981990829
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.019039100006921217,
+                0.018934099993202835,
+                0.019021299987798557,
+                0.019067399989580736,
+                0.019059700018260628
+              ],
+              "all_values_verified": true
+            }
+          ]
+        }
+      }
+    },
+    {
+      "order": [
+        "control",
+        "candidate"
+      ],
+      "runs": {
+        "control": {
+          "purpose": "subscript dispatch diagnosis only, never an official score",
+          "rows": [
+            {
+              "path": "exact_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0021831999765709043,
+                0.001923300005728379,
+                0.0019680999976117164,
+                0.001961200003279373,
+                0.001969200005987659
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002122100006090477,
+                0.002101799997035414,
+                0.0021009000192862004,
+                0.002092899987474084,
+                0.0020918000082019717
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0025268999743275344,
+                0.0025446999934501946,
+                0.002533999999286607,
+                0.0025716999953147024,
+                0.002852700010407716
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002516100008506328,
+                0.0025414999981876463,
+                0.002507900004275143,
+                0.002652800001669675,
+                0.0025268000026699156
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002047999994829297,
+                0.002026700007263571,
+                0.00205939999432303,
+                0.002090699999826029,
+                0.0020604000019375235
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002803500014124438,
+                0.002823299990268424,
+                0.0028375999827403575,
+                0.0028713000065181404,
+                0.002877099992474541
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.004726700019091368,
+                0.004757799993967637,
+                0.00476340000750497,
+                0.00473659997805953,
+                0.004777399997692555
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "exact_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007744200003799051,
+                0.007856099982745945,
+                0.007796299993060529,
+                0.007930499996291474,
+                0.00800070000695996
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008320299995830283,
+                0.008447300002444535,
+                0.008261800016043708,
+                0.008303100010380149,
+                0.008418599987635389
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.010347799980081618,
+                0.010074699996039271,
+                0.010094900004332885,
+                0.010161199985304847,
+                0.010066999995615333
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.010081500018713996,
+                0.010185100021772087,
+                0.010222900018561631,
+                0.009976000001188368,
+                0.009631299995817244
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007730200013611466,
+                0.007905999984359369,
+                0.008172200003173202,
+                0.007968700025230646,
+                0.008847399993101135
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.011252199998125434,
+                0.01152249998995103,
+                0.011585500004002824,
+                0.011649100022623315,
+                0.011604200000874698
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.01902390000759624,
+                0.019525699986843392,
+                0.01891590000013821,
+                0.01912450001691468,
+                0.019045599998207763
+              ],
+              "all_values_verified": true
+            }
+          ]
+        },
+        "candidate": {
+          "purpose": "subscript dispatch diagnosis only, never an official score",
+          "rows": [
+            {
+              "path": "exact_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0018042000010609627,
+                0.0020010000152979046,
+                0.0018965000053867698,
+                0.0018990000244230032,
+                0.0019204000127501786
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0022538999910466373,
+                0.002007900009630248,
+                0.0019554000173229724,
+                0.0019564999965950847,
+                0.0019232000049669296
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002060200000414625,
+                0.0019184999982826412,
+                0.0019351000082679093,
+                0.001904999982798472,
+                0.0019168999860994518
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002056600002106279,
+                0.0021379999816417694,
+                0.002005199989071116,
+                0.002055500022834167,
+                0.0020972999918740243
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0020684000046458095,
+                0.002060600003460422,
+                0.0020417999767232686,
+                0.0020457000064197928,
+                0.002058199985185638
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.0028959000192116946,
+                0.0028569000132847577,
+                0.002857399987988174,
+                0.0030091000080574304,
+                0.0028939999756403267
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 256,
+              "updates": 1024,
+              "samples_seconds": [
+                0.002672100003110245,
+                0.002689000015379861,
+                0.0029869000136386603,
+                0.0027261000068392605,
+                0.002683800004888326
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "exact_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.007718999986536801,
+                0.007704200019361451,
+                0.007693199993809685,
+                0.007649400009540841,
+                0.007694100000662729
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008205299993278459,
+                0.008139199984725565,
+                0.008259499998530373,
+                0.00829389999853447,
+                0.008291400008602068
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_dict",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.0081384000077378,
+                0.007774099998641759,
+                0.007957299996633083,
+                0.0077443000045605,
+                0.008333600009791553
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008563500014133751,
+                0.008221800002502277,
+                0.008740200020838529,
+                0.008900699991500005,
+                0.008288300014100969
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_native_counter",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.008096099976683035,
+                0.007847700006095693,
+                0.00807340000756085,
+                0.008443099999567494,
+                0.007872199988923967
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "direct_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.010848700010683388,
+                0.011343599995598197,
+                0.01186020000022836,
+                0.011851499992189929,
+                0.012092100019799545
+              ],
+              "all_values_verified": true
+            },
+            {
+              "path": "inherited_python",
+              "key_count": 1024,
+              "updates": 4096,
+              "samples_seconds": [
+                0.012686100002611056,
+                0.011550199997145683,
+                0.012035799998557195,
+                0.01219209999544546,
+                0.01189439999870956
+              ],
+              "all_values_verified": true
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "summary": [
+    {
+      "path": "exact_dict",
+      "key_count": 256,
+      "control_time_divided_by_candidate_time": [
+        1.1013412105823401,
+        0.9458948372217276,
+        1.1010112357632242,
+        0.9728769826778436,
+        0.9968298574508226,
+        1.060921097594887,
+        1.0363875578199155
+      ],
+      "median_speedup": 1.0363875578199155,
+      "pairs_favoring_candidate": 4
+    },
+    {
+      "path": "direct_native_dict",
+      "key_count": 256,
+      "control_time_divided_by_candidate_time": [
+        1.07805695178181,
+        0.8911854736897958,
+        1.098738936554472,
+        0.9225196667625392,
+        0.9868247649768459,
+        1.0217486808224319,
+        1.0738052762291932
+      ],
+      "median_speedup": 1.0217486808224319,
+      "pairs_favoring_candidate": 4
+    },
+    {
+      "path": "inherited_native_dict",
+      "key_count": 256,
+      "control_time_divided_by_candidate_time": [
+        1.1746738040865399,
+        1.2069293120095756,
+        1.2973338117367137,
+        1.1357988805866253,
+        1.2557284270476732,
+        1.2137104681364863,
+        1.326400831758197
+      ],
+      "median_speedup": 1.2137104681364863,
+      "pairs_favoring_candidate": 7
+    },
+    {
+      "path": "inherited_native_counter",
+      "key_count": 256,
+      "control_time_divided_by_candidate_time": [
+        1.1923619485178087,
+        1.2250668751421758,
+        1.3202965821805563,
+        1.1312416270633663,
+        1.2340030334735876,
+        1.1411736033488495,
+        1.2286297773422534
+      ],
+      "median_speedup": 1.2250668751421758,
+      "pairs_favoring_candidate": 7
+    },
+    {
+      "path": "direct_native_counter",
+      "key_count": 256,
+      "control_time_divided_by_candidate_time": [
+        0.9843916706896635,
+        1.0230041167265724,
+        1.1074155378595447,
+        0.9446044262595102,
+        0.999075117861093,
+        0.9860851262960463,
+        1.0005830381624863
+      ],
+      "median_speedup": 0.999075117861093,
+      "pairs_favoring_candidate": 3
+    },
+    {
+      "path": "direct_python",
+      "key_count": 256,
+      "control_time_divided_by_candidate_time": [
+        0.9978369263122042,
+        1.0001396370258184,
+        1.0880521700613695,
+        0.9532006815146133,
+        1.000381325052498,
+        0.9438842891922639,
+        0.980511405191878
+      ],
+      "median_speedup": 0.9978369263122042,
+      "pairs_favoring_candidate": 3
+    },
+    {
+      "path": "inherited_python",
+      "key_count": 256,
+      "control_time_divided_by_candidate_time": [
+        1.6603278026576422,
+        1.5922816408555356,
+        1.8155707128318694,
+        1.5959665006009038,
+        1.6407848035279844,
+        1.6576123213277378,
+        1.7693566257921824
+      ],
+      "median_speedup": 1.6576123213277378,
+      "pairs_favoring_candidate": 7
+    },
+    {
+      "path": "exact_dict",
+      "key_count": 1024,
+      "control_time_divided_by_candidate_time": [
+        1.001350634537095,
+        1.0487666474364468,
+        1.0402544761126973,
+        0.9420332709095968,
+        0.999485239060873,
+        1.0267887245838956,
+        1.0210550918326071
+      ],
+      "median_speedup": 1.0210550918326071,
+      "pairs_favoring_candidate": 5
+    },
+    {
+      "path": "direct_native_dict",
+      "key_count": 1024,
+      "control_time_divided_by_candidate_time": [
+        1.0086079552060203,
+        1.0367471085768525,
+        1.1146858604280756,
+        0.9562478991630005,
+        1.005364401645591,
+        0.9728077599728423,
+        1.0073612200872604
+      ],
+      "median_speedup": 1.0073612200872604,
+      "pairs_favoring_candidate": 5
+    },
+    {
+      "path": "inherited_native_dict",
+      "key_count": 1024,
+      "control_time_divided_by_candidate_time": [
+        1.2238902630018496,
+        1.2480247379688865,
+        1.2325540050268096,
+        1.1942453803772737,
+        1.2436774915590583,
+        1.2242181265359728,
+        1.2686338341653915
+      ],
+      "median_speedup": 1.2325540050268096,
+      "pairs_favoring_candidate": 7
+    },
+    {
+      "path": "inherited_native_counter",
+      "key_count": 1024,
+      "control_time_divided_by_candidate_time": [
+        1.2282056211524954,
+        1.256913449049558,
+        1.2177632823990432,
+        1.2369455687676758,
+        1.1874840637719597,
+        1.2297137250740295,
+        1.1772639694137723
+      ],
+      "median_speedup": 1.2282056211524954,
+      "pairs_favoring_candidate": 7
+    },
+    {
+      "path": "direct_native_counter",
+      "key_count": 1024,
+      "control_time_divided_by_candidate_time": [
+        0.9723201029763981,
+        0.9846547635728483,
+        0.9992832716607623,
+        0.9927668606793268,
+        0.9569340532676934,
+        0.9994062755115853,
+        0.9870314883156849
+      ],
+      "median_speedup": 0.9870314883156849,
+      "pairs_favoring_candidate": 0
+    },
+    {
+      "path": "direct_python",
+      "key_count": 1024,
+      "control_time_divided_by_candidate_time": [
+        0.9926193238836097,
+        0.9882688726872899,
+        0.9606970827937811,
+        0.9387311181840201,
+        0.9846226822438172,
+        1.0001215715550857,
+        0.9775555846633425
+      ],
+      "median_speedup": 0.9846226822438172,
+      "pairs_favoring_candidate": 1
+    },
+    {
+      "path": "inherited_python",
+      "key_count": 1024,
+      "control_time_divided_by_candidate_time": [
+        1.6252600393826209,
+        1.6497372126866512,
+        1.577998452034544,
+        1.6495146821207747,
+        1.6270056908456865,
+        1.6464539884402698,
+        1.5824124695068775
+      ],
+      "median_speedup": 1.6270056908456865,
+      "pairs_favoring_candidate": 7
+    }
+  ]
+}

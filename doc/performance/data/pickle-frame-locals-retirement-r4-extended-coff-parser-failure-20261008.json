@@ -1,0 +1,12 @@
+{
+  "status": "file_only_first_coff_failure_diagnosis",
+  "decoder_sha256": "67d16d034c94d70dc142d9c6c86988656254ac000bd2fb97838779cb6c6e8e33",
+  "runtime_execution": false,
+  "engine_changes": false,
+  "parsed_objects": 85,
+  "failing_object": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\CMakeFiles\\xlang3_system_runtime.dir\\Release\\src\\runtime\\modules\\system\\abc_module.cpp.obj",
+  "failing_object_sha256": "fe05db5e1f11da30ac4e0bcb2a136389eb0349431a1a2aa4ea9aeb959b07841e",
+  "failing_object_size": 4386455,
+  "first_64_bytes": "0000ffff01006486aee6c76a38feb30ca5d9ab4dac9bd6b6222653c277ee4200130c0700aee6c76a53ed420010000000000000002e6472656374766500000000",
+  "traceback": "Traceback (most recent call last):\n  File \"D:\\CantorAI\\xlang3\\scratch\\performance\\diagnose-r4-extended-coff-parser-root-20261008.py\", line 23, in <module>\n    count = sum(1 for _ in helper.functions(path))\n  File \"D:\\CantorAI\\xlang3\\scratch\\performance\\diagnose-r4-extended-coff-parser-root-20261008.py\", line 23, in <genexpr>\n    count = sum(1 for _ in helper.functions(path))\n                           ~~~~~~~~~~~~~~~~^^^^^^\n  File \"D:\\CantorAI\\xlang3\\scratch\\performance\\match-sqlglot-native-coff-20261008.py\", line 35, in functions\n    name = data[name_offset:data.index(b'\\0', name_offset)].decode('ascii', errors='replace')\n                            ~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^\nValueError: subsection not found\n"
+}

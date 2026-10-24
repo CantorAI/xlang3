@@ -1,0 +1,18 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Full-case timeout overrides: networkx*=600s
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (xml_etree)
+
+(trying common venv first)
+
+[1/1] xml_etree...
+...........
+xml_etree_pure_python_parse: Mean +- std dev: 8.00 sec +- 0.07 sec
+.Full-case timeout: xml_etree exceeded 300 seconds
+Preserved partial failed-definition output: xml_etree-3c38e877924b0e19.json
+ERROR: Benchmark xml_etree timed out
+
+ERROR: No benchmark was run

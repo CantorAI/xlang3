@@ -1,0 +1,6 @@
+plain dict and Python Counter updates: OK
+equal distinct keys, collisions and nested bigint keys: OK
+mixed strings/integers, deletion, pop, clear and aliases: OK
+mixed object keys, eligibility recovery and unhashable tuples: OK
+removed-value finalizers see coherent indices and preserve new writes: OK
+replacement published before finalizer; callback writes preserved: OK

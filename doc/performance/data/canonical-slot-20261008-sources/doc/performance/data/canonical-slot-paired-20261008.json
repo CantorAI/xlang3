@@ -1,0 +1,1120 @@
+{
+  "status": "terminal",
+  "scope": "Diagnostic including unchanged original SQLGlot body; not official scores",
+  "binaries_sha256": {
+    "control": {
+      "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+      "dll": "d32719ac907a10b994d5160a5ce97f05561c6c003de9a7c6f8dcd862da464ea3"
+    },
+    "candidate": {
+      "exe": "b6a279e5086d74b0784be81499ebad2068d878f8f8c62accd6b7e5f9a08092e9",
+      "dll": "32072ed892e61c1402981ccfe13e43991619669b5f2df699fe4497ee424a237b"
+    }
+  },
+  "benchmark_source_sha256": "d97aaba24f8c49f2afe5c5c740c568be6e89dde3364d5a964a4b72e5a4768a9b",
+  "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+  "probes": [
+    {
+      "name": "slot",
+      "filename": "canonical-slot-probe-20261008.py",
+      "probe_sha256": "f2cda8eff1ed7ab9ded5ab7daeefee8d0b7909b4b3974fcda06e48a706d994d2",
+      "pairs": [
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017807000258471817,
+                    0.0017582000000402331,
+                    0.0019862999906763434,
+                    0.0019523999944794923,
+                    0.0019036000012420118
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017715000140015036,
+                    0.0017727000231388956,
+                    0.0017464000266045332,
+                    0.0017689000233076513,
+                    0.001918300025863573
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010234999936074018,
+                    0.000995899987174198,
+                    0.000987200008239597,
+                    0.0010110999864991754,
+                    0.0010795000125654042
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.000984499987680465,
+                    0.0010113999887835234,
+                    0.0009738999942783266,
+                    0.0010020000045187771,
+                    0.0009561000042594969
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0019453999993856996,
+                    0.0019333000236656517,
+                    0.0019196999783162028,
+                    0.0019748999911826104,
+                    0.0019941000209655613
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001094800012651831,
+                    0.0010892999998759478,
+                    0.0011746000091079623,
+                    0.0010752000089269131,
+                    0.0010785999766085297
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001040700008161366,
+                    0.0010365000052843243,
+                    0.0010279999987687916,
+                    0.0010473000002093613,
+                    0.0010380999883636832
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0021194999862927943,
+                    0.0022126999974716455,
+                    0.0022215000062715262,
+                    0.0021414999791886657,
+                    0.002157899987651035
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001274800015380606,
+                    0.0011452999897301197,
+                    0.0011520999833010137,
+                    0.0011005999986082315,
+                    0.0010999999940395355
+                  ]
+                }
+              ]
+            },
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017963999998755753,
+                    0.0017228000215254724,
+                    0.0017422999953851104,
+                    0.0017017000063788146,
+                    0.0016974000027403235
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017059000092558563,
+                    0.0017691999964881688,
+                    0.00172610001754947,
+                    0.0017125000013038516,
+                    0.001711399992927909
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009944000048562884,
+                    0.001121300010709092,
+                    0.0010884999937843531,
+                    0.0011062999838031828,
+                    0.0010735999967437238
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017738000024110079,
+                    0.001724900008412078,
+                    0.0016956999897956848,
+                    0.0017060000100173056,
+                    0.0017035999917425215
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.00196159997722134,
+                    0.0018508999783080071,
+                    0.0017500999965704978,
+                    0.0017804999952204525,
+                    0.001747199974488467
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010122999956365675,
+                    0.0009910000080708414,
+                    0.000991599983535707,
+                    0.0009918000141624361,
+                    0.000993399997241795
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010048999974969774,
+                    0.0012411999923642725,
+                    0.0010294000094290823,
+                    0.001021499978378415,
+                    0.0010257000103592873
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0020641000010073185,
+                    0.0020323999924585223,
+                    0.0020118000102229416,
+                    0.0020265000057406723,
+                    0.002061500010313466
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0011175999825354666,
+                    0.00108460002229549,
+                    0.0010754000104498118,
+                    0.0010765999904833734,
+                    0.001062600000295788
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009732999897096306,
+                    0.0009759999811649323,
+                    0.000975800008745864,
+                    0.001052100007655099,
+                    0.0009775999933481216
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0021601000044029206,
+                    0.002167300001019612,
+                    0.0020114000071771443,
+                    0.002071900002192706,
+                    0.001991900004213676
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010945999820251018,
+                    0.0010810999956447631,
+                    0.0010735999967437238,
+                    0.0010753000096883625,
+                    0.0013153999752830714
+                  ]
+                }
+              ]
+            },
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017986999882850796,
+                    0.0017484000127296895,
+                    0.0017744999786373228,
+                    0.0018192999996244907,
+                    0.0017683999903965741
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017450000159442425,
+                    0.0017142999859061092,
+                    0.0018273000023327768,
+                    0.0017542999994475394,
+                    0.0017586000030860305
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010140000085812062,
+                    0.0010323999740649015,
+                    0.0010602000111248344,
+                    0.0010597000073175877,
+                    0.0010046999959740788
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017585000023245811,
+                    0.0017551000055391341,
+                    0.001763199979905039,
+                    0.001743700006045401,
+                    0.001726799993775785
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017840999935287982,
+                    0.0017608999914955348,
+                    0.0017442000098526478,
+                    0.0017398000054527074,
+                    0.0017623000021558255
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010985999833792448,
+                    0.001121000008424744,
+                    0.001037300011375919,
+                    0.001051200000802055,
+                    0.0010150999878533185
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001021600008243695,
+                    0.0009897999989334494,
+                    0.001013799977954477,
+                    0.000999299983959645,
+                    0.0009802000131458044
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001992999983485788,
+                    0.0019742000149562955,
+                    0.001946400007000193,
+                    0.001931300008436665,
+                    0.001947399985510856
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001083299983292818,
+                    0.0013002000050619245,
+                    0.001108399999793619,
+                    0.0010879999899771065,
+                    0.0010968999995384365
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.000986600003670901,
+                    0.000981099990895018,
+                    0.0009788000024855137,
+                    0.0009544999920763075,
+                    0.0009519000013824552
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0019965999817941338,
+                    0.0019410999957472086,
+                    0.0019518999906722456,
+                    0.0019694000075105578,
+                    0.001949199999216944
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001095400017220527,
+                    0.0011044999992009252,
+                    0.0010990000155288726,
+                    0.001071299979230389,
+                    0.0010860000038519502
+                  ]
+                }
+              ]
+            },
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017547000024933368,
+                    0.001745599991409108,
+                    0.0017927000008057803,
+                    0.0017721000185701996,
+                    0.0017524999857414514
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001774100004695356,
+                    0.0017659000004641712,
+                    0.0017991999920923263,
+                    0.0017651999951340258,
+                    0.001749899995047599
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.001024700002744794,
+                    0.0010196000221185386,
+                    0.001063899981090799,
+                    0.0010423999920021743,
+                    0.0009959000162780285
+                  ]
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0020166000176686794,
+                    0.002061100007267669,
+                    0.001824999984819442,
+                    0.0018373999919276685,
+                    0.0018102000176440924
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0017701000033412129,
+                    0.0017591000068932772,
+                    0.0017725999932736158,
+                    0.0017284000059589744,
+                    0.0017619999998714775
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010246000019833446,
+                    0.0010051999997813255,
+                    0.0010040000197477639,
+                    0.0010067999828606844,
+                    0.0010175000061281025
+                  ]
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "checked attribute diagnostic, not official score",
+              "rows": [
+                {
+                  "path": "own_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0009775000216905028,
+                    0.0009599000040907413,
+                    0.0009812999924179167,
+                    0.0009646000107750297,
+                    0.0009765999857336283
+                  ]
+                },
+                {
+                  "path": "inherited_slot",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0020247999927960336,
+                    0.0019459000031929463,
+                    0.001951999991433695,
+                    0.0019625000131782144,
+                    0.0019608000002335757
+                  ]
+                },
+                {
+                  "path": "ordinary_attr",
+                  "operations": 16384,
+                  "checksum": 114688,
+                  "samples_seconds": [
+                    0.0010865000076591969,
+                    0.0010924000234808773,
+                    0.0010879000183194876,
+                    0.0010785000049509108,
+                    0.0010746000043582171
+                  ]
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "cpython3147": {
+        "purpose": "checked attribute diagnostic, not official score",
+        "rows": [
+          {
+            "path": "own_slot",
+            "operations": 16384,
+            "checksum": 114688,
+            "samples_seconds": [
+              0.00033379998058080673,
+              0.0003538000164553523,
+              0.000322199979564175,
+              0.0003369000041857362,
+              0.00033710000570863485
+            ]
+          },
+          {
+            "path": "inherited_slot",
+            "operations": 16384,
+            "checksum": 114688,
+            "samples_seconds": [
+              0.0003281999961473048,
+              0.00032029999420046806,
+              0.00032220000866800547,
+              0.00033129999064840376,
+              0.00031519998447038233
+            ]
+          },
+          {
+            "path": "ordinary_attr",
+            "operations": 16384,
+            "checksum": 114688,
+            "samples_seconds": [
+              0.0003527000080794096,
+              0.00033989999792538583,
+              0.0003029000072274357,
+              0.0003273999900557101,
+              0.0003020000003743917
+            ]
+          }
+        ]
+      },
+      "summary": [
+        {
+          "identity": {
+            "path": "own_slot",
+            "operations": 16384,
+            "checksum": 114688
+          },
+          "control_time_over_candidate_time": [
+            1.9335703657315384,
+            1.659570408281244,
+            1.6632543558420356,
+            1.818135259100434,
+            1.7563294643363176,
+            1.7927053514891123,
+            1.8814253724849295
+          ],
+          "median_speedup": 1.7927053514891123,
+          "pairs_favoring_candidate": 7
+        },
+        {
+          "identity": {
+            "path": "inherited_slot",
+            "operations": 16384,
+            "checksum": 114688
+          },
+          "control_time_over_candidate_time": [
+            0.9106096507458062,
+            0.7935956305222374,
+            0.8760578635245145,
+            0.8467107474255282,
+            0.904231285096576,
+            0.9047082375649712,
+            0.8986128109249201
+          ],
+          "median_speedup": 0.8986128109249201,
+          "pairs_favoring_candidate": 0
+        },
+        {
+          "identity": {
+            "path": "ordinary_attr",
+            "operations": 16384,
+            "checksum": 114688
+          },
+          "control_time_over_candidate_time": [
+            0.9282107652752428,
+            0.9504060102548757,
+            0.9212335342090578,
+            0.95495326817496,
+            0.9583371330516806,
+            0.9354573549714491,
+            0.9266451686731032
+          ],
+          "median_speedup": 0.9354573549714491,
+          "pairs_favoring_candidate": 0
+        }
+      ]
+    },
+    {
+      "name": "sqlglot_parse",
+      "filename": "canonical-slot-sqlglot-probe-20261008.py",
+      "probe_sha256": "2a0eabce26935cfd46517486c52d6d4cc95154b60b55e187c9bd607a0f5a23ae",
+      "pairs": [
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.021108399998047388,
+                    0.021175340001354924,
+                    0.021210970007814467,
+                    0.02079220999730751,
+                    0.020603400000254624
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.018136629997752608,
+                    0.018223189993295818,
+                    0.01810193000419531,
+                    0.018472379993181676,
+                    0.018441030001849868
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.018190660010441208,
+                    0.01863247000146657,
+                    0.018494559999089687,
+                    0.018558480002684518,
+                    0.01877509000187274
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.020882240001810715,
+                    0.021521660007419997,
+                    0.021399160008877517,
+                    0.021656870003789665,
+                    0.021999210002832115
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.021547869994537904,
+                    0.022423890003119597,
+                    0.02122664999915287,
+                    0.021589069993933663,
+                    0.021584270003950225
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.01875868000497576,
+                    0.018438549994607457,
+                    0.018849850000697187,
+                    0.01849843999661971,
+                    0.018354280001949518
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.019111130002420394,
+                    0.018167819996597244,
+                    0.018622450000839307,
+                    0.019120449997717514,
+                    0.018644050002330916
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.021318239998072384,
+                    0.0210365599981742,
+                    0.02082259000162594,
+                    0.021181199996499346,
+                    0.02098685999517329
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.021184549998724832,
+                    0.0213008499937132,
+                    0.021375400002580137,
+                    0.021110430007684044,
+                    0.02095174999558367
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.019618019997142255,
+                    0.018124560007709078,
+                    0.018827319995034487,
+                    0.018264719998114742,
+                    0.01880657000292558
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "candidate",
+            "control"
+          ],
+          "runs": {
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.01883698999590706,
+                    0.018987679993733762,
+                    0.018863279992365277,
+                    0.018229169998085125,
+                    0.018458199995802716
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.021322360000340268,
+                    0.021094729998731056,
+                    0.021406569995451718,
+                    0.02168596999545116,
+                    0.021434779997798616
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "order": [
+            "control",
+            "candidate"
+          ],
+          "runs": {
+            "control": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.02128662000177428,
+                    0.02138655999733601,
+                    0.0210908200009726,
+                    0.022034289996372535,
+                    0.021351339996908792
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            },
+            "candidate": {
+              "purpose": "unchanged original parse body, checked AST output, not official score",
+              "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+              "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+              "rows": [
+                {
+                  "path": "sqlglot_v2_parse",
+                  "parses_per_sample": 10,
+                  "samples_seconds": [
+                    0.018173989999922924,
+                    0.01811291999765672,
+                    0.018614689997048118,
+                    0.018663820007350295,
+                    0.018248650000896306
+                  ],
+                  "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+                }
+              ]
+            }
+          }
+        }
+      ],
+      "cpython3147": {
+        "purpose": "unchanged original parse body, checked AST output, not official score",
+        "source": "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlglot_v2\\run_benchmark.py",
+        "sql_checksum_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a",
+        "rows": [
+          {
+            "path": "sqlglot_v2_parse",
+            "parses_per_sample": 10,
+            "samples_seconds": [
+              0.0009689999977126717,
+              0.0009638499963330105,
+              0.001165269999182783,
+              0.0009820400009630248,
+              0.0009774600010132417
+            ],
+            "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+          }
+        ]
+      },
+      "summary": [
+        {
+          "identity": {
+            "path": "sqlglot_v2_parse",
+            "parses_per_sample": 10,
+            "canonical_sql_sha256": "145459afed16b46642f0584b2afcf2011b4c5ba107804c34d4a8245c9464363a"
+          },
+          "control_time_over_candidate_time": [
+            1.158326286770484,
+            1.1596671712503852,
+            1.1668156886685797,
+            1.1283256586173158,
+            1.1264441094484177,
+            1.1364113905726436,
+            1.1700229877749913
+          ],
+          "median_speedup": 1.158326286770484,
+          "pairs_favoring_candidate": 7
+        }
+      ]
+    }
+  ]
+}

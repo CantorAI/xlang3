@@ -1,0 +1,11 @@
+{
+  "manager_version": "3.14.7",
+  "scope": "Offline synthetic file-preservation validation; no benchmark workers or XLang3 processes started; synthetic temporary files removed",
+  "checks": [
+    "successful invocation leaves no partial artifact",
+    "original bytes and measured-value count survive upstream deletion; failed status retained",
+    "partial data never joins successful suite output",
+    "invalid/truncated/schema-invalid output retained without path traversal",
+    "missing output handled without invented measurements"
+  ]
+}

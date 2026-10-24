@@ -24,7 +24,7 @@ IDE_PROFILE = next(
 XLANG = Path(sys.argv[1]).resolve() if len(sys.argv) > 1 else ROOT / "build" / "Release" / "xlang3.exe"
 REFERENCE_RUN = os.environ.get("XLANG3_DEBUGPY_REFERENCE_RUN") == "1"
 ADAPTER_PYTHON = XLANG if REFERENCE_RUN else Path(os.environ.get(
-    "XLANG3_VS_ADAPTER_PYTHON", str(LAUNCH_CONFIG["$adapter"])
+    "XLANG3_VS_ADAPTER_PYTHON", str(XLANG)
 )).resolve()
 CONFIG_ADAPTER_ENTRY = str(LAUNCH_CONFIG["$adapterArgs"]).strip()
 if CONFIG_ADAPTER_ENTRY.startswith('"') and CONFIG_ADAPTER_ENTRY.endswith('"'):
@@ -34,7 +34,12 @@ VS_CORE = Path(os.environ.get(
     "XLANG3_VS_CORE",
     str(LAUNCH_CONFIG["env"]["XLANG3_PYTHON_LIB"]),
 )).resolve()
-PROGRAM = Path(LAUNCH_CONFIG["program"]).resolve()
+CONFIGURED_PROGRAM = Path(LAUNCH_CONFIG["program"])
+PROGRAM = (
+    (ROOT / CONFIGURED_PROGRAM).resolve()
+    if not CONFIGURED_PROGRAM.is_absolute()
+    else CONFIGURED_PROGRAM.resolve()
+)
 DEFAULT_TIMEOUT = float(os.environ.get("DEBUGPY_SMOKE_TIMEOUT", "180"))
 ADAPTER_PROCESS: subprocess.Popen[bytes] | None = None
 START_TIME = time.monotonic()
@@ -46,6 +51,11 @@ def progress(message: str) -> None:
 
 def same_path(left: Path, right: Path) -> bool:
     return str(left.resolve()).replace("\\", "/").casefold() == str(right.resolve()).replace("\\", "/").casefold()
+
+
+def resolve_repo_path(value: str | Path) -> Path:
+    path = Path(value)
+    return (ROOT / path).resolve() if not path.is_absolute() else path.resolve()
 
 
 def dap_frame(message: dict[str, object]) -> bytes:
@@ -62,16 +72,27 @@ def main() -> int:
         raise RuntimeError("Visual Studio launch config adapter and Python Core paths disagree")
     if not same_path(PROGRAM, ROOT / "tests" / "ide" / "vs2026_debug_smoke.py"):
         raise RuntimeError("Visual Studio launch config does not target the repository smoke program")
-    profile_program = (ROOT / str(IDE_PROFILE["project"])).resolve()
-    profile_interpreter = XLANG if REFERENCE_RUN else Path(str(IDE_PROFILE["interpreter"])).resolve()
+    profile_program = resolve_repo_path(str(IDE_PROFILE["project"]))
+    configured_interpreter = resolve_repo_path(str(IDE_PROFILE["interpreter"]))
+    profile_interpreter = XLANG
     if not REFERENCE_RUN:
-        if not same_path(profile_interpreter, XLANG):
+        if configured_interpreter.name.casefold() != "xlang3.exe":
             raise RuntimeError("Visual Studio profile does not use xlang3.exe directly")
+        # Validate the checked-in IDE profiles against each other, then use
+        # CTest's explicit executable for both adapter and debuggee. Its build
+        # directory can differ from the developer's default IDE build directory.
+        for configured_path in (LAUNCH_CONFIG["$adapter"],
+                                LAUNCH_CONFIG["debugLauncherPython"],
+                                LAUNCH_CONFIG["python"][0]):
+            if not same_path(resolve_repo_path(str(configured_path)), configured_interpreter):
+                raise RuntimeError("Visual Studio launch configs select different interpreters")
         if not same_path(ADAPTER_PYTHON, XLANG):
             raise RuntimeError("Visual Studio launch config does not run the adapter with xlang3.exe")
     if IDE_PROFILE.get("interpreterArguments") != "-S":
         raise RuntimeError("Visual Studio profile has unexpected interpreter arguments")
-    if not same_path(profile_program, PROGRAM) or not same_path(Path(str(IDE_PROFILE["workingDirectory"])), ROOT):
+    if not same_path(profile_program, PROGRAM) or not same_path(
+        resolve_repo_path(str(IDE_PROFILE["workingDirectory"])), ROOT
+    ):
         raise RuntimeError("Visual Studio profile and adapter launch config select different programs or working directories")
     if IDE_PROFILE.get("env") != LAUNCH_CONFIG.get("env"):
         raise RuntimeError("Visual Studio profile and adapter launch config use different environments")

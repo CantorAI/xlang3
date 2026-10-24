@@ -1,0 +1,37 @@
+Telco exact-body direct comparison with output-buffer reset included.
+run_1_control=0.461326s
+run_2_candidate=0.252622s
+run_3_candidate=0.292547s
+run_4_control=0.621313s
+run_5_control=0.466406s
+run_6_candidate=0.244203s
+run_7_candidate=0.248306s
+run_8_control=0.464092s
+run_9_control=0.479853s
+run_10_candidate=0.257919s
+
+median_candidate=0.252622s n=5
+median_control=0.466406s n=5
+cpython313_1=0.005578s
+cpython313_2=0.005571s
+cpython313_3=0.005524s
+cpython313_4=0.005615s
+cpython313_5=0.005599s
+cpython313_median=0.005578s
+
+XLang3 Decimal native profile for the same body:
+binary fast/fallback: 32,512/9
+quantize fast/fallback: 12,507/0
+remaining binary fallback reason: right_operand=9
+
+The previous profile before zero acceptance was binary 28,903/3,618 and
+quantize 12,452/64.
+
+The Context slot-index caching follow-up was not retained: its candidate
+median was 0.284234 seconds versus 0.275573 seconds for the zero-only control
+(five alternating samples each, 1.031x slower).
+
+The direct CPython timing is CPython 3.13.7, not CPython 3.14.7. The XLang3
+target reports Python 3.14.7 but currently loads the accessible 3.13 standard
+library. This is a diagnostic of the optimized workload body, not an official
+pyperformance comparison against the 3.14 reference.

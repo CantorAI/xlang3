@@ -1,0 +1,19 @@
+{
+  "purpose": "bounded correctness probe; not a timing score",
+  "runs": [
+    {
+      "runtime": "cpython3147",
+      "status": "finished",
+      "returncode": 0,
+      "stdout": "OverflowError\n",
+      "stderr": "",
+      "exe_sha256": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9"
+    },
+    {
+      "runtime": "xlang3",
+      "status": "timed_out_and_child_terminated",
+      "timeout_seconds": 2,
+      "exe_sha256": "46a04e33a02022374347f98dcfb4d3ef73e158f5717b92b31d1fee360a8cccef"
+    }
+  ]
+}

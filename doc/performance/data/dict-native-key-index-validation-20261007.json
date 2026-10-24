@@ -1,0 +1,25 @@
+{
+  "status": "failed_fixtures",
+  "candidate_binary_sha256": {
+    "exe": "dbc20688f5363819cb4a539619d28be885c9d0e0e6e3140e24ecb0112c534248",
+    "dll": "f23777781864c12383cb4b7b779e14ccb323de5bb503b9889fcc5658fed8cebb"
+  },
+  "phases": [
+    {
+      "name": "fixtures",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "tests/run_fixtures.py",
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe"
+      ],
+      "exit_code": 1,
+      "log": "dict-native-key-index-validation-20261007-fixtures.log",
+      "sha256": "943818163cd17ceab0edefed8518f94288a81b58cb90ad5f6d7e271deae8e21b"
+    }
+  ],
+  "fixture_counts": {
+    "core": 367,
+    "compatibility_sections": 11,
+    "expected_failures": 3
+  }
+}

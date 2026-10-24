@@ -1,0 +1,33 @@
+Paired A/B at unchanged fixed Release executable path; alternating parent/candidate snapshots. Each block invokes the same microbench.
+
+=== parent ===
+runtime SHA256=C079451C986AE7DBCA21FA1AC2E2D02CB4FC3DA58E6B22FD647B3E4248886CEE
+single-star-varargs calls=50000 repeat=1: 0.041153s
+single-star-varargs calls=50000 repeat=2: 0.041894s
+single-star-varargs calls=50000 repeat=3: 0.042307s
+single-star-varargs calls=50000 repeat=4: 0.040446s
+single-star-varargs calls=50000 repeat=5: 0.041125s
+
+=== candidate ===
+runtime SHA256=84F671B3725A6D29C671A7A917BFF92D15D1C72D6015E8CFAD20370E62EB1DE6
+single-star-varargs calls=50000 repeat=1: 0.022582s
+single-star-varargs calls=50000 repeat=2: 0.021976s
+single-star-varargs calls=50000 repeat=3: 0.022018s
+single-star-varargs calls=50000 repeat=4: 0.022464s
+single-star-varargs calls=50000 repeat=5: 0.022637s
+
+=== candidate ===
+runtime SHA256=84F671B3725A6D29C671A7A917BFF92D15D1C72D6015E8CFAD20370E62EB1DE6
+single-star-varargs calls=50000 repeat=1: 0.021923s
+single-star-varargs calls=50000 repeat=2: 0.022579s
+single-star-varargs calls=50000 repeat=3: 0.022204s
+single-star-varargs calls=50000 repeat=4: 0.022650s
+single-star-varargs calls=50000 repeat=5: 0.022290s
+
+=== parent ===
+runtime SHA256=C079451C986AE7DBCA21FA1AC2E2D02CB4FC3DA58E6B22FD647B3E4248886CEE
+single-star-varargs calls=50000 repeat=1: 0.041841s
+single-star-varargs calls=50000 repeat=2: 0.041803s
+single-star-varargs calls=50000 repeat=3: 0.041263s
+single-star-varargs calls=50000 repeat=4: 0.040901s
+single-star-varargs calls=50000 repeat=5: 0.041762s

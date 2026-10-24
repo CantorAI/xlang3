@@ -1,0 +1,17 @@
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (typing_runtime_protocols)
+
+(trying common venv first)
+
+[1/1] typing_runtime_protocols...
+.........................................
+typing_runtime_protocols: Mean +- std dev: 154 us +- 2 us
+
+Performance version: 1.14.0
+
+### typing_runtime_protocols ###
+Mean +- std dev: 154 us +- 2 us
+

@@ -1,0 +1,8 @@
+{
+  "Command": "C:\\Python\\Python314\\python.exe tests\\run_fixtures.py build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "Python": "Python 3.14.7",
+  "ExitCode": 0,
+  "FixtureSuite": "tests/run_fixtures.py",
+  "ExecutableSHA256": "9579A6351E8A0BD15FCA401DDC80E91D7238C21EBAEFCCD66B0BB0BA4279F4A6",
+  "RuntimeDLLSHA256": "259BC7976F5CAA9FA6360876C0E09ADDA829859A2A6CC2708BBEB4E13011DD28"
+}

@@ -1,0 +1,27 @@
+{
+  "status": "frozen_scratch_only_root_rejection_controller_unexecuted_unparsed",
+  "controller": "scratch/performance/reject-immutable-entry-layout-l9-20261008.py",
+  "controller_sha256": "7cbd16fbf04cf939ac04e787032c00516a2c9fbf9b18c7361faa2ee008720a99",
+  "source_inventory_sha256": "b4fdcbcb4dbcea8eb263411e306a475b5321d50a311f9c2bc7f9c7425d1cc4ec",
+  "focused_receipt_sha256": "ba43a6c73441242ba02a0949339b0720f052a753853e8b84e7753600d3825c1b",
+  "decision_receipt_sha256": "f7868c0920a403c5b333df6dd63171570a15a042431194ea72819a870d8ce21c",
+  "control_manifest_sha256": "67449b0b9ecd5a1b4c9669acef85d8b89eb28c7b31df60b7a4653ad5a7c79b56",
+  "preserved_source_count": 111,
+  "preserved_release_count": 178,
+  "restored_source_count": 110,
+  "owned_restore_paths": [
+    "src/internal/xlang3/ir.h",
+    "src/executor/xlang_vm/xlang_frame.h",
+    "src/executor/xlang_vm/xlang_interpreter.cpp",
+    "src/executor/xlang_vm/xlang_vm_loop.cpp",
+    "tests/cpp/interpreter_tests.cpp"
+  ],
+  "sole_removed_owned_path": "tests/cpp/immutable_entry_layout_cases.h",
+  "unrelated_dirty_policy": "Dynamically pin and preserve every unrelated tracked raw dirty file, including EOL-only changes; no assumed count, no Git write",
+  "filesystem_guards": "Absolute declared trees only; no symlinks/junctions/path escapes; fresh preserve tree; complete byte verification before first live mutation",
+  "source_timestamp_policy": "Touch all five restored owned inputs to force future Ninja object replacement",
+  "decision_scope": "Sort callback useful signal passed but predeclared sort_plain median floor failed; CI permits no change, so no confirmed-regression claim",
+  "runtime_build_ast_or_restoration_executed_by_author": false,
+  "actual_source_hashes_reverified": true,
+  "launch_command": "& 'C:/Python/Python314/python.exe' -I -u 'D:/CantorAI/xlang3/scratch/performance/reject-immutable-entry-layout-l9-20261008.py' --reject-trial --decision-receipt 'D:/CantorAI/xlang3/doc/performance/data/native-entry-layout-l9-callback-paired-strict-idle-20261008.json' --decision-receipt-sha256 f7868c0920a403c5b333df6dd63171570a15a042431194ea72819a870d8ce21c --prefix native-entry-layout-l9-rejected-20261008"
+}

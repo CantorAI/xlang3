@@ -207,6 +207,17 @@ std::string xlang_net_cypher::GenerateKeyPair(int key_size, std::string key_name
   }
 }
 
+std::string xlang_net_cypher::GetPublicKey(std::string key_name) {
+  try {
+    if (!EnsureStorePath()) return {};
+    RsaPtr rsa = load_private_key(private_key_path(store_path_, key_name));
+    if (!rsa) return {};
+    return public_key_pem(rsa.get());
+  } catch (...) {
+    return {};
+  }
+}
+
 bool xlang_net_cypher::RemovePrivateKey(std::string key_name) {
   if (!EnsureStorePath()) return false;
   std::error_code ec;

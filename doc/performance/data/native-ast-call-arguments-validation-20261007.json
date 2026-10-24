@@ -1,0 +1,46 @@
+{
+  "status": "correctness_and_fixed_gate_passed",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "source_base_commit": "b3f9dc567cc66aa125a052cecf0797f90d89bbb8",
+  "source_files": {
+    "src/runtime/modules/system/ast_module.cpp": "ff9b77cf5bdae41ec32e0bdcb6b457eddcf3ba24699f21cf18703b0c9922c0e4",
+    "src/runtime/methods/bytes_methods.cpp": "660db7174f984c4a145bddde76cf42c8e2cacaa156c34fc52855f8db785c00af",
+    "tests/run_fixtures.py": "01beea607babc74cf9d11849dfaadfbe2d07601e1f90aff29e23da30afb5fe93",
+    "tests/fixtures/core/ast_call_arguments.py": "5f6ee3354b3b15d2786d5c7685bfd6b52f9a64f5045b96414203f13d1f40f9b5",
+    "tests/fixtures/expected/ast_call_arguments.out": "9c55ed715854e3cbe49c90c31baee493e19ee4516ea31b347e1c3d3a34146c57",
+    "tests/fixtures/core/bytes_decode_descriptor.py": "ad42c5fe8ff7e04a55f20b824d2adba69a331cd037dcfeefd956d40fe17bc26f",
+    "tests/fixtures/expected/bytes_decode_descriptor.out": "ce37c4a08d3ecdfc3e20fc8552c424af2f140b38d294ba8fd2555c0ebc009be7"
+  },
+  "binary_sha256": {
+    "xlang3.exe": "b1e8973ae266243f545920a83a5ac7e1686f56baaf443193514be59f43dd4afb",
+    "xlang3_runtime.dll": "3480629a54b27a7aa202e55881459117e1c9fbc64e5f8c151aec52880d63d3b5"
+  },
+  "full_fixtures": {
+    "exit_code": 0,
+    "verified_exec_session": 61368,
+    "core_cases": 358,
+    "section_cases": 11,
+    "expected_failure_cases": 3
+  },
+  "cpp_sdk": {
+    "exit_code": 0,
+    "tests_passed": 8,
+    "log": "native-ast-call-arguments-cpp-sdk-20261007.log"
+  },
+  "fixed_gate": {
+    "report": "release-native-ast-call-fixed-gate-20261007.json",
+    "status": "pass",
+    "exit_code": 0,
+    "cases": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1
+  },
+  "official_chameleon": {
+    "status": "finished_with_benchmark_failures",
+    "exit_code": 1,
+    "report": null,
+    "provenance": "pyperformance-xlang3-native-ast-call-chameleon-fast-20261007-provenance.json",
+    "failure": "TypeError: __quote() missing 1 required positional argument: default_marker"
+  }
+}

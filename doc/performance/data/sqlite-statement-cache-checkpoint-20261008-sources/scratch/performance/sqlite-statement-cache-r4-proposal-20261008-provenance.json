@@ -1,0 +1,120 @@
+{
+  "status": "scratch-only-uncompiled-unrun",
+  "previous_proposal_patch_sha256": "8c4401eb7be52d94898bff929842be1c51186b57f99d94886df7222d1d2d97d7",
+  "revision": "R3 engine unchanged; CP3.14.7 observed closed active cursor.close raises, use del plus GC cleanup; original R3 failure preserved",
+  "head": "cd77dd2b804b6b2a66adc945efcd9f5cc5ecfe57",
+  "scope": "Own native connection LRU128/configurable capacity; cache plus exclusive pre-binding cursor lease; successful reset/clear; raw busy fallback; generation/close/registration ownership guards",
+  "targets": [
+    {
+      "path": "modules/sqlite/sqlite_handles.h",
+      "source_sha256_before": "14bac0cb256d3fd86fd9422ba7b423cb16ae6a5185c714d5f71fa84a34e8c620",
+      "source_sha256_after": "14bac0cb256d3fd86fd9422ba7b423cb16ae6a5185c714d5f71fa84a34e8c620",
+      "source_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-sources/modules/sqlite/sqlite_handles.h",
+      "candidate_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-candidates/modules/sqlite/sqlite_handles.h",
+      "candidate_sha256": "0c6dd9e52af455cc5ab8ab2a1c9fc1c127f8130029965aad99f4916ab3ea5dd4"
+    },
+    {
+      "path": "modules/sqlite/sqlite_handles.cpp",
+      "source_sha256_before": "115afd05d291841df78d0accfb033ebb53c46bffa9344bcadb8f49c4939180ca",
+      "source_sha256_after": "115afd05d291841df78d0accfb033ebb53c46bffa9344bcadb8f49c4939180ca",
+      "source_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-sources/modules/sqlite/sqlite_handles.cpp",
+      "candidate_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-candidates/modules/sqlite/sqlite_handles.cpp",
+      "candidate_sha256": "20bfedb74411242a37081944f968a9577138d2b849512722efc95d1b1c5bcf6b"
+    },
+    {
+      "path": "modules/sqlite/sqlite_package.cpp",
+      "source_sha256_before": "e4349e80b5c519b290853c1ac80443a5351f4d4f9def41449af71c3d1178457d",
+      "source_sha256_after": "e4349e80b5c519b290853c1ac80443a5351f4d4f9def41449af71c3d1178457d",
+      "source_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-sources/modules/sqlite/sqlite_package.cpp",
+      "candidate_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-candidates/modules/sqlite/sqlite_package.cpp",
+      "candidate_sha256": "98633a3a82c71d5b2afc9c1db0131170f3475ed298cfb24cd72c40ba9bbbe50c"
+    },
+    {
+      "path": "tests/cpp/interpreter_tests.cpp",
+      "source_sha256_before": "18dc3fd05fed74b605788dc71f494967aec8b595b0e76d1779977d6c15590309",
+      "source_sha256_after": "18dc3fd05fed74b605788dc71f494967aec8b595b0e76d1779977d6c15590309",
+      "source_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-sources/tests/cpp/interpreter_tests.cpp",
+      "candidate_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-candidates/tests/cpp/interpreter_tests.cpp",
+      "candidate_sha256": "db438b96c192b1ebc352dc8eb5e697fca078533889f032339182803843ac1371"
+    },
+    {
+      "path": "tests/run_fixtures.py",
+      "source_sha256_before": "5dc89e12e52b6417e69c8c33c28d56d2bc5562ec8cd16f008e4f2fc80eaca9ec",
+      "source_sha256_after": "5dc89e12e52b6417e69c8c33c28d56d2bc5562ec8cd16f008e4f2fc80eaca9ec",
+      "source_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-sources/tests/run_fixtures.py",
+      "candidate_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-candidates/tests/run_fixtures.py",
+      "candidate_sha256": "a7204377a05f9f449ce4274397b2cde646e83ebd2f6595c742d98166d22b4068"
+    },
+    {
+      "path": "tests/run_fixtures.ps1",
+      "source_sha256_before": "53e7ec88e03037dd072f944c7ab7096685c05c33c47492529fb3db598fc2c221",
+      "source_sha256_after": "53e7ec88e03037dd072f944c7ab7096685c05c33c47492529fb3db598fc2c221",
+      "source_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-sources/tests/run_fixtures.ps1",
+      "candidate_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-candidates/tests/run_fixtures.ps1",
+      "candidate_sha256": "c01300c7256714bf127114597d0db82cca2ed5ad1293b7d6ddbb1947acc61f40"
+    },
+    {
+      "path": "sdk/xlang3/abi/xmodule.h",
+      "source_sha256_before": "7aa4ae5bcbfd266741ce592d1b2821f112a21ceb1a6ebdeaedea8ddf1d7cbded",
+      "source_sha256_after": "7aa4ae5bcbfd266741ce592d1b2821f112a21ceb1a6ebdeaedea8ddf1d7cbded",
+      "source_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-sources/sdk/xlang3/abi/xmodule.h",
+      "candidate_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-candidates/sdk/xlang3/abi/xmodule.h",
+      "candidate_sha256": "cfc7c83b6044b1dacbcab5834dccdcff4b691cb4f11742a61273181d20497ce0"
+    },
+    {
+      "path": "src/import/native_package_loader.cpp",
+      "source_sha256_before": "c3196390d2ca48d4e67a6492277ddf98ad1a3c05c1ce01f53d4cc341cfbd6a00",
+      "source_sha256_after": "c3196390d2ca48d4e67a6492277ddf98ad1a3c05c1ce01f53d4cc341cfbd6a00",
+      "source_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-sources/src/import/native_package_loader.cpp",
+      "candidate_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-candidates/src/import/native_package_loader.cpp",
+      "candidate_sha256": "55908b6819b3cbcf5a297bc09869bee3acd076be6450ed5cecebb91ccba8a796"
+    },
+    {
+      "path": "tests/cpp/sqlite_statement_cache_cases.h",
+      "source_sha256_before": null,
+      "source_sha256_after": null,
+      "source_copy": null,
+      "candidate_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-candidates/tests/cpp/sqlite_statement_cache_cases.h",
+      "candidate_sha256": "5a5043d3c1210dff14ccc6f898edaa2c7ac4bcf1d25f361140d04954f9cb7762"
+    },
+    {
+      "path": "tests/cpp/sqlite_statement_cache_sdk_probe.py",
+      "source_sha256_before": null,
+      "source_sha256_after": null,
+      "source_copy": null,
+      "candidate_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-candidates/tests/cpp/sqlite_statement_cache_sdk_probe.py",
+      "candidate_sha256": "ee4a92f80b2744cf8388ff199c1eb537f030e1d95e412d58cc4c176686bc00c3"
+    },
+    {
+      "path": "tests/fixtures/core/sqlite_statement_cache.py",
+      "source_sha256_before": null,
+      "source_sha256_after": null,
+      "source_copy": null,
+      "candidate_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-candidates/tests/fixtures/core/sqlite_statement_cache.py",
+      "candidate_sha256": "d2ec917ab11e9c4f1e672bd0eef60c2aaa7400160cd6b6fb76ca6e151d2b3701"
+    },
+    {
+      "path": "tests/fixtures/expected/sqlite_statement_cache.out",
+      "source_sha256_before": null,
+      "source_sha256_after": null,
+      "source_copy": null,
+      "candidate_copy": "scratch/performance/sqlite-statement-cache-r4-proposal-20261008-candidates/tests/fixtures/expected/sqlite_statement_cache.out",
+      "candidate_sha256": "9173c9f0a5076af30186351c98fd8c080903c31a9361c1b77823e3cbe492fd65"
+    }
+  ],
+  "preserved_original_fixture_and_binder_sha256": {
+    "modules/sqlite/sqlite_values.cpp": "c691c90ba6b7a43c12bce47dfef75101b22b76732303a196ac30b9d6ad3533dc",
+    "tests/fixtures/core/sqlite_native_aggregate.py": "5e8b444a8f47eae17d597bbea7455f0b8301102ffe89c016b76fde1474a9a650",
+    "tests/fixtures/expected/sqlite_native_aggregate.out": "8f6ebc7a41de49cbe5f10eb5562fa88587df0bed67240dba4a7f5fc5f9edb2ba",
+    "tests/fixtures/core/sqlite_cursor_completion.py": "3d3f6071911c60a54a3dbed4a6da8062a0fe76e92c83d6e7a92cb94fa84c80d6",
+    "tests/fixtures/expected/sqlite_cursor_completion.out": "ee14063d1e39079883efe711f04242b1b70e33d8d9d5ea073f85255784b73df6",
+    "tests/cpp/sqlite_aggregate_abi_cases.h": "424debac1951802dba2619736f4d935502ad261cc82bc13247beb27adac69f0a"
+  },
+  "patch_sha256": "87b300c1271c609172a51c110a2ec8ccdd13bcb2bbe4ada384f1c21039a802c5",
+  "git_apply_check_exit": 0,
+  "generator_sha256": "62c10cfe4f70dec34de4d63bac797c0c63830d7cb1563446b07b6a9afbe18eb4",
+  "compiler_run": false,
+  "runtime_run": false,
+  "ast_run": false,
+  "tests_run": false
+}

@@ -24,6 +24,8 @@ limitations under the License.
 #include <cstdlib>
 #include <string>
 #include <string_view>
+#include <unordered_map>
+#include <unordered_set>
 #include <vector>
 
 namespace xlang3 {
@@ -40,11 +42,33 @@ constexpr int64_t kXmlParamEntityParsingNever = 0;
 constexpr int64_t kXmlParamEntityParsingUnlessStandalone = 1;
 constexpr int64_t kXmlParamEntityParsingAlways = 2;
 
+struct XmlNamespaceChange {
+  std::string prefix;
+  std::string previous_uri;
+  bool had_previous = false;
+};
+
+struct XmlElementFrame {
+  std::string raw_name;
+  std::vector<XmlNamespaceChange> namespaces;
+};
+
 struct PyExpatParserState {
   std::string encoding;
   std::string namespace_separator;
   std::string buffer;
-  std::vector<std::string> element_stack;
+  // Commit each token once. Retain only parser state and a cursor across Parse
+  // calls; replaying the buffered document duplicated events and did quadratic
+  // work for incremental input. An incomplete token resumes its quote scan.
+  size_t consumed = 0;
+  size_t token_scan = 0;
+  char token_quote = 0;
+  bool saw_element = false;
+  bool root_closed = false;
+  bool namespaces_enabled = false;
+  std::vector<XmlElementFrame> element_stack;
+  std::unordered_map<std::string, std::string> namespaces{
+      {"xml", "http://www.w3.org/XML/1998/namespace"}};
   int64_t current_line = 1;
   int64_t current_column = 0;
   int64_t current_byte = 0;
@@ -157,7 +181,7 @@ void set_parse_error(PyExpatParserState& state, int64_t code) {
 
 bool is_name_char(char ch) {
   const auto c = static_cast<unsigned char>(ch);
-  return std::isalnum(c) || ch == '_' || ch == ':' || ch == '-' || ch == '.';
+  return c >= 0x80 || std::isalnum(c) || ch == '_' || ch == ':' || ch == '-' || ch == '.';
 }
 
 void skip_spaces(std::string_view text, size_t& pos) {
@@ -264,18 +288,30 @@ bool call_handler(Runtime& runtime, const Value& parser, const char* name, const
   return runtime_call_callable(runtime, handler, args.empty() ? nullptr : args.data(), static_cast<uint32_t>(args.size()), ignored, error);
 }
 
-bool emit_text(Runtime& runtime, const Value& parser, PyExpatParserState& state, std::string_view text, std::string& error) {
+bool raise_expat_error(Runtime& runtime, PyExpatParserState& state, int64_t code, std::string message, std::string& error);
+
+bool emit_text(Runtime& runtime, const Value& parser, PyExpatParserState& state, std::string_view text, std::string& error, bool decode_entities = true) {
   if (text.empty()) {
     return true;
   }
-  const std::string decoded = decode_xml_entities(text);
-  advance_position(state, text);
+  // Prolog/epilog whitespace is not character data inside the document. In
+  // particular, emitting the newline after the root changed Genshi's output.
+  if (state.element_stack.empty()) {
+    const bool whitespace = std::all_of(text.begin(), text.end(), [](unsigned char ch) { return std::isspace(ch) != 0; });
+    if (!whitespace) return raise_expat_error(runtime, state, state.root_closed ? 9 : kXmlErrorSyntax,
+                                              state.root_closed ? "junk after document element" : "syntax error", error);
+    advance_position(state, text);
+    return true;
+  }
+  const std::string decoded = decode_entities ? decode_xml_entities(text) : std::string(text);
   if (decoded.empty()) {
     return true;
   }
   std::vector<Value> args;
   args.push_back(Value::string(decoded));
-  return call_handler(runtime, parser, "CharacterDataHandler", args, error);
+  if (!call_handler(runtime, parser, "CharacterDataHandler", args, error)) return false;
+  advance_position(state, text);
+  return true;
 }
 
 bool raise_expat_error(Runtime& runtime, PyExpatParserState& state, int64_t code, std::string message, std::string& error) {
@@ -296,121 +332,192 @@ bool raise_expat_error(Runtime& runtime, PyExpatParserState& state, int64_t code
   return false;
 }
 
+bool expanded_xml_name(Runtime& runtime, const Value& parser, PyExpatParserState& state,
+                       const std::string& raw, bool attribute, std::string& out, std::string& error) {
+  out = raw;
+  if (!state.namespaces_enabled) return true;
+  const size_t colon = raw.find(':');
+  if (colon != std::string::npos && (colon == 0 || colon + 1 == raw.size() || raw.find(':', colon + 1) != std::string::npos)) {
+    return raise_expat_error(runtime, state, kXmlErrorInvalidToken, "invalid qualified name", error);
+  }
+  const std::string prefix = colon == std::string::npos ? "" : raw.substr(0, colon);
+  if (colon == std::string::npos && attribute) return true; // Default namespace excludes attributes.
+  const auto found = state.namespaces.find(prefix);
+  if (found == state.namespaces.end() || found->second.empty()) {
+    if (colon == std::string::npos) return true;
+    return raise_expat_error(runtime, state, 27, "unbound prefix", error);
+  }
+  out = found->second + state.namespace_separator +
+      (colon == std::string::npos ? raw : raw.substr(colon + 1));
+  if (colon != std::string::npos && instance_bool_attr(parser, "namespace_prefixes")) {
+    out += state.namespace_separator + prefix;
+  }
+  return true;
+}
+
+bool end_xml_namespace_scope(Runtime& runtime, const Value& parser, PyExpatParserState& state,
+                             const XmlElementFrame& frame, std::string& error) {
+  // End declarations in reverse order after EndElement, restoring the parent
+  // binding. Never flatten declarations globally: nested prefixes may shadow.
+  for (auto it = frame.namespaces.rbegin(); it != frame.namespaces.rend(); ++it) {
+    if (it->had_previous) state.namespaces[it->prefix] = it->previous_uri;
+    else state.namespaces.erase(it->prefix);
+    if (!call_handler(runtime, parser, "EndNamespaceDeclHandler",
+                      {it->prefix.empty() ? Value::none() : Value::string(it->prefix)}, error)) return false;
+  }
+  return true;
+}
+
+bool begin_xml_element(Runtime& runtime, const Value& parser, PyExpatParserState& state,
+                       const std::string& name, const std::vector<XmlAttr>& attrs,
+                       bool self_closing, std::string& error) {
+  XmlElementFrame frame{name, {}};
+  std::unordered_set<std::string> seen;
+  for (const auto& attr : attrs) {
+    if (!seen.insert(attr.name).second) return raise_expat_error(runtime, state, 8, "duplicate attribute", error);
+  }
+  if (state.namespaces_enabled) {
+    for (const auto& attr : attrs) {
+      if (attr.name != "xmlns" && attr.name.compare(0, 6, "xmlns:") != 0) continue;
+      const std::string prefix = attr.name == "xmlns" ? "" : attr.name.substr(6);
+      // Namespace expansion must enforce reserved bindings before exposing
+      // names to Python callbacks; silently accepting them changes document
+      // meaning. The implicit xml binding is fixed by the XML namespace API.
+      constexpr const char* xml_uri = "http://www.w3.org/XML/1998/namespace";
+      constexpr const char* xmlns_uri = "http://www.w3.org/2000/xmlns/";
+      if (prefix == "xmlns") return raise_expat_error(runtime, state, 39, "reserved prefix (xmlns) must not be declared", error);
+      if (prefix == "xml" && attr.value != xml_uri) return raise_expat_error(runtime, state, 38, "reserved prefix (xml) must not be undeclared or bound to another namespace name", error);
+      if (attr.value == xmlns_uri || (attr.value == xml_uri && prefix != "xml")) return raise_expat_error(runtime, state, 40, "prefix must not be bound to one of the reserved namespace names", error);
+      if (!prefix.empty() && attr.value.empty()) return raise_expat_error(runtime, state, 28, "must not undeclare prefix", error);
+      const auto old = state.namespaces.find(prefix);
+      frame.namespaces.push_back({prefix, old == state.namespaces.end() ? "" : old->second,
+                                   old != state.namespaces.end()});
+      state.namespaces[prefix] = attr.value;
+      if (!call_handler(runtime, parser, "StartNamespaceDeclHandler",
+                        {prefix.empty() ? Value::none() : Value::string(prefix),
+                         attr.value.empty() ? Value::none() : Value::string(attr.value)}, error)) return false;
+    }
+  }
+  std::string expanded;
+  if (!expanded_xml_name(runtime, parser, state, name, false, expanded, error)) return false;
+  std::vector<XmlAttr> expanded_attrs;
+  expanded_attrs.reserve(attrs.size());
+  seen.clear();
+  for (const auto& attr : attrs) {
+    if (state.namespaces_enabled && (attr.name == "xmlns" || attr.name.compare(0, 6, "xmlns:") == 0)) continue;
+    std::string attr_name;
+    if (!expanded_xml_name(runtime, parser, state, attr.name, true, attr_name, error)) return false;
+    // Namespace triplets may include the lexical prefix, but duplicate
+    // detection uses expanded URI/local names independently of that prefix.
+    std::string canonical = attr_name;
+    if (state.namespaces_enabled && instance_bool_attr(parser, "namespace_prefixes") && attr.name.find(':') != std::string::npos) {
+      const auto binding = state.namespaces.find(attr.name.substr(0, attr.name.find(':')));
+      canonical = binding->second + state.namespace_separator + attr.name.substr(attr.name.find(':') + 1);
+    }
+    if (!seen.insert(canonical).second) return raise_expat_error(runtime, state, 8, "duplicate attribute", error);
+    expanded_attrs.push_back({std::move(attr_name), attr.value});
+  }
+  if (!call_handler(runtime, parser, "StartElementHandler",
+                    {Value::string(expanded), attrs_value_for_parser(parser, expanded_attrs)}, error)) return false;
+  if (self_closing) {
+    if (!expanded_xml_name(runtime, parser, state, name, false, expanded, error) ||
+        !call_handler(runtime, parser, "EndElementHandler", {Value::string(expanded)}, error) ||
+        !end_xml_namespace_scope(runtime, parser, state, frame, error)) return false;
+    if (state.element_stack.empty()) state.root_closed = true;
+  } else {
+    state.element_stack.push_back(std::move(frame));
+  }
+  return true;
+}
+
 bool parse_document(Runtime& runtime, const Value& parser, PyExpatParserState& state, bool final, std::string& error) {
   std::string_view text(state.buffer);
-  size_t pos = 0;
-  bool saw_element = false;
-  state.current_line = 1;
-  state.current_column = 0;
-  state.current_byte = 0;
-  state.element_stack.clear();
-
+  size_t pos = state.consumed;
   while (pos < text.size()) {
     const size_t lt = text.find('<', pos);
     if (lt == std::string_view::npos) {
-      if (final && !emit_text(runtime, parser, state, text.substr(pos), error)) {
-        return false;
+      size_t end = text.size();
+      if (!final) {
+        const size_t amp = text.rfind('&');
+        if (amp != std::string_view::npos && amp >= pos && text.find(';', amp) == std::string_view::npos) end = amp;
       }
+      if (!emit_text(runtime, parser, state, text.substr(pos, end - pos), error)) return false;
+      pos = end;
       break;
     }
-    if (!emit_text(runtime, parser, state, text.substr(pos, lt - pos), error)) {
-      return false;
-    }
-    if (text.substr(lt, 4) == "<!--") {
-      const size_t end = text.find("-->", lt + 4);
+    if (!emit_text(runtime, parser, state, text.substr(pos, lt - pos), error)) return false;
+    pos = lt;
+    state.consumed = pos;
+    if (text.substr(lt, 4) == "<!--" || text.substr(lt, 9) == "<![CDATA[") {
+      const bool cdata = text.substr(lt, 9) == "<![CDATA[";
+      const size_t prefix = cdata ? 9 : 4;
+      const size_t search = std::max(lt + prefix, state.token_scan > 2 ? state.token_scan - 2 : lt + prefix);
+      const size_t end = text.find(cdata ? "]]>" : "-->", search);
       if (end == std::string_view::npos) {
-        if (!final) {
-          break;
-        }
-        return raise_expat_error(runtime, state, kXmlErrorUnclosedToken, "unclosed XML comment", error);
+        state.token_scan = text.size();
+        if (!final) break;
+        return raise_expat_error(runtime, state, kXmlErrorUnclosedToken, "unclosed XML token", error);
       }
-      advance_position(state, text.substr(lt, end + 3 - lt));
+      if (cdata) {
+        advance_position(state, text.substr(lt, prefix));
+        if (!emit_text(runtime, parser, state, text.substr(lt + prefix, end - lt - prefix), error, false)) return false;
+        advance_position(state, text.substr(end, 3));
+      } else {
+        if (!call_handler(runtime, parser, "CommentHandler", {Value::string(std::string(text.substr(lt + prefix, end - lt - prefix)))}, error)) return false;
+        advance_position(state, text.substr(lt, end + 3 - lt));
+      }
       pos = end + 3;
-      continue;
-    }
-    if (text.substr(lt, 9) == "<![CDATA[") {
-      const size_t end = text.find("]]>", lt + 9);
-      if (end == std::string_view::npos) {
-        if (!final) {
-          break;
-        }
-        return raise_expat_error(runtime, state, kXmlErrorUnclosedToken, "unclosed CDATA section", error);
-      }
-      if (!emit_text(runtime, parser, state, text.substr(lt + 9, end - lt - 9), error)) {
-        return false;
-      }
-      advance_position(state, text.substr(end, 3));
-      pos = end + 3;
-      continue;
-    }
-    const size_t gt = text.find('>', lt + 1);
-    if (gt == std::string_view::npos) {
-      if (!final) {
-        break;
-      }
-      return raise_expat_error(runtime, state, kXmlErrorUnclosedToken, "unclosed XML token", error);
-    }
-    const auto token = text.substr(lt + 1, gt - lt - 1);
-    if (!token.empty() && token[0] == '?') {
-      advance_position(state, text.substr(lt, gt + 1 - lt));
-      pos = gt + 1;
-      continue;
-    }
-    if (!token.empty() && token[0] == '!') {
-      advance_position(state, text.substr(lt, gt + 1 - lt));
-      pos = gt + 1;
-      continue;
-    }
-    if (!token.empty() && token[0] == '/') {
-      size_t name_pos = 1;
-      skip_spaces(token, name_pos);
-      std::string name;
-      if (!parse_name(token, name_pos, name) || state.element_stack.empty() || state.element_stack.back() != name) {
-        return raise_expat_error(runtime, state, kXmlErrorTagMismatch, "mismatched XML tag", error);
-      }
-      state.element_stack.pop_back();
-      std::vector<Value> args;
-      args.push_back(Value::string(name));
-      if (!call_handler(runtime, parser, "EndElementHandler", args, error)) {
-        return false;
-      }
-      advance_position(state, text.substr(lt, gt + 1 - lt));
-      pos = gt + 1;
-      continue;
-    }
-    std::string name;
-    std::vector<XmlAttr> attrs;
-    bool self_closing = false;
-    if (!parse_start_tag(token, name, attrs, self_closing)) {
-      return raise_expat_error(runtime, state, kXmlErrorInvalidToken, "invalid XML start tag", error);
-    }
-    saw_element = true;
-    std::vector<Value> args;
-    args.push_back(Value::string(name));
-    args.push_back(attrs_value_for_parser(parser, attrs));
-    if (!call_handler(runtime, parser, "StartElementHandler", args, error)) {
-      return false;
-    }
-    if (self_closing) {
-      std::vector<Value> end_args;
-      end_args.push_back(Value::string(name));
-      if (!call_handler(runtime, parser, "EndElementHandler", end_args, error)) {
-        return false;
-      }
     } else {
-      state.element_stack.push_back(std::move(name));
+      size_t gt = std::max(lt + 1, state.token_scan);
+      char quote = state.token_quote;
+      for (; gt < text.size(); ++gt) {
+        const char ch = text[gt];
+        if (quote != 0) { if (ch == quote) quote = 0; }
+        else if (ch == '\'' || ch == '"') quote = ch;
+        else if (ch == '>') break;
+      }
+      if (gt == text.size()) {
+        state.token_scan = gt;
+        state.token_quote = quote;
+        if (!final) break;
+        return raise_expat_error(runtime, state, kXmlErrorUnclosedToken, "unclosed XML token", error);
+      }
+      const auto token = text.substr(lt + 1, gt - lt - 1);
+      if (!token.empty() && (token[0] == '?' || token[0] == '!')) {
+        // Existing declaration handling is retained; this change targets
+        // incremental token delivery and native namespace scope.
+      } else if (!token.empty() && token[0] == '/') {
+        size_t name_pos = 1;
+        skip_spaces(token, name_pos);
+        std::string name, expanded;
+        if (!parse_name(token, name_pos, name) || state.element_stack.empty() || state.element_stack.back().raw_name != name) {
+          return raise_expat_error(runtime, state, kXmlErrorTagMismatch, "mismatched XML tag", error);
+        }
+        if (!expanded_xml_name(runtime, parser, state, name, false, expanded, error) ||
+            !call_handler(runtime, parser, "EndElementHandler", {Value::string(expanded)}, error)) return false;
+        XmlElementFrame frame = std::move(state.element_stack.back());
+        state.element_stack.pop_back();
+        if (!end_xml_namespace_scope(runtime, parser, state, frame, error)) return false;
+        if (state.element_stack.empty()) state.root_closed = true;
+      } else {
+        std::string name;
+        std::vector<XmlAttr> attrs;
+        bool self_closing = false;
+        if (!parse_start_tag(token, name, attrs, self_closing)) return raise_expat_error(runtime, state, kXmlErrorInvalidToken, "invalid XML start tag", error);
+        if (state.root_closed) return raise_expat_error(runtime, state, 9, "junk after document element", error);
+        state.saw_element = true;
+        if (!begin_xml_element(runtime, parser, state, name, attrs, self_closing, error)) return false;
+      }
+      advance_position(state, text.substr(lt, gt + 1 - lt));
+      pos = gt + 1;
     }
-    advance_position(state, text.substr(lt, gt + 1 - lt));
-    pos = gt + 1;
+    state.consumed = pos;
+    state.token_scan = 0;
+    state.token_quote = 0;
   }
-
+  state.consumed = pos;
   if (final) {
-    if (!saw_element) {
-      return raise_expat_error(runtime, state, kXmlErrorNoElements, "no element found", error);
-    }
-    if (!state.element_stack.empty()) {
-      return raise_expat_error(runtime, state, kXmlErrorUnclosedToken, "unclosed XML token", error);
-    }
+    if (!state.saw_element || !state.element_stack.empty()) return raise_expat_error(runtime, state, kXmlErrorNoElements, "no element found", error);
     state.finished = true;
   }
   return true;
@@ -441,6 +548,7 @@ bool parser_parse(Runtime& runtime, const Value* args, uint32_t argc, Value& out
   if (state == nullptr) {
     return false;
   }
+  if (state->finished || state->error_code != 0) return raise_expat_error(runtime, *state, 36, "parsing finished", error);
   std::string chunk;
   if (!bytes_or_string_arg(args[1], chunk, error)) {
     return false;
@@ -670,6 +778,7 @@ bool pyexpat_parser_create_kw(
   }
   std::string encoding;
   std::string namespace_separator;
+  bool namespaces_enabled = false;
   auto read_optional_string = [&](const Value& value, std::string& target, const char* label) -> bool {
     if (value.tag == ValueTag::None || value.tag == ValueTag::Invalid) {
       return true;
@@ -688,6 +797,7 @@ bool pyexpat_parser_create_kw(
   if (argc >= 2 && !read_optional_string(args[1], namespace_separator, "namespace_separator")) {
     return false;
   }
+  if (argc >= 2) namespaces_enabled = args[1].tag != ValueTag::None && args[1].tag != ValueTag::Invalid;
   for (uint32_t i = 0; i < kwargc; ++i) {
     const std::string name = kwargs[i].name == nullptr ? "" : kwargs[i].name;
     if (name == "encoding") {
@@ -695,6 +805,7 @@ bool pyexpat_parser_create_kw(
         return false;
       }
     } else if (name == "namespace_separator") {
+      namespaces_enabled = kwargs[i].value->tag != ValueTag::None && kwargs[i].value->tag != ValueTag::Invalid;
       if (!read_optional_string(*kwargs[i].value, namespace_separator, "namespace_separator")) {
         return false;
       }
@@ -706,12 +817,18 @@ bool pyexpat_parser_create_kw(
     }
   }
 
+  if (namespace_separator.size() > 1 || namespace_separator.find('\0') != std::string::npos) {
+    error = "namespace_separator must be at most one byte without embedded NUL";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
   Value parser_class;
   value_assign_fast(parser_class, *static_cast<Value*>(parser_class_ptr));
   out = Value::instance(parser_class);
   auto* state = new PyExpatParserState();
   state->encoding = std::move(encoding);
   state->namespace_separator = std::move(namespace_separator);
+  state->namespaces_enabled = namespaces_enabled;
   if (!instance_set_native_data(out, kParserNativeType, state, parser_cleanup, error)) {
     delete state;
     return false;

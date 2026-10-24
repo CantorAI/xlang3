@@ -1,0 +1,10 @@
+(1, 2) False
+(3, 4) False
+() True
+subclass-iter
+(5, 6)
+(7, 8, 9, 10)
+((11, 12), {'label': 'kept'})
+((13, 14), 'default')
+((15, 16), 'default')
+((), 'default')

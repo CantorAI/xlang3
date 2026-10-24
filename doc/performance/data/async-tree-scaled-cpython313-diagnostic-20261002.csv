@@ -1,0 +1,20 @@
+runtime,run,levels,branches,iterations,seconds
+CPython 3.13.7,1,4,3,30,0.167821700
+CPython 3.13.7,2,4,3,30,0.074642200
+CPython 3.13.7,3,4,3,30,0.069154500
+XLang3 Release,1,4,3,30,0.486936400
+XLang3 Release,2,4,3,30,0.531302000
+XLang3 Release,3,4,3,30,0.473692500
+XLang3 Release candidate,1,4,3,30,0.491575900
+XLang3 Release candidate,2,4,3,30,0.477547000
+XLang3 Release candidate,3,4,3,30,0.474803100
+XLang3 Release candidate,4,4,3,30,0.523133900
+XLang3 Release candidate,5,4,3,30,0.470676400
+XLang3 Release candidate,6,4,3,30,0.468102800
+XLang3 Release candidate,7,4,3,30,0.453684700
+XLang3 Release candidate,8,4,3,30,0.466796600
+XLang3 Release expanded-star candidate rejected,1,4,3,30,0.501036900
+XLang3 Release expanded-star candidate rejected,2,4,3,30,0.522854300
+XLang3 Release expanded-star candidate rejected,3,4,3,30,0.473184500
+XLang3 Release expanded-star candidate rejected,4,4,3,30,0.484859300
+XLang3 Release expanded-star candidate rejected,5,4,3,30,0.536081900

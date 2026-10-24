@@ -1,0 +1,34 @@
+C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_regex_compile\run_benchmark.py:33: DeprecationWarning: 'count' is passed as positional argument
+  return real_sub(regex, *args)
+C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_regex_compile\run_benchmark.py:33: DeprecationWarning: 'count' is passed as positional argument
+  return real_sub(regex, *args)
+C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_regex_compile\run_benchmark.py:33: DeprecationWarning: 'count' is passed as positional argument
+  return real_sub(regex, *args)
+C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_regex_compile\run_benchmark.py:33: DeprecationWarning: 'count' is passed as positional argument
+  return real_sub(regex, *args)
+C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_regex_compile\run_benchmark.py:33: DeprecationWarning: 'count' is passed as positional argument
+  return real_sub(regex, *args)
+C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_regex_compile\run_benchmark.py:33: DeprecationWarning: 'count' is passed as positional argument
+  return real_sub(regex, *args)
+C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_regex_compile\run_benchmark.py:33: DeprecationWarning: 'count' is passed as positional argument
+  return real_sub(regex, *args)
+C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_regex_compile\run_benchmark.py:33: DeprecationWarning: 'count' is passed as positional argument
+  return real_sub(regex, *args)
+C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_regex_compile\run_benchmark.py:33: DeprecationWarning: 'count' is passed as positional argument
+  return real_sub(regex, *args)
+C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_regex_compile\run_benchmark.py:33: DeprecationWarning: 'count' is passed as positional argument
+  return real_sub(regex, *args)
+C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_regex_compile\run_benchmark.py:33: DeprecationWarning: 'count' is passed as positional argument
+  return real_sub(regex, *args)
+C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_regex_compile\run_benchmark.py:33: DeprecationWarning: 'count' is passed as positional argument
+  return real_sub(regex, *args)
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'python.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+regex_compile: Mean +- std dev: 96.4 ms +- 3.2 ms

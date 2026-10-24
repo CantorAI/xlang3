@@ -1,0 +1,64 @@
+Benchmark dependency sites: C:\Python\Python314\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (async_tree_eager)
+
+(trying common venv first)
+
+[1/1] async_tree_eager...
+WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.
+async_tree_eager: Mean +- std dev: 1.31 sec +- 0.05 sec
+
+Performance version: 1.14.0
+Python version: 3.14.7 (64-bit) revision 823f032
+Report on Windows-2025Server-10.0.26200
+Number of logical CPUs: 20
+Start date: 2026-10-06 07:30:31.936580
+End date: 2026-10-06 07:34:22.009594
+
+### async_tree_eager ###
+Mean +- std dev: 1.31 sec +- 0.05 sec
+

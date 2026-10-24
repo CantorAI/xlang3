@@ -1,0 +1,1034 @@
+{
+  "attempt_id": "pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_eager_memoization_tg-attempt-01",
+  "definition": "async_tree_eager_memoization_tg",
+  "started_utc": "2026-10-10T00:01:51.578399+00:00",
+  "session": "001",
+  "state": "finished",
+  "valid": true,
+  "definition_status": "completed",
+  "measurement_valid": true,
+  "owned_child_cleanup_completed": true,
+  "raw_sha256": {
+    "pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_eager_memoization_tg-attempt-01.merged.log": "b5649df5fad59313bd29316ca828821fe896c655b8a1f17675777ed70829a1c4",
+    "pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_eager_memoization_tg-attempt-01.pyperf.json": "765ead06ef1f3f1663828fdd7319f22d21822b5f82f252b248dcd0250979945d",
+    "pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_eager_memoization_tg-attempt-01.external-process-observations.jsonl": "950cb11274648f30cbd6c7a1334ad3376b46cac855678c46bb38c1294003d7be"
+  },
+  "idle_guards": [
+    {
+      "label": "before-attempt",
+      "checked_utc": "2026-10-10T00:01:53.199787+00:00",
+      "passed": true,
+      "busy": [],
+      "dormant": []
+    },
+    {
+      "label": "immediately-before-child",
+      "checked_utc": "2026-10-10T00:01:57.077867+00:00",
+      "passed": true,
+      "busy": [],
+      "dormant": []
+    }
+  ],
+  "candidate_binding_digest": "acd69fc5e3c350b172958276ddbd90f3f585794e8634b5541b80c2a233194c00",
+  "known_orphan_worker_pid": 18252,
+  "known_orphan_worker_creation": "/Date(1791586119443)/",
+  "counter_reset_scope": "Fresh helper admission only here, untimed before this attempt; never reset during the phase.",
+  "runtime_activity_policy": "Every helper scan also rejects foreign python*/xlang3 processes. Only this manager and observed creation-pinned descendants are admitted; unrelated command lines are not exported.",
+  "dormant_worker_admission": {
+    "status": "known_worker_already_exited",
+    "exception_used": false
+  },
+  "pre_idle": {
+    "label": "before-attempt",
+    "checked_utc": "2026-10-10T00:01:53.199787+00:00",
+    "passed": true,
+    "busy": [],
+    "dormant": []
+  },
+  "pre_identity": {
+    "passed": true,
+    "checked_file_count": 17810,
+    "observed_sha256_map_digest": "a9cb9fcadd403b2788f93bc16e238b9f2e526c892abf3c9b12399f18191e21dc",
+    "expected_sha256_map_digest": "a9cb9fcadd403b2788f93bc16e238b9f2e526c892abf3c9b12399f18191e21dc",
+    "mismatches": [],
+    "tree_changes": {},
+    "head": "21e2eadaba7d317932374a63d3c2d70dff4e25c1",
+    "checked_utc": "2026-10-10T00:01:56.572333+00:00"
+  },
+  "launch_idle": {
+    "label": "immediately-before-child",
+    "checked_utc": "2026-10-10T00:01:57.077867+00:00",
+    "passed": true,
+    "busy": [],
+    "dormant": []
+  },
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\run_pyperformance_xlang3_shimmed.py",
+    "--runtime",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "--benchmarks",
+    "async_tree_eager_memoization_tg",
+    "--mode",
+    "fast",
+    "--case-timeout",
+    "300",
+    "--case-timeout-override",
+    "networkx*=600",
+    "--dependency-site",
+    "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+    "--output",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_eager_memoization_tg-attempt-01.pyperf.json"
+  ],
+  "case_cap_seconds": 300,
+  "manager_wall_cap_seconds": 420,
+  "pid": 33244,
+  "child_launched": true,
+  "child_identity": {
+    "Name": "python.exe",
+    "ProcessId": 33244,
+    "ParentProcessId": 8220,
+    "CreationDate": "/Date(1791590517079)/"
+  },
+  "exit_code": 0,
+  "external_process_watch": {
+    "log": "pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-async_tree_eager_memoization_tg-attempt-01.external-process-observations.jsonl",
+    "sha256": "950cb11274648f30cbd6c7a1334ad3376b46cac855678c46bb38c1294003d7be",
+    "poll_interval_seconds": 1,
+    "dormant_worker_admission": null,
+    "overlaps": [],
+    "scanner_errors": [],
+    "measurement_valid": true,
+    "scope": "All observed build/test tools invalidate timing except the exact admitted cached worker while its cumulative CPU counters and identity remain unchanged and it has no build parent or new child.",
+    "limit": "New tools entirely between samples may be missed; the admitted worker CPU counters are cumulative and never reset during this manager."
+  },
+  "observed_owned_process_identities": [
+    {
+      "Name": "python.exe",
+      "ProcessId": 8220,
+      "ParentProcessId": 17284,
+      "CreationDate": "/Date(1791588639476)/"
+    },
+    {
+      "Name": "python.exe",
+      "ProcessId": 33244,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590517079)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 20428,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590517079)/"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 34916,
+      "ParentProcessId": 33244,
+      "CreationDate": "/Date(1791590517092)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 33640,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590517121)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 34556,
+      "ParentProcessId": 33244,
+      "CreationDate": "/Date(1791590517296)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 7496,
+      "ParentProcessId": 33244,
+      "CreationDate": "/Date(1791590517564)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 25924,
+      "ParentProcessId": 7496,
+      "CreationDate": "/Date(1791590517970)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 36616,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590518631)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 24612,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590520163)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 30844,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590521677)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 25188,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590523239)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 31648,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590524739)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 15796,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590526240)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 32544,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590527702)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 31324,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590529146)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 15440,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590530647)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 32932,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590532129)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 26260,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590533598)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 6752,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590535052)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 31800,
+      "ParentProcessId": 7496,
+      "CreationDate": "/Date(1791590535249)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 19760,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590536537)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 25768,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590538020)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 6644,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590539457)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 33668,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590540926)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 21072,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590542394)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 12736,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590543834)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 23764,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590545309)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 8724,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590546756)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 8556,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590548223)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 20928,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590549661)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 32492,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590551083)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 29092,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590552535)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 13660,
+      "ParentProcessId": 7496,
+      "CreationDate": "/Date(1791590552541)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 26564,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590553991)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 32232,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590555458)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 34420,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590556894)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 32248,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590558378)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 15056,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590559911)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 21756,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590561350)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 12140,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590562756)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 7624,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590564285)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 26064,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590565819)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 14996,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590567254)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 36380,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590568723)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 4604,
+      "ParentProcessId": 7496,
+      "CreationDate": "/Date(1791590569726)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 11700,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590570240)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 15164,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590571691)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 22028,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590573147)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 36300,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590574597)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 27532,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590576035)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 33636,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590577488)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 5824,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590578927)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 17568,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590580379)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 22264,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590581818)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 10032,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590583287)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 20288,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590584741)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 11816,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590586191)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 33668,
+      "ParentProcessId": 7496,
+      "CreationDate": "/Date(1791590586905)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 19812,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590587644)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 23004,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590589068)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 36516,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590590535)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 18640,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590591974)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 23236,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590593414)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 32432,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590594911)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 33144,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590596363)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 16088,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590597800)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 36404,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590599270)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 25300,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590600722)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 20232,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590602151)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 17020,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590603630)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 19112,
+      "ParentProcessId": 7496,
+      "CreationDate": "/Date(1791590604263)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 27664,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590605069)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 15344,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590606565)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 21672,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590608056)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 2476,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590609520)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 15568,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590610941)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 36624,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590612395)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 33796,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590613878)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 19824,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590615350)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 25448,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590616803)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 34432,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590618271)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 35100,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590619710)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 34316,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590621174)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 10724,
+      "ParentProcessId": 7496,
+      "CreationDate": "/Date(1791590621946)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 16148,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590622646)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 18688,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590624081)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 24416,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590625522)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 32756,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590626943)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 32856,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590628379)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 27892,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590629800)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 35560,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590631254)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 32288,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590632737)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 36516,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590634160)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 34372,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590635612)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 33080,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590637067)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 5868,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590638549)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 32008,
+      "ParentProcessId": 7496,
+      "CreationDate": "/Date(1791590639708)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 21052,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590640051)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 29764,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590641519)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 34268,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590643052)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 31812,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590644487)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 32668,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590645909)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 10768,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590647328)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 22616,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590648801)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 21292,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590650223)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 3756,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590651705)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 11464,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590653128)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 14052,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590654613)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 14044,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590656038)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 9224,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590657502)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 24688,
+      "ParentProcessId": 7496,
+      "CreationDate": "/Date(1791590657513)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 2084,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590659019)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 21384,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590660489)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 34844,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590661956)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 24768,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590663425)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 28808,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590664947)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 14412,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590666424)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 21196,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590667893)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 11588,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590669332)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 27772,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590670800)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 26740,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590672225)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 34872,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590673707)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 14032,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590675144)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 27468,
+      "ParentProcessId": 7496,
+      "CreationDate": "/Date(1791590675246)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 36544,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590676600)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 18288,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590678034)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 33664,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590679504)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 34772,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590680941)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 3632,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590682456)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 31712,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590683941)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 20220,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590685392)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 1584,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590686879)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 13092,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590688393)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 27264,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590689863)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 13232,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590691320)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 23872,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590692849)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 21360,
+      "ParentProcessId": 7496,
+      "CreationDate": "/Date(1791590692930)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 20036,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590694330)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 32108,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590695818)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 8752,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590697240)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 3088,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590698707)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 18252,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590700160)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 23880,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590701660)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 6644,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590703097)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 26848,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590704627)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 11816,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590706096)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 34820,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590707549)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 23220,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590709018)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 14028,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791590710387)/"
+    }
+  ],
+  "post_idle": {
+    "passed": true,
+    "checked_utc": "2026-10-10T00:05:11.390453+00:00",
+    "busy": [],
+    "dormant": []
+  },
+  "post_identity": {
+    "passed": true,
+    "checked_file_count": 17810,
+    "observed_sha256_map_digest": "a9cb9fcadd403b2788f93bc16e238b9f2e526c892abf3c9b12399f18191e21dc",
+    "expected_sha256_map_digest": "a9cb9fcadd403b2788f93bc16e238b9f2e526c892abf3c9b12399f18191e21dc",
+    "mismatches": [],
+    "tree_changes": {},
+    "head": "21e2eadaba7d317932374a63d3c2d70dff4e25c1",
+    "checked_utc": "2026-10-10T00:05:14.662402+00:00"
+  },
+  "recorded_subtests": [
+    "async_tree_eager_memoization_tg"
+  ],
+  "verified_sample_population": {
+    "async_tree_eager_memoization_tg": {
+      "unit": "second",
+      "scored_value_count": 20
+    }
+  },
+  "finished_utc": "2026-10-10T00:05:14.663710+00:00",
+  "timing_scoring_permitted": true
+}

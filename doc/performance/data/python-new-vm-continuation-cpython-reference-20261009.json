@@ -1,0 +1,39 @@
+{
+  "status": "cpython_reference_passed",
+  "terminal": true,
+  "passed": true,
+  "exit_code": 0,
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "-I",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\python-new-vm-continuation-r2-proposed-20261009-fixture.py"
+  ],
+  "version_info": [
+    3,
+    14,
+    7
+  ],
+  "hashes_before": {
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\python-new-vm-continuation-r2-proposed-20261009-fixture.py": "095b1d0b3cf8b38133efa781e911c4025d380e0af53bf2761940517680828f32",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\python-new-vm-continuation-r2-proposed-20261009-expected.out": "8b89241811a7b183c32134f75928729322466dab8f6c2ae27c57acda3edb27d8",
+    "C:\\Python\\Python314\\python.exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "C:\\Python\\Python314\\python314.dll": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\check-python-new-cpython-first-root-20261009.py": "77f262bc90ef3fd15500cfa4d3fc6554b3339cdf5e70dddcd6cfe49d6ebdad6e"
+  },
+  "hashes_after": {
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\python-new-vm-continuation-r2-proposed-20261009-fixture.py": "095b1d0b3cf8b38133efa781e911c4025d380e0af53bf2761940517680828f32",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\python-new-vm-continuation-r2-proposed-20261009-expected.out": "8b89241811a7b183c32134f75928729322466dab8f6c2ae27c57acda3edb27d8",
+    "C:\\Python\\Python314\\python.exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "C:\\Python\\Python314\\python314.dll": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\check-python-new-cpython-first-root-20261009.py": "77f262bc90ef3fd15500cfa4d3fc6554b3339cdf5e70dddcd6cfe49d6ebdad6e"
+  },
+  "stdout_log": "python-new-vm-continuation-cpython-reference-20261009.stdout.log",
+  "stdout_sha256": "dd19076efb1e05c59e349699d4aa7e03301a2ea506cb1ccce3949e14caa2edfd",
+  "stderr_log": "python-new-vm-continuation-cpython-reference-20261009.stderr.log",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "expected_groups": 8,
+  "actual_stdout_groups": 8,
+  "timed": false,
+  "engine_changes": false,
+  "hashes_unchanged": true
+}

@@ -1,0 +1,441 @@
+{
+  "status": "frozen_scratch_diagnostic_inputs_unexecuted",
+  "files_sha256": {
+    "C:\\Python\\Python314\\python.exe": "4942b86a6597e5aee0128daa00050ed79bc21f6e709a78eb19cbfeb0c2f39ac9",
+    "C:\\Python\\Python314\\python314.dll": "0f9857ffdfe010fe6b99328d58c2e3c7472ce75f336bf9c2ad9bd5bca3bce700",
+    "C:\\Python\\Python314\\DLLs\\_asyncio.pyd": "f9594a2a4f45570dbfdf1f3471194ae7b27dc117c54b9af6bc22df9c93830f8b",
+    "C:\\Python\\Python314\\DLLs\\_bz2.pyd": "b938073c85cf6b9fe80556d7899ed1901e5e60b7adea2832442376239fb36b36",
+    "C:\\Python\\Python314\\DLLs\\_ctypes_test.pyd": "dbbaad61ccc6e41b95c561f156fd1e75f4f65bdfd2cceeb96ac23ca477f314ee",
+    "C:\\Python\\Python314\\DLLs\\_ctypes.pyd": "408cc4e7a22ffa418ca52f5e13fe9268a3c50a2bc9de02b0530b555ef591bc5a",
+    "C:\\Python\\Python314\\DLLs\\_decimal.pyd": "bc3a61685825ae37a4cd2b2b87fa27af12e01575c4f920788ea806e6781a2c79",
+    "C:\\Python\\Python314\\DLLs\\_elementtree.pyd": "d8a17f9c831e313b440e19e0d26e6c0e7ed830ff1f657887cbc26664d6ef4973",
+    "C:\\Python\\Python314\\DLLs\\_hashlib.pyd": "5933ef5eda7c0bca0b3874a6e2c5f13b91b8f2cfc29bc46160df3212a1dbee79",
+    "C:\\Python\\Python314\\DLLs\\_lzma.pyd": "d2abf8db7fb0cf6285663b177991691a41b37e215c3d71fd087a98d8ec1bee63",
+    "C:\\Python\\Python314\\DLLs\\_multiprocessing.pyd": "cea83c9bf3131d079c20066b626f67ab33021b476777be2d7be26d1fa5e4eb66",
+    "C:\\Python\\Python314\\DLLs\\_overlapped.pyd": "1d7028683e6ec50c159139238f90a6c8431ece139a4764900ca11c941ba05d46",
+    "C:\\Python\\Python314\\DLLs\\_queue.pyd": "2fd8668f52b34d0e71ae48784bd2e7d35e5d99df6f641edb0fc279235a187c8e",
+    "C:\\Python\\Python314\\DLLs\\_remote_debugging.pyd": "32b58c85e29ecc2378eddfe367745998fdb131e1ab6bb84d54e16f33806b584c",
+    "C:\\Python\\Python314\\DLLs\\_socket.pyd": "02265dd0d0287f3ffd287ea5d8e3c918a5a056e8ef2c4529857f5e84ec9e2519",
+    "C:\\Python\\Python314\\DLLs\\_sqlite3.pyd": "ec9694e5929747e93e05bc32427d24350dc4de5074b61a37bc961c3048794a67",
+    "C:\\Python\\Python314\\DLLs\\_ssl.pyd": "4cfb154c7cc525d57020c0e64f2dd876a78b46cd38419446392478de6b7b13b8",
+    "C:\\Python\\Python314\\DLLs\\_testbuffer.pyd": "7aa6f076e76f651d7e1277fb8a39c97c740c7af038c7b68a595f8aac3d2f456e",
+    "C:\\Python\\Python314\\DLLs\\_testcapi.pyd": "3be7e091e0fdb7857629e68dbb283ff5f34714441844ceb04ee6dfd09eef3dcd",
+    "C:\\Python\\Python314\\DLLs\\_testclinic_limited.pyd": "c953a3f7e2986d558cfe62128834548277363fffa3af6457c17c2247fa076761",
+    "C:\\Python\\Python314\\DLLs\\_testclinic.pyd": "a1d013caa06403208e84e34815f248a73efa213a13fc568664c8afa9a9676e29",
+    "C:\\Python\\Python314\\DLLs\\_testconsole.pyd": "0f351e542a8422bc385a03628ecda853fcc378712eb4d9a46408294e93b8cc80",
+    "C:\\Python\\Python314\\DLLs\\_testimportmultiple.pyd": "88f304baed8da550c53be8a7baed0de82cbabcefc3d803997b2dc747a4718e7a",
+    "C:\\Python\\Python314\\DLLs\\_testinternalcapi.pyd": "5f8e2967383b2c63ede3871e0b7340fc48a15cc726d223ad593c8a6efa1fedef",
+    "C:\\Python\\Python314\\DLLs\\_testlimitedcapi.pyd": "479cf6ceebbbaa66d9492694beefef4e840d833c5680c6134c676e83b45671c2",
+    "C:\\Python\\Python314\\DLLs\\_testmultiphase.pyd": "ac40604b999acc5ab2319d280cadd9150ecfc13142b6b81d1b53053e969be6e7",
+    "C:\\Python\\Python314\\DLLs\\_testsinglephase.pyd": "f569455951719410257d740fba575ab8ffe5b639e2a9c3da012b534a303c38e8",
+    "C:\\Python\\Python314\\DLLs\\_tkinter.pyd": "ee3eb2cdac591821cf71cda8035a6bc9b148d92996dd45b24e3ae3715613315d",
+    "C:\\Python\\Python314\\DLLs\\_uuid.pyd": "fbfd7fe8583b346ba20b174b2510c0830237f5092bdf9fc26da9d6b25b018385",
+    "C:\\Python\\Python314\\DLLs\\_wmi.pyd": "b6fd41f079da0c0054829855360e88b8b762f5c42bb474c2fa02eae367839ad2",
+    "C:\\Python\\Python314\\DLLs\\_zoneinfo.pyd": "07469c7fc221663e423a2e6023a5b2ead3b10d0b40eb297887f4447a1ff1b2a3",
+    "C:\\Python\\Python314\\DLLs\\_zstd.pyd": "33c6eca99470c3eb9d776b617c550ad41b002a668336f062a9ab7be677a7409a",
+    "C:\\Python\\Python314\\DLLs\\libcrypto-3.dll": "53c529145339fb042a3dcd3a09c2d7753204f8b4fc79d99e0d31e69a33985958",
+    "C:\\Python\\Python314\\DLLs\\libffi-8.dll": "eff52743773eb550fcc6ce3efc37c85724502233b6b002a35496d828bd7b280a",
+    "C:\\Python\\Python314\\DLLs\\libssl-3.dll": "b17a87979862d19241edc4318f967e24c3ec356ed6c2368f561179fab2311001",
+    "C:\\Python\\Python314\\DLLs\\libtommath.dll": "2d760fefb452665b6af8c8d9d29f3a8378f10fc0847cdd9938ea0cb5edf1d573",
+    "C:\\Python\\Python314\\DLLs\\py.ico": "150c470f9943b806b44312efdec85755f22f8d7d52b31f93a9af3c43e8627381",
+    "C:\\Python\\Python314\\DLLs\\pyc.ico": "fda28a734788a3f175cb6aed4daeb5f05f0e49f6a272ccd2051ba337f7b3b42f",
+    "C:\\Python\\Python314\\DLLs\\pyd.ico": "c4ec1845a5724b2a83500f3bd940355e2fe26efc6b4fe6c208365359a6130da1",
+    "C:\\Python\\Python314\\DLLs\\pyexpat.pyd": "e34347c4e11b2ecc57df2ce1627ba7f98fd076e9df59951e9034f5aa8e95a2fc",
+    "C:\\Python\\Python314\\DLLs\\python_lib.cat": "43c022892b1c531e5a8e4096cf5ba3cef9de14c9462ce544122b4913880c716c",
+    "C:\\Python\\Python314\\DLLs\\select.pyd": "722328e7fad8048057fc966474ba73966d2ceebaa32e7344cce09640ab4dc9bd",
+    "C:\\Python\\Python314\\DLLs\\sqlite3.dll": "9a8fb79d6b7e581d127314028dcecf754b8d7fe4aca1247f82c1f33ee8fccc7e",
+    "C:\\Python\\Python314\\DLLs\\tcl90.dll": "a1fb45f963b05cb083a97df1449c2023b484eb921d40a463da7501b0f60e0f70",
+    "C:\\Python\\Python314\\DLLs\\tcl9tk90.dll": "31f625c52e65d29d126e710ed8bab2ec964cb770e4fc59bc329dfff02cb6ddcf",
+    "C:\\Python\\Python314\\DLLs\\unicodedata.pyd": "280b09bd97b598d18c0ed9542dc18ed35fa57a16e84f8e65fd9c6e96516c28d6",
+    "C:\\Python\\Python314\\DLLs\\winsound.pyd": "6a27340660de89d5da59445a77ac6b08d471e373304ce7294c198238f09f2dc2",
+    "C:\\Python\\Python314\\DLLs\\zlib1.dll": "f07195206534ebb1fe75093d4ec6c54a7a9227281b0c09d2113465b71da9e900",
+    "C:\\Python\\Python314\\Lib\\_collections_abc.py": "324cf48dd9086aa4d020684fdcddbe624a765be2328f32813da7d3a0da8216a3",
+    "C:\\Python\\Python314\\Lib\\_weakrefset.py": "1240398ecc4a08560bd03eb6ac97a70e8a10541709ad178ccc901c2c39d352c4",
+    "C:\\Python\\Python314\\Lib\\abc.py": "d51c54428495cd62a5da4360315fa84f692b5aa9db21be986b3e14a83f7cf288",
+    "C:\\Python\\Python314\\Lib\\codecs.py": "1a9c2322d454fdd4d733107c710eef94335be47c3bffd8d9eea07fbaefa5148d",
+    "C:\\Python\\Python314\\Lib\\collections\\__init__.py": "a1dd5a9f08768eb72b8fc0e11aa1be3973cf9ad7ae104bba566e431c1fe3a507",
+    "C:\\Python\\Python314\\Lib\\contextlib.py": "ca6071e379d65e1ed13fea5206fb4cee35fdb6b3063fa4a47254acf10e42b764",
+    "C:\\Python\\Python314\\Lib\\copyreg.py": "b4fc88bc9f9ac782175728099b309f9818e29be635b97104f80dea52f8c95316",
+    "C:\\Python\\Python314\\Lib\\encodings\\__init__.py": "dbf9022ec9b4d68d4f3f76c9cda44b008c3942df7f927189daba810321bcfddd",
+    "C:\\Python\\Python314\\Lib\\encodings\\_win_cp_codecs.py": "344faac7c9b1702d987233c500f5793f1d2729b7722578ceb344747078883b8e",
+    "C:\\Python\\Python314\\Lib\\encodings\\aliases.py": "da008f5eb1b85548dcc319cd906b27286502dd1bd7b997fa902d6fe8593384e6",
+    "C:\\Python\\Python314\\Lib\\encodings\\ascii.py": "698c578b9b5df7bd6f8b2761d114f74cff854c1396083c8ab912b11fcae83b86",
+    "C:\\Python\\Python314\\Lib\\encodings\\base64_codec.py": "ac4443ceb3e045f064335aed4c9c2143f1c256ddd25aaa5a9db4b5ee1bccf694",
+    "C:\\Python\\Python314\\Lib\\encodings\\big5.py": "cadb1c66d355f551e4d99a895725b62211cc5cbde1f037c61fd4463932ff70cb",
+    "C:\\Python\\Python314\\Lib\\encodings\\big5hkscs.py": "7fcf88553a656abe5e4dc1a8e89d1e279ddec83de79e22f971ac04e7632708e9",
+    "C:\\Python\\Python314\\Lib\\encodings\\bz2_codec.py": "a0a34436976bb5137403c148cb8b332653f14caa6cdf102150e82646d5249a5e",
+    "C:\\Python\\Python314\\Lib\\encodings\\charmap.py": "1ea641e7c63c0a022a663f5d2024a71124272e088c246583d2d44cdddf548a32",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp037.py": "fa3ff4b328c72315ec622cd62feac21189a3c85bcc675552d0ec46677f16a42c",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp1006.py": "1fdcd59d3277c3768de74dd8ce4f5f8beea569c00cbaa3a20714500f3508b8cb",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp1026.py": "8c1d85be11a3a0a5e6a40101c68548480d0378df0414e3c16d9cbe9f923c028e",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp1125.py": "5286e2162d53a6b189d83b242bc04ab59a48bbbc4ecf094c11bc1542c0604279",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp1140.py": "0451016f6a4b7013dea1ba35925412fbad743ddf46e857be2c272f2a2cb8d403",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp1250.py": "3ffea0100abef80f916bc2920b296b2eddd6ecb06fb3ca07549f95fc92ca1f11",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp1251.py": "46fa091d1822434e8d0af7a92439607018872598fcde44026f413dd973f14c98",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp1252.py": "7acb7b80c29d9ffda0fe79540509439537216df3a259973d54e1fb23c34e7519",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp1253.py": "e0b0afbd19db367c34c505f99a2fccafc6bae3dfd4e316f86375179dcfc60a28",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp1254.py": "0986acd9a25fe91c4720c912322253ad105ab951a2d0d364cf0e522e6e52c174",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp1255.py": "c039ad62ee73102915d989cf390f76896c335ca8dbcdd4ca27d5441f76e081be",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp1256.py": "24a69e11902cc4054280ec2de38ee836d0be22eabdb9cdc56d9a7b63c8cddb06",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp1257.py": "902262c0640fc0f21cf85a86456dc33d43e51b07e6c961526bf7f7ed4ce2ab8d",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp1258.py": "a9e1e891dd1f28dea5abb5819aee1477156d288733eb2342f0696f1e5dd0a11d",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp273.py": "016c8da778e50cbcf76815bbd8f6d0d33dbf1faf852726d85a5a47651c371033",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp424.py": "ae6e956b42cf3ae32e988833772fc040f8393da007048ad2b4e1d621fe6523e7",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp437.py": "7b0a9ae2e74d370354cc60cbcfb77af970364818be2e2a446187dcccf9e28acc",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp500.py": "a5cac573ed357cb6c2a672d01696212c25e306936586d94be0d0130354a4db6f",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp720.py": "016bdb7208a0d6bfaf8972c1f6bb4b3de39c77e026b49ed106866d592be4810b",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp737.py": "f2da9d418b2364c2e1a587b7a6e26ff5601c16aa7993070f2c955ddf2a1f860d",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp775.py": "00f2a5e71ca98ed656ec430a80fc2e971988a0a33ebdea77661bdbe24fe2fbff",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp850.py": "dcbe5938d7fe65072d4a286a184046db211544c30f0c3c370b9cd594cf3b36bd",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp852.py": "8b6ad769607b3db0d60e4ba1a6321a3823ad8460890d48c816220dcdf8cbea98",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp855.py": "f4f47a5cf3fe5a8cd269b68a73c1dc293a75cd3b9c0489cfa600919b47b35a4c",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp856.py": "f0c9dac1b08d688b81b4f11ca603336fbd5c7fc4c1a30e8b7836283c2ad9a8e7",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp857.py": "8ae4cb6989342105c513678480ecbdf2d5d8e534e69704964d0fb4d2a960039b",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp858.py": "04a67b43efa1e0ce2d80791c290bc2c8ea01c3991eb3df37528b1dd575b12330",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp860.py": "e2b8b4b2658ecc3dc53d4b0760aea95517be298fafbfa69574b08933747922be",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp861.py": "d7fe52a55fdcac4e6e9ecdc4884c793d1feb345d0276b074214db1bf4bcf3033",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp862.py": "6d99c0415136ce45ab438c8238772a1a132e7b38212c623467c2170f1a8aae75",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp863.py": "32fc23645a773ebb3247b3692d0525ea43513b358dd0350ef3a171864e326335",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp864.py": "e8879db3682b0f234bfcf97fe74a3a7db63cfd5f40281f580e911932dec4a4d3",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp865.py": "0722bbf3a0f93700e99b3816e9e52c75674e14319146f9ac3fd1e17f87e66cb0",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp866.py": "e3a033b3b790018a0a02e9f67a03530753c7fb5f94b6aba84f5173d29fb389ae",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp869.py": "4322e184d3c1dfa56edb013e895cbfb71130e7846f8f56bcafc4c0082373cb6a",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp874.py": "94179e22722674527bd56386b5e9dac5427b0f55248d1aa63e204c105da18d8b",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp875.py": "5c42adfec39cf9d891fbb2ed19d882c6160a00b8487b7867f9e2296b9e2f491b",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp932.py": "f917db40f96f9f676e45fd9f1a7fa5d9bbb67a703bdf88b546ca4da84c4905f5",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp949.py": "da13fd6f1bd7a1d3b48aed1fc75f7516d6a33814086cf971e030625590e9dda0",
+    "C:\\Python\\Python314\\Lib\\encodings\\cp950.py": "8fd6e86dfb38006e753b3b0301aa4b377c64c25f4ec9e6333fc99c3f06e90917",
+    "C:\\Python\\Python314\\Lib\\encodings\\euc_jis_2004.py": "78265ba431395662e7252a9b79bc2a75ffe438db872b2cf1cbcfb243d83f0c87",
+    "C:\\Python\\Python314\\Lib\\encodings\\euc_jisx0213.py": "12ca22a7db25d9eeef9bf5facdc5594e3165ccf451528d36e3b68a03989521ac",
+    "C:\\Python\\Python314\\Lib\\encodings\\euc_jp.py": "8927683a4234b936be1935b8a799be78520438bb5ea072499d51e7fe3d182987",
+    "C:\\Python\\Python314\\Lib\\encodings\\euc_kr.py": "03afe0cf8020529ead00a0ea26a7131d354994cd2352d42f9032216b3748ea91",
+    "C:\\Python\\Python314\\Lib\\encodings\\gb18030.py": "0d9c1db7e2959e60e4f6cb4b97c884585668c55b48f2d9d715b2bdaf5e78c671",
+    "C:\\Python\\Python314\\Lib\\encodings\\gb2312.py": "2b5573ebf7fdc20dcf126633adf0b7283c08629d36dbefa669c985c9ddb98ea7",
+    "C:\\Python\\Python314\\Lib\\encodings\\gbk.py": "9c7828e3b9661e39d4d75419a12b9d132fa9d0b4daec36f3df51ad1c3a638de3",
+    "C:\\Python\\Python314\\Lib\\encodings\\hex_codec.py": "5881c1aeeeb5f9cd27ce0e0e62ab9d6551f094955dbd52dc8184165daf78aeba",
+    "C:\\Python\\Python314\\Lib\\encodings\\hp_roman8.py": "681ff6a2273bd64450e04fc6f04b2ec63015a91490e30a31e25ed193708c99d4",
+    "C:\\Python\\Python314\\Lib\\encodings\\hz.py": "2601dc6ef938ff87bd2024b3c4785254f2b3dd4d8d34d8f63e254d7b8545b077",
+    "C:\\Python\\Python314\\Lib\\encodings\\idna.py": "8b1c89ef38bc9df0988b6a2206c8423f1439de50ac8db0f848f921d2d91b1daf",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso2022_jp_1.py": "627d3bdb5d3bc70dd00e51199b689d1c225efe747a2db8d5938e6af78263f572",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso2022_jp_2.py": "dc680a0e34dce73756f0e3b5cbb23dd819022be7e10f80e55289a5eab9ed7c2e",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso2022_jp_2004.py": "c8cb592df0cf38a6b7e8265c02d7784fb32052ef9ad94d0ff369889eda540273",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso2022_jp_3.py": "2a2ae4368d962c2e7b5db2f29ee89efd5a7fdb881def523c21670e0d1a1c50ce",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso2022_jp_ext.py": "5b4439c7dbe65638166a70c5404cabb72552019d1f497193c6689b86bd3c4c94",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso2022_jp.py": "7169767dd6732a80a0b665315588ef9cff2df4d495a86bc0bdd22b5c9f0644b9",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso2022_kr.py": "fd9efd7094361f6557d00857e332d7229e922597336a0714fb0fa2402c954029",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso8859_1.py": "ccfdba207b483dcd38673d85b6e2a773a5bf64e8ae9db7e90a01f8014e62b24a",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso8859_10.py": "76216c65399de88b6d40e0be3209ed7b14d6dd87afb9c0a984adddd0cf6b559f",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso8859_11.py": "5e346f5769e0c3eeb6b5547b954481a821481a970aa8fec33bffbf07b880689a",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso8859_13.py": "bee45734b991c04e76c2aba2ba8c7208f6ba743324d815de95965945643d8084",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso8859_14.py": "c498772fadf244077b650e468e7922ae1c0db74ed6984a2a81bc0e088631f0f9",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso8859_15.py": "d703d64ae2d23602e38c2f387eeffd5d4e5792209bc3ce64928fee2f99dcd906",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso8859_16.py": "f49fff248546d510f7ecb5fc2c25c9b68925a2f483b938035cd7a54957a560a2",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso8859_2.py": "d9102ae464030e5a0f4d1712435ac3bdb2fa98ecaa689b5965442ef92b13dfec",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso8859_3.py": "e372e25b32e8657db9b57b3c9b53d68b67f3fc6651c53b071dcac6cab6662fca",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso8859_4.py": "164c26a1a13dc22a21a7f80e5c0176ea9223111b759d2ed1cd8b3c55aab63bbd",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso8859_5.py": "4622bb45469e23c852698a6b784b5e28afd8072fddb8e319c02d39b138cb9dbe",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso8859_6.py": "1543f9ad8dcc4aa912c5c901a5a216a4ea3db62fb19197a0d90ccc0ee69b4538",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso8859_7.py": "41feb2bec72e3f07c0d67f0e421ff8e51a8e1688aa20af7c8a12ce0ddf464104",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso8859_8.py": "63d11b2592bdb036c8f4150ec1f968d1a6e01d22af8d7daf94f6c72e0a8fd752",
+    "C:\\Python\\Python314\\Lib\\encodings\\iso8859_9.py": "fd0ccfde95fcfebf48ba5ed5f697c4799c3303b853077f48ffef2fd9ef1e30c8",
+    "C:\\Python\\Python314\\Lib\\encodings\\johab.py": "c83aa2098ab15fbad7eb999c303b27350b0459ee9f6fc2b2bf4004d4285f9e8d",
+    "C:\\Python\\Python314\\Lib\\encodings\\koi8_r.py": "90a883b291d5f1e6dbb735413d51648c31580b1927500161c16624836d01e5ee",
+    "C:\\Python\\Python314\\Lib\\encodings\\koi8_t.py": "86d922a935afde1bd7c22cf8a9f23a237511c92c51509a80051dd2862a84d09f",
+    "C:\\Python\\Python314\\Lib\\encodings\\koi8_u.py": "9f77f72f8a42a1ba97c7d53afdb6f6a6d4e08707caa4d4cd57d6c113156bb32b",
+    "C:\\Python\\Python314\\Lib\\encodings\\kz1048.py": "da8bac477f14620d8aa89eb6cb8963602e1c39724148369c88ef48c95d495011",
+    "C:\\Python\\Python314\\Lib\\encodings\\latin_1.py": "6d5a6c46fe6675543ea3d04d9b27ccce8e04d6dfeb376691381b62d806a5d016",
+    "C:\\Python\\Python314\\Lib\\encodings\\mac_arabic.py": "f5c262f930f3b7d83466283347f8b0d7b5c7cbf18dd6fceb4faf93dbcd58839e",
+    "C:\\Python\\Python314\\Lib\\encodings\\mac_croatian.py": "68539ca54ffd5d96c07f3590e720d8a28009cb7caa13e607ac3084d19dd5a19a",
+    "C:\\Python\\Python314\\Lib\\encodings\\mac_cyrillic.py": "ac11e1f54789aff782d79fe7d6fd52183ef0f57b6ac4a0f680353fe0113f0d4d",
+    "C:\\Python\\Python314\\Lib\\encodings\\mac_farsi.py": "b0f1fa8399ad1844ef5f07acfcd523585ab576f411d845a008a610ff6a25ad31",
+    "C:\\Python\\Python314\\Lib\\encodings\\mac_greek.py": "4c67d361f922b611213fd8feb9fcaaa9ff8cb57cd961f1ca1b5cf4483b1dee66",
+    "C:\\Python\\Python314\\Lib\\encodings\\mac_iceland.py": "64de55fd0ea0fe4d2512b2303dcb3d20cc57061d78d08a11d3aa6f19e1877826",
+    "C:\\Python\\Python314\\Lib\\encodings\\mac_latin2.py": "74c9045009fabffa3e81b5b41d97a85860ba42d109db6673a276ea8ba9b59e56",
+    "C:\\Python\\Python314\\Lib\\encodings\\mac_roman.py": "6bf6fde10f2350232de5ee47d27cae885362602443b59a924de8eb6998b18bb2",
+    "C:\\Python\\Python314\\Lib\\encodings\\mac_romanian.py": "1de13f2703a62479c4312f9a39514c7691cf7f737958b3915af395a53a596183",
+    "C:\\Python\\Python314\\Lib\\encodings\\mac_turkish.py": "e7f9e6c9f92513c69754aef1d7ab235b09e9eeadbbced4c86df6e2aa2d06a1ef",
+    "C:\\Python\\Python314\\Lib\\encodings\\mbcs.py": "b00887a6d93c97d320cbb1c3379bd7c6de767ccfc34ed13442891e06cc62f148",
+    "C:\\Python\\Python314\\Lib\\encodings\\oem.py": "991d1fd2f4b815943eae7f7bfa9f87e2de980acb08932bea3258fb034902a15f",
+    "C:\\Python\\Python314\\Lib\\encodings\\palmos.py": "c2e72409d363242111552d3908a67d761a3b477201e5cef8a77e029a811c1d4c",
+    "C:\\Python\\Python314\\Lib\\encodings\\ptcp154.py": "f3bda3c1415d37dd1c314e3f474529913f36f7021279d82ded0d11154eed55f2",
+    "C:\\Python\\Python314\\Lib\\encodings\\punycode.py": "4e149846f99ae996dbbe81440667e1ade27db98febf85cf8a4e56fdb36f6dfa2",
+    "C:\\Python\\Python314\\Lib\\encodings\\quopri_codec.py": "4bf9a405b6f2359e5b931e0d9fb9bd9609b013688ce2e58aebbd9bfcb119a356",
+    "C:\\Python\\Python314\\Lib\\encodings\\raw_unicode_escape.py": "2cc24ffc2d06cab80423ada94e3dffc02c010346e17efc2fffe86825a6e07808",
+    "C:\\Python\\Python314\\Lib\\encodings\\rot_13.py": "dc6052650356095a92a8cb3a6c63300b7f51a63b6cd3b6f636350b5f22cda32a",
+    "C:\\Python\\Python314\\Lib\\encodings\\shift_jis_2004.py": "b806adf317a9920e69a1deb14c7f078f0d5a9bd26bd370c89492f4dd296aa52a",
+    "C:\\Python\\Python314\\Lib\\encodings\\shift_jis.py": "195c87bf032904002d5adb51c256ae14d99f4a69ffc15c989ca34dd51fc203d7",
+    "C:\\Python\\Python314\\Lib\\encodings\\shift_jisx0213.py": "16be3cdc9efa7c3a6ec5a683bc03bcaa9dbb41fcc70c92900130175a761a9d62",
+    "C:\\Python\\Python314\\Lib\\encodings\\tis_620.py": "18afe3a0fd28797d71762eaffadc9822e0cb8832be696af2298f6727ab92627f",
+    "C:\\Python\\Python314\\Lib\\encodings\\undefined.py": "b642384a53c14876fd053ab263293987ee5c20a42650b997c58e9b938055301e",
+    "C:\\Python\\Python314\\Lib\\encodings\\unicode_escape.py": "1d1372cf4f46e2f99820070b78563bd3eeed60ffc43a932b483cc7918f3da5e9",
+    "C:\\Python\\Python314\\Lib\\encodings\\utf_16_be.py": "16329b46d794f4d13b38a7a2540002e72e176d85237872ca3a24bf3c90d7665c",
+    "C:\\Python\\Python314\\Lib\\encodings\\utf_16_le.py": "6d3b04f3abd9fb6151fee5ca0426c2e7ed2677ef1358c269747ff8946ffc02b9",
+    "C:\\Python\\Python314\\Lib\\encodings\\utf_16.py": "3a39a901a88a546d99131e5f0e6064629681acf662708eac1cb46bdb2ae6f2e0",
+    "C:\\Python\\Python314\\Lib\\encodings\\utf_32_be.py": "a3698a68287cc78323117d14be3b0b40f46289a850eb06aa9a5328d44b2a30ef",
+    "C:\\Python\\Python314\\Lib\\encodings\\utf_32_le.py": "945af03d1da591640de7176bef879658594b399ac7bbe564d790893ca7b38a73",
+    "C:\\Python\\Python314\\Lib\\encodings\\utf_32.py": "3b3f020333e96039b51b184f163b6f2021adddbd9737e19774d9d2b682555f81",
+    "C:\\Python\\Python314\\Lib\\encodings\\utf_7.py": "1be7fc4c85edaab33427d3f1230d56b8a4b0d75566f726d9dfc50facea36688b",
+    "C:\\Python\\Python314\\Lib\\encodings\\utf_8_sig.py": "21a95bb95448f2f064f08aa2c89e843b87a20a5a13c45c6c47c288f2be5219a4",
+    "C:\\Python\\Python314\\Lib\\encodings\\utf_8.py": "9c54c7db8ce0722ca4ddb5f45d4e170357e37991afb3fcdc091721bf6c09257e",
+    "C:\\Python\\Python314\\Lib\\encodings\\uu_codec.py": "3991c68acbb5ce946c6ba71ccb044fbbb449f9eac9b76262456537eaebef9340",
+    "C:\\Python\\Python314\\Lib\\encodings\\zlib_codec.py": "9b660028249bdb7e9b80af1d5432bf0c90b132a6d0dd205e2ded2a3b3275b728",
+    "C:\\Python\\Python314\\Lib\\enum.py": "1ca7df53237fb23471b60f6a7644edbf954386577a396aa2cee177fadf47a074",
+    "C:\\Python\\Python314\\Lib\\functools.py": "8261e4fb2c712de2b4718a6c0390e614215b744bfb7b46f43bef472dedc75d0b",
+    "C:\\Python\\Python314\\Lib\\genericpath.py": "ad628dc3bb5c5f684a05f6a5322850e3875a65f32db9c865ee874d8b994e55a3",
+    "C:\\Python\\Python314\\Lib\\hashlib.py": "271b00a30d27c3cdd99b7f70962680f8455d3057b3c103f028e2da31141b91ee",
+    "C:\\Python\\Python314\\Lib\\io.py": "f1e213175399ef7d480379344c36fc80de1732f285834eb14c8ef9ebdfcb4116",
+    "C:\\Python\\Python314\\Lib\\json\\__init__.py": "27c55bb12498822e527294b61db64ba44c79a18d4baad651b1660714a9785c4e",
+    "C:\\Python\\Python314\\Lib\\json\\__main__.py": "37c8ed18c9e15d5a4c2019faa9aeffe73e6e5c45f2b243e75bee14dac9ac5c07",
+    "C:\\Python\\Python314\\Lib\\json\\decoder.py": "e85a0c8397dd727e09da69b00d536bf56700cc24689e97642cfe5e4c0704c792",
+    "C:\\Python\\Python314\\Lib\\json\\encoder.py": "498ba55bf9907208e58426f98dd72e2756417ab5478b141284abd373863e621c",
+    "C:\\Python\\Python314\\Lib\\json\\scanner.py": "b2577f9db9f69a0a27f251776349238b17b8b214a01128e7477b0f7d8e24a186",
+    "C:\\Python\\Python314\\Lib\\json\\tool.py": "8d6f70b48521ce09b2421c6544f8550c6a27be5e067c45df8d159554ef7a0d0e",
+    "C:\\Python\\Python314\\Lib\\keyword.py": "1f28f509383273238ad86eda04a96343fa0dc10eeaf3189439959d75cdac0a0b",
+    "C:\\Python\\Python314\\Lib\\ntpath.py": "a6cecd284c211b83231325b283815ae36764e7a6c52ae5a67c71afff0820fea0",
+    "C:\\Python\\Python314\\Lib\\operator.py": "eb4bd627ac1a6ecd480cdaa7521322095506dc0cbad4106e0a272a5195b04e10",
+    "C:\\Python\\Python314\\Lib\\os.py": "7e72db44f2412b265fda28d665cfe0d5f2f8ddfa5b9d0b8be0f7b6ddc4f25230",
+    "C:\\Python\\Python314\\Lib\\posixpath.py": "eb4b02ede56f0e13d06f7a9c6ae35c4adb55469e06e663df67b1f60950efe97c",
+    "C:\\Python\\Python314\\Lib\\re\\__init__.py": "5e285750c13fdf690a100379ec133d2038bb0f6c6e1b51206caf94e41288440b",
+    "C:\\Python\\Python314\\Lib\\re\\_casefix.py": "b0dee234e5f8096fc9c1b035ec52d0b1b50cc1f3aea20b360b8be902e53ac752",
+    "C:\\Python\\Python314\\Lib\\re\\_compiler.py": "2adaca25db0cfe86285f30b4575677b6fca46bada911c29e29801414c6148289",
+    "C:\\Python\\Python314\\Lib\\re\\_constants.py": "4e6db98c59fec998d4145747536b3447c01d36e6f6e6bed18eb32682d81b3cf2",
+    "C:\\Python\\Python314\\Lib\\re\\_parser.py": "015f98b5d25dccd79209deecd4499648b37e8d4d6bde8dadc9a9e613cb7cc5bf",
+    "C:\\Python\\Python314\\Lib\\reprlib.py": "98924232fa398cf72a7820722ee37606b271be663612e79356ecf2bf14484b9c",
+    "C:\\Python\\Python314\\Lib\\stat.py": "a79146ccc1baf78e60215e7f1b4b423adf58840978e0bfe5213d9fbfd3eff9c8",
+    "C:\\Python\\Python314\\Lib\\types.py": "adb19a9a4ad62df98fc5a687428fcc4c812a2eb7ade78eaf8173cb4c4600dba9",
+    "C:\\Python\\Python314\\Lib\\warnings.py": "ac8acfa4cacdbc548c5029fc7dbde4dca4d4d76868dd4b6e86c172e333c54a4e",
+    "C:\\Python\\Python314\\Lib\\weakref.py": "02aeb820a71d78e65d602500368549905e25f273b896f65c61c716d74171a7e1",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\native-utf8-encoding-diagnostic-child-proposed-20261008.py": "d81746417daa35b0e5ff88d99d3a71663d33db2587483f4d9c068980edfdf5b7",
+    "D:\\CantorAI\\xlang3\\src\\internal\\xlang3\\builtin_methods.h": "b0663650474d8d117b10ed3e459e9137d0b3424cc9d76d872e53957cbb8e1477",
+    "D:\\CantorAI\\xlang3\\src\\runtime\\methods\\string_methods.cpp": "52860b33aaf0dcdc7fbe4f991725f31e21ba722bfce7dcceccbffa5fcc0ec4ae",
+    "D:\\CantorAI\\xlang3\\src\\runtime\\modules\\system\\codecs_module.cpp": "6a0184a50ac0026fc0c54a3bff5da3f26961aaa1e76e2b7cc2a8d6cd1848c7f1"
+  },
+  "additional_source_sha256": {
+    "src/runtime/methods/string_methods.cpp": "52860b33aaf0dcdc7fbe4f991725f31e21ba722bfce7dcceccbffa5fcc0ec4ae",
+    "src/runtime/modules/system/codecs_module.cpp": "6a0184a50ac0026fc0c54a3bff5da3f26961aaa1e76e2b7cc2a8d6cd1848c7f1"
+  },
+  "dependency_scope": "Exact CP exe/DLL and DLLs directory files, selected direct/import-support stdlib modules plus all json/encodings/re/collections .py files. No pyperformance/site-packages dependency or compatibility hook is used; not a full stdlib audit.",
+  "input_signature": {
+    "ascii": {
+      "codepoints": [
+        65,
+        83,
+        67,
+        73,
+        73,
+        32,
+        48,
+        49,
+        50,
+        51,
+        52,
+        53,
+        54,
+        55,
+        56,
+        57,
+        0,
+        10
+      ],
+      "length": 18,
+      "sha256": "f979de722e975602f9a99abf99c50e8158aba6f75da17889b481ef972f7eeadb",
+      "byte_checksum": 928.0
+    },
+    "multibyte": {
+      "codepoints": [
+        65,
+        233,
+        20013,
+        128512,
+        0
+      ],
+      "length": 11,
+      "sha256": "3fbe00a33249ca8759685766125ac07a664f32937ab57dcc2f35964705a6204b",
+      "byte_checksum": 1693.0
+    },
+    "surrogate": {
+      "codepoints": [
+        65,
+        55296,
+        233,
+        57343
+      ],
+      "length": 9,
+      "sha256": "81661b59bb52862d438a241221062bd0850219f90eb824b6e049bd80d220a3d1",
+      "byte_checksum": 1573.0
+    }
+  },
+  "output_signature": {
+    "ascii": {
+      "length": 18,
+      "sha256": "f979de722e975602f9a99abf99c50e8158aba6f75da17889b481ef972f7eeadb",
+      "byte_checksum": 928.0
+    },
+    "multibyte": {
+      "length": 11,
+      "sha256": "3fbe00a33249ca8759685766125ac07a664f32937ab57dcc2f35964705a6204b",
+      "byte_checksum": 1693.0
+    },
+    "surrogate": {
+      "length": 9,
+      "sha256": "81661b59bb52862d438a241221062bd0850219f90eb824b6e049bd80d220a3d1",
+      "byte_checksum": 1573.0
+    }
+  },
+  "case_order": [
+    [
+      "ascii",
+      "method_surrogatepass"
+    ],
+    [
+      "ascii",
+      "codecs_surrogatepass"
+    ],
+    [
+      "ascii",
+      "method_default"
+    ],
+    [
+      "ascii",
+      "codecs_strict"
+    ],
+    [
+      "multibyte",
+      "method_surrogatepass"
+    ],
+    [
+      "multibyte",
+      "codecs_surrogatepass"
+    ],
+    [
+      "multibyte",
+      "method_default"
+    ],
+    [
+      "multibyte",
+      "codecs_strict"
+    ],
+    [
+      "surrogate",
+      "method_surrogatepass"
+    ],
+    [
+      "surrogate",
+      "codecs_surrogatepass"
+    ]
+  ],
+  "expected_parity": [
+    {
+      "input": "ascii",
+      "route": "method_surrogatepass",
+      "output_signature": {
+        "length": 18,
+        "sha256": "f979de722e975602f9a99abf99c50e8158aba6f75da17889b481ef972f7eeadb",
+        "byte_checksum": 928.0
+      }
+    },
+    {
+      "input": "ascii",
+      "route": "codecs_surrogatepass",
+      "output_signature": {
+        "length": 18,
+        "sha256": "f979de722e975602f9a99abf99c50e8158aba6f75da17889b481ef972f7eeadb",
+        "byte_checksum": 928.0
+      }
+    },
+    {
+      "input": "ascii",
+      "route": "method_default",
+      "output_signature": {
+        "length": 18,
+        "sha256": "f979de722e975602f9a99abf99c50e8158aba6f75da17889b481ef972f7eeadb",
+        "byte_checksum": 928.0
+      }
+    },
+    {
+      "input": "ascii",
+      "route": "codecs_strict",
+      "output_signature": {
+        "length": 18,
+        "sha256": "f979de722e975602f9a99abf99c50e8158aba6f75da17889b481ef972f7eeadb",
+        "byte_checksum": 928.0
+      }
+    },
+    {
+      "input": "multibyte",
+      "route": "method_surrogatepass",
+      "output_signature": {
+        "length": 11,
+        "sha256": "3fbe00a33249ca8759685766125ac07a664f32937ab57dcc2f35964705a6204b",
+        "byte_checksum": 1693.0
+      }
+    },
+    {
+      "input": "multibyte",
+      "route": "codecs_surrogatepass",
+      "output_signature": {
+        "length": 11,
+        "sha256": "3fbe00a33249ca8759685766125ac07a664f32937ab57dcc2f35964705a6204b",
+        "byte_checksum": 1693.0
+      }
+    },
+    {
+      "input": "multibyte",
+      "route": "method_default",
+      "output_signature": {
+        "length": 11,
+        "sha256": "3fbe00a33249ca8759685766125ac07a664f32937ab57dcc2f35964705a6204b",
+        "byte_checksum": 1693.0
+      }
+    },
+    {
+      "input": "multibyte",
+      "route": "codecs_strict",
+      "output_signature": {
+        "length": 11,
+        "sha256": "3fbe00a33249ca8759685766125ac07a664f32937ab57dcc2f35964705a6204b",
+        "byte_checksum": 1693.0
+      }
+    },
+    {
+      "input": "surrogate",
+      "route": "method_surrogatepass",
+      "output_signature": {
+        "length": 9,
+        "sha256": "81661b59bb52862d438a241221062bd0850219f90eb824b6e049bd80d220a3d1",
+        "byte_checksum": 1573.0
+      }
+    },
+    {
+      "input": "surrogate",
+      "route": "codecs_surrogatepass",
+      "output_signature": {
+        "length": 9,
+        "sha256": "81661b59bb52862d438a241221062bd0850219f90eb824b6e049bd80d220a3d1",
+        "byte_checksum": 1573.0
+      }
+    }
+  ],
+  "expected_strict_errors": [
+    {
+      "start": 1,
+      "route": "method_default",
+      "end": 2,
+      "encoding": "utf-8",
+      "exception": "UnicodeEncodeError"
+    },
+    {
+      "start": 1,
+      "route": "codecs_strict",
+      "end": 2,
+      "encoding": "utf-8",
+      "exception": "UnicodeEncodeError"
+    }
+  ],
+  "operations_per_sample": 20000,
+  "samples_per_case": 5,
+  "case_count": 10,
+  "timed_operations_per_child": 1000000,
+  "profile_enabled": false,
+  "acceptance": false
+}

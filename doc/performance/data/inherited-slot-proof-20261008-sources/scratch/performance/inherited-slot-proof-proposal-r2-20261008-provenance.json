@@ -1,0 +1,122 @@
+{
+  "status": "scratch_only_inherited_proposal_not_applied_not_built_not_run",
+  "head": "e2a752f62227ef1088236c68d6a08e480323e112",
+  "apply_check_exit": 0,
+  "targets": [
+    {
+      "path": "src/internal/xlang3/object_model.h",
+      "source_sha256_before": "c19265954e6c941c62ceeecdc362f51144210c1cadf612949fbb981737b50b79",
+      "source_sha256_after": "c19265954e6c941c62ceeecdc362f51144210c1cadf612949fbb981737b50b79",
+      "source_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/src/internal/xlang3/object_model.h",
+      "candidate_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/src/internal/xlang3/object_model.h",
+      "candidate_sha256": "e8642394a719f68c9666517c3a24d7487e30d088fa3ea4f9961d86bd36fd4023"
+    },
+    {
+      "path": "src/runtime/object_model.cpp",
+      "source_sha256_before": "b52bb39cf25c68d88dd24b063bc530052469b6d7eedf9a1081aefb90ea5fa7bd",
+      "source_sha256_after": "b52bb39cf25c68d88dd24b063bc530052469b6d7eedf9a1081aefb90ea5fa7bd",
+      "source_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/src/runtime/object_model.cpp",
+      "candidate_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/src/runtime/object_model.cpp",
+      "candidate_sha256": "038a27578a9f907c3987c0470a89663a7feee7d4bf0838afb9fd46f0c6c63e18"
+    },
+    {
+      "path": "src/builtins/object_type_builtins.cpp",
+      "source_sha256_before": "6c9c022a4b7eba99ac41b01197950f2dd2860dfee7d8901675fd62986e466b99",
+      "source_sha256_after": "6c9c022a4b7eba99ac41b01197950f2dd2860dfee7d8901675fd62986e466b99",
+      "source_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/src/builtins/object_type_builtins.cpp",
+      "candidate_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/src/builtins/object_type_builtins.cpp",
+      "candidate_sha256": "58d6eb52e7fd0a92e290bbf1bd28da659cdc5b612747797ffe22cfa7f5477b6c"
+    },
+    {
+      "path": "src/executor/xlang_vm/ops/xlang_vm_ops_construct.h",
+      "source_sha256_before": "4248dd0bfcb5baf02be21726c795de0ac6d155c9778dc0297b488c2d6ff0ebb0",
+      "source_sha256_after": "4248dd0bfcb5baf02be21726c795de0ac6d155c9778dc0297b488c2d6ff0ebb0",
+      "source_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/src/executor/xlang_vm/ops/xlang_vm_ops_construct.h",
+      "candidate_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/src/executor/xlang_vm/ops/xlang_vm_ops_construct.h",
+      "candidate_sha256": "16b01e2eaf7889fd9d23e7b5d247b251671393e19bf745f489aac865838c8ef8"
+    },
+    {
+      "path": "src/executor/xlang_vm/xlang_vm_inline_support.h",
+      "source_sha256_before": "d642d3faf503302ba670b1d322f3d9ac2ac5f4a9fe098b02fa97cd0a97ba647c",
+      "source_sha256_after": "d642d3faf503302ba670b1d322f3d9ac2ac5f4a9fe098b02fa97cd0a97ba647c",
+      "source_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/src/executor/xlang_vm/xlang_vm_inline_support.h",
+      "candidate_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/src/executor/xlang_vm/xlang_vm_inline_support.h",
+      "candidate_sha256": "d321762ea5e78dfe5a0dcd37f8969beb63fe37fc3f852c898b94ecaad74fc538"
+    },
+    {
+      "path": "src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "source_sha256_before": "5f09f741ceab8f72c2b918912ba30e12f12bcde91988097d056ae3f20a62bb64",
+      "source_sha256_after": "5f09f741ceab8f72c2b918912ba30e12f12bcde91988097d056ae3f20a62bb64",
+      "source_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "candidate_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/src/executor/xlang_vm/xlang_vm_attr.cpp",
+      "candidate_sha256": "ab7cb758c6da247c0aab1cc449ee62206ea187773e51d01ba5690f44dfdbac73"
+    },
+    {
+      "path": "src/serialize/value_graph_reader.cpp",
+      "source_sha256_before": "7e96a6a6d248a54525cea52a2397833a5b33fc4a0500a862eaff06c73cf52729",
+      "source_sha256_after": "7e96a6a6d248a54525cea52a2397833a5b33fc4a0500a862eaff06c73cf52729",
+      "source_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/src/serialize/value_graph_reader.cpp",
+      "candidate_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/src/serialize/value_graph_reader.cpp",
+      "candidate_sha256": "02b48bde31a254cb3e95eacc0e6215dc495c829fcf9f83a84071b245e8e0ec56"
+    },
+    {
+      "path": "src/runtime/modules/system/weakref_module.cpp",
+      "source_sha256_before": "b17237a4f270ac911b4679c8892642667c9dae41d2938c4799d232cab0ad65ae",
+      "source_sha256_after": "b17237a4f270ac911b4679c8892642667c9dae41d2938c4799d232cab0ad65ae",
+      "source_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/src/runtime/modules/system/weakref_module.cpp",
+      "candidate_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/src/runtime/modules/system/weakref_module.cpp",
+      "candidate_sha256": "bc28da2f808fb50597e6e05f8704f2f0e0091142afd9f1890505ee5249e7b05b"
+    },
+    {
+      "path": "tests/cpp/canonical_slot_read_cases.h",
+      "source_sha256_before": "cb8346950866fade0435e2fadcac56ff1eb403995dc4648f24d3ed7be89f7e50",
+      "source_sha256_after": "cb8346950866fade0435e2fadcac56ff1eb403995dc4648f24d3ed7be89f7e50",
+      "source_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/tests/cpp/canonical_slot_read_cases.h",
+      "candidate_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/tests/cpp/canonical_slot_read_cases.h",
+      "candidate_sha256": "9ef825d80b7080a53ff999e4447d0d5566ee85b63f84113de480712bc8fde516"
+    },
+    {
+      "path": "tests/fixtures/core/canonical_slot_reads.py",
+      "source_sha256_before": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+      "source_sha256_after": "67cbbbfcb4fe02ad07f7da7ead051998b3735d547f52e5843fef6102cbe97006",
+      "source_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/tests/fixtures/core/canonical_slot_reads.py",
+      "candidate_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/tests/fixtures/core/canonical_slot_reads.py",
+      "candidate_sha256": "7efadaea716e73e987a0ee35a2110f44ab91dec1e0d75ddb40ad627b582f918b"
+    },
+    {
+      "path": "tests/fixtures/expected/canonical_slot_reads.out",
+      "source_sha256_before": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "source_sha256_after": "7aea1a5b5fe9833fc9102b3174361061593048ab6cc70ce168ab685c5a8d4c5a",
+      "source_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-sources/tests/fixtures/expected/canonical_slot_reads.out",
+      "candidate_copy": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-candidates/tests/fixtures/expected/canonical_slot_reads.out",
+      "candidate_sha256": "5fb63eb109aee4d367d06c636db3d30bea771a8c13a8819a985c43fc43bd24a2"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "scratch/performance/inherited-slot-proof-proposal-r2-20261008.patch",
+      "bytes": 39426,
+      "sha256": "1452f7291f98998e765ab764010e8a5f0fc7f6038ee30b5fc5a090ee63e53e71"
+    },
+    {
+      "path": "scratch/performance/inherited-slot-proof-proposal-r2-20261008-apply-check.log",
+      "bytes": 107,
+      "sha256": "51c46540f18e3ee496c5832fb754e14e8c0210762b7e9a2662a0734da707487c"
+    },
+    {
+      "path": "scratch/performance/prepare-inherited-slot-proof-r2-20261008.ps1",
+      "bytes": 20616,
+      "sha256": "07fb122ff744fa1505259ff353b98c2ef7236da4e2a6182ffdc8dd3f302bdfbc"
+    },
+    {
+      "path": "scratch/performance/inherited-slot-proof-CPP-insert-20261008.h",
+      "bytes": 12966,
+      "sha256": "52601cbcf2c84c52d4dd806eca7a8686ea194fb1130374147a64cbf42bd2d2e7"
+    },
+    {
+      "path": "scratch/performance/inherited-slot-proof-Python-insert-20261008.py",
+      "bytes": 2139,
+      "sha256": "512b7e0a97a0b9e8deac863e38673049a14c80228d6e0a5fe6efcc10940377c8"
+    }
+  ]
+}

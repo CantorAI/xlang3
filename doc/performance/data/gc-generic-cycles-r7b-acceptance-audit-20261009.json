@@ -1,0 +1,18 @@
+{
+  "terminal": true,
+  "engine_commit_permitted": true,
+  "decision": "Fresh full correctness, complete default fixed gate0 and affected original definitions pass; authorize the already user-requested checkpoint.",
+  "performance_sha256": "2b0308d6131394ef7f87bed13c722015b22af1d5b30ab43921bafe2560e39874",
+  "correctness_sha256": "897ce79dd68c514e3c1cc591aa481ce3a71ce1ecf82b48b1393291e7ab37d216",
+  "raw_performance_permission_field": false,
+  "raw_permission_field_note": "The manager initializes this conservative field false and does not update it on success. This separate decision follows its terminal success status and actual checks; raw evidence remains unchanged.",
+  "source_normalization": {
+    "path": "src/runtime/modules/system/gc_module.cpp",
+    "working_sha256": "2704641de7f68f59c41341f067af924a07c8214d9a5f85b5dcffccf4cd2fc47a",
+    "staged_sha256": "804fc9d53566e6d6c8496bf50640161f7ace4466ec1696160c64d07da5e56f10",
+    "working_tree_changed": false,
+    "release_changed": false,
+    "difference": "CRLF to LF in staged text only, matching HEAD. Complete logical lines identical; raw strings absent. All measured working-source hashes remain exact."
+  },
+  "controller_sha256": "3c9768ef011d17d911831e16972b250b9b4d40d9a9210184c4a012cbbb4df0bf"
+}

@@ -1,0 +1,12 @@
+local_slots              pass         0.988x
+scalar_arithmetic        pass         0.985x
+range_for                pass         1.010x
+function_calls           pass         1.020x
+class_construct          pass         1.015x
+list_append              pass         1.025x
+property_access          pass         0.989x
+deepcopy_memo            pass         0.911x
+json_dumps               pass         1.013x
+gc_traversal             pass         0.740x
+subparsers               pass         0.938x
+Performance check: pass. Report: D:\CantorAI\xlang3\doc\performance\data\native-bound-zero-args-validation-20261008-fixed-gate.json

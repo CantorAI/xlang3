@@ -1,0 +1,71 @@
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (coroutines)
+
+(trying common venv first)
+
+[1/1] coroutines...
+WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.WARNING: unable to increase process priority
+.
+WARNING: the benchmark result may be unstable
+* the standard deviation (47.9 ms) is 12% of the mean (415 ms)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+coroutines: Mean +- std dev: 415 ms +- 48 ms
+
+Performance version: 1.14.0
+Python version: 3.14.7 (64-bit) revision 823f032
+Report on Windows-2025Server-10.0.26200
+Number of logical CPUs: 20
+Start date: 2026-10-01 07:06:37.509297
+End date: 2026-10-01 07:08:00.902118
+
+### coroutines ###
+Mean +- std dev: 415 ms +- 48 ms
+

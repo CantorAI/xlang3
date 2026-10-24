@@ -1,0 +1,14 @@
+
+# Preserve rejected R6 and verified R7/S8 raw evidence bytes; control binaries stay outside Git.
+/doc/performance/data/published-frame-snapshot-r6-* -text
+/doc/performance/data/published-frame-snapshot-c5-baseline-eligibility-* -text
+/doc/performance/data/pickle-published-frame-c6-* -text
+/doc/performance/data/call-module-global-binding-r7-* -text
+/doc/performance/data/pickle-call-module-binding-r7-* -text
+/doc/performance/data/sorted-exact-int-s8-* -text
+/doc/performance/data/pickle-sorted-exact-int-s8-* -text
+/doc/performance/data/verified-idle-msbuild-* -text
+/doc/performance/data/r6-r7-s8-checkpoint-inspection-20261008/** -text
+/doc/performance/data/r6-r7-s8-checkpoint-20261008-publication-manifest.json -text
+/doc/performance/r6-r7-s8-checkpoint*-20261008.* text eol=lf
+/benchmarks/diagnostics/python_callback_boundary.py text eol=lf

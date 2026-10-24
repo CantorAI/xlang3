@@ -17,6 +17,7 @@ limitations under the License.
 namespace xlang3 {
 
 void register_tokenize_module(Runtime& runtime);
+void register_coverage_tracer_module(Runtime& runtime);
 #ifndef XLANG3_EMBEDDED
 namespace tensor { void register_module(Runtime&); }
 #endif
@@ -47,6 +48,7 @@ void register_core_builtins(Runtime& runtime) {
   register_bz2_module(runtime);
   register_cmath_module(runtime);
   register_json_module(runtime);
+  register_decimal_module(runtime);
   register_functools_module(runtime);
   register_csv_module(runtime);
   register_os_module(runtime);
@@ -62,8 +64,10 @@ void register_core_builtins(Runtime& runtime) {
   register_faulthandler_module(runtime);
   register_gc_module(runtime);
   register_lsprof_module(runtime);
+  register_coverage_tracer_module(runtime);
   register_array_module(runtime);
   register_bisect_module(runtime);
+  register_heapq_module(runtime);
   register_itertools_module(runtime);
   register_codecs_module(runtime);
   register_locale_module(runtime);
@@ -88,6 +92,7 @@ void register_core_builtins(Runtime& runtime) {
   register_operator_module(runtime);
   register_pickle_module(runtime);
   register_pyexpat_module(runtime);
+  register_asyncio_module(runtime);
 #if defined(_WIN32)
   register_msvcrt_module(runtime);
   register_overlapped_module(runtime);

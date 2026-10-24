@@ -1,0 +1,45 @@
+profiled workload sqlglot_v2_parse 0.7712578000064241
+profiled Python calls, grouped by source/function
+[[["tokens.py","_advance"],1328],[["parser.py","_match"],1046],[["enum.py","__hash__"],670],[["parser.py","_match_set"],438],[["helper.py","list_get"],420],[["parser.py","_get_token"],416],[["tokens.py","_text"],349],[["trie.py","in_trie"],245],[["parser.py","_parse_tokens"],173],[["expressions.py","_set_parent"],157],[["expressions.py","__init__"],157],[["parser.py","_advance"],139],[["tokens.py","__init__"],138],[["tokens.py","_add"],138],[["tokens.py","_scan_keywords"],137],[["expressions.py","__eq__"],110],[["parser.py","validate_expression"],94],[["parser.py","expression"],93],[["parser.py","_match_pair"],82],[["tokens.py","_scan_var"],80],[["parser.py","_parse_placeholder"],63],[["parser.py","_parse_identifier"],63],[["parser.py","_parse_id_var"],63],[["tokens.py","_chars"],52],[["parser.py","_parse_bracket"],52],[["parser.py","_parse_function"],47],[["parser.py","_parse_types"],44],[["parser.py","_parse_primary"],44],[["parser.py","_parse_field"],44],[["parser.py","_parse_column"],44],[["parser.py","_parse_type"],44],[["parser.py","_parse_at_time_zone"],43],[["parser.py","_parse_unary"],43],[["parser.py","_parse_factor"],42],[["parser.py","_parse_term"],41],[["parser.py","_parse_bitwise"],41],[["parser.py","_parse_range"],39],[["parser.py","_parse_comparison"],39],[["parser.py","_parse_equality"],30],[["parser.py","_parse_conjunction"],21],[["parser.py","<lambda>"],15],[["parser.py","_parse_csv"],11],[["parser.py","_parse_alias"],10],[["parser.py","_parse_expression"],9],[["parser.py","_parse_set_operations"],9],[["parser.py","_parse_select"],9],[["parser.py","_parse_with"],9],[["tokens.py","_scan_comment"],8],[["tokens.py","_scan_string"],8],[["parser.py","_parse_annotation"],8],[["parser.py","_parse_unnest"],8],[["parser.py","_parse_star"],8],[["expressions.py","text"],8],[["expressions.py","table"],8],[["expressions.py","this"],8],[["parser.py","_parse_table"],8],[["parser.py","_match_r_paren"],7],[["parser.py","_parse_table_alias"],7],[["parser.py","_parse_table_sample"],6],[["expressions.py","string"],6]]
+profiled benchmark function times (inclusive/self seconds)
+parser.py _parse_tokens 173 4.385459 0.037127
+parser.py _parse_with 9 1.623216 0.001918
+parser.py _parse_select 9 1.621086 0.007272
+parser.py _parse_csv 11 1.172849 0.004568
+parser.py _parse_table 8 1.030438 0.004914
+parser.py _parse_conjunction 21 0.956102 0.001984
+parser.py _parse_equality 30 0.930481 0.002981
+parser.py _parse_comparison 39 0.897545 0.004214
+parser.py _parse_range 39 0.879491 0.022087
+parser.py _parse_bitwise 41 0.845909 0.013947
+parser.py _parse_term 41 0.821243 0.004654
+parser.py _parse_factor 42 0.798778 0.004858
+parser.py _parse_unary 43 0.775807 0.017325
+profile_pyperformance_calls_direct.py <lambda> 1 0.771562 0.000289
+run_benchmark.py bench_parse 1 0.771273 0.000287
+__init__.py parse_one 1 0.770986 0.00036
+dialect.py parse 1 0.770611 0.000422
+parser.py _parse_type 44 0.75209 0.014639
+parser.py _parse_column 44 0.711522 0.028856
+parser.py parse 1 0.632784 0.000326
+parser.py _parse 1 0.632458 0.001039
+parser.py _parse_statement 1 0.63104 0.00038
+parser.py _parse_field 44 0.585799 0.010925
+parser.py _parse_from 2 0.541695 0.000477
+parser.py _parse_primary 44 0.460946 0.011315
+parser.py _parse_where 2 0.3516 0.000303
+parser.py <lambda> 15 0.152791 0.002867
+parser.py _parse_expression 9 0.152039 0.001478
+parser.py _match_set 438 0.149905 0.054888
+tokens.py tokenize 1 0.137227 0.034883
+parser.py _parse_id_var 63 0.112909 0.018396
+parser.py _advance 139 0.092013 0.032685
+tokens.py _scan_keywords 137 0.089673 0.020355
+parser.py expression 93 0.070041 0.021025
+parser.py _match 1046 0.065766 0.042063
+parser.py _get_token 416 0.059328 0.043445
+enum.py __hash__ 670 0.054267 0.054267
+parser.py _parse_function 47 0.053836 0.01514
+expressions.py __init__ 157 0.05288 0.0204
+tokens.py _scan_var 80 0.045675 0.01994
+profiled benchmark-frame calls 7556

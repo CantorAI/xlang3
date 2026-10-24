@@ -1,0 +1,28 @@
+diff --git a/src/executor/xlang_vm/xlang_vm_loop.cpp b/src/executor/xlang_vm/xlang_vm_loop.cpp
+--- a/src/executor/xlang_vm/xlang_vm_loop.cpp
++++ b/src/executor/xlang_vm/xlang_vm_loop.cpp
+@@ -2203,5 +2203,12 @@
+     const auto& module = *frame.module;
+     const auto& fn = *frame.fn;
++    // Active frames retain their immutable IR module. A function's __code__
++    // replacement selects new code for later calls; it does not mutate this
++    // activation's instruction vector. Capture its view at every frame switch,
++    // including generator resume, so native callbacks cannot force repeated
++    // vector-length division and data-pointer loads on ordinary dispatch.
++    const auto* code_data = fn.code.data();
++    const size_t code_size = fn.code.size();
+     auto& fn_obj_closure = *frame.closure;
+     auto& globals_module = frame.globals_module;
+     auto& module_owner = frame.module_owner;
+@@ -2342,4 +2349,4 @@
+-      if (ip >= fn.code.size()) {
++      if (ip >= code_size) {
+         Value none = Value::none();
+         if (!finish_frame(none)) {
+           if (generator != nullptr) {
+@@ -2434,4 +2441,4 @@
+-      const auto& in = fn.code[ip];
++      const auto& in = code_data[ip];
+       active_dispatch_ip = ip;
+       if (count_opcode_dispatches) {
+         xlang_perf_count_opcode_enabled(static_cast<uint16_t>(in.op));

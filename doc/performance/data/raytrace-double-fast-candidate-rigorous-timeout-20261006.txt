@@ -1,0 +1,5 @@
+Official pyperformance 1.14.0 raytrace rigorous-mode attempt.
+Runtime: D:\CantorAI\xlang3\build-repro\main-verify-20261006\Release\xlang3.exe
+Configured per-case timeout: 300 seconds
+Outcome: Full-case timeout; benchmark raytrace exceeded 300 seconds. No benchmark result was produced.
+This is inconclusive and is not a performance score.

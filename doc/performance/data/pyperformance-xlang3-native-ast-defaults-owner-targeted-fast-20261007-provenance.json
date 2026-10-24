@@ -1,0 +1,32 @@
+{
+  "status": "finished_with_benchmark_failures",
+  "started_utc": "2026-10-07T15:36:23.149730+00:00",
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "source_base_commit": "f9bc17730a57a0caf96afd7e557dec8adf64d0a1",
+  "engine_source": "Uncommitted native AST schema/defaults and real module owner; source identities in native-ast-defaults-owner-validation-20261007.json",
+  "sha256_start": {
+    "exe": "e62bcbebf1030ecfa98d48a57f2a4f1be348f415d837735d7991bdd7bf1566bd",
+    "dll": "8c34b05901d2234034d85ce88758dbbe882cf1ee6a084d51cce88ecca44a1e80",
+    "hashlib": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239"
+  },
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7",
+  "stdlib": "C:\\Python\\Python314\\Lib",
+  "mode": "fast",
+  "benchmarks": "chameleon,gc_traversal",
+  "expected_definitions": 2,
+  "case_timeout_seconds": 300,
+  "cpython_reference": "pyperformance-cpython314-clean-release-full-fast-20261002.json",
+  "cpython_reference_provenance_limits": "cpython3147-saved-reference-provenance-audit-20261007.json",
+  "fixed_gate": "release-native-ast-defaults-owner-fixed-gate-20261007.json",
+  "fixed_gate_exit_code": 0,
+  "timing_probe_enabled": false,
+  "compatibility_hook_sha256": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317",
+  "completed_utc": "2026-10-07T15:36:47.970174+00:00",
+  "exit_code": 1,
+  "sha256_end": {
+    "exe": "e62bcbebf1030ecfa98d48a57f2a4f1be348f415d837735d7991bdd7bf1566bd",
+    "dll": "8c34b05901d2234034d85ce88758dbbe882cf1ee6a084d51cce88ecca44a1e80",
+    "hashlib": "5910f087e300459b854dca0046ac61125287e7d62bf330a3d626631d9a74b239"
+  }
+}

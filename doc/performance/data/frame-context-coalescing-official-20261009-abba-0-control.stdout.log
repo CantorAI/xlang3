@@ -1,0 +1,26 @@
+Benchmark dependency sites: D:\CantorAI\xlang3\venv\cpython3.14-a6792301b742-compat-31b33d68c68a\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (unpickle_pure_python)
+
+(trying common venv first)
+
+[1/1] unpickle_pure_python...
+...........
+WARNING: the benchmark result may be unstable
+* Not enough samples to get a stable result (95% certainly of less than 1% variation)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+unpickle_pure_python: Mean +- std dev: 2.40 ms +- 0.07 ms
+
+Performance version: 1.14.0
+
+### unpickle_pure_python ###
+Mean +- std dev: 2.40 ms +- 0.07 ms
+

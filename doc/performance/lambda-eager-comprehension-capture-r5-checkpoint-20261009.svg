@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1000" height="330" viewBox="0 0 1000 330"><rect width="1000" height="330" fill="white"/><g font-family="Arial" fill="#172033"><text x="25" y="25" font-size="18">Original SQLAlchemy elapsed time — lower is faster</text><text x="25" y="48" font-size="12">Fresh XLang / saved CPython 3.14.7; historical unpaired fast results, all 20 values retained</text>
+<text x="25" y="80" font-size="14">sqlalchemy_declarative</text>
+<text x="25" y="111" font-size="13">CP</text><rect x="100" y="95" width="46.5852" height="22" fill="#5275aa"/><text x="805" y="111" font-size="13">92.382 ms</text>
+<text x="25" y="141" font-size="13">XLang</text><rect x="100" y="125" width="657.1429" height="22" fill="#d07939"/><text x="805" y="141" font-size="13">1303.166 ms</text>
+<text x="25" y="190" font-size="14">sqlalchemy_imperative</text>
+<text x="25" y="221" font-size="13">CP</text><rect x="100" y="205" width="5.6422" height="22" fill="#5275aa"/><text x="805" y="221" font-size="13">11.189 ms</text>
+<text x="25" y="251" font-size="13">XLang</text><rect x="100" y="235" width="113.0344" height="22" fill="#d07939"/><text x="805" y="251" font-size="13">224.156 ms</text>
+</g></svg>

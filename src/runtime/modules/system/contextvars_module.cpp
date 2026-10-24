@@ -13,6 +13,9 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "xlang3/builtins.h"
+#include "xlang3/builtin_methods.h"
+#include "xlang3/contextvars_runtime.h"
+#include "xlang3/interpreter.h"
 
 #include "xlang3/functional_iterators.h"
 #include "xlang3/mapping.h"
@@ -21,6 +24,7 @@ limitations under the License.
 #include "xlang3/sequence.h"
 
 #include <array>
+#include <atomic>
 #include <unordered_map>
 
 namespace xlang3 {
@@ -47,6 +51,7 @@ struct TokenState {
 
 struct ContextState {
   std::unordered_map<Object*, Value> values;
+  std::atomic_bool entered{false};
 };
 
 struct ContextViewState {
@@ -54,7 +59,8 @@ struct ContextViewState {
   size_t index = 0;
 };
 
-thread_local std::unordered_map<Object*, Value> g_context_values;
+thread_local std::unordered_map<Object*, Value> g_root_context_values;
+thread_local std::unordered_map<Object*, Value>* g_context_values = &g_root_context_values;
 Value g_token_class = Value::invalid();
 Value g_missing = Value::invalid();
 std::array<Value, 3> g_context_view_classes;
@@ -216,8 +222,8 @@ bool context_var_get(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   if (state == nullptr) {
     return false;
   }
-  auto found = g_context_values.find(args[0].as.obj);
-  if (found != g_context_values.end()) {
+  auto found = g_context_values->find(args[0].as.obj);
+  if (found != g_context_values->end()) {
     value_assign_fast(out, found->second);
     return true;
   }
@@ -248,12 +254,12 @@ bool context_var_set(Runtime& runtime, const Value* args, uint32_t argc, Value& 
   Value token = Value::instance(g_token_class);
   auto* state = new TokenState();
   state->var = args[0];
-  auto found = g_context_values.find(key);
-  if (found != g_context_values.end()) {
+  auto found = g_context_values->find(key);
+  if (found != g_context_values->end()) {
     state->has_old_value = true;
     state->old_value = found->second;
   }
-  g_context_values[key] = args[1];
+  (*g_context_values)[key] = args[1];
   if (!instance_set_native_data(token, kTokenNativeType, state, token_cleanup, error)) {
     delete state;
     return false;
@@ -287,9 +293,9 @@ bool context_var_reset(Runtime&, const Value* args, uint32_t argc, Value& out, s
     return false;
   }
   if (token->has_old_value) {
-    g_context_values[key] = token->old_value;
+    (*g_context_values)[key] = token->old_value;
   } else {
-    g_context_values.erase(key);
+    g_context_values->erase(key);
   }
   token->used = true;
   value_set_none(out);
@@ -463,6 +469,34 @@ bool context_copy(Runtime&, const Value* args, uint32_t argc, Value& out, std::s
   return true;
 }
 
+template <typename Invoke>
+bool context_run_in_state(Runtime& runtime, ContextState& state,
+                          std::string& error, Invoke&& invoke) {
+  // Every Context.run call swaps only the active map pointer. Keep this guard
+  // shared by the ordinary and expanded-argument paths so nested calls and
+  // exceptions restore the same thread-local state.
+  bool expected_not_entered = false;
+  if (!state.entered.compare_exchange_strong(
+          expected_not_entered, true, std::memory_order_acq_rel)) {
+    error = "cannot enter context: context is already entered";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  struct ActiveContextGuard {
+    std::unordered_map<Object*, Value>* previous;
+    ContextState& state;
+    ActiveContextGuard(ContextState& entered_state)
+        : previous(g_context_values), state(entered_state) {
+      g_context_values = &state.values;
+    }
+    ~ActiveContextGuard() {
+      g_context_values = previous;
+      state.entered.store(false, std::memory_order_release);
+    }
+  } active_context_guard(state);
+  return invoke();
+}
+
 bool context_run_kw(Runtime& runtime, const Value* args, uint32_t argc,
                     const NativeKeywordArg* kwargs, uint32_t kwargc,
                     Value& out, std::string& error, void*) {
@@ -475,21 +509,69 @@ bool context_run_kw(Runtime& runtime, const Value* args, uint32_t argc,
     return false;
   }
   std::vector<std::pair<std::string, Value>> keyword_values;
-  keyword_values.reserve(kwargc);
-  for (uint32_t index = 0; index < kwargc; ++index) {
-    if (kwargs[index].name == nullptr || kwargs[index].value == nullptr) {
-      error = "Context.run() received invalid keyword argument";
-      return false;
+  if (kwargc != 0) {
+    keyword_values.reserve(kwargc);
+    for (uint32_t index = 0; index < kwargc; ++index) {
+      if (kwargs[index].name == nullptr || kwargs[index].value == nullptr) {
+        error = "Context.run() received invalid keyword argument";
+        return false;
+      }
+      keyword_values.emplace_back(kwargs[index].name, *kwargs[index].value);
     }
-    keyword_values.emplace_back(kwargs[index].name, *kwargs[index].value);
   }
-  auto previous = g_context_values;
-  g_context_values = state->values;
-  const bool ok = runtime_call_callable_kw(
-      runtime, args[1], args + 2, argc - 2, keyword_values, out, error);
-  state->values = g_context_values;
-  g_context_values = std::move(previous);
-  return ok;
+  // asyncio's Handle.run path supplies positional callback args only. Keep
+  // that per-Task path out of the general keyword-call adapter.
+  return context_run_in_state(runtime, *state, error, [&]() {
+    return kwargc == 0
+        ? runtime_call_callable(runtime, args[1], args + 2, argc - 2, out, error)
+        : runtime_call_callable_kw(
+              runtime, args[1], args + 2, argc - 2, keyword_values, out, error);
+  });
+}
+
+bool context_run_tuple_star_predicate(const CallArgsView& values) {
+  const bool has_star_vector = values.star_args != nullptr && !values.star_args->empty();
+  const bool one_star_register = has_star_vector
+      ? values.star_args->size() == 1 &&
+            (values.star_arg == UINT32_MAX ||
+             values.star_args->front() == values.star_arg)
+      : values.star_arg != UINT32_MAX;
+  const uint32_t star_register = has_star_vector
+      ? (one_star_register ? values.star_args->front() : UINT32_MAX)
+      : values.star_arg;
+  if (values.leading == nullptr || values.leading_count != 1 ||
+      values.registers == nullptr || values.register_args == nullptr ||
+      values.register_args->size() != 1 || values.has_keywords() ||
+      values.kw_star_arg != UINT32_MAX ||
+      (values.kw_star_args != nullptr && !values.kw_star_args->empty()) ||
+      !one_star_register) {
+    return false;
+  }
+  // Only an exact immutable tuple can be passed through without copying: list
+  // mutation or custom iteration must retain the ordinary expansion semantics.
+  return value_as_tuple(values.registers[star_register]) != nullptr;
+}
+
+bool context_run_tuple_star(Runtime& runtime, const CallArgsView& values,
+                            XlangRuntimeExecutionGuard&, Value& out,
+                            std::string& error, void*) {
+  // call_native_function_ex invokes this only after the predicate admits the
+  // exact one-tuple shape; do not repeat that guard on the hot callback path.
+  auto* state = context_state(values.leading[0], error);
+  if (state == nullptr) return false;
+  const Value& callback = values.registers[(*values.register_args)[0]];
+  const uint32_t star_register = values.star_args != nullptr &&
+          !values.star_args->empty()
+      ? values.star_args->front() : values.star_arg;
+  const auto* arguments = value_as_tuple(values.registers[star_register]);
+  // The tuple is immutable and remains owned by the live call frame, so its
+  // contiguous values can feed vectorcall without materializing a second list.
+  const Value* args = arguments->items.empty() ? nullptr : arguments->items.begin();
+  return context_run_in_state(runtime, *state, error, [&]() {
+    return runtime_call_callable(
+        runtime, callback, args, static_cast<uint32_t>(arguments->items.size()),
+        out, error);
+  });
 }
 
 bool context_run(Runtime& runtime, const Value* args, uint32_t argc,
@@ -510,7 +592,7 @@ bool copy_context(Runtime&, const Value*, uint32_t argc, Value& out, std::string
   }
   out = Value::instance(context_class);
   auto* state = new ContextState();
-  state->values = g_context_values;
+  state->values = *g_context_values;
   if (!instance_set_native_data(out, kContextNativeType, state, context_cleanup, error)) {
     delete state;
     return false;
@@ -570,13 +652,43 @@ Value make_context_class(Runtime& runtime) {
   attrs.push_back({"items", runtime.make_native_function("_contextvars.Context.items", context_view_method, reinterpret_cast<void*>(1))});
   attrs.push_back({"values", runtime.make_native_function("_contextvars.Context.values", context_view_method, reinterpret_cast<void*>(2))});
   attrs.push_back({"copy", runtime.make_native_function("_contextvars.Context.copy", context_copy)});
-  attrs.push_back({"run", runtime.make_native_function(
-      "_contextvars.Context.run", context_run, nullptr, nullptr, nullptr,
-      false, context_run_kw)});
+  // Direct calls use the register-backed adapter. Asyncio's Handle also passes
+  // callback args as one exact tuple; its expanded adapter borrows that tuple
+  // while mutable, custom, and keyword expansions keep the generic call path.
+  Value run = runtime.make_native_function(
+      "_contextvars.Context.run", context_run, nullptr, nullptr,
+      builtin_method_fast_adapter<context_run, 2>,
+      false, context_run_kw);
+  if (auto* native_run = value_as_native_function(run)) {
+    native_run->fast_keyword_predicate = context_run_tuple_star_predicate;
+    native_run->fast_keyword_callback = context_run_tuple_star;
+  }
+  attrs.push_back({"run", std::move(run)});
   return Value::class_object("Context", std::move(attrs));
 }
 
 } // namespace
+
+Object* contextvar_exact_getter_key(const Value& bound_getter) {
+  auto* bound = value_as_bound_method(bound_getter);
+  auto* native_getter = bound == nullptr ? nullptr : value_as_native_function(bound->function);
+  auto* instance = bound == nullptr ? nullptr : value_as_instance(bound->self);
+  if (instance == nullptr || instance->native_type != kContextVarNativeType ||
+      instance->native_data == nullptr || native_getter == nullptr ||
+      native_getter->callback != context_var_get) return nullptr;
+  return &instance->header;
+}
+
+bool contextvar_lookup_if_set(Object* variable_key, Value& out) {
+  if (variable_key == nullptr) return false;
+  // Internal runtime clients already hold this exact ContextVar object. Read
+  // its thread-local binding directly instead of dispatching its get method
+  // for every hot Decimal operation; absent values still use the full API.
+  const auto found = g_context_values->find(variable_key);
+  if (found == g_context_values->end()) return false;
+  value_assign_fast(out, found->second);
+  return true;
+}
 
 void register_contextvars_module(Runtime& runtime) {
   for (size_t index = 0; index < g_context_view_classes.size(); ++index) {

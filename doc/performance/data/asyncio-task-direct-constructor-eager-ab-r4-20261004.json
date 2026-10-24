@@ -1,0 +1,84 @@
+{
+  "status": "pass",
+  "ratio": 1.0185389938122325,
+  "ratio_interval_95": [
+    0.9962136132764999,
+    1.0201296713938515
+  ],
+  "baseline_median_ms": 2841.9564423654206,
+  "candidate_median_ms": 2856.661953370858,
+  "baseline_seconds": [
+    2.8436889607153186,
+    2.8567122903584714,
+    2.8186475399628548,
+    2.78482992711548,
+    2.8419564423654204,
+    2.8537306126020345,
+    2.803179845351616
+  ],
+  "candidate_seconds": [
+    2.8964080927619333,
+    2.8458956728693985,
+    2.8753859887173947,
+    2.856661953370858,
+    2.8317360766039417,
+    2.8419220880825993,
+    2.8579223804723077
+  ],
+  "measurement_method": "7 order-balanced paired samples; each measured pair runs both AB and BA orders",
+  "baseline": {
+    "executable": "D:\\CantorAI\\xlang3\\scratch\\performance-trials\\asyncio-task-direct-constructor-20261004\\control\\xlang3.exe",
+    "sha256": {
+      "xlang3.exe": "78759ac13404c2a05ed26f2ada691e094bf7944c5c58952fc4635dd4116171ac",
+      "xlang3_runtime.dll": "aa32d00febf2ac72666026d58df544f6d649f9c2c14009227a90098d51b5ee61"
+    }
+  },
+  "candidate": {
+    "executable": "D:\\CantorAI\\xlang3\\scratch\\performance-trials\\asyncio-task-direct-constructor-20261004\\candidate\\xlang3.exe",
+    "sha256": {
+      "xlang3.exe": "78759ac13404c2a05ed26f2ada691e094bf7944c5c58952fc4635dd4116171ac",
+      "xlang3_runtime.dll": "6187d5a238a056cdfe2c5600fdf5cbf80dbec9ba7a483022a6dbe2c038d4579e"
+    }
+  },
+  "source": "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\async_tree_eager_single_loop.py",
+  "source_sha256": "fbbce416be59a97421c01fd22a3329b72cee27f9028ae8d35d16fcfd1920bcdc",
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "order_balanced_seconds": {
+    "baseline_first": [
+      2.844161599990912,
+      2.861707500007469,
+      2.786588999995729,
+      2.792160500015598,
+      2.9009853999887127,
+      2.8532686000107788,
+      2.78205480001634
+    ],
+    "baseline_second": [
+      2.8432163999823388,
+      2.851725800021086,
+      2.8510749000124633,
+      2.777518599992618,
+      2.7841286000038963,
+      2.854192700004205,
+      2.824465300014708
+    ],
+    "candidate_first": [
+      2.9084689999872353,
+      2.8229226999974344,
+      2.908961100009037,
+      2.8583469000004698,
+      2.7991585999843664,
+      2.8580245999910403,
+      2.8690604000003077
+    ],
+    "candidate_second": [
+      2.884397199988598,
+      2.869055600021966,
+      2.8421984000015073,
+      2.8549779999884777,
+      2.8646927000081632,
+      2.8259102999872994,
+      2.8468276000057813
+    ]
+  }
+}

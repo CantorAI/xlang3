@@ -1,0 +1,138 @@
+{
+  "benchmark": "local BytesIO append-heavy microbenchmark (not official pyperformance)",
+  "workload": "20 rounds of 10,420 small BytesIO.write calls, getvalue verification, 3 warmups and 13 timed samples per process; 24 order-randomized control/candidate pairs",
+  "source": "scratch/performance/pickle-bytesio-append-microbench-20261002.py",
+  "python_stdlib": "Python 3.13 with python313-copy-compat overlay",
+  "control_exe_sha256": "4c797afa4b74d898694d7745337cb0431ee2fcac4d82f1238c04d6943f974e4f",
+  "control_runtime_sha256": "fbfad410e60649a335f9af098bee3827db76d79fc7a82233581204177f537a81",
+  "candidate_exe_sha256": "00681d8e09c5fe51996988d7164b19905a2cc664efcbad232f6a72cb05618721",
+  "candidate_runtime_sha256": "840317fec4dfbe87c30ca6a5ea6adfe5d8fe38a8bed3f1baade7dc94a87fb4c1",
+  "pairs": [
+    {
+      "candidate_seconds": 0.037353,
+      "control_seconds": 0.038625,
+      "candidate_speedup": 1.034053489679544
+    },
+    {
+      "candidate_seconds": 0.037563,
+      "control_seconds": 0.036659,
+      "candidate_speedup": 0.9759337646087906
+    },
+    {
+      "control_seconds": 0.038677,
+      "candidate_seconds": 0.037689,
+      "candidate_speedup": 1.026214545358062
+    },
+    {
+      "candidate_seconds": 0.037822,
+      "control_seconds": 0.038762,
+      "candidate_speedup": 1.024853260007403
+    },
+    {
+      "candidate_seconds": 0.037868,
+      "control_seconds": 0.038711,
+      "candidate_speedup": 1.0222615400866168
+    },
+    {
+      "candidate_seconds": 0.037747,
+      "control_seconds": 0.038834,
+      "candidate_speedup": 1.0287969904893104
+    },
+    {
+      "candidate_seconds": 0.037886,
+      "control_seconds": 0.038854,
+      "candidate_speedup": 1.0255503352161748
+    },
+    {
+      "candidate_seconds": 0.037754,
+      "control_seconds": 0.038946,
+      "candidate_speedup": 1.0315728134767177
+    },
+    {
+      "control_seconds": 0.039018,
+      "candidate_seconds": 0.037298,
+      "candidate_speedup": 1.0461150731942732
+    },
+    {
+      "candidate_seconds": 0.037742,
+      "control_seconds": 0.038802,
+      "candidate_speedup": 1.0280854220762017
+    },
+    {
+      "candidate_seconds": 0.035685,
+      "control_seconds": 0.038751,
+      "candidate_speedup": 1.0859184531315678
+    },
+    {
+      "candidate_seconds": 0.037879,
+      "control_seconds": 0.038625,
+      "candidate_speedup": 1.0196942897119776
+    },
+    {
+      "candidate_seconds": 0.037752,
+      "control_seconds": 0.038464,
+      "candidate_speedup": 1.018859927950837
+    },
+    {
+      "candidate_seconds": 0.038236,
+      "control_seconds": 0.038741,
+      "candidate_speedup": 1.0132074484778741
+    },
+    {
+      "candidate_seconds": 0.037785,
+      "control_seconds": 0.039051,
+      "candidate_speedup": 1.0335053592695516
+    },
+    {
+      "candidate_seconds": 0.036869,
+      "control_seconds": 0.038818,
+      "candidate_speedup": 1.052862838699178
+    },
+    {
+      "control_seconds": 0.038979,
+      "candidate_seconds": 0.037944,
+      "candidate_speedup": 1.0272770398481974
+    },
+    {
+      "candidate_seconds": 0.037885,
+      "control_seconds": 0.037317,
+      "candidate_speedup": 0.9850072588095553
+    },
+    {
+      "control_seconds": 0.039103,
+      "candidate_seconds": 0.03555,
+      "candidate_speedup": 1.099943741209564
+    },
+    {
+      "control_seconds": 0.037417,
+      "candidate_seconds": 0.038147,
+      "candidate_speedup": 0.980863501717042
+    },
+    {
+      "candidate_seconds": 0.037091,
+      "control_seconds": 0.038362,
+      "candidate_speedup": 1.0342670728748213
+    },
+    {
+      "candidate_seconds": 0.035486,
+      "control_seconds": 0.037589,
+      "candidate_speedup": 1.0592628078678916
+    },
+    {
+      "control_seconds": 0.03644,
+      "candidate_seconds": 0.037593,
+      "candidate_speedup": 0.9693293964301865
+    },
+    {
+      "control_seconds": 0.038833,
+      "candidate_seconds": 0.037376,
+      "candidate_speedup": 1.0389822345890412
+    }
+  ],
+  "median_candidate_speedup": 1.0276812309621994,
+  "bootstrap_95pct_median_ci": [
+    1.0222615400866168,
+    1.034053489679544
+  ],
+  "interpretation": "Local isolated workload evidence only; does not establish an official pyperformance score or CPython speedup."
+}

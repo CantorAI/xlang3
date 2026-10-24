@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="190" viewBox="0 0 760 190" role="img" aria-labelledby="title desc">
+  <title id="title">async_tree_eager matched before and after timing</title>
+  <desc id="desc">Horizontal bars show both the source-matched control and candidate at 1.41 seconds. The candidate change was not significant.</desc>
+  <style>
+    text { font-family: Arial, sans-serif; fill: #1f2937; }
+    .muted { fill: #667085; font-size: 13px; }
+    .label { font-size: 15px; }
+    .value { font-size: 14px; font-weight: 600; }
+  </style>
+  <text x="20" y="28" font-size="19" font-weight="700">async_tree_eager · lower is faster</text>
+  <text class="muted" x="20" y="50">Source-matched pyperformance fast run · difference not significant</text>
+  <text class="label" x="20" y="91">Control</text>
+  <rect x="145" y="70" width="340" height="30" rx="4" fill="#64748b"/>
+  <text class="value" x="497" y="91">1.41 s ± 0.05 s</text>
+  <text class="label" x="20" y="137">Candidate</text>
+  <rect x="145" y="116" width="340" height="30" rx="4" fill="#0f766e"/>
+  <text class="value" x="497" y="137">1.41 s ± 0.04 s</text>
+  <line x1="145" y1="158" x2="485" y2="158" stroke="#cbd5e1"/>
+  <text class="muted" x="145" y="179">0</text>
+  <text class="muted" x="463" y="179">1.5 s</text>
+</svg>

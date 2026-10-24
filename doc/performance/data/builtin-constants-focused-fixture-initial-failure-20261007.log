@@ -1,0 +1,6 @@
+builtin literal namespace and identity True
+Python symbol mapping retains None call arguments True
+Traceback (most recent call last):
+  File "tests/fixtures/core/builtin_literal_namespace.py", line 38, in <module>
+    assert eval(compile(ast.parse(name, mode='eval'), '<literal>', 'eval')) is value
+AssertionError

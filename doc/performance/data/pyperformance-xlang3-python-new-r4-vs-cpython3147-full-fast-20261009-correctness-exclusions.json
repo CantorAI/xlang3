@@ -1,0 +1,13 @@
+{
+  "scope": "Continued conservative score withholding; not a claim that current GC sources match the historical audit.",
+  "unscored_subtests": {
+    "gc_traversal": "Traversal work remains uncertified; retain raw timing but withhold a speed score pending independent current workload coverage."
+  },
+  "current_capture_sha256": "797281785559e1ee7d03cb64156edff25714a164e988bbe3362f02d5efc6c8a7",
+  "current_collection_benchmark": {
+    "status": "failed",
+    "detail": "Benchmark died"
+  },
+  "historical_evidence": "gc-traversal-coverage-exclusion-20261007.json",
+  "historical_evidence_sha256": "ec8dccd973668436e39c9a3c9585ba4d24bb9c37e75fc97182bd42a399c4eb86"
+}

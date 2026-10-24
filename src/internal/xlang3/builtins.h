@@ -18,12 +18,42 @@ limitations under the License.
 
 namespace xlang3 {
 
+struct CompiledEvalFrameRequest {
+  std::shared_ptr<const ir::Module> module;
+  uint32_t function_id = 0;
+  Value globals;
+  Value locals;
+};
+
+enum class CompiledEvalFramePreparation : uint8_t {
+  Ineligible,
+  Ready,
+  Error,
+};
+
+// Prepare the narrow, live-dictionary eval shape for entry on the current VM
+// stack. Ineligible calls must have no side effects; errors after preparation
+// begins are reported to the caller and must not fall back to eval again.
+CompiledEvalFramePreparation prepare_compiled_eval_frame(
+    Runtime& runtime, const Value* args, uint32_t argc,
+    CompiledEvalFrameRequest& request, std::string& error);
+
 // Let _winapi.CloseHandle release the native completion-port registry too.
 bool close_overlapped_iocp_port(int64_t handle);
 
 void register_core_builtins(Runtime& runtime);
 void register_object_type_builtins(Runtime& runtime);
 bool runtime_type_of_value(Runtime& runtime, const Value& value, Value& out);
+// Native helpers use intrinsic attribute semantics (including Python hooks),
+// without looking up a user-rebound builtin or emitting a synthetic c_call.
+bool runtime_getattr(Runtime& runtime, const Value& object, const Value& name,
+                     Value& out, std::string& error, const Value* default_value = nullptr);
+bool runtime_setattr(Runtime& runtime, const Value& object, const Value& name,
+                     const Value& value, std::string& error);
+bool runtime_warn(Runtime& runtime, const Value& message, const Value& category,
+                  int64_t stacklevel, std::string& error);
+bool runtime_repr(Runtime& runtime, const Value& value, Value& out,
+                  std::string& error, bool ascii_only = false);
 void register_exception_builtins(Runtime& runtime);
 void register_functional_builtins(Runtime& runtime);
 void register_io_builtins(Runtime& runtime);
@@ -81,6 +111,7 @@ void register_ast_module(Runtime& runtime);
 void register_binascii_module(Runtime& runtime);
 void register_bz2_module(Runtime& runtime);
 void register_cmath_module(Runtime& runtime);
+void register_decimal_module(Runtime& runtime);
 void register_io_module(Runtime& runtime);
 void register_json_module(Runtime& runtime);
 void register_functools_module(Runtime& runtime);
@@ -98,8 +129,14 @@ void register_gc_module(Runtime& runtime);
 void register_lsprof_module(Runtime& runtime);
 void register_array_module(Runtime& runtime);
 void register_bisect_module(Runtime& runtime);
+void register_heapq_module(Runtime& runtime);
 void register_itertools_module(Runtime& runtime);
 void register_codecs_module(Runtime& runtime);
+// Bytes-only native UTF-8 entry; callers must preserve str argument validation
+// and restrict registry bypass to CPython's common UTF-8 spellings/error modes.
+bool runtime_encode_utf8(Runtime& runtime, const Value& text,
+                         const std::string& errors, Value& out,
+                         std::string& error);
 void register_locale_module(Runtime& runtime);
 void register_multibytecodec_module(Runtime& runtime);
 void register_contextvars_module(Runtime& runtime);
@@ -122,6 +159,7 @@ void register_random_module(Runtime& runtime);
 void register_weakref_module(Runtime& runtime);
 Value make_weakref_ref(Runtime& runtime, const Value& target);
 bool weakref_get_target(const Value& ref, Value& out);
+bool weakref_reference_call_fast_eligible(const Value& ref);
 bool weakref_cached_hash(const Value& ref, size_t& out);
 bool weakref_find_ref(const Value& target, Value& out);
 void weakref_invalidate_target(Object* target);
@@ -140,6 +178,8 @@ void register_operator_module(Runtime& runtime);
 void register_pickle_module(Runtime& runtime);
 void register_pyexpat_module(Runtime& runtime);
 void register_overlapped_module(Runtime& runtime);
+void register_asyncio_module(Runtime& runtime);
+void initialize_asyncio_module_compat(Runtime& runtime);
 void register_multiprocessing_module(Runtime& runtime);
 void register_winapi_module(Runtime& runtime);
 void register_winreg_module(Runtime& runtime);

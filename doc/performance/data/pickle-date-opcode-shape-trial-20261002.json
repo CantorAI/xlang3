@@ -1,0 +1,46 @@
+{
+  "date": "2026-10-02",
+  "benchmark_source": "pyperformance 1.14.0 bm_pickle/run_benchmark.py bench_unpickle: 20 loads each for DICT, TUPLE, DICT_GROUP",
+  "diagnostic_workload": "benchmarks/diagnostics/pickle_unpickle_pyperformance_shape.py",
+  "diagnostic_workload_sha256": "31DCB10FD94ADDA16CBE65CC7893E222824FE661D6BB20A073C537669BDD451A",
+  "python_stdlib": "Python 3.13 at C:/Python/Python313/Lib",
+  "measurement": "Eight order-balanced Release process pairs; 300 loops per process; times are us per workload loop",
+  "opcode_fastpath": {
+    "control_runtime_sha256": "EDF8AB0D6B841D66980BEDE130493C68BED958A13526FEAF5498E86D1131FBA2",
+    "candidate_runtime_sha256": "A3BDCD23B508D906908E280EA28A59C45C43E8E64F8E98BE10A14D688F05251B",
+    "executable_sha256": "0C3C75C0CBD7229900D89A7F9F50365B4E35472BC251B750AF297B6CF126B11C",
+    "pairs": [
+      {"pair": 0, "candidate_us": 2739.8, "control_us": 18135.9},
+      {"pair": 1, "candidate_us": 2873.7, "control_us": 17766.0},
+      {"pair": 2, "candidate_us": 2799.2, "control_us": 17172.1},
+      {"pair": 3, "candidate_us": 2832.7, "control_us": 17088.4},
+      {"pair": 4, "candidate_us": 2840.2, "control_us": 17923.8},
+      {"pair": 5, "candidate_us": 2881.2, "control_us": 18222.0},
+      {"pair": 6, "candidate_us": 2873.2, "control_us": 17933.0},
+      {"pair": 7, "candidate_us": 3898.4, "control_us": 18015.5}
+    ],
+    "median_candidate_us": 2856.7,
+    "median_control_us": 17928.4,
+    "median_paired_candidate_over_control": 0.1610,
+    "interpretation": "About 6.21x faster on this direct shape diagnostic; not an official pyperf score"
+  },
+  "cpython313_direct_shape_reference_us": 64.7,
+  "date_class_cache_trial": {
+    "cache_trial_workload_sha256": "61B3ABF1E6EBEF3EFD95C62D655FBA729F5D53230D9456DEC3298AC7AAF537EE",
+    "cache_candidate_runtime_sha256": "F300D3945B35DAA00726AB40829306F92A083AC82BCF21B43818A586021F7890",
+    "no_cache_runtime_sha256": "A3BDCD23B508D906908E280EA28A59C45C43E8E64F8E98BE10A14D688F05251B",
+    "pairs": [
+      {"pair": 0, "cache_us": 2928.5, "no_cache_us": 2965.0},
+      {"pair": 1, "cache_us": 2987.3, "no_cache_us": 3096.0},
+      {"pair": 2, "cache_us": 2901.2, "no_cache_us": 2789.6},
+      {"pair": 3, "cache_us": 2948.0, "no_cache_us": 2955.5},
+      {"pair": 4, "cache_us": 2887.3, "no_cache_us": 2952.8},
+      {"pair": 5, "cache_us": 2990.2, "no_cache_us": 2945.5},
+      {"pair": 6, "cache_us": 2945.8, "no_cache_us": 2974.8},
+      {"pair": 7, "cache_us": 2940.7, "no_cache_us": 2930.6}
+    ],
+    "median_paired_candidate_over_control": 0.9939,
+    "decision": "Discard the class cache; effect was not significant"
+  }
+}
+

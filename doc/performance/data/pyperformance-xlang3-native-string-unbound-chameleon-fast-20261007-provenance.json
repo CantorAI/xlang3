@@ -1,0 +1,21 @@
+{
+  "manager_version": "Python 3.14.7",
+  "source_checkpoint": "7190cc4a",
+  "candidate_kind": "local native string descriptor argument layout correction",
+  "benchmarks": [
+    "chameleon"
+  ],
+  "mode": "fast",
+  "case_timeout_seconds": 300,
+  "started_utc": "2026-10-07T06:35:45.3260814Z",
+  "sha256_start": {
+    "exe": "303F2E8BDCA58C4B555D13ADD7BFC41EEF9E0019F4780A0C9729596CE07DF177",
+    "dll": "043C580D2AB606E8873CF706FB9969B6D95D9659273923F405F16008DD600CD4"
+  },
+  "sha256_end": {
+    "exe": "303F2E8BDCA58C4B555D13ADD7BFC41EEF9E0019F4780A0C9729596CE07DF177",
+    "dll": "043C580D2AB606E8873CF706FB9969B6D95D9659273923F405F16008DD600CD4"
+  },
+  "exit_code": 1,
+  "completed_utc": "2026-10-07T06:35:48.5469624Z"
+}

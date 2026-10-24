@@ -1,0 +1,19 @@
+{
+  "status": "finished_with_benchmark_failures",
+  "manager_version": "Python 3.14.7",
+  "cpython_reference": "pyperformance-cpython3147-live-eval-full-fast-20261007.json",
+  "sha256_start": {
+    "exe": "9C07AF2C55E120A1E8B457BDBA2F1272EEC72195DAD82E2313FB6F3108726D13",
+    "dll": "719A9EA1F164C0DBE4651686D9B17610AFAB44067F35C23B3404D859A95CD710"
+  },
+  "sha256_end": {
+    "exe": "9C07AF2C55E120A1E8B457BDBA2F1272EEC72195DAD82E2313FB6F3108726D13",
+    "dll": "719A9EA1F164C0DBE4651686D9B17610AFAB44067F35C23B3404D859A95CD710"
+  },
+  "hash_capture_note": "Hashes captured after the runner exited. The fixed-path exe/DLL last-write timestamps predate the r5 run, and no build was run during measurement.",
+  "runtime": "build-repro/main-verify-20261006/Release/xlang3.exe",
+  "runtime_dll": "build-repro/main-verify-20261006/Release/xlang3_runtime.dll",
+  "mode": "fast",
+  "attempted_definitions": 97,
+  "failed_definitions": 36
+}

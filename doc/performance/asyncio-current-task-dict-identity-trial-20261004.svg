@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="230" viewBox="0 0 900 230" role="img" aria-labelledby="title desc">
+  <title id="title">async_tree_eager elapsed time</title>
+  <desc id="desc">Horizontal bars compare CPython 3.14.7 at 86.62 milliseconds, XLang3 generic mapping at 2.86 seconds, and the XLang3 identity fast path at 2.04 seconds.</desc>
+  <style>
+    text { font-family: Segoe UI, Arial, sans-serif; fill: #1f2937; }
+    .title { font-size: 19px; font-weight: 700; }
+    .label { font-size: 14px; }
+    .value { font-size: 13px; fill: #374151; }
+    .axis { stroke: #94a3b8; stroke-width: 1; }
+    .grid { stroke: #e5e7eb; stroke-width: 1; }
+  </style>
+  <text x="24" y="30" class="title">async_tree_eager — elapsed time (seconds, shorter is faster)</text>
+  <line x1="245" y1="48" x2="245" y2="190" class="axis"/>
+  <line x1="245" y1="190" x2="805" y2="190" class="axis"/>
+  <line x1="432" y1="48" x2="432" y2="190" class="grid"/>
+  <line x1="619" y1="48" x2="619" y2="190" class="grid"/>
+  <line x1="805" y1="48" x2="805" y2="190" class="grid"/>
+  <text x="24" y="77" class="label">CPython 3.14.7</text>
+  <rect x="245" y="58" width="17" height="26" rx="3" fill="#3b82f6"/>
+  <text x="271" y="76" class="value">0.0866 s (1.00× CPython time)</text>
+  <text x="24" y="126" class="label">XLang3 source control</text>
+  <rect x="245" y="107" width="534" height="26" rx="3" fill="#f59e0b"/>
+  <text x="788" y="125" class="value">2.86 s (33.0×)</text>
+  <text x="24" y="175" class="label">XLang3 identity fast path</text>
+  <rect x="245" y="156" width="381" height="26" rx="3" fill="#16a34a"/>
+  <text x="635" y="174" class="value">2.04 s (23.6×)</text>
+  <text x="238" y="211" class="value">0</text>
+  <text x="424" y="211" class="value">1</text>
+  <text x="611" y="211" class="value">2</text>
+  <text x="797" y="211" class="value">3</text>
+</svg>

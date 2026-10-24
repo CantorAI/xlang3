@@ -1,0 +1,61 @@
+{
+  "status": "frozen_scratch_root_only_unscored_diagnostic_unexecuted",
+  "files_sha256": {
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\native-utf8-encoding-diagnostic-child-proposed-20261008.py": "d81746417daa35b0e5ff88d99d3a71663d33db2587483f4d9c068980edfdf5b7",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\run-native-utf8-encoding-diagnostic-proposed-20261008.py": "b39aa5f32d10c39876eb9241a31e80f24a246813ec340c8f49a205460ba67127",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\native-utf8-encoding-diagnostic-inputs-proposed-20261008.json": "27de8e956448a949dbee7e42e6574ae63f625f4abfa543edc6193301db68216b",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\dict-scalar-append-runtime-index-r3-applied-source-20261008.json": "dc1b869fe0475e3bdd017aa3b667f755cb7a4dd7ad881494f8afb34af387f45e",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\dict-scalar-append-runtime-index-r3-focused-20261008.json": "0737ff2f405151ed29fdfa22bc0177ea77d18f3b63bdf7aff4662972efb94a38",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-xlang3-dict-scalar-append-full-fast-20261008-provenance.json": "afa6a190d0cb545c1ac32e115ed173a17c3776c5223c3e0a6b9cd8352eb58ca8",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\dict-scalar-append-runtime-index-r3-validation-20261008.json": "0b6f05e17c2878efa135656abcce38338934069b59a9460de9f2ba98a8516dd0",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\validate-call-ex-cross-activation-constructor-resume-r3-20261008.py": "50007db5cc6adc2e54012fdfbd48514699513f990906d4a508582ba73d6ae0bf",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\measure-dict-scalar-append-original-body-paired-r2-proposed-20261008.py": "de0aaf91f5c31f3e14d6a18d780440670c44dfbf157bd3c608d545f591852f0f",
+    "D:\\CantorAI\\xlang3\\scratch\\performance\\run-pickle-dict-index-postfix-native-sampling-proposed-20261008.py": "606e3d5874d4afc7266b3ea3d94a5935adc7169663b29c99c6fa22146c4dc673"
+  },
+  "child_sha256": "d81746417daa35b0e5ff88d99d3a71663d33db2587483f4d9c068980edfdf5b7",
+  "controller_sha256": "b39aa5f32d10c39876eb9241a31e80f24a246813ec340c8f49a205460ba67127",
+  "input_manifest_sha256": "27de8e956448a949dbee7e42e6574ae63f625f4abfa543edc6193301db68216b",
+  "current_source_inventory_sha256": "dc1b869fe0475e3bdd017aa3b667f755cb7a4dd7ad881494f8afb34af387f45e",
+  "source_count": 115,
+  "release_count": 178,
+  "fixed_baseline_count": 177,
+  "current_binary_sha256": {
+    "exe": "0447d8a9ead0abc63b8d7061842960198b335240620a9c79b47d09de93c1a249",
+    "dll": "19218af32ff4fdfb802144a713591c2126fcc0f1233ae04a08cfecc975922523"
+  },
+  "additional_source_sha256": {
+    "src/runtime/methods/string_methods.cpp": "52860b33aaf0dcdc7fbe4f991725f31e21ba722bfce7dcceccbffa5fcc0ec4ae",
+    "src/runtime/modules/system/codecs_module.cpp": "6a0184a50ac0026fc0c54a3bff5da3f26961aaa1e76e2b7cc2a8d6cd1848c7f1"
+  },
+  "dependency_pin_count": 208,
+  "all_current_source_release_baseline_and_dependency_hashes_verified_read_only": true,
+  "data_identity": "ASCII with NUL/newline, multibyte with NUL, isolated high/low surrogates; hard-coded literal bytes and codepoints",
+  "parity": "One untimed parity pass plus strict-surrogate errors, byte length/SHA256/checksum outside timers, consumed Unicode length",
+  "measurement": {
+    "child_order": [
+      "cpython",
+      "xlang3"
+    ],
+    "child_count": 2,
+    "operations_per_case_per_sample": 20000,
+    "within_process_samples": 5,
+    "case_count": 10,
+    "timed_operations_per_child": 1000000,
+    "sample_order": "Original case order for indices 0/2/4; reversed case order for 1/3",
+    "profile_enabled": false,
+    "warmup_timed_samples": 0,
+    "retries": 0,
+    "timeout_seconds_per_child": 120,
+    "score": false,
+    "acceptance": false,
+    "limitations": "One child per runtime, CP-first order, five within-process samples. No confidence interval, whole-workload attribution or CP-win claim; strict watcher polls every second and can miss sub-second external jobs."
+  },
+  "reuse": "Existing 50007 watcher is imported unchanged. Owned-child cleanup and stream hashes use the reviewed de0aaf91 paired-manager finally structure; unrelated trial/benchmark audits are not copied.",
+  "original_files_modified": [],
+  "engine_or_test_changes": [],
+  "author_runtime_execution": false,
+  "author_python_or_ast_execution": false,
+  "author_build_execution": false,
+  "root_execution_only": true,
+  "launch_from_repo": "C:/Python/Python314/python.exe -I scratch/performance/run-native-utf8-encoding-diagnostic-proposed-20261008.py --input-pins-sha256 27de8e956448a949dbee7e42e6574ae63f625f4abfa543edc6193301db68216b"
+}

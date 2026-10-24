@@ -1,0 +1,9 @@
+{
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "fixture": "tests\\fixtures\\core\\super_live_receiver.py",
+  "source_sha256": "4d76f591f3a1c735b0c1f19758501500a4c34af614a7d7ec6ff9f5ce2f0e9277",
+  "exit_code": 0,
+  "stdout": "live receiver, classmethod, cells and suspended frames True\nlexical class preserved for reassigned methods True\ndeleted local and cell receivers rejected True\ntraced Python forwarding executes original frames True\n",
+  "stderr": ""
+}

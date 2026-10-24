@@ -1,0 +1,95 @@
+Benchmark dependency sites: C:\Python\Python314\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (async_tree)
+
+(trying common venv first)
+
+[1/1] async_tree...
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_async_tree\run_benchmark.py", line 201, in <module>
+    runner.bench_async_func(bench_name, async_tree.run)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 613, in bench_async_func
+    result = self._main(task)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 463, in _main
+    bench = self._worker(task)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 437, in _worker
+    run = task.create_run()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 300, in create_run
+    self.compute()
+    ~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 364, in compute
+    WorkerTask.compute(self)
+    ~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 287, in compute
+    self.calibrate_loops()
+    ~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 250, in calibrate_loops
+    self._compute_values(self.warmups, nvalue,
+    ~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^
+                         is_warmup=True,
+                         ^^^^^^^^^^^^^^^
+                         calibrate_loops=True)
+                         ^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 76, in _compute_values
+    with contextlib.ExitStack() as stack:
+    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    ...<4 lines>...
+    raw_value = float(raw_value)
+
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_worker.py", line 79, in _compute_values
+    raw_value = task_func(self, self.loops)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 607, in task_func
+    loop.close()
+    ~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\asyncio\proactor_events.py", line 692, in close
+    self._close_self_pipe()
+    ~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\asyncio\proactor_events.py", line 777, in _close_self_pipe
+    self._internal_fds -= 1
+AttributeError: object does not support attribute assignment
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\data-files\benchmarks\bm_async_tree\run_benchmark.py", line 201, in <module>
+    runner.bench_async_func(bench_name, async_tree.run)
+    ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 613, in bench_async_func
+    result = self._main(task)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 468, in _main
+    bench = self._manager()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_runner.py", line 681, in _manager
+    bench = Manager(self).create_bench()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_manager.py", line 243, in create_bench
+    worker_bench, run = self.create_worker_bench()
+                        ~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_manager.py", line 142, in create_worker_bench
+    suite = self.create_suite()
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_manager.py", line 132, in create_suite
+    suite = self.spawn_worker(self.calibrate_loops, 0)
+  File "C:\Python\Python314\Lib\site-packages\pyperf\_manager.py", line 118, in spawn_worker
+    raise RuntimeError("%s failed with exit code %s"
+                       % (cmd[0], exitcode))
+RuntimeError: D:\CantorAI\xlang3\build-repro\Release\xlang3.exe failed with exit code 1
+Traceback (most recent call last):
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\run.py", line 171, in run_benchmarks
+    result = bench.run(
+        bench_venv.python,
+    ...<3 lines>...
+        verbose=options.verbose,
+    )
+  File "D:\CantorAI\xlang3\benchmarks\diagnostics\run_pyperformance_xlang3_shimmed.py", line 145, in run_named_benchmark
+    return original_benchmark_run(benchmark, *positional, **keywords)
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 193, in run
+    bench = _run_perf_script(
+        python,
+    ...<4 lines>...
+        verbose=verbose,
+    )
+  File "C:\Python\Python314\Lib\site-packages\pyperformance\_benchmark.py", line 250, in _run_perf_script
+    raise RuntimeError("Benchmark died")
+RuntimeError: Benchmark died
+ERROR: Benchmark async_tree failed: Benchmark died
+
+ERROR: No benchmark was run

@@ -1,0 +1,345 @@
+{
+  "attempt_id": "pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-argparse_subparsers-attempt-01",
+  "definition": "argparse_subparsers",
+  "started_utc": "2026-10-09T23:33:06.541617+00:00",
+  "session": "001",
+  "state": "finished",
+  "valid": true,
+  "definition_status": "completed",
+  "measurement_valid": true,
+  "owned_child_cleanup_completed": true,
+  "raw_sha256": {
+    "pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-argparse_subparsers-attempt-01.merged.log": "8abfecb0ff53b5fade7b08f12c1c311fb68fc8ce7ba60d08df90b13fb613b2ea",
+    "pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-argparse_subparsers-attempt-01.pyperf.json": "13b9414252a6a90a88dcbaf2724efa1dfa9d57f110d79a447d5196cad7e649b2",
+    "pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-argparse_subparsers-attempt-01.external-process-observations.jsonl": "f9430ad43fa07dfbb2768a526103ea16ce3981bc8ccbcb21f7cb9d530fc6253b"
+  },
+  "idle_guards": [
+    {
+      "label": "before-attempt",
+      "checked_utc": "2026-10-09T23:33:10.746168+00:00",
+      "passed": true,
+      "busy": [],
+      "dormant": [
+        {
+          "Name": "MSBuild.exe",
+          "ProcessId": 18252,
+          "ParentProcessId": 20540,
+          "CreationDate": "/Date(1791586119443)/",
+          "KernelModeTime": 255312500,
+          "UserModeTime": 540781250,
+          "CommandLine": "\"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe\" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false"
+        }
+      ]
+    },
+    {
+      "label": "immediately-before-child",
+      "checked_utc": "2026-10-09T23:33:14.846909+00:00",
+      "passed": true,
+      "busy": [],
+      "dormant": [
+        {
+          "Name": "MSBuild.exe",
+          "ProcessId": 18252,
+          "ParentProcessId": 20540,
+          "CreationDate": "/Date(1791586119443)/",
+          "KernelModeTime": 255312500,
+          "UserModeTime": 540781250,
+          "CommandLine": "\"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe\" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false"
+        }
+      ]
+    }
+  ],
+  "candidate_binding_digest": "acd69fc5e3c350b172958276ddbd90f3f585794e8634b5541b80c2a233194c00",
+  "known_orphan_worker_pid": 18252,
+  "known_orphan_worker_creation": "/Date(1791586119443)/",
+  "counter_reset_scope": "Fresh helper admission only here, untimed before this attempt; never reset during the phase.",
+  "runtime_activity_policy": "Every helper scan also rejects foreign python*/xlang3 processes. Only this manager and observed creation-pinned descendants are admitted; unrelated command lines are not exported.",
+  "dormant_worker_admission": {
+    "status": "orphaned_cached_worker_verified_idle",
+    "exception_used": true,
+    "worker": {
+      "Name": "MSBuild.exe",
+      "ProcessId": 18252,
+      "ParentProcessId": 20540,
+      "CreationDate": "/Date(1791586119443)/",
+      "KernelModeTime": 255312500,
+      "UserModeTime": 540781250,
+      "CommandLine": "\"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe\" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false"
+    },
+    "children": [
+      {
+        "Name": "conhost.exe",
+        "ProcessId": 12248,
+        "ParentProcessId": 18252,
+        "CreationDate": "/Date(1791586119450)/",
+        "KernelModeTime": 0,
+        "UserModeTime": 0,
+        "CommandLine": ""
+      }
+    ],
+    "verified_utc": "2026-10-09T23:33:07.663071+00:00",
+    "scope": "Only this exact node identity. Any lifetime CPU-counter change, new child, changed command or live parent invalidates timing; no counter reset between phases."
+  },
+  "pre_idle": {
+    "label": "before-attempt",
+    "checked_utc": "2026-10-09T23:33:10.746168+00:00",
+    "passed": true,
+    "busy": [],
+    "dormant": [
+      {
+        "Name": "MSBuild.exe",
+        "ProcessId": 18252,
+        "ParentProcessId": 20540,
+        "CreationDate": "/Date(1791586119443)/",
+        "KernelModeTime": 255312500,
+        "UserModeTime": 540781250,
+        "CommandLine": "\"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe\" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false"
+      }
+    ]
+  },
+  "pre_identity": {
+    "passed": true,
+    "checked_file_count": 17810,
+    "observed_sha256_map_digest": "a9cb9fcadd403b2788f93bc16e238b9f2e526c892abf3c9b12399f18191e21dc",
+    "expected_sha256_map_digest": "a9cb9fcadd403b2788f93bc16e238b9f2e526c892abf3c9b12399f18191e21dc",
+    "mismatches": [],
+    "tree_changes": {},
+    "head": "21e2eadaba7d317932374a63d3c2d70dff4e25c1",
+    "checked_utc": "2026-10-09T23:33:14.352078+00:00"
+  },
+  "launch_idle": {
+    "label": "immediately-before-child",
+    "checked_utc": "2026-10-09T23:33:14.846909+00:00",
+    "passed": true,
+    "busy": [],
+    "dormant": [
+      {
+        "Name": "MSBuild.exe",
+        "ProcessId": 18252,
+        "ParentProcessId": 20540,
+        "CreationDate": "/Date(1791586119443)/",
+        "KernelModeTime": 255312500,
+        "UserModeTime": 540781250,
+        "CommandLine": "\"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe\" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false"
+      }
+    ]
+  },
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\run_pyperformance_xlang3_shimmed.py",
+    "--runtime",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "--benchmarks",
+    "argparse_subparsers",
+    "--mode",
+    "fast",
+    "--case-timeout",
+    "300",
+    "--case-timeout-override",
+    "networkx*=600",
+    "--dependency-site",
+    "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+    "--output",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-argparse_subparsers-attempt-01.pyperf.json"
+  ],
+  "case_cap_seconds": 300,
+  "manager_wall_cap_seconds": 420,
+  "pid": 9980,
+  "child_launched": true,
+  "child_identity": {
+    "Name": "python.exe",
+    "ProcessId": 9980,
+    "ParentProcessId": 8220,
+    "CreationDate": "/Date(1791588794848)/"
+  },
+  "exit_code": 0,
+  "external_process_watch": {
+    "log": "pyperformance-xlang3-gc-r7b-per-definition-full-fast-20261009-argparse_subparsers-attempt-01.external-process-observations.jsonl",
+    "sha256": "f9430ad43fa07dfbb2768a526103ea16ce3981bc8ccbcb21f7cb9d530fc6253b",
+    "poll_interval_seconds": 1,
+    "dormant_worker_admission": {
+      "status": "orphaned_cached_worker_verified_idle",
+      "exception_used": true,
+      "worker": {
+        "Name": "MSBuild.exe",
+        "ProcessId": 18252,
+        "ParentProcessId": 20540,
+        "CreationDate": "/Date(1791586119443)/",
+        "KernelModeTime": 255312500,
+        "UserModeTime": 540781250,
+        "CommandLine": "\"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe\" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false"
+      },
+      "children": [
+        {
+          "Name": "conhost.exe",
+          "ProcessId": 12248,
+          "ParentProcessId": 18252,
+          "CreationDate": "/Date(1791586119450)/",
+          "KernelModeTime": 0,
+          "UserModeTime": 0,
+          "CommandLine": ""
+        }
+      ],
+      "verified_utc": "2026-10-09T23:33:07.663071+00:00",
+      "scope": "Only this exact node identity. Any lifetime CPU-counter change, new child, changed command or live parent invalidates timing; no counter reset between phases."
+    },
+    "overlaps": [],
+    "scanner_errors": [],
+    "measurement_valid": true,
+    "scope": "All observed build/test tools invalidate timing except the exact admitted cached worker while its cumulative CPU counters and identity remain unchanged and it has no build parent or new child.",
+    "limit": "New tools entirely between samples may be missed; the admitted worker CPU counters are cumulative and never reset during this manager."
+  },
+  "observed_owned_process_identities": [
+    {
+      "Name": "python.exe",
+      "ProcessId": 8220,
+      "ParentProcessId": 17284,
+      "CreationDate": "/Date(1791588639476)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 12628,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791588794848)/"
+    },
+    {
+      "Name": "python.exe",
+      "ProcessId": 9980,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791588794848)/"
+    },
+    {
+      "Name": "conhost.exe",
+      "ProcessId": 8080,
+      "ParentProcessId": 9980,
+      "CreationDate": "/Date(1791588794857)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 23996,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791588794886)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 15412,
+      "ParentProcessId": 9980,
+      "CreationDate": "/Date(1791588795059)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 32692,
+      "ParentProcessId": 9980,
+      "CreationDate": "/Date(1791588795337)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 22452,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791588796401)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 36352,
+      "ParentProcessId": 32692,
+      "CreationDate": "/Date(1791588796431)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 35224,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791588797932)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 3932,
+      "ParentProcessId": 32692,
+      "CreationDate": "/Date(1791588798008)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 26468,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791588799430)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 31752,
+      "ParentProcessId": 32692,
+      "CreationDate": "/Date(1791588799523)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 32932,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791588800949)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 26648,
+      "ParentProcessId": 32692,
+      "CreationDate": "/Date(1791588801032)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 13832,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791588802448)/"
+    },
+    {
+      "Name": "xlang3.exe",
+      "ProcessId": 21708,
+      "ParentProcessId": 32692,
+      "CreationDate": "/Date(1791588802576)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 25332,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791588803888)/"
+    },
+    {
+      "Name": "powershell.exe",
+      "ProcessId": 5640,
+      "ParentProcessId": 8220,
+      "CreationDate": "/Date(1791588804405)/"
+    }
+  ],
+  "post_idle": {
+    "passed": true,
+    "checked_utc": "2026-10-09T23:33:25.505815+00:00",
+    "busy": [],
+    "dormant": [
+      {
+        "Name": "MSBuild.exe",
+        "ProcessId": 18252,
+        "ParentProcessId": 20540,
+        "CreationDate": "/Date(1791586119443)/",
+        "KernelModeTime": 255312500,
+        "UserModeTime": 540781250,
+        "CommandLine": "\"C:\\Program Files\\Microsoft Visual Studio\\18\\Community\\MSBuild\\Current\\Bin\\amd64\\MSBuild.exe\" /noautoresponse /nologo /nodemode:1 /nodeReuse:true /low:false"
+      }
+    ]
+  },
+  "post_identity": {
+    "passed": true,
+    "checked_file_count": 17810,
+    "observed_sha256_map_digest": "a9cb9fcadd403b2788f93bc16e238b9f2e526c892abf3c9b12399f18191e21dc",
+    "expected_sha256_map_digest": "a9cb9fcadd403b2788f93bc16e238b9f2e526c892abf3c9b12399f18191e21dc",
+    "mismatches": [],
+    "tree_changes": {},
+    "head": "21e2eadaba7d317932374a63d3c2d70dff4e25c1",
+    "checked_utc": "2026-10-09T23:33:29.044609+00:00"
+  },
+  "recorded_subtests": [
+    "subparsers"
+  ],
+  "verified_sample_population": {
+    "subparsers": {
+      "unit": "second",
+      "scored_value_count": 20
+    }
+  },
+  "finished_utc": "2026-10-09T23:33:29.045979+00:00",
+  "timing_scoring_permitted": true
+}

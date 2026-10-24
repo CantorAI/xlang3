@@ -1,0 +1,32 @@
+{
+  "probe": "benchmarks/diagnostics/weakref_creation_probe.py 20000",
+  "order": "candidate,parent,cpython on odd repeats; parent,candidate,cpython on even repeats",
+  "candidate": {
+    "change": "skip weakref.ref callback-slot write when callback is omitted or None",
+    "create_seconds": [0.03002909995848313, 0.0293697000015527, 0.028304300038143992, 0.028235600038897246, 0.02793000004021451],
+    "dereference_seconds": [0.007112100021913648, 0.0069209999637678266, 0.006855699990410358, 0.007859199948143214, 0.006846999982371926]
+  },
+  "parent": {
+    "executable": "build-repro/weakref-slot-parent-20261010/Release/xlang3.exe",
+    "create_seconds": [0.029435599979478866, 0.02878579997923225, 0.029662000015378, 0.02915369998663664, 0.028606300009414554],
+    "dereference_seconds": [0.008013800019398332, 0.0080110999988392, 0.007389999984297901, 0.007724400027655065, 0.007579699973575771]
+  },
+  "cpython3147": {
+    "executable": "C:/Python/Python314/python.exe",
+    "create_seconds": [0.0021326999994926155, 0.0016279999981634319, 0.0016175999771803617, 0.0017024999833665788, 0.0020041000097990036],
+    "dereference_seconds": [0.0005781000363640487, 0.0005720999906770885, 0.0005692999693565071, 0.0005664000054821372, 0.0005793999880552292]
+  },
+  "medians_seconds": {
+    "candidate_create": 0.028304300038143992,
+    "parent_create": 0.02915369998663664,
+    "cpython_create": 0.0017024999833665788,
+    "candidate_dereference": 0.0069209999637678266,
+    "parent_dereference": 0.007724400027655771,
+    "cpython_dereference": 0.0005720999906770885
+  },
+  "limitations": [
+    "The parent executable predates the inline weakref target-pointer optimization, so dereference is not an isolated comparison for this trial.",
+    "The same-source pre-change executable was not preserved; the creation comparison is directional and cannot establish the duplicate-write change's isolated effect.",
+    "The probe is a diagnostic loop, not official pyperformance."
+  ]
+}

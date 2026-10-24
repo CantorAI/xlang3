@@ -1,0 +1,29 @@
+{
+  "status": "finished",
+  "manager_executable": "C:\\Python\\Python314\\python.exe",
+  "manager_version": "Python 3.14.7",
+  "source_base_commit": "20dc9e953b85c0ec8f4c241d0297cf508557ac72",
+  "source_change": "Uncommitted selected-result dictionary iteration and aliased output ownership fix",
+  "mapping_cpp_sha256": "A3C391558BF583EF0DA4BD0335EA771714723F653EDCAE5EE3843DAF4EC62318",
+  "runtime_executable": "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+  "stdlib": "C:\\Python\\Python314\\Lib",
+  "dependency_site": "venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages",
+  "mode": "fast",
+  "benchmarks": "networkx,networkx_connected_components",
+  "definition_count": 2,
+  "case_timeout_seconds": 600,
+  "timing_probe_enabled": false,
+  "control_reference": "pyperformance-xlang3-native-string-checkpoint-full-fast-20261007.json",
+  "cpython_reference": "pyperformance-cpython314-clean-release-full-fast-20261002.json",
+  "started_utc": "2026-10-07T09:07:30.9848016Z",
+  "sha256_start": {
+    "exe": "303F2E8BDCA58C4B555D13ADD7BFC41EEF9E0019F4780A0C9729596CE07DF177",
+    "dll": "1791D6F683B78E27933EBA459AB4C7B96D27FD94BFBB7576D334D88283CE04F1"
+  },
+  "sha256_end": {
+    "exe": "303F2E8BDCA58C4B555D13ADD7BFC41EEF9E0019F4780A0C9729596CE07DF177",
+    "dll": "1791D6F683B78E27933EBA459AB4C7B96D27FD94BFBB7576D334D88283CE04F1"
+  },
+  "completed_utc": "2026-10-07T09:23:16.5084635Z",
+  "exit_code": 0
+}

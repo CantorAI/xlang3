@@ -150,7 +150,9 @@ bool set_runtime_hash(Runtime& runtime, const Value& value, int64_t& out, std::s
     }
   }
   size_t raw = 0;
-  if (!value_hash_key(value, raw, error)) {
+  // Keep contains/remove/discard on the same recursive hash contract as add;
+  // a tuple may contain instances whose __hash__ differs from identity.
+  if (!runtime_value_hash_key(runtime, value, raw, error)) {
     return false;
   }
   out = static_cast<int64_t>(raw);

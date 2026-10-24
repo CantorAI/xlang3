@@ -13,6 +13,14 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 #include "test_harness.h"
+#include "mapping_iterator_ownership_cases.h"
+#include "unicode_index_cache_cases.h"
+#include "strided_memoryview_serialization_cases.h"
+#include "bigint_multiply_operand_view_cases.h"
+#include "bigint_division_working_buffer_cases.h"
+#include "bigint_add_compare_operand_view_cases.h"
+#include "bigint_storage_lifetime_cases.h"
+#include "instance_class_ownership_cases.h"
 #include <atomic>
 #include <chrono>
 #include <thread>
@@ -39,6 +47,15 @@ int main() {
   xlang3::test::CaseResult result;
   std::string error;
   xlang3::Value out;
+
+  xlang3::test::check_mapping_iterator_ownership(result);
+  xlang3::test::check_unicode_index_cache(result);
+  xlang3::test::check_strided_memoryview_ipc(result);
+  xlang3::test::check_bigint_multiply_operand_views(result);
+  xlang3::test::check_bigint_division_working_buffers(result);
+  xlang3::test::check_bigint_add_compare_operand_views(result);
+  xlang3::test::check_bigint_storage_lifetime(result);
+  xlang3::test::check_instance_class_ownership(result);
 
   {
     xlang3::Value escaped_set, escaped_iterator;
@@ -72,6 +89,38 @@ int main() {
                             "None should be falsey");
   xlang3::test::expect_true(result, xlang3::value_to_string(xlang3::Value::tuple({xlang3::Value::int64(1)})) == "(1,)",
                             "single item tuple should print with trailing comma");
+  {
+    std::ostringstream output;
+    xlang3::Runtime runtime(output);
+    xlang3::Value decimal_module;
+    xlang3::Value file;
+    xlang3::Value cached;
+    error.clear();
+    xlang3::test::expect_true(
+        result,
+        !runtime.has_registered_module("_pydecimal"),
+        "native decimal registration should leave the Python fallback lazy");
+    xlang3::test::expect_true(
+        result,
+        runtime.import_module("_decimal", decimal_module, error),
+        "native decimal module should be importable");
+    error.clear();
+    xlang3::test::expect_true(
+        result,
+        xlang3::module_get_attr(decimal_module, "__file__", file, error) &&
+            file.tag == xlang3::ValueTag::None,
+        "native decimal file metadata should not invoke its lazy fallback");
+    error.clear();
+    xlang3::test::expect_true(
+        result,
+        xlang3::module_get_attr(decimal_module, "__cached__", cached, error) &&
+            cached.tag == xlang3::ValueTag::None,
+        "native decimal cache metadata should not invoke its lazy fallback");
+    xlang3::test::expect_true(
+        result,
+        !runtime.has_registered_module("_pydecimal"),
+        "metadata probes must not initialize the pure-Python decimal fallback");
+  }
   xlang3::test::expect_true(result, !xlang3::value_truthy(xlang3::Value::tuple({})),
                             "empty tuple should be falsey");
 
@@ -211,6 +260,16 @@ int main() {
                               "string keys should be hashable");
     xlang3::test::expect_true(result, xlang3::value_key_equal(xlang3::Value::int64(3), xlang3::Value::number(3.0)),
                               "numeric key equality should match int and double values");
+
+    auto class_value = xlang3::Value::class_object("HashFastPathProbe", {});
+    const size_t expected_class_hash =
+        std::hash<const void*>{}(class_value.as.obj);
+    error.clear();
+    xlang3::test::expect_true(
+        result,
+        xlang3::value_hash_key(class_value, hash, error) &&
+            hash == expected_class_hash,
+        "class objects should retain identity hashing on the direct fast path");
   }
 
   {

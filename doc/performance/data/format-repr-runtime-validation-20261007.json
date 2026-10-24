@@ -1,0 +1,63 @@
+{
+  "status": "correctness_and_fixed_gate_passed",
+  "manager_version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [MSC v.1944 64 bit (AMD64)]",
+  "source_base_commit": "923691ceb1899f1a7389befa10d40d27eb01e43b",
+  "source_files": {
+    "src/internal/xlang3/builtins.h": "881524737737d71469bd6adb2a807336af72e820c76200be8f42cb0ef3be90b2",
+    "src/builtins/functional_builtins.cpp": "e87db3ccd0f6c2f2a2e6bb7fc6239636d47899953578f3ebefa37b1e9986b002",
+    "src/runtime/value.cpp": "f8f93ffa0086452e98f11b49b604b377fa3cb5b5d299f548192200c37ac633a5",
+    "src/runtime/methods/string_methods.cpp": "52860b33aaf0dcdc7fbe4f991725f31e21ba722bfce7dcceccbffa5fcc0ec4ae",
+    "src/executor/xlang_vm/ops/xlang_vm_ops_arithmetic.h": "8104b810dd12b1913b9ba52da6760e1c0fbb04c4a075a25fddbeb63bcad4edef",
+    "tests/run_fixtures.py": "ff688be1d48045c8d208155a7f656ae810b009342289bb1d7641aeb332e506cd",
+    "tests/fixtures/core/format_repr_runtime.py": "9f7805dbcf6a0141df6ef4eefbb247dda07713b3a4885319f47636a047da6c6e",
+    "tests/fixtures/expected/format_repr_runtime.out": "20d45e5ee8eb6455f39f3fb890bb8e15bfd08dec3517a216e1a249876eeb2e84"
+  },
+  "sha256_start": {
+    "exe": "b1e8973ae266243f545920a83a5ac7e1686f56baaf443193514be59f43dd4afb",
+    "dll": "c6ba584589bb7c740ce3f745e18d355a81a842abfbd0391b3e9a6578a99e6b8d"
+  },
+  "full_fixtures": {
+    "exit_code": 0,
+    "verified_exec_session": 91588,
+    "core_cases": 355,
+    "section_cases": 11,
+    "expected_failure_cases": 3,
+    "stdout": "empty on success"
+  },
+  "cpp_sdk": {
+    "exit_code": 0,
+    "tests_passed": 8,
+    "log": "format-repr-runtime-cpp-sdk-20261007.log"
+  },
+  "focused_fixture": {
+    "exit_code": 0,
+    "log": "format-repr-runtime-xlang3-fixture-r2-20261007.log"
+  },
+  "fixed_gate": {
+    "status": "pass",
+    "report": "release-format-repr-runtime-fixed-gate-20261007.json",
+    "exit_code": 0,
+    "accepted": true,
+    "cases": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1
+  },
+  "official_chameleon": {
+    "status": "finished_with_benchmark_failures",
+    "exit_code": 1,
+    "benchmarks": "chameleon,typing_runtime_protocols",
+    "report": "pyperformance-xlang3-format-repr-runtime-targeted-fast-20261007.json",
+    "provenance": "pyperformance-xlang3-format-repr-runtime-targeted-fast-20261007-provenance.json",
+    "definitions_attempted": 2,
+    "completed": 1,
+    "failed": 1,
+    "chameleon_status": "failed_render_bytes_decode_class_attribute_missing",
+    "typing_runtime_protocols_status": "completed"
+  },
+  "sha256_end": {
+    "exe": "b1e8973ae266243f545920a83a5ac7e1686f56baaf443193514be59f43dd4afb",
+    "dll": "c6ba584589bb7c740ce3f745e18d355a81a842abfbd0391b3e9a6578a99e6b8d"
+  },
+  "official_comparison": "format-repr-runtime-official-comparison-20261007.json"
+}

@@ -1,0 +1,12 @@
+Benchmarks with tag 'serialize':
+================================
+
+Mean +- std dev: [pyperformance-xlang3-callglobal-control-pickle-rigorous-20261005] 5.20 ms +- 0.07 ms -> [pyperformance-xlang3-polymorphic-call-pickle-candidate-r1-rigorous-20261005] 5.30 ms +- 0.56 ms: 1.02x slower
+Significant (t=-2.03)
+
+All benchmarks:
+===============
+
+Mean +- std dev: [pyperformance-xlang3-callglobal-control-pickle-rigorous-20261005] 5.20 ms +- 0.07 ms -> [pyperformance-xlang3-polymorphic-call-pickle-candidate-r1-rigorous-20261005] 5.30 ms +- 0.56 ms: 1.02x slower
+Significant (t=-2.03)
+\n

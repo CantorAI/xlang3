@@ -1,0 +1,412 @@
+{
+  "status": "failed_or_invalid_untimed_diagnostic",
+  "terminal": true,
+  "scored": false,
+  "phases": [
+    {
+      "name": "cpython",
+      "command": [
+        "C:\\Python\\Python314\\python.exe",
+        "-I",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\coverage-original-body-allocation-child-r2-proposed-20261010.py",
+        "cpython"
+      ],
+      "cap_seconds": 120,
+      "scored": false,
+      "timing_scoring_permitted": false,
+      "count_valid": true,
+      "pre_identity": {
+        "passed": true,
+        "checked_file_count": 520,
+        "observed_sha256_map_digest": "6c05a42cf4f55fc1d6a20f788bf252c3de64e67fb448e591f562a6e9af257f5d",
+        "expected_sha256_map_digest": "6c05a42cf4f55fc1d6a20f788bf252c3de64e67fb448e591f562a6e9af257f5d",
+        "mismatches": [],
+        "tree_changes": {},
+        "head": "92c5e14aa1332dbdc8cfbda7a078054c2eca89bc",
+        "checked_utc": "2026-10-10T04:33:57.543348+00:00"
+      },
+      "pre_idle": {
+        "passed": false,
+        "busy": [
+          {
+            "Name": "cmake.exe",
+            "ProcessId": 35640,
+            "ParentProcessId": 31272,
+            "CreationDate": "/Date(1791606508945)/",
+            "KernelModeTime": 312500,
+            "UserModeTime": 312500,
+            "CommandLine": ""
+          },
+          {
+            "Name": "MSBuild.exe",
+            "ProcessId": 15372,
+            "ParentProcessId": 35640,
+            "CreationDate": "/Date(1791606509005)/",
+            "KernelModeTime": 23750000,
+            "UserModeTime": 67187500,
+            "CommandLine": "\"C:/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/amd64/MSBuild.exe\" ALL_BUILD.vcxproj /p:Configuration=Release /p:Platform=x64 /p:VisualStudioVersion=18.0 /m:1 /v:m"
+          },
+          {
+            "Name": "cl.exe",
+            "ProcessId": 34468,
+            "ParentProcessId": 21672,
+            "CreationDate": "/Date(1791606836930)/",
+            "KernelModeTime": 1250000,
+            "UserModeTime": 8437500,
+            "CommandLine": ""
+          }
+        ],
+        "dormant": []
+      },
+      "exit_code": 0,
+      "cleanup_passed": true,
+      "external_process_watch": {
+        "log": "coverage-f-code-allocation-r2-20261010-cpython.external-process-observations.jsonl",
+        "sha256": "cb40fbf9e8c3708d2545ed4da3ecaffd5f619fd82952dc9ea13bd3befb2e7a3b",
+        "poll_interval_seconds": 1,
+        "dormant_worker_admission": null,
+        "overlaps": [
+          {
+            "observed_utc": "2026-10-10T04:33:58.071909+00:00",
+            "busy": [
+              {
+                "Name": "cmake.exe",
+                "ProcessId": 35640,
+                "ParentProcessId": 31272,
+                "CreationDate": "/Date(1791606508945)/",
+                "KernelModeTime": 312500,
+                "UserModeTime": 312500,
+                "CommandLine": ""
+              },
+              {
+                "Name": "MSBuild.exe",
+                "ProcessId": 15372,
+                "ParentProcessId": 35640,
+                "CreationDate": "/Date(1791606509005)/",
+                "KernelModeTime": 23750000,
+                "UserModeTime": 67187500,
+                "CommandLine": "\"C:/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/amd64/MSBuild.exe\" ALL_BUILD.vcxproj /p:Configuration=Release /p:Platform=x64 /p:VisualStudioVersion=18.0 /m:1 /v:m"
+              },
+              {
+                "Name": "cl.exe",
+                "ProcessId": 34468,
+                "ParentProcessId": 21672,
+                "CreationDate": "/Date(1791606836930)/",
+                "KernelModeTime": 2812500,
+                "UserModeTime": 21406250,
+                "CommandLine": ""
+              }
+            ],
+            "dormant": []
+          },
+          {
+            "observed_utc": "2026-10-10T04:33:58.619923+00:00",
+            "busy": [
+              {
+                "Name": "cmake.exe",
+                "ProcessId": 35640,
+                "ParentProcessId": 31272,
+                "CreationDate": "/Date(1791606508945)/",
+                "KernelModeTime": 312500,
+                "UserModeTime": 312500,
+                "CommandLine": ""
+              },
+              {
+                "Name": "MSBuild.exe",
+                "ProcessId": 15372,
+                "ParentProcessId": 35640,
+                "CreationDate": "/Date(1791606509005)/",
+                "KernelModeTime": 23750000,
+                "UserModeTime": 67187500,
+                "CommandLine": "\"C:/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/amd64/MSBuild.exe\" ALL_BUILD.vcxproj /p:Configuration=Release /p:Platform=x64 /p:VisualStudioVersion=18.0 /m:1 /v:m"
+              },
+              {
+                "Name": "cl.exe",
+                "ProcessId": 34468,
+                "ParentProcessId": 21672,
+                "CreationDate": "/Date(1791606836930)/",
+                "KernelModeTime": 3593750,
+                "UserModeTime": 35625000,
+                "CommandLine": ""
+              }
+            ],
+            "dormant": []
+          }
+        ],
+        "scanner_errors": [],
+        "measurement_valid": false,
+        "scope": "All observed build/test tools invalidate timing except the exact admitted cached worker while its cumulative CPU counters and identity remain unchanged and it has no build parent or new child.",
+        "limit": "New tools entirely between samples may be missed; the admitted worker CPU counters are cumulative and never reset during this manager."
+      },
+      "measurement_valid": false,
+      "post_idle": {
+        "passed": false,
+        "busy": [
+          {
+            "Name": "cmake.exe",
+            "ProcessId": 35640,
+            "ParentProcessId": 31272,
+            "CreationDate": "/Date(1791606508945)/",
+            "KernelModeTime": 312500,
+            "UserModeTime": 312500,
+            "CommandLine": ""
+          },
+          {
+            "Name": "MSBuild.exe",
+            "ProcessId": 15372,
+            "ParentProcessId": 35640,
+            "CreationDate": "/Date(1791606509005)/",
+            "KernelModeTime": 23750000,
+            "UserModeTime": 67187500,
+            "CommandLine": "\"C:/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/amd64/MSBuild.exe\" ALL_BUILD.vcxproj /p:Configuration=Release /p:Platform=x64 /p:VisualStudioVersion=18.0 /m:1 /v:m"
+          },
+          {
+            "Name": "cl.exe",
+            "ProcessId": 34468,
+            "ParentProcessId": 21672,
+            "CreationDate": "/Date(1791606836930)/",
+            "KernelModeTime": 3593750,
+            "UserModeTime": 40937500,
+            "CommandLine": ""
+          }
+        ],
+        "dormant": []
+      },
+      "post_identity": {
+        "passed": true,
+        "checked_file_count": 520,
+        "observed_sha256_map_digest": "6c05a42cf4f55fc1d6a20f788bf252c3de64e67fb448e591f562a6e9af257f5d",
+        "expected_sha256_map_digest": "6c05a42cf4f55fc1d6a20f788bf252c3de64e67fb448e591f562a6e9af257f5d",
+        "mismatches": [],
+        "tree_changes": {},
+        "head": "92c5e14aa1332dbdc8cfbda7a078054c2eca89bc",
+        "checked_utc": "2026-10-10T04:34:00.506074+00:00"
+      },
+      "raw_sha256": {
+        "D:\\CantorAI\\xlang3\\doc\\performance\\data\\coverage-f-code-allocation-r2-20261010-cpython.stdout.log": "e003783319d7d27ccb46201d822e0daf5881be3310ec31ca07a747388ccf8c96",
+        "D:\\CantorAI\\xlang3\\doc\\performance\\data\\coverage-f-code-allocation-r2-20261010-cpython.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "D:\\CantorAI\\xlang3\\doc\\performance\\data\\coverage-f-code-allocation-r2-20261010-cpython.external-process-observations.jsonl": "cb40fbf9e8c3708d2545ed4da3ecaffd5f619fd82952dc9ea13bd3befb2e7a3b"
+      },
+      "passed": true,
+      "result": {
+        "bench_coverage_calls": 1,
+        "benchmark_sha256": "19da183fabd314c1374a9bbc541142300669d30d2b9e129d4378dc836b181de6",
+        "counter_enabled_restored": true,
+        "counter_reset": false,
+        "counts": null,
+        "coverage_file": "D:\\CantorAI/xlang3/venv/cpython3.14-a6792301b742-compat-31b33d68c68a/Lib/site-packages\\coverage\\__init__.py",
+        "coverage_version": "7.3.2",
+        "excluded_calibration": null,
+        "fibonacci_10": 55,
+        "layout": null,
+        "loaded_runtime_path": null,
+        "loops": 1,
+        "profile_restored": true,
+        "return_duration_valid": true,
+        "scope": "Whole original bench_coverage(1) invocation after imports, including Coverage start/stop. Counts are diagnostic only; duration is not reported or scored.",
+        "scored": false,
+        "selection": "cpython",
+        "status": "completed_untimed_original_coverage_allocation_diagnostic",
+        "trace_restored": true
+      }
+    },
+    {
+      "name": "xlang3",
+      "command": [
+        "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+        "D:\\CantorAI\\xlang3\\scratch\\performance\\coverage-original-body-allocation-child-r2-proposed-20261010.py",
+        "xlang3"
+      ],
+      "cap_seconds": 120,
+      "scored": false,
+      "timing_scoring_permitted": false,
+      "count_valid": false,
+      "pre_identity": {
+        "passed": true,
+        "checked_file_count": 520,
+        "observed_sha256_map_digest": "6c05a42cf4f55fc1d6a20f788bf252c3de64e67fb448e591f562a6e9af257f5d",
+        "expected_sha256_map_digest": "6c05a42cf4f55fc1d6a20f788bf252c3de64e67fb448e591f562a6e9af257f5d",
+        "mismatches": [],
+        "tree_changes": {},
+        "head": "92c5e14aa1332dbdc8cfbda7a078054c2eca89bc",
+        "checked_utc": "2026-10-10T04:34:01.836743+00:00"
+      },
+      "pre_idle": {
+        "passed": false,
+        "busy": [
+          {
+            "Name": "cmake.exe",
+            "ProcessId": 35640,
+            "ParentProcessId": 31272,
+            "CreationDate": "/Date(1791606508945)/",
+            "KernelModeTime": 312500,
+            "UserModeTime": 312500,
+            "CommandLine": ""
+          },
+          {
+            "Name": "MSBuild.exe",
+            "ProcessId": 15372,
+            "ParentProcessId": 35640,
+            "CreationDate": "/Date(1791606509005)/",
+            "KernelModeTime": 25156250,
+            "UserModeTime": 69375000,
+            "CommandLine": "\"C:/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/amd64/MSBuild.exe\" ALL_BUILD.vcxproj /p:Configuration=Release /p:Platform=x64 /p:VisualStudioVersion=18.0 /m:1 /v:m"
+          },
+          {
+            "Name": "cl.exe",
+            "ProcessId": 25928,
+            "ParentProcessId": 6508,
+            "CreationDate": "/Date(1791606841117)/",
+            "KernelModeTime": 937500,
+            "UserModeTime": 9375000,
+            "CommandLine": ""
+          }
+        ],
+        "dormant": []
+      },
+      "exit_code": 1,
+      "cleanup_passed": true,
+      "external_process_watch": {
+        "log": "coverage-f-code-allocation-r2-20261010-xlang3.external-process-observations.jsonl",
+        "sha256": "b3d883a5e38ef5e2c1bfa0252b413bdffa8759f74562a74737eb20250b93d432",
+        "poll_interval_seconds": 1,
+        "dormant_worker_admission": null,
+        "overlaps": [
+          {
+            "observed_utc": "2026-10-10T04:34:02.415579+00:00",
+            "busy": [
+              {
+                "Name": "cmake.exe",
+                "ProcessId": 35640,
+                "ParentProcessId": 31272,
+                "CreationDate": "/Date(1791606508945)/",
+                "KernelModeTime": 312500,
+                "UserModeTime": 312500,
+                "CommandLine": ""
+              },
+              {
+                "Name": "MSBuild.exe",
+                "ProcessId": 15372,
+                "ParentProcessId": 35640,
+                "CreationDate": "/Date(1791606509005)/",
+                "KernelModeTime": 25156250,
+                "UserModeTime": 69375000,
+                "CommandLine": "\"C:/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/amd64/MSBuild.exe\" ALL_BUILD.vcxproj /p:Configuration=Release /p:Platform=x64 /p:VisualStudioVersion=18.0 /m:1 /v:m"
+              },
+              {
+                "Name": "cl.exe",
+                "ProcessId": 25928,
+                "ParentProcessId": 6508,
+                "CreationDate": "/Date(1791606841117)/",
+                "KernelModeTime": 1250000,
+                "UserModeTime": 15312500,
+                "CommandLine": ""
+              }
+            ],
+            "dormant": []
+          },
+          {
+            "observed_utc": "2026-10-10T04:34:03.044788+00:00",
+            "busy": [
+              {
+                "Name": "cmake.exe",
+                "ProcessId": 35640,
+                "ParentProcessId": 31272,
+                "CreationDate": "/Date(1791606508945)/",
+                "KernelModeTime": 312500,
+                "UserModeTime": 312500,
+                "CommandLine": ""
+              },
+              {
+                "Name": "MSBuild.exe",
+                "ProcessId": 15372,
+                "ParentProcessId": 35640,
+                "CreationDate": "/Date(1791606509005)/",
+                "KernelModeTime": 25156250,
+                "UserModeTime": 69375000,
+                "CommandLine": "\"C:/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/amd64/MSBuild.exe\" ALL_BUILD.vcxproj /p:Configuration=Release /p:Platform=x64 /p:VisualStudioVersion=18.0 /m:1 /v:m"
+              },
+              {
+                "Name": "cl.exe",
+                "ProcessId": 25928,
+                "ParentProcessId": 6508,
+                "CreationDate": "/Date(1791606841117)/",
+                "KernelModeTime": 1250000,
+                "UserModeTime": 20781250,
+                "CommandLine": ""
+              }
+            ],
+            "dormant": []
+          }
+        ],
+        "scanner_errors": [],
+        "measurement_valid": false,
+        "scope": "All observed build/test tools invalidate timing except the exact admitted cached worker while its cumulative CPU counters and identity remain unchanged and it has no build parent or new child.",
+        "limit": "New tools entirely between samples may be missed; the admitted worker CPU counters are cumulative and never reset during this manager."
+      },
+      "measurement_valid": false,
+      "post_idle": {
+        "passed": false,
+        "busy": [
+          {
+            "Name": "cmake.exe",
+            "ProcessId": 35640,
+            "ParentProcessId": 31272,
+            "CreationDate": "/Date(1791606508945)/",
+            "KernelModeTime": 312500,
+            "UserModeTime": 312500,
+            "CommandLine": ""
+          },
+          {
+            "Name": "MSBuild.exe",
+            "ProcessId": 15372,
+            "ParentProcessId": 35640,
+            "CreationDate": "/Date(1791606509005)/",
+            "KernelModeTime": 25156250,
+            "UserModeTime": 69375000,
+            "CommandLine": "\"C:/Program Files/Microsoft Visual Studio/18/Community/MSBuild/Current/Bin/amd64/MSBuild.exe\" ALL_BUILD.vcxproj /p:Configuration=Release /p:Platform=x64 /p:VisualStudioVersion=18.0 /m:1 /v:m"
+          },
+          {
+            "Name": "cl.exe",
+            "ProcessId": 25928,
+            "ParentProcessId": 6508,
+            "CreationDate": "/Date(1791606841117)/",
+            "KernelModeTime": 2031250,
+            "UserModeTime": 57031250,
+            "CommandLine": ""
+          }
+        ],
+        "dormant": []
+      },
+      "post_identity": {
+        "passed": true,
+        "checked_file_count": 520,
+        "observed_sha256_map_digest": "6c05a42cf4f55fc1d6a20f788bf252c3de64e67fb448e591f562a6e9af257f5d",
+        "expected_sha256_map_digest": "6c05a42cf4f55fc1d6a20f788bf252c3de64e67fb448e591f562a6e9af257f5d",
+        "mismatches": [],
+        "tree_changes": {},
+        "head": "92c5e14aa1332dbdc8cfbda7a078054c2eca89bc",
+        "checked_utc": "2026-10-10T04:34:04.979735+00:00"
+      },
+      "raw_sha256": {
+        "D:\\CantorAI\\xlang3\\doc\\performance\\data\\coverage-f-code-allocation-r2-20261010-xlang3.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "D:\\CantorAI\\xlang3\\doc\\performance\\data\\coverage-f-code-allocation-r2-20261010-xlang3.stderr.log": "df58a446d5daa97d8d787d8071a79eb283ab4c9b1b3d1823407b94b583523f54",
+        "D:\\CantorAI\\xlang3\\doc\\performance\\data\\coverage-f-code-allocation-r2-20261010-xlang3.external-process-observations.jsonl": "b3d883a5e38ef5e2c1bfa0252b413bdffa8759f74562a74737eb20250b93d432"
+      }
+    }
+  ],
+  "controller_sha256": "2a6e7676a8189249cabadbbc80600617828f68cb62f2996d3cf08542796833ca",
+  "proof_sha256": "53f08ec971ea1aa1781165de250866bd5d9077448c11b835e6755b57c14e5c36",
+  "head": "92c5e14aa1332dbdc8cfbda7a078054c2eca89bc",
+  "source_count": 143,
+  "release_count": 178,
+  "fixed_baseline_count": 177,
+  "source_exception_sha256": {
+    "tests/run_fixtures.ps1": "30d462945ab4f8b546269b4921df20688efa033cf16eb8a85a1e9c4f3297050e"
+  },
+  "protected_test_input_sha256": {
+    "tests/cli/run_debugpy_launch_smoke.py": "dae4af562bc1d84a6983d91d5a7d4a0d96d000855aebfa07e872a8710d2221e8"
+  },
+  "scope": "One CP then one X original bench_coverage(1), untimed diagnostic; no engine edits/builds.",
+  "error": "RuntimeError('Diagnostic child failed/invalid')"
+}

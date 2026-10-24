@@ -16,6 +16,7 @@ limitations under the License.
 #include "runtime/memory/object_cache_lifetime.h"
 
 #include "xlang3/functional_iterators.h"
+#include "xlang3/builtin_methods.h"
 #include "xlang3/module_object.h"
 #include "xlang3/object_model.h"
 #include "xlang3/perf_counters.h"
@@ -157,6 +158,8 @@ void recycle_dict_object(DictObject* object) {
   object->integer_index.clear();
   object->runtime_hash_index.clear();
   object->runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
+  object->intrinsic_hash_checked_entry_count = static_cast<size_t>(-1);
+  object->intrinsic_hash_keys_only = false;
   object->string_index.clear();
   object->indexed_entry_count = static_cast<size_t>(-1);
   object->index_has_other_keys = false;
@@ -209,12 +212,61 @@ bool runtime_mapping_hash(Runtime& runtime, const Value& value, int64_t& hash, s
   return true;
 }
 
+bool intrinsic_index_key(const Value& key, unsigned depth = 0) {
+  if (key.tag == ValueTag::None || key.tag == ValueTag::Bool ||
+      key.tag == ValueTag::Int64) return true;
+  if (key.tag != ValueTag::Object || key.as.obj == nullptr) return false;
+  switch (key.as.obj->kind) {
+    case ObjectKind::String:
+    case ObjectKind::Bytes:
+    case ObjectKind::BigInt:
+      return true;
+    case ObjectKind::Tuple: {
+      if (depth >= 64) return false;
+      for (const auto& item : value_as_tuple(key)->items)
+        if (!intrinsic_index_key(item, depth + 1)) return false;
+      return true;
+    }
+    default:
+      // Subclasses, user objects, buffers and other key protocols retain the
+      // original path. Do not bypass __hash__/__eq__ or buffer lifetime rules.
+      return false;
+  }
+}
+
+bool ensure_intrinsic_hash_index(DictObject& dict) {
+  if (dict.intrinsic_hash_checked_entry_count == dict.entries.size()) {
+    if (!dict.intrinsic_hash_keys_only) return false;
+    if (dict.runtime_hash_indexed_entry_count == dict.entries.size()) return true;
+  }
+  std::unordered_map<int64_t, std::vector<size_t>> rebuilt;
+  rebuilt.reserve(dict.entries.size());
+  for (size_t index = 0; index < dict.entries.size(); ++index) {
+    const auto& key = dict.entries[index].first;
+    size_t hash = 0;
+    std::string ignored;
+    if (!intrinsic_index_key(key) || !value_hash_key(key, hash, ignored)) {
+      dict.intrinsic_hash_checked_entry_count = dict.entries.size();
+      dict.intrinsic_hash_keys_only = false;
+      return false;
+    }
+    rebuilt[static_cast<int64_t>(hash)].push_back(index);
+  }
+  dict.runtime_hash_index = std::move(rebuilt);
+  dict.runtime_hash_indexed_entry_count = dict.entries.size();
+  dict.intrinsic_hash_checked_entry_count = dict.entries.size();
+  dict.intrinsic_hash_keys_only = true;
+  return true;
+}
+
 bool ensure_runtime_hash_index(Runtime& runtime, DictObject& dict,
                                std::string& error) {
   if (dict.runtime_hash_indexed_entry_count == dict.entries.size()) return true;
   std::unordered_map<int64_t, std::vector<size_t>> rebuilt;
   rebuilt.reserve(dict.entries.size());
+  bool intrinsic_keys_only = true;
   for (size_t index = 0; index < dict.entries.size(); ++index) {
+    intrinsic_keys_only = intrinsic_keys_only && intrinsic_index_key(dict.entries[index].first);
     int64_t hash = 0;
     if (!runtime_mapping_hash(runtime, dict.entries[index].first, hash, error))
       return false;
@@ -222,8 +274,51 @@ bool ensure_runtime_hash_index(Runtime& runtime, DictObject& dict,
   }
   dict.runtime_hash_index = std::move(rebuilt);
   dict.runtime_hash_indexed_entry_count = dict.entries.size();
+  dict.intrinsic_hash_checked_entry_count = dict.entries.size();
+  dict.intrinsic_hash_keys_only = intrinsic_keys_only;
   return true;
 }
+
+struct DictScalarAppendIndexes {
+  bool runtime_was_fresh;
+  bool intrinsic_was_checked;
+  bool intrinsic_keys_only;
+
+  DictScalarAppendIndexes(DictObject& dict, bool exact_native_key,
+                         bool callback_free_flat_growth = true)
+      : runtime_was_fresh(exact_native_key && callback_free_flat_growth &&
+            dict.runtime_hash_indexed_entry_count == dict.entries.size()),
+        intrinsic_was_checked(exact_native_key &&
+            dict.intrinsic_hash_checked_entry_count == dict.entries.size()),
+        intrinsic_keys_only(dict.intrinsic_hash_keys_only) {
+    // Scalar append/get loops otherwise rebuild every runtime bucket after
+    // every append. Extend only an already-complete table, without rescanning
+    // keys or promoting an unknown/mixed table to intrinsic eligibility.
+    // Invalidate before any allocation/publication: an allocation failure may
+    // leave an authoritative entry or partial bucket, never a fresh certificate.
+    dict.runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
+    dict.intrinsic_hash_checked_entry_count = static_cast<size_t>(-1);
+    dict.intrinsic_hash_keys_only = false;
+    dict.indexed_entry_count = static_cast<size_t>(-1);
+  }
+
+  void append_runtime_bucket(DictObject& dict, size_t hash) const {
+    if (runtime_was_fresh)
+      dict.runtime_hash_index[static_cast<int64_t>(hash)].push_back(dict.entries.size() - 1);
+  }
+
+  void publish(DictObject& dict) const {
+    // Entries and both indexes are complete before either count is restored.
+    // A current negative whole-key-set proof is extended just like a positive
+    // one; retaining false avoids repeating callback-key classification.
+    if (runtime_was_fresh)
+      dict.runtime_hash_indexed_entry_count = dict.entries.size();
+    if (intrinsic_was_checked) {
+      dict.intrinsic_hash_keys_only = intrinsic_keys_only;
+      dict.intrinsic_hash_checked_entry_count = dict.entries.size();
+    }
+  }
+};
 
 ObjectKind dict_view_kind(DictIterationKind kind) {
   switch (kind) {
@@ -569,6 +664,47 @@ bool dict_integer_key(const Value& key, int64_t& out) {
   return value_int_like_to_i64(key, out);
 }
 
+size_t dict_integer_slot(int64_t key, size_t mask) {
+  uint64_t hash = static_cast<uint64_t>(key);
+  hash ^= hash >> 30;
+  hash *= 0xbf58476d1ce4e5b9ULL;
+  hash ^= hash >> 27;
+  hash *= 0x94d049bb133111ebULL;
+  hash ^= hash >> 31;
+  if constexpr (sizeof(size_t) < sizeof(hash)) hash ^= hash >> 32;
+  return static_cast<size_t>(hash) & mask;
+}
+
+void dict_integer_index_insert_raw(
+    const DictObject& dict, int64_t key, size_t entry_index) {
+  const size_t mask = dict.integer_index.size() - 1;
+  size_t slot = dict_integer_slot(key, mask);
+  while (dict.integer_index[slot] != 0) slot = (slot + 1) & mask;
+  dict.integer_index[slot] = entry_index + 1;
+}
+
+bool dict_find_integer_index(
+    const DictObject& dict, int64_t key, size_t& index) {
+  if (dict.integer_index.empty()) return false;
+  const size_t mask = dict.integer_index.size() - 1;
+  size_t slot = dict_integer_slot(key, mask);
+  for (size_t probes = 0; probes < dict.integer_index.size(); ++probes) {
+    const size_t encoded = dict.integer_index[slot];
+    if (encoded == 0) return false;
+    const size_t candidate = encoded - 1;
+    if (candidate < dict.entries.size()) {
+      int64_t stored_key = 0;
+      if (dict_integer_key(dict.entries[candidate].first, stored_key) &&
+          stored_key == key) {
+        index = candidate;
+        return true;
+      }
+    }
+    slot = (slot + 1) & mask;
+  }
+  return false;
+}
+
 size_t dict_string_slot(size_t hash, size_t mask) {
   if constexpr (sizeof(size_t) > 4) hash ^= hash >> 32;
   return hash & mask;
@@ -583,7 +719,9 @@ void dict_string_index_insert_raw(const DictObject& dict, size_t hash, size_t en
 
 void ensure_key_indexes(const DictObject& dict) {
   if (dict.indexed_entry_count == dict.entries.size()) return;
-  dict.integer_index.clear();
+  size_t integer_capacity = 8;
+  while (integer_capacity < dict.entries.size() * 2) integer_capacity *= 2;
+  dict.integer_index.assign(integer_capacity, 0);
   size_t string_capacity = 8;
   while (string_capacity < dict.entries.size() * 2) string_capacity *= 2;
   dict.string_index.assign(string_capacity, 0);
@@ -592,7 +730,7 @@ void ensure_key_indexes(const DictObject& dict) {
   for (size_t i = 0; i < dict.entries.size(); ++i) {
     int64_t numeric_key = 0;
     if (dict_integer_key(dict.entries[i].first, numeric_key)) {
-      dict.integer_index.emplace(numeric_key, i);
+      dict_integer_index_insert_raw(dict, numeric_key, i);
     } else {
       dict.index_has_other_keys = true;
     }
@@ -603,6 +741,16 @@ void ensure_key_indexes(const DictObject& dict) {
     }
   }
   dict.indexed_entry_count = dict.entries.size();
+}
+
+void dict_integer_index_insert(
+    DictObject& dict, int64_t key, size_t entry_index) {
+  if (dict.integer_index.empty() || dict.entries.size() * 2 > dict.integer_index.size()) {
+    dict.indexed_entry_count = static_cast<size_t>(-1);
+    ensure_key_indexes(dict);
+    return;
+  }
+  dict_integer_index_insert_raw(dict, key, entry_index);
 }
 
 void dict_string_index_insert(DictObject& dict, size_t hash, size_t entry_index) {
@@ -638,11 +786,13 @@ bool dict_find_string_index(
 }
 
 void erase_dict_entry(DictObject& dict, size_t index) {
-  value_set_invalid(dict.entries[index].first);
-  value_set_invalid(dict.entries[index].second);
+  // Detach before decref: a removed value's finalizer may reenter this dict.
+  // All entry locations must already describe the post-removal dictionary.
+  auto removed = std::move(dict.entries[index]);
   dict.entries.erase(dict.entries.begin() + static_cast<std::ptrdiff_t>(index));
   dict.indexed_entry_count = static_cast<size_t>(-1);
   dict.runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
+  dict.intrinsic_hash_checked_entry_count = static_cast<size_t>(-1);
 }
 
 bool mapping_get_item(const Value& object, const Value& key, Value& out, std::string& error) {
@@ -680,8 +830,9 @@ bool mapping_get_item(const Value& object, const Value& key, Value& out, std::st
     int64_t numeric_key = 0;
     if (dict_integer_key(key, numeric_key)) {
       ensure_key_indexes(*dict);
-      if (const auto found = dict->integer_index.find(numeric_key); found != dict->integer_index.end()) {
-        value_assign_fast(out, dict->entries[found->second].second);
+      size_t found = 0;
+      if (dict_find_integer_index(*dict, numeric_key, found)) {
+        value_assign_fast(out, dict->entries[found].second);
         return true;
       }
       if (!dict->index_has_other_keys) {
@@ -739,6 +890,48 @@ bool mapping_get_item(const Value& object, const Value& key, Value& out, std::st
   return false;
 }
 
+bool mapping_get_integer_item_if_present(
+    const Value& object, int64_t key, Value& out) {
+  auto* dict = value_as_dict(object);
+  if (dict == nullptr) return false;
+  // A successful integer-index hit is definitive: equal Python dict keys
+  // cannot coexist. Misses deliberately fall through to runtime hashing and
+  // equality because non-integer user keys can compare equal to this integer.
+  ensure_key_indexes(*dict);
+  size_t found = 0;
+  if (!dict_find_integer_index(*dict, key, found)) return false;
+  value_assign_fast(out, dict->entries[found].second);
+  return true;
+}
+
+bool mapping_get_item_identity_key(
+    const Value& object, const Value& key, Value& out, std::string& error) {
+  // Classes and ordinary instances use stable identity hashes in this dict
+  // path. Do not skip hash computation for content-hashed objects such as
+  // tuples, whose hash can depend on the current contents of their members.
+  if ((value_as_class(key) != nullptr || value_as_instance(key) != nullptr) &&
+      value_as_mapping_proxy(object) == nullptr) {
+    auto* dict = value_as_dict(object);
+    if (dict != nullptr && dict->backing_module == nullptr) {
+      for (const auto& entry : dict->entries) {
+        if (entry.first.tag == ValueTag::Object && entry.first.as.obj == key.as.obj) {
+          value_assign_fast(out, entry.second);
+          return true;
+        }
+      }
+    }
+  }
+  return mapping_get_item(object, key, out, error);
+}
+
+DictObject* mapping_dict_storage(const Value& value) {
+  return dict_storage_from_value(value);
+}
+
+bool mapping_is_dict(const Value& value) {
+  return mapping_dict_storage(value) != nullptr;
+}
+
 bool mapping_get_string_item(
     const Value& object,
     std::string_view key,
@@ -767,6 +960,76 @@ bool mapping_get_string_item(
   }
   error = "object is not a dict: " + value_to_repr(object);
   return false;
+}
+
+bool mapping_get_intrinsic_item_if_present(
+    const Value& object, const Value& key, Value& out) {
+  auto* dict = dict_storage_from_value(object);
+  if (dict == nullptr || dict->backing_module != nullptr ||
+      !dict->intrinsic_hash_keys_only ||
+      dict->intrinsic_hash_checked_entry_count != dict->entries.size() ||
+      dict->runtime_hash_indexed_entry_count != dict->entries.size() ||
+      !intrinsic_index_key(key)) return false;
+  if (value_as_instance(object) != nullptr) {
+    // Guard current type lookup, including inherited-method replacement. Do
+    // not allocate a BoundMethod or trust the native method's display name.
+    Value method;
+    std::string error;
+    if (!object_get_class_attr_for_instance(object, "__getitem__", method, error)) return false;
+    const auto* native = value_as_native_function(method);
+    if (native == nullptr || !dict_is_canonical_getitem(*native)) return false;
+  }
+  size_t hash = 0;
+  std::string error;
+  if (!value_hash_key(key, hash, error)) return false;
+  const auto bucket = dict->runtime_hash_index.find(static_cast<int64_t>(hash));
+  if (bucket == dict->runtime_hash_index.end()) return false;
+  for (size_t index : bucket->second) {
+    if (value_key_equal(dict->entries[index].first, key)) {
+      // Query AND stored keys are callback-free. Own the result before out
+      // can release a finalizer, and do not touch borrowed dict/key afterward.
+      Value result = dict->entries[index].second;
+      value_assign_fast(out, result);
+      return true;
+    }
+  }
+  return false;
+}
+
+bool mapping_call_missing(
+    Runtime& runtime, const Value& object, const Value& key,
+    Value& out, std::string& error) {
+  auto* instance = value_as_instance(object);
+  if (instance == nullptr) {
+    error = "key not found";
+    return false;
+  }
+  Value method;
+  error.clear();
+  if (!object_get_class_attr_for_instance(object, "__missing__", method, error)) {
+    if (error.empty()) error = "key not found";
+    return false;
+  }
+  // CPython dict_subscript uses type lookup: instance attributes and custom
+  // __getattribute__ cannot replace this protocol. Ordinary Python methods
+  // (including Counter.__missing__) need no allocated BoundMethod or argument
+  // vector. Own method/self/key across callbacks and retain generic Python
+  // entry so code replacement, tracing, errors and nontrivial bodies work.
+  const auto* native = value_as_native_function(method);
+  if (value_as_function(method) != nullptr ||
+      (native != nullptr && native->bind_as_descriptor)) {
+    const Value args[2] = {object, key};
+    return runtime_call_callable(runtime, method, args, 2, out, error);
+  }
+  // Static/class methods and user descriptors keep the existing class-based
+  // binding path. A binding exception is a failure, never a missing key.
+  const Value owner = instance->klass;
+  Value bound;
+  if (!class_get_bound_attr(runtime, owner, object, "__missing__", bound, error)) {
+    return false;
+  }
+  const Value argument = key;
+  return runtime_call_callable(runtime, bound, &argument, 1, out, error);
 }
 
 bool mapping_get_item_runtime(
@@ -800,7 +1063,16 @@ bool mapping_get_item_runtime(
     }
     return mapping_get_item(object, key, out, error);
   }
-  if (!ensure_hashable(key, error)) return false;
+  const bool intrinsic_lookup = dict->intrinsic_hash_keys_only &&
+      dict->intrinsic_hash_checked_entry_count == dict->entries.size() &&
+      dict->runtime_hash_indexed_entry_count == dict->entries.size() &&
+      intrinsic_index_key(key);
+  // Counter's read/modify/write loop needs one hash and an intrinsic equality
+  // check, not a validation hash followed by Python comparison dispatch. Both
+  // the query AND every stored key must be callback-free; mixed dictionaries
+  // retain the runtime path. Subclass overrides above and __missing__ below
+  // still run. Invalidated indices are rebuilt through the original path.
+  if (!intrinsic_lookup && !ensure_hashable(key, error)) return false;
   if (auto* string_key = value_as_string(key)) {
     size_t found = 0;
     if (dict_find_string_index(
@@ -811,44 +1083,53 @@ bool mapping_get_item_runtime(
     }
     if (!dict->index_has_non_string_keys) {
       if (dispatch_override && value_as_instance(object) != nullptr) {
-        Value missing;
-        std::string attr_error;
-        if (object_get_attr(object, "__missing__", missing, attr_error)) {
-          return runtime_call_callable(runtime, missing, &key, 1, out, error);
-        }
+        return mapping_call_missing(runtime, object, key, out, error);
       }
       error = "key not found";
       return false;
     }
   }
-  int64_t key_hash = 0;
-  if (!runtime_mapping_hash(runtime, key, key_hash, error)) return false;
-  if (!ensure_runtime_hash_index(runtime, *dict, error)) return false;
-  const auto candidates = dict->runtime_hash_index.find(key_hash);
-  if (candidates != dict->runtime_hash_index.end()) {
-    for (size_t index : candidates->second) {
-      Value candidate_key = dict->entries[index].first;
-      Value candidate_value = dict->entries[index].second;
-      if (value_is(candidate_key, key)) {
-        value_assign_fast(out, candidate_value);
-        return true;
+  if (intrinsic_lookup) {
+    size_t hash = 0;
+    if (!value_hash_key(key, hash, error)) return false;
+    const auto candidates = dict->runtime_hash_index.find(static_cast<int64_t>(hash));
+    if (candidates != dict->runtime_hash_index.end()) {
+      for (size_t index : candidates->second) {
+        if (value_key_equal(dict->entries[index].first, key)) {
+          // Replacing out can release a finalizer that mutates this dictionary.
+          // Own the result before releasing out and never reuse entry references.
+          Value candidate_value = dict->entries[index].second;
+          value_assign_fast(out, candidate_value);
+          return true;
+        }
       }
-      Value equal;
-      if (!runtime_value_compare(runtime, "==", candidate_key, key, equal, error)) return false;
-      bool is_equal = false;
-      if (!runtime_truthy(runtime, equal, is_equal, error)) return false;
-      if (is_equal) {
-        value_assign_fast(out, candidate_value);
-        return true;
+    }
+  } else {
+    int64_t key_hash = 0;
+    if (!runtime_mapping_hash(runtime, key, key_hash, error)) return false;
+    if (!ensure_runtime_hash_index(runtime, *dict, error)) return false;
+    const auto candidates = dict->runtime_hash_index.find(key_hash);
+    if (candidates != dict->runtime_hash_index.end()) {
+      for (size_t index : candidates->second) {
+        Value candidate_key = dict->entries[index].first;
+        Value candidate_value = dict->entries[index].second;
+        if (value_is(candidate_key, key)) {
+          value_assign_fast(out, candidate_value);
+          return true;
+        }
+        Value equal;
+        if (!runtime_value_compare(runtime, "==", candidate_key, key, equal, error)) return false;
+        bool is_equal = false;
+        if (!runtime_truthy(runtime, equal, is_equal, error)) return false;
+        if (is_equal) {
+          value_assign_fast(out, candidate_value);
+          return true;
+        }
       }
     }
   }
   if (dispatch_override && value_as_instance(object) != nullptr) {
-    Value missing;
-    std::string attr_error;
-    if (object_get_attr(object, "__missing__", missing, attr_error)) {
-      return runtime_call_callable(runtime, missing, &key, 1, out, error);
-    }
+    return mapping_call_missing(runtime, object, key, out, error);
   }
   error = "key not found";
   return false;
@@ -923,14 +1204,19 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
         return true;
       }
       if (!dict->index_has_non_string_keys) {
-        Value owned_key;
-        Value owned_item;
-        value_assign_fast(owned_key, key);
-        value_assign_fast(owned_item, item);
-        dict->entries.push_back(std::make_pair(std::move(owned_key), std::move(owned_item)));
+        DictScalarAppendIndexes indexes(*dict, true);
+        // Copy constructors acquire ownership even for borrowed entry aliases.
+        // Keep the container and inputs alive through all index allocations;
+        // no entry/bucket reference survives their cleanup on return/unwind.
+        Value owned_container(object);
+        Value owned_key(key);
+        Value owned_item(item);
+        dict->entries.emplace_back(std::move(owned_key), std::move(owned_item));
+        indexes.append_runtime_bucket(*dict, indexed_string_hash);
         dict_string_index_insert(*dict, indexed_string_hash, dict->entries.size() - 1);
         dict->index_has_other_keys = true;
         dict->indexed_entry_count = dict->entries.size();
+        indexes.publish(*dict);
         return true;
       }
     }
@@ -938,21 +1224,79 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
     const bool indexed_numeric_key = dict_integer_key(key, numeric_key);
     if (indexed_numeric_key) {
       ensure_key_indexes(*dict);
-      if (const auto found = dict->integer_index.find(numeric_key); found != dict->integer_index.end()) {
-        value_assign_fast(dict->entries[found->second].second, item);
+      size_t found = 0;
+      if (dict_find_integer_index(*dict, numeric_key, found)) {
+        value_assign_fast(dict->entries[found].second, item);
         return true;
       }
       if (!dict->index_has_other_keys) {
-        Value owned_key;
-        Value owned_item;
-        value_assign_fast(owned_key, key);
-        value_assign_fast(owned_item, item);
-        dict->entries.push_back(std::make_pair(std::move(owned_key), std::move(owned_item)));
-        dict->integer_index.emplace(numeric_key, dict->entries.size() - 1);
+        // The existing integer-like probe admits more than physical Int64.
+        // Only physical values can extend buckets with a callback-free hash;
+        // subclass/payload writes keep the existing stale-index fallback.
+        // Flat growth inspects stored integer-like payloads, which can invoke
+        // native attribute hooks on Instances. Across that existing callback
+        // boundary keep runtime buckets stale unless the current whole-key-set
+        // proof excludes such keys. No-growth appends still extend mixed tables.
+        const bool integer_flat_growth = dict->integer_index.empty() ||
+            dict->entries.size() >= dict->integer_index.size() / 2;
+        const bool callback_free_flat_growth = !integer_flat_growth ||
+            (dict->intrinsic_hash_checked_entry_count == dict->entries.size() &&
+             dict->intrinsic_hash_keys_only);
+        DictScalarAppendIndexes indexes(*dict, key.tag == ValueTag::Int64,
+                                       callback_free_flat_growth);
+        Value owned_container(object);
+        Value owned_key(key);
+        Value owned_item(item);
+        size_t hash = 0;
+        if (indexes.runtime_was_fresh && !value_hash_key(owned_key, hash, error)) return false;
+        dict->entries.emplace_back(std::move(owned_key), std::move(owned_item));
+        indexes.append_runtime_bucket(*dict, hash);
+        dict_integer_index_insert(*dict, numeric_key, dict->entries.size() - 1);
         dict->index_has_non_string_keys = true;
         dict->indexed_entry_count = dict->entries.size();
+        indexes.publish(*dict);
         return true;
       }
+    }
+    // Tuple/bytes-heavy Python loops (including Counter updates) used to scan
+    // every entry on every write, making construction and updates quadratic.
+    // Keep strings/integers on their existing fast paths; reuse the read hash
+    // buckets for other intrinsic keys, with entries as the sole value owners.
+    // The whole-key-set guard proves that probing cannot reenter Python while
+    // holding bucket/entry references. Mixed or callback-bearing keys fall back.
+    if (!has_indexed_string_key && !indexed_numeric_key &&
+        intrinsic_index_key(key) && ensure_intrinsic_hash_index(*dict)) {
+      size_t raw_hash = 0;
+      if (!value_hash_key(key, raw_hash, error)) return false;
+      const auto hash = static_cast<int64_t>(raw_hash);
+      const auto candidates = dict->runtime_hash_index.find(hash);
+      if (candidates != dict->runtime_hash_index.end()) {
+        for (const size_t index : candidates->second) {
+          if (value_key_equal(dict->entries[index].first, key)) {
+            if (dict->entries[index].second.tag == ValueTag::Object) {
+              // Publish before releasing the old owner: its finalizer may clear
+              // or grow this dictionary. Retain aliased items first, detach the
+              // old value, then assign into an invalid slot without callbacks.
+              Value owned_item = item;
+              Value replaced = std::move(dict->entries[index].second);
+              dict->entries[index].second = std::move(owned_item);
+              return true;
+            }
+            value_assign_fast(dict->entries[index].second, item);
+            return true;
+          }
+        }
+      }
+      Value owned_key;
+      Value owned_item;
+      value_assign_fast(owned_key, key);
+      value_assign_fast(owned_item, item);
+      dict->entries.emplace_back(std::move(owned_key), std::move(owned_item));
+      dict->runtime_hash_index[hash].push_back(dict->entries.size() - 1);
+      dict->runtime_hash_indexed_entry_count = dict->entries.size();
+      dict->intrinsic_hash_checked_entry_count = dict->entries.size();
+      dict->indexed_entry_count = static_cast<size_t>(-1);
+      return true;
     }
     if (!has_indexed_string_key && !indexed_numeric_key && !ensure_hashable(key, error)) {
       return false;
@@ -970,7 +1314,7 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
     dict->entries.push_back(std::make_pair(std::move(owned_key), std::move(owned_item)));
     if (dict->indexed_entry_count + 1 == dict->entries.size()) {
       if (indexed_numeric_key) {
-        dict->integer_index.emplace(numeric_key, dict->entries.size() - 1);
+        dict_integer_index_insert(*dict, numeric_key, dict->entries.size() - 1);
       } else {
         dict->index_has_other_keys = true;
       }
@@ -1011,6 +1355,27 @@ bool mapping_set_item(Value& object, const Value& key, const Value& item, std::s
   }
   error = "object does not support item assignment";
   return false;
+}
+
+bool mapping_set_item_identity_key(Value& object, const Value& key,
+                                   const Value& item, std::string& error) {
+  // Identity-hashed class/instance keys can update their existing entry
+  // directly. Decimal signal classes are the new hot use: avoid running the
+  // generic key equality path for Rounded and Inexact without changing how
+  // content-hashed dictionary keys are handled.
+  if ((value_as_class(key) != nullptr || value_as_instance(key) != nullptr) &&
+      value_as_mapping_proxy(object) == nullptr) {
+    auto* dict = value_as_dict(object);
+    if (dict != nullptr && dict->backing_module == nullptr) {
+      for (auto& entry : dict->entries) {
+        if (entry.first.tag == key.tag && entry.first.as.obj == key.as.obj) {
+          value_assign_fast(entry.second, item);
+          return true;
+        }
+      }
+    }
+  }
+  return mapping_set_item(object, key, item, error);
 }
 
 bool mapping_set_item_runtime(
@@ -1127,6 +1492,25 @@ bool mapping_delete_item(Value& object, const Value& key, std::string& error) {
   return false;
 }
 
+bool mapping_delete_item_identity_key(Value& object, const Value& key,
+                                      std::string& error) {
+  // An existing instance key compares equal to itself by identity in the
+  // runtime's dict path. Preserve generic handling for misses and other maps.
+  if (value_as_instance(key) != nullptr && value_as_mapping_proxy(object) == nullptr) {
+    auto* dict = value_as_dict(object);
+    if (dict != nullptr && dict->backing_module == nullptr) {
+      for (size_t index = 0; index < dict->entries.size(); ++index) {
+        const auto& stored = dict->entries[index].first;
+        if (stored.tag == key.tag && stored.as.obj == key.as.obj) {
+          erase_dict_entry(*dict, index);
+          return true;
+        }
+      }
+    }
+  }
+  return mapping_delete_item(object, key, error);
+}
+
 bool mapping_get_iter(const Value& object, Value& out, std::string& error) {
   if (const Value* source = mapping_proxy_source(object)) {
     return mapping_get_iter(*source, out, error);
@@ -1173,47 +1557,69 @@ bool mapping_iter_next(Value& iterator, bool& done, Value& out, std::string& err
     value_assign_fast(it->source, *source);
   }
   auto* dict = dict_storage_from_value(it->source);
+  const auto finish = [&]() {
+    // Invalidate the iterator's source before replacing out: out may be the
+    // iterator's sole owner. Moving the source keeps teardown after the old
+    // output is released, without retaining another reference on exhaustion.
+    Value source = std::move(it->source);
+    done = true;
+    value_set_none(out);
+    return true;
+  };
+  if (dict != nullptr) {
+    if (it->index >= dict->entries.size()) return finish();
+    const auto& entry = dict->entries[static_cast<size_t>(it->index)];
+    Value yielded;
+    // Key/value iteration must not copy the whole entry. Graph traversals
+    // yield keys while values are owning objects; copying that unused value
+    // adds an atomic retain/release pair per edge. Retain only the selected
+    // result, then move it so borrowed/same-object outputs acquire ownership.
+    switch (it->kind) {
+      case DictIterationKind::Keys:
+        value_assign_fast(yielded, entry.first);
+        break;
+      case DictIterationKind::Values:
+        value_assign_fast(yielded, entry.second);
+        break;
+      case DictIterationKind::Items:
+        yielded = Value::tuple({entry.first, entry.second});
+        break;
+    }
+    // The destination can destroy the source or iterator. Advance before that
+    // assignment, and keep the result owning its data rather than borrowing
+    // an entry whose storage can disappear during destination cleanup.
+    ++it->index;
+    done = false;
+    value_move_assign_fast(out, yielded);
+    return true;
+  }
   auto* module = value_as_module(it->source);
   auto* klass = value_as_class(it->source);
-  if (dict == nullptr && module == nullptr && klass == nullptr) {
+  if (module == nullptr && klass == nullptr) {
     error = "dict iterator source is invalid";
     return false;
   }
   std::pair<Value, Value> entry;
-  if (dict != nullptr) {
-    if (it->index >= dict->entries.size()) {
-      done = true;
-      value_set_none(out);
-      value_set_invalid(it->source);
-      return true;
-    }
-    entry = dict->entries[static_cast<size_t>(it->index)];
-  } else if (module != nullptr) {
-    if (!module_entry_at(*module, it->index, entry)) {
-      done = true;
-      value_set_none(out);
-      value_set_invalid(it->source);
-      return true;
-    }
+  if (module != nullptr) {
+    if (!module_entry_at(*module, it->index, entry)) return finish();
   } else if (!class_entry_at(*klass, it->index, entry)) {
-    done = true;
-    value_set_none(out);
-    value_set_invalid(it->source);
-    return true;
+    return finish();
   }
+  Value yielded;
   switch (it->kind) {
     case DictIterationKind::Keys:
-      value_assign_fast(out, entry.first);
+      value_move_assign_fast(yielded, entry.first);
       break;
     case DictIterationKind::Values:
-      value_assign_fast(out, entry.second);
+      value_move_assign_fast(yielded, entry.second);
       break;
     case DictIterationKind::Items:
-      out = Value::tuple({entry.first, entry.second});
+      yielded = Value::tuple({entry.first, entry.second});
       break;
   }
   ++it->index;
   done = false;
+  value_move_assign_fast(out, yielded);
   return true;
 }
 
@@ -1302,7 +1708,8 @@ bool mapping_contains(const Value& container, const Value& item, bool& out, std:
     int64_t numeric_key = 0;
     if (dict_integer_key(item, numeric_key)) {
       ensure_key_indexes(*dict);
-      if (dict->integer_index.find(numeric_key) != dict->integer_index.end()) {
+      size_t found = 0;
+      if (dict_find_integer_index(*dict, numeric_key, found)) {
         out = true;
         return true;
       }
@@ -1350,14 +1757,23 @@ bool mapping_clear(Value& value, std::string& error) {
       module_value.as.obj = &dict->backing_module->header;
       return mapping_clear(module_value, error);
     }
-    dict->entries.clear();
+    // Publish the empty dictionary before releasing values that can finalize
+    // and insert new entries. Their writes must survive clear() and see fresh
+    // indices, rather than a vector partway through destroying its contents.
+    auto removed = std::move(dict->entries);
     dict->integer_index.clear();
     dict->runtime_hash_index.clear();
     dict->runtime_hash_indexed_entry_count = 0;
+    dict->intrinsic_hash_checked_entry_count = 0;
+    dict->intrinsic_hash_keys_only = true;
     dict->string_index.clear();
     dict->indexed_entry_count = 0;
     dict->index_has_other_keys = false;
     dict->index_has_non_string_keys = false;
+    removed.clear();
+    // Ordinary clear/reuse loops should keep their entry capacity. Restore it
+    // only if finalizers did not leave new entries in the published dictionary.
+    if (dict->entries.empty()) dict->entries.swap(removed);
     return true;
   }
   if (auto* module = value_as_module(value)) {
@@ -1399,6 +1815,7 @@ bool mapping_popitem(Value& value, Value& out, std::string& error) {
     dict->entries.pop_back();
     dict->indexed_entry_count = static_cast<size_t>(-1);
     dict->runtime_hash_indexed_entry_count = static_cast<size_t>(-1);
+    dict->intrinsic_hash_checked_entry_count = static_cast<size_t>(-1);
     out = Value::tuple({entry.first, entry.second});
     return true;
   }

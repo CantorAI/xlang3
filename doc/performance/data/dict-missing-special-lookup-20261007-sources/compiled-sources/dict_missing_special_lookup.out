@@ -1,0 +1,6 @@
+subscript and explicit dict getitem ignore instance missing attributes: OK
+type lookup ignores getattribute hooks and observes class mutation: OK
+user descriptors static class and property missing hooks bind correctly: OK
+descriptor exceptions retain their class message and Python traceback: OK
+membership get pop and setdefault use storage without subclass hooks: OK
+direct raw method dispatch retains Python tracing: OK

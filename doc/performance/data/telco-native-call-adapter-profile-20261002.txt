@@ -1,0 +1,394 @@
+Control runtime (no Decimal fast callback)
+Traceback (most recent call last):
+  File "benchmarks\diagnostics\telco_decimal_profile.py", line 61, in <module>
+    print("one_telco_loop_seconds", bench_telco(sys.argv[1]))
+                                    ~~~~~~~~~~~^^^^^^^^^^^^^
+  File "benchmarks\diagnostics\telco_decimal_profile.py", line 23, in bench_telco
+    with open(filename, "rb") as infil:
+         ~~~~^^^^^^^^^^^^^^^^
+FileNotFoundError: No such file or directory
+perf: native_calls=6977 fast=6547 cached_fast=1616
+perf: native int.__new__ slow=35 fast=78
+perf: native __xlang3_build_class_from_namespace__ slow=2 fast=103
+perf: native type.__new__ slow=36 fast=0
+perf: native sorted slow=25 fast=0
+perf: native itertools.product slow=24 fast=0
+perf: native _sre.unicode_iscased slow=19 fast=0
+perf: native itertools.permutations slow=18 fast=0
+perf: native _sre.unicode_tolower slow=17 fast=0
+perf: native bytearray.translate slow=10 fast=0
+perf: native bytes.decode slow=9 fast=0
+perf: native str.__new__ slow=7 fast=0
+perf: native _codecs.lookup_error slow=6 fast=0
+perf: native _sre.Pattern.findall slow=4 fast=0
+perf: native compile slow=4 fast=0
+perf: native eval slow=4 fast=0
+perf: native print slow=4 fast=0
+perf: native tuple.__new__ slow=3 fast=0
+perf: native _codecs.register slow=2 fast=0
+perf: native _functools._lru_cache_wrapper slow=2 fast=0
+perf: native code.co_positions slow=2 fast=0
+perf: native itertools.islice slow=2 fast=0
+perf: native open slow=2 fast=0
+perf: native type.__or__ slow=2 fast=0
+perf: native __import__ slow=1 fast=0
+perf: native _contextvars.ContextVar.get slow=1 fast=0
+perf: native _contextvars.ContextVar.set slow=1 fast=0
+perf: native _io.TextIOWrapper.__enter__ slow=1 fast=0
+perf: native _io.TextIOWrapper.__exit__ slow=1 fast=0
+perf: native _io.TextIOWrapper.readlines slow=1 fast=0
+perf: native bytes.startswith slow=1 fast=0
+perf: native file.readline slow=1 fast=0
+perf: native file.seek slow=1 fast=0
+perf: native generator.close slow=1 fast=0
+perf: native list.__init__ slow=1 fast=0
+perf: native os.stat slow=1 fast=0
+perf: store_local moves=8951 copies=6888
+perf: frame_snapshots calls=3 frames=6 locals=0 refresh_calls=31 refresh_items=50
+perf: opcode 0 11538
+perf: opcode 1 2345
+perf: opcode 2 11220
+perf: opcode 3 11989
+perf: opcode 4 34
+perf: opcode 5 182
+perf: opcode 6 68
+perf: opcode 7 179
+perf: opcode 8 249
+perf: opcode 9 133
+perf: opcode 10 586
+perf: opcode 11 3
+perf: opcode 12 5
+perf: opcode 13 2574
+perf: opcode 15 66
+perf: opcode 17 18
+perf: opcode 18 6040
+perf: opcode 19 1080
+perf: opcode 20 65
+perf: opcode 22 79
+perf: opcode 23 9
+perf: opcode 25 1207
+perf: opcode 26 4515
+perf: opcode 30 32
+perf: opcode 31 1375
+perf: opcode 32 2
+perf: opcode 33 34
+perf: opcode 35 1632
+perf: opcode 36 604
+perf: opcode 37 331
+perf: opcode 38 40
+perf: opcode 39 522
+perf: opcode 40 235
+perf: opcode 41 2
+perf: opcode 42 1927
+perf: opcode 45 1
+perf: opcode 46 1586
+perf: opcode 47 4652
+perf: opcode 48 950
+perf: opcode 49 1
+perf: opcode 50 1532
+perf: opcode 51 914
+perf: opcode 52 604
+perf: opcode 54 2330
+perf: opcode 55 665
+perf: opcode 56 144
+perf: opcode 59 2
+perf: opcode 60 148
+perf: opcode 62 2
+perf: opcode 63 676
+perf: opcode 64 80
+perf: opcode 65 8
+perf: opcode 66 3
+perf: opcode 70 2362
+perf: opcode 71 881
+perf: opcode 72 3055
+perf: opcode 73 338
+perf: opcode 74 555
+perf: opcode 75 43
+perf: opcode 76 7664
+perf: opcode 77 9635
+perf: opcode 78 2737
+perf: opcode 79 2100
+perf: opcode 80 5
+perf: opcode 81 1969
+perf: opcode 82 1
+perf: opcode 84 4
+perf: opcode 85 34
+perf: opcode 86 2
+perf: opcode 87 1
+perf: opcode 88 56
+perf: opcode 89 79
+perf: opcode 90 2837
+perf: opcode 91 15
+perf: opcode 92 176
+perf: opcode 93 6838
+perf: opcode 95 114
+perf: opcode 96 13
+perf: opcode 97 5354
+perf: opcode 98 2089
+perf: opcode 99 11
+perf: opcode 101 91
+perf: opcode 102 80
+perf: opcode 105 9518
+perf: opcode 106 6030
+perf: opcode 107 2708
+perf: opcode 108 528
+perf: opcode 109 92
+perf: opcode 110 9132
+perf: opcode 111 1306
+perf: opcode 112 1954
+perf: opcode 113 1278
+perf: opcode 114 2327
+perf: opcode 115 2608
+perf: opcode 116 182
+perf: opcode 117 1335
+perf: opcode 118 3094
+perf: opcode 119 1811
+perf: opcode 120 3177
+perf: opcode 121 2272
+perf: opcode 122 531
+perf: opcode 125 400
+perf: opcode 126 908
+perf: opcode 127 226
+perf: opcode 129 147
+perf: opcode 130 145
+perf: opcode 131 1655
+perf: opcode 139 276
+perf: opcode 141 1758
+perf: opcode 146 20
+perf: objects kind alloc final_release incref decref
+perf: String 8205 2819 16016 17441
+perf: BigInt 47 46 731 777
+perf: Bytes 5627 5604 3865 9451
+perf: ByteArray 142 142 109 251
+perf: Slice 522 522 101 623
+perf: Tuple 4392 4066 8470 12361
+perf: List 917 760 4812 5549
+perf: Dict 860 621 3175 3724
+perf: Unknown 118 103 31 134
+perf: Set 168 121 1230 1348
+perf: DictValuesView 1 1 1 2
+perf: DictItemsView 32 32 1 33
+perf: DictIterator 132 132 0 132
+perf: SetIterator 15 15 0 15
+perf: Range 178 178 4 182
+perf: RangeIterator 101 101 0 101
+perf: SequenceIterator 1040 1040 15 1055
+perf: Unknown 9 9 9 18
+perf: Unknown 1 1 1 2
+perf: Unknown 11 11 11 22
+perf: Generator 33 33 65 98
+perf: Module 38 0 18837 16101
+perf: Cell 273 212 556 762
+perf: Function 1375 110 8875 8651
+perf: NativeFunction 99 18 19520 19248
+perf: Class 181 4 18347 16601
+perf: Instance 769 528 25793 25600
+perf: BoundMethod 8043 8034 561 8585
+perf: StaticMethod 30 1 833 834
+perf: ClassMethod 33 0 388 387
+perf: Super 207 207 0 207
+perf: SlotDescriptor 31 0 902 902
+perf: Property 47 0 766 762
+perf: Unknown 1424 1424 17 1441
+perf: Unknown 79 79 332 411
+perf: Unknown 60 60 80 139
+perf: File 1 1 7419 7420
+perf: Unknown 4 4 0 4
+decimal native fast/fallback counts: binary=0/0 quantize=0/0
+Candidate runtime (stack-backed Decimal fast callback)
+Traceback (most recent call last):
+  File "benchmarks\diagnostics\telco_decimal_profile.py", line 61, in <module>
+    print("one_telco_loop_seconds", bench_telco(sys.argv[1]))
+                                    ~~~~~~~~~~~^^^^^^^^^^^^^
+  File "benchmarks\diagnostics\telco_decimal_profile.py", line 23, in bench_telco
+    with open(filename, "rb") as infil:
+         ~~~~^^^^^^^^^^^^^^^^
+FileNotFoundError: No such file or directory
+perf: native_calls=6977 fast=6547 cached_fast=1616
+perf: native int.__new__ slow=35 fast=78
+perf: native __xlang3_build_class_from_namespace__ slow=2 fast=103
+perf: native type.__new__ slow=36 fast=0
+perf: native sorted slow=25 fast=0
+perf: native itertools.product slow=24 fast=0
+perf: native _sre.unicode_iscased slow=19 fast=0
+perf: native itertools.permutations slow=18 fast=0
+perf: native _sre.unicode_tolower slow=17 fast=0
+perf: native bytearray.translate slow=10 fast=0
+perf: native bytes.decode slow=9 fast=0
+perf: native str.__new__ slow=7 fast=0
+perf: native _codecs.lookup_error slow=6 fast=0
+perf: native _sre.Pattern.findall slow=4 fast=0
+perf: native compile slow=4 fast=0
+perf: native eval slow=4 fast=0
+perf: native print slow=4 fast=0
+perf: native tuple.__new__ slow=3 fast=0
+perf: native _codecs.register slow=2 fast=0
+perf: native _functools._lru_cache_wrapper slow=2 fast=0
+perf: native code.co_positions slow=2 fast=0
+perf: native itertools.islice slow=2 fast=0
+perf: native open slow=2 fast=0
+perf: native type.__or__ slow=2 fast=0
+perf: native __import__ slow=1 fast=0
+perf: native _contextvars.ContextVar.get slow=1 fast=0
+perf: native _contextvars.ContextVar.set slow=1 fast=0
+perf: native _io.TextIOWrapper.__enter__ slow=1 fast=0
+perf: native _io.TextIOWrapper.__exit__ slow=1 fast=0
+perf: native _io.TextIOWrapper.readlines slow=1 fast=0
+perf: native bytes.startswith slow=1 fast=0
+perf: native file.readline slow=1 fast=0
+perf: native file.seek slow=1 fast=0
+perf: native generator.close slow=1 fast=0
+perf: native list.__init__ slow=1 fast=0
+perf: native os.stat slow=1 fast=0
+perf: store_local moves=8951 copies=6888
+perf: frame_snapshots calls=3 frames=6 locals=0 refresh_calls=31 refresh_items=50
+perf: opcode 0 11538
+perf: opcode 1 2345
+perf: opcode 2 11220
+perf: opcode 3 11989
+perf: opcode 4 34
+perf: opcode 5 182
+perf: opcode 6 68
+perf: opcode 7 179
+perf: opcode 8 249
+perf: opcode 9 133
+perf: opcode 10 586
+perf: opcode 11 3
+perf: opcode 12 5
+perf: opcode 13 2574
+perf: opcode 15 66
+perf: opcode 17 18
+perf: opcode 18 6040
+perf: opcode 19 1080
+perf: opcode 20 65
+perf: opcode 22 79
+perf: opcode 23 9
+perf: opcode 25 1207
+perf: opcode 26 4515
+perf: opcode 30 32
+perf: opcode 31 1375
+perf: opcode 32 2
+perf: opcode 33 34
+perf: opcode 35 1632
+perf: opcode 36 604
+perf: opcode 37 331
+perf: opcode 38 40
+perf: opcode 39 522
+perf: opcode 40 235
+perf: opcode 41 2
+perf: opcode 42 1927
+perf: opcode 45 1
+perf: opcode 46 1586
+perf: opcode 47 4652
+perf: opcode 48 950
+perf: opcode 49 1
+perf: opcode 50 1532
+perf: opcode 51 914
+perf: opcode 52 604
+perf: opcode 54 2330
+perf: opcode 55 665
+perf: opcode 56 144
+perf: opcode 59 2
+perf: opcode 60 148
+perf: opcode 62 2
+perf: opcode 63 676
+perf: opcode 64 80
+perf: opcode 65 8
+perf: opcode 66 3
+perf: opcode 70 2362
+perf: opcode 71 881
+perf: opcode 72 3055
+perf: opcode 73 338
+perf: opcode 74 555
+perf: opcode 75 43
+perf: opcode 76 7664
+perf: opcode 77 9635
+perf: opcode 78 2737
+perf: opcode 79 2100
+perf: opcode 80 5
+perf: opcode 81 1969
+perf: opcode 82 1
+perf: opcode 84 4
+perf: opcode 85 34
+perf: opcode 86 2
+perf: opcode 87 1
+perf: opcode 88 56
+perf: opcode 89 79
+perf: opcode 90 2837
+perf: opcode 91 15
+perf: opcode 92 176
+perf: opcode 93 6838
+perf: opcode 95 114
+perf: opcode 96 13
+perf: opcode 97 5354
+perf: opcode 98 2089
+perf: opcode 99 11
+perf: opcode 101 91
+perf: opcode 102 80
+perf: opcode 105 9518
+perf: opcode 106 6030
+perf: opcode 107 2708
+perf: opcode 108 528
+perf: opcode 109 92
+perf: opcode 110 9132
+perf: opcode 111 1306
+perf: opcode 112 1954
+perf: opcode 113 1278
+perf: opcode 114 2327
+perf: opcode 115 2608
+perf: opcode 116 182
+perf: opcode 117 1335
+perf: opcode 118 3094
+perf: opcode 119 1811
+perf: opcode 120 3177
+perf: opcode 121 2272
+perf: opcode 122 531
+perf: opcode 125 400
+perf: opcode 126 908
+perf: opcode 127 226
+perf: opcode 129 147
+perf: opcode 130 145
+perf: opcode 131 1655
+perf: opcode 139 276
+perf: opcode 141 1758
+perf: opcode 146 20
+perf: objects kind alloc final_release incref decref
+perf: String 8205 2819 16016 17441
+perf: BigInt 47 46 731 777
+perf: Bytes 5627 5604 3865 9451
+perf: ByteArray 142 142 109 251
+perf: Slice 522 522 101 623
+perf: Tuple 4392 4066 8470 12361
+perf: List 917 760 4812 5549
+perf: Dict 860 621 3175 3724
+perf: Unknown 118 103 31 134
+perf: Set 168 121 1230 1348
+perf: DictValuesView 1 1 1 2
+perf: DictItemsView 32 32 1 33
+perf: DictIterator 132 132 0 132
+perf: SetIterator 15 15 0 15
+perf: Range 178 178 4 182
+perf: RangeIterator 101 101 0 101
+perf: SequenceIterator 1040 1040 15 1055
+perf: Unknown 9 9 9 18
+perf: Unknown 1 1 1 2
+perf: Unknown 11 11 11 22
+perf: Generator 33 33 65 98
+perf: Module 38 0 18837 16101
+perf: Cell 273 212 556 762
+perf: Function 1375 110 8875 8651
+perf: NativeFunction 99 18 19520 19248
+perf: Class 181 4 18347 16601
+perf: Instance 769 528 25793 25600
+perf: BoundMethod 8043 8034 561 8585
+perf: StaticMethod 30 1 833 834
+perf: ClassMethod 33 0 388 387
+perf: Super 207 207 0 207
+perf: SlotDescriptor 31 0 902 902
+perf: Property 47 0 766 762
+perf: Unknown 1424 1424 17 1441
+perf: Unknown 79 79 332 411
+perf: Unknown 60 60 80 139
+perf: File 1 1 7419 7420
+perf: Unknown 4 4 0 4
+decimal native fast/fallback counts: binary=0/0 quantize=0/0

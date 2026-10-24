@@ -1,0 +1,121 @@
+{
+  "workspace_sha": "1813203c8c7fa08538b93b362a1392152d48e55a",
+  "scope": "Unscored owned-main-thread sampling on CantorAI003; no acceptance timings or kernel recording",
+  "native_exit_code": 0,
+  "exit_evidence": "Capture controller reached sampling_complete and report-output assertion after its nonzero-native-exit check",
+  "capture_report_error": "Incorrect hand-written expected graph size1000/999; original source and stdout hash prove999/998",
+  "original_workload_stdout_sha256": "a092e10fa7a4da995fac583d4d645b13e52cf812347270f4bad69146728095cf",
+  "initial_thread_count": 1,
+  "total_samples": 25377,
+  "runtime_samples": 16396,
+  "unresolved_runtime_samples": 0,
+  "top_functions": [
+    {
+      "function": "ntdll.dll",
+      "samples": 8073
+    },
+    {
+      "function": "std::vector<__int64,std::allocator<__int64> >::_Construct_n<__int64 const & __ptr64>",
+      "samples": 4417
+    },
+    {
+      "function": "xlang3::class_has_module_root",
+      "samples": 3759
+    },
+    {
+      "function": "xlang3::collect_isolated_class_component",
+      "samples": 2835
+    },
+    {
+      "function": "xlang3::gc_snapshot_tracked_objects",
+      "samples": 950
+    },
+    {
+      "function": "std::vector<xlang3::ClassObject * __ptr64,std::allocator<xlang3::ClassObject * __ptr64> >::_Emplace_reallocate<xlang3::ClassObject * __ptr64 const & __ptr64>",
+      "samples": 585
+    },
+    {
+      "function": "ucrtbase.dll",
+      "samples": 506
+    },
+    {
+      "function": "xlang3::mapping_get_string_item",
+      "samples": 479
+    },
+    {
+      "function": "std::vector<std::vector<unsigned __int64,std::allocator<unsigned __int64> >,std::allocator<std::vector<unsigned __int64,std::allocator<unsigned __int64> > > >::emplace_back<>",
+      "samples": 406
+    },
+    {
+      "function": "xlang3::set_note_content_change",
+      "samples": 402
+    },
+    {
+      "function": "VCRUNTIME140.dll",
+      "samples": 371
+    },
+    {
+      "function": "xlang3::dict_find_string_index",
+      "samples": 288
+    },
+    {
+      "function": "std::_Destroy_range<std::allocator<xlang3::Value> >",
+      "samples": 249
+    },
+    {
+      "function": "xlang3::Value::operator=",
+      "samples": 245
+    },
+    {
+      "function": "std::vector<__int64,std::allocator<__int64> >::vector<__int64,std::allocator<__int64> ><std::allocator<__int64>,0>",
+      "samples": 189
+    },
+    {
+      "function": "std::_Hash<std::_Umap_traits<xlang3::Object * __ptr64,unsigned int,std::_Uhash_compare<xlang3::Object * __ptr64,std::hash<xlang3::Object * __ptr64>,std::equal_to<xlang3::Object * __ptr64> >,std::allocator<std::pair<xlang3::Object * __ptr64 const,unsigned int> >,0> >::_Forced_rehash",
+      "samples": 160
+    },
+    {
+      "function": "xlang3::Value::file",
+      "samples": 156
+    },
+    {
+      "function": "xlang3::collect_class_hierarchy",
+      "samples": 138
+    },
+    {
+      "function": "std::_Hash_vec<std::allocator<std::_List_unchecked_const_iterator<std::_List_val<std::_List_simple_types<xlang3::ClassObject * __ptr64> >,std::_Iterator_base0> > >::_Assign_grow",
+      "samples": 132
+    },
+    {
+      "function": "operator new",
+      "samples": 115
+    },
+    {
+      "function": "std::_Hash<std::_Uset_traits<xlang3::ClassObject * __ptr64,std::_Uhash_compare<xlang3::ClassObject * __ptr64,std::hash<xlang3::ClassObject * __ptr64>,std::equal_to<xlang3::ClassObject * __ptr64> >,std::allocator<xlang3::ClassObject * __ptr64>,0> >::emplace<xlang3::ClassObject * __ptr64 const & __ptr64>",
+      "samples": 92
+    },
+    {
+      "function": "std::vector<std::vector<unsigned __int64,std::allocator<unsigned __int64> >,std::allocator<std::vector<unsigned __int64,std::allocator<unsigned __int64> > > >::_Tidy",
+      "samples": 80
+    },
+    {
+      "function": "xlang3::object_model_class_is_live",
+      "samples": 75
+    },
+    {
+      "function": "xlang3::Runtime::synchronize_modules_from_registry",
+      "samples": 56
+    },
+    {
+      "function": "std::vector<std::vector<unsigned __int64,std::allocator<unsigned __int64> >,std::allocator<std::vector<unsigned __int64,std::allocator<unsigned __int64> > > >::vector<std::vector<unsigned __int64,std::allocator<unsigned __int64> >,std::allocator<std::vector<unsigned __int64,std::allocator<unsigned __int64> > > >",
+      "samples": 46
+    }
+  ],
+  "native_binary_sha256": {
+    "xlang3.exe": "28df08842e3782a3a03c963d832f8548b40c498c10850573c4f579b9f1548e7f",
+    "xlang3_runtime.dll": "ace22d3f65a6fc85215d4e3d902fe94119e0cd08837d5ddf7c5941d89dacd372"
+  },
+  "pdb_sha256": "3dd03f7c357453c9c6df93dbea988275bd78dc593369165cd76ad952b2a7825b",
+  "application_installed": false,
+  "service_changed": false
+}

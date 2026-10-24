@@ -1,0 +1,9 @@
+vm-time: clock_pair_mean_ns=14
+vm-time: opcode=233 calls=55986 self_ns=2620943100 total_ns=14848477300
+vm-time: opcode=227 calls=55987 self_ns=83982800 total_ns=83982800
+vm-time: opcode=232 calls=55987 self_ns=77560500 total_ns=14928202200
+vm-time: opcode=230 calls=55987 self_ns=40378200 total_ns=40378200
+vm-time: opcode=226 calls=55987 self_ns=14891600 total_ns=15095934000
+vm-time: opcode=229 calls=55987 self_ns=14531100 total_ns=14531100
+vm-time: opcode=231 calls=55987 self_ns=2219100 total_ns=2219100
+vm-time: opcode=228 calls=55987 self_ns=1019400 total_ns=1019400

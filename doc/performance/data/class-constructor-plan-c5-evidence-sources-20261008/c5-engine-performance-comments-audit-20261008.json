@@ -1,0 +1,98 @@
+{
+  "status": "bounded_static_comment_audit_complete",
+  "source_inventory": "doc/performance/data/class-constructor-plan-c5-applied-source-20261008.json",
+  "source_inventory_sha256": "69aaf03539202bbc7fced4dfe46df5f3a801a6d40b8e0360a68245de6ce71937",
+  "source_changes": false,
+  "runtime_execution": false,
+  "build_execution": false,
+  "result": "The current owned engine changes explain their essential performance and lifetime invariants. No missing comment blocks the current trial. One optional cache-miss policy clarification would help future optimization work; it is proposed below without changing sources.",
+  "preserved_explanations": [
+    {
+      "file": "src/builtins/functional_builtins.cpp",
+      "line": 3016,
+      "invariant": "sorted owns its formal key before iteration and retains it through comparisons, output replacement and cleanup. The explanation prevents reintroducing a collection-only lifetime pin or the rejected Interpreter wrapper lease."
+    },
+    {
+      "file": "src/executor/xlang_vm/xlang_interpreter.cpp",
+      "line": 25,
+      "invariant": "Liveness proof construction and CAS retry stay in the cold separate translation unit, while cached metadata access remains in the frame header. The constructor-only whitelist comment explains why unsupported/fused/handler/iterator paths retain arguments."
+    },
+    {
+      "file": "src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "line": 1132,
+      "invariant": "A fresh constructor self is locally owned; only proven dead explicit arguments move. This preserves finalizer timing without adding general per-opcode retirement or changing ordinary function transfer."
+    },
+    {
+      "file": "src/executor/xlang_vm/xlang_vm_loop.cpp",
+      "line": 1628,
+      "invariant": "Inherited handled exception state is seeded once at normal native/embedding entry. Generator/pause policy and opcode hot paths retain their existing behavior."
+    },
+    {
+      "file": "src/internal/xlang3/object_model.h",
+      "line": 42,
+      "invariant": "Process-wide class versions identify lifetime and attribute state, preventing pointer-address reuse from validating a non-owning cache. The class-owned constructor record explicitly contains no Python owners."
+    },
+    {
+      "file": "src/internal/xlang3/object_model.h",
+      "line": 75,
+      "invariant": "Original own slot declarations and explicit layout origin are immutable history; mutable __slots__, flattened layout and descriptor deletion cannot manufacture proof. Inferred/native storage keeps its legacy fallback."
+    },
+    {
+      "file": "src/executor/xlang_vm/xlang_vm_inline_call.h",
+      "line": 1291,
+      "invariant": "Explicit-slot IR retains dynamic stores. Only complete own canonical descriptor proof converts names into physical indices; deleting a restricted-layout guard alone is unsafe. Duplicate physical stores and unused arguments decline to preserve finalizer boundaries."
+    },
+    {
+      "file": "src/executor/xlang_vm/xlang_vm_inline_call.h",
+      "line": 1383,
+      "invariant": "The complete plan is validated before writes into fresh Invalid slots; unsupported state must have no side effect."
+    },
+    {
+      "file": "src/executor/xlang_vm/xlang_vm_inline_call.h",
+      "line": 1393,
+      "invariant": "Persistent publication follows successful ordinary selection and full own-slot proof. Absent abstract/enum entries are stable under generations; empty mutable marker containers are not a negative certificate."
+    },
+    {
+      "file": "src/executor/xlang_vm/xlang_vm_inline_call.h",
+      "line": 1424,
+      "invariant": "Default native __new__ is stored in an exact StaticMethod. Direct stored-target inspection avoids executing descriptors or admitting wrapped Python functions during publication."
+    },
+    {
+      "file": "src/executor/xlang_vm/xlang_vm_inline_call.h",
+      "line": 1458,
+      "invariant": "Runtime class/type/object identities and live generations are checked before weak initializer dereference. Current owning __init__ identity covers isolated class collection that clears cyclic attrs without retagging. Argument validation precedes speculative allocation, and a transient initializer owner survives old-output finalizers."
+    },
+    {
+      "file": "src/executor/xlang_vm/ops/xlang_vm_ops_call.h",
+      "line": 3479,
+      "invariant": "Class-owned plans survive short callback frames without Python roots; after completed output publication no borrowed class plan, initializer or argument is revisited."
+    },
+    {
+      "file": "src/runtime/runtime.cpp",
+      "line": 1164,
+      "invariant": "Profile settings are current-thread settings, not restored frame settings. Old owners are unpublished before new mirrors are published, then retired after publication; this confines work to the cold setter and tolerates reentry."
+    },
+    {
+      "file": "src/sema/lower.cpp",
+      "line": 5411,
+      "invariant": "Successful synthetic class frames release their own namespace before decorators, while escaped locals/frames and annotation closures keep independent owners. Explicit register replacement is required because Pop is a no-op and conservative loop liveness can otherwise retain it."
+    },
+    {
+      "file": "src/internal/xlang3/pyc_magic.h",
+      "line": 21,
+      "invariant": "Source cache generation changes for lowering semantics and owner lifetimes as well as IR encoding/layout changes; structurally valid old caches are not semantically valid after correction."
+    }
+  ],
+  "optional_clarification": {
+    "file": "src/executor/xlang_vm/xlang_vm_inline_call.h",
+    "near_symbol": "xlang_vm_try_class_canonical_slot_constructor",
+    "suggested_comment": "On a guard miss leave the scalar plan inert. It owns no Python values; replace it only after successful cold selection/proof, rather than adding cleanup and allocation to repeated misses.",
+    "reason": "The existing comments establish ownerlessness and weak-pointer guard order, but do not explicitly state why stale scalar nodes deliberately remain installed after a miss. This is a performance policy, not a new semantic requirement or acceptance blocker.",
+    "implemented": false
+  },
+  "limits": [
+    "This audits explanations only and does not certify performance gains or completed validation.",
+    "The rejected scoped Interpreter reuse, weak-module cache retention, tiny inline-buffer resizing and per-opcode retirement trials must not be restored merely because cleanup appears in a sampled range.",
+    "Lazy method annotations currently use the existing static alias/cell model. Forward/live class namespace mutation parity remains bounded future correctness work, not a completed guarantee of this checkpoint."
+  ]
+}

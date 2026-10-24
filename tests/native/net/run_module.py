@@ -10,7 +10,7 @@ import time
 
 EXPECTED = [
     "True", "200", "hello", "small", "True", "65536", "True", "4",
-    "True", "True", "200", "hello", "True", "200",
+    "True", "True", "True", "True", "200", "hello", "True", "200",
 ]
 
 

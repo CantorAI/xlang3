@@ -29,6 +29,9 @@ limitations under the License.
 
 namespace xlang3 {
 
+struct CallArgsView;
+class XlangRuntimeExecutionGuard;
+
 namespace ir {
 struct Module;
 }
@@ -160,6 +163,20 @@ using NativeFastCallCallback = bool (*)(
     std::string& error,
     void* user_data);
 
+// Some native keyword methods have one stable, common shape that can consume
+// VM registers directly. The predicate is side-effect free and runs before
+// monitoring events; the callback runs after the call is observable. It owns
+// lock management and must copy any VM-backed values before releasing the
+// execution lock for runtime re-entry.
+using NativeFastKeywordPredicate = bool (*)(const CallArgsView& values);
+using NativeFastKeywordCallCallback = bool (*)(
+    Runtime& runtime,
+    const CallArgsView& values,
+    XlangRuntimeExecutionGuard& execution_lock,
+    Value& out,
+    std::string& error,
+    void* user_data);
+
 struct NativeFunctionObject {
   Object header;
   uint32_t native_id = 0;
@@ -168,6 +185,8 @@ struct NativeFunctionObject {
   NativeFunctionCallback callback = nullptr;
   NativeKeywordFunctionCallback keyword_callback = nullptr;
   NativeFastCallCallback fast_callback = nullptr;
+  NativeFastKeywordPredicate fast_keyword_predicate = nullptr;
+  NativeFastKeywordCallCallback fast_keyword_callback = nullptr;
   bool fast_releases_vm_lock = false;
   bool bind_as_descriptor = true;
   bool capture_expressions = false;
@@ -177,6 +196,10 @@ struct NativeFunctionObject {
   Value* attrs_dict = nullptr;
 };
 
+inline constexpr uintptr_t kStringAsciiFlag = 1;
+inline constexpr uintptr_t kStringImmortalFlag = 2;
+inline constexpr uintptr_t kStringMetadataFlags = 3;
+
 struct StringObject {
   Object header;
   uint32_t size = 0;
@@ -185,8 +208,11 @@ struct StringObject {
   // Strings are immutable after construction. Cache their hash so repeated
   // mapping and set lookups do not rescan the bytes.
   mutable std::atomic_size_t cached_hash{static_cast<size_t>(-1)};
-  std::atomic_bool immortal{false};
-  bool ascii = false;
+  // Keep the lazy Unicode index in the former flags/padding word. Growing
+  // every ASCII string header just to accelerate rare Unicode inputs would
+  // penalize allocations across otherwise unrelated Python workloads.
+  // Index pointers are aligned; only their two low bits hold ASCII/immortal.
+  mutable std::atomic_uintptr_t unicode_metadata{0};
   // Immutable string bytes follow this object in the same allocation block.
 };
 
@@ -206,6 +232,7 @@ struct BytesObject {
   uint32_t size = 0;
   uint32_t alloc_size = 0;
   memory::X3BucketAllocator* allocator = nullptr;
+  mutable std::atomic<size_t> cached_hash{static_cast<size_t>(-1)};
   // Immutable bytes follow this object in the same allocation block.
 };
 
@@ -508,7 +535,22 @@ struct TupleObject {
   uint32_t alloc_size = 0;
   memory::X3BucketAllocator* allocator = nullptr;
   TupleItems items;
+  // Only completed, callback-free immutable keys publish this cache. Runtime
+  // and non-runtime hashing disagree for user objects, so their hashes must
+  // never enter this shared slot. Atomics permit simultaneous read-only hashes.
+  mutable std::atomic<size_t> cached_intrinsic_hash{static_cast<size_t>(-1)};
+  bool construction_complete = false;
 };
+
+XLANG3_HOT_INLINE void tuple_object_begin_construction(TupleObject& object) {
+  object.cached_intrinsic_hash.store(static_cast<size_t>(-1), std::memory_order_relaxed);
+  object.construction_complete = false;
+}
+
+XLANG3_HOT_INLINE void tuple_object_complete_construction(TupleObject& object) {
+  object.cached_intrinsic_hash.store(static_cast<size_t>(-1), std::memory_order_relaxed);
+  object.construction_complete = true;
+}
 
 struct CellObject {
   Object header;
@@ -518,10 +560,20 @@ struct CellObject {
 struct FunctionObject {
   Object header;
   uint32_t function_id = 0;
+  // Body-derived VM specializations retain this generation. __code__ writes
+  // advance it so cached signatures/IR plans rebuild without disabling inlining.
+  uint64_t code_version = 0;
+  // Lazily materialized identity, or the exact assigned code object (including
+  // code.replace() metadata such as CO_ITERABLE_COROUTINE).
+  Value code_object;
   std::vector<Value> closure;
   std::vector<Value> defaults;
   std::vector<Value> positional_defaults;
   std::vector<std::pair<std::string, Value>> kwdefaults;
+  // Invalid keeps ordinary definitions on indexed defaults without allocating
+  // a dict. Once exposed/assigned, this is the authoritative live dict (or
+  // None); aliases and mutations must affect the next keyword-only binding.
+  Value kwdefaults_dict;
   std::vector<std::string> type_params;
   Value annotations;
   Value doc;
@@ -567,12 +619,19 @@ struct FrameObject {
   std::shared_ptr<const ir::Module> module;
   uint32_t function_id = 0;
   uint32_t instruction_index = 0;
+  // Coverage repeatedly reads f_code on its observed frame. Materialize that
+  // immutable module/function pair once per Python frame object, without adding
+  // owners or metadata to ordinary VM frames. This Value dies with the frame.
+  Value code_object;
   Value globals_module;
   Value locals;
   // Traceback frames retain local values compactly and construct the Python
   // f_locals dict only if code actually asks for it.
   std::vector<Value> local_snapshot;
   bool has_lazy_locals = false;
+  // Once trace callbacks materialize f_locals, keep refreshing its eager dict:
+  // callbacks may retain that mapping and expect it to stay current.
+  bool trace_locals_materialized = false;
   Value back;
   Value builtins;
   Value trace;
@@ -613,6 +672,12 @@ struct MemoryViewObject {
 
 void frame_materialize_locals(FrameObject& frame);
 
+// Owner span is physical storage; object_view is only a C-contiguous buffer.
+// Strided element access uses owner coordinates, while byte conversion packs
+// logical elements explicitly instead of detaching a readonly snapshot.
+std::string_view memoryview_owner_view(const MemoryViewObject& view);
+char* memoryview_owner_writable_data(const MemoryViewObject& view);
+bool memoryview_copy_bytes(const MemoryViewObject& view, std::string& out, std::string& error);
 std::string_view memoryview_object_view(const MemoryViewObject& view);
 char* memoryview_object_writable_data(const MemoryViewObject& view);
 
@@ -631,16 +696,21 @@ XLANG3_HOT_INLINE size_t memoryview_format_itemsize(std::string_view format) {
       return 2;
     case 'I':
     case 'i':
+    case 'f':
+    case 'w':
+      return 4;
     case 'L':
     case 'l':
-    case 'f':
-      return 4;
+      return sizeof(long);
+    case 'u':
+      return sizeof(wchar_t);
     case 'Q':
     case 'q':
     case 'd':
+      return 8;
     case 'N':
     case 'n':
-      return 8;
+      return sizeof(void*);
     default:
       return 0;
   }
@@ -706,17 +776,37 @@ XLANG3_HOT_INLINE const char* string_object_c_str(const StringObject& value) {
 }
 
 XLANG3_HOT_INLINE bool string_object_is_ascii(const StringObject& value) {
-  return value.ascii;
+  return (value.unicode_metadata.load(std::memory_order_relaxed) & kStringAsciiFlag) != 0;
+}
+
+XLANG3_HOT_INLINE bool string_object_is_immortal(const StringObject& value) {
+  return (value.unicode_metadata.load(std::memory_order_relaxed) & kStringImmortalFlag) != 0;
+}
+
+XLANG3_HOT_INLINE void string_object_set_immortal(StringObject& value, bool immortal) {
+  if (immortal) value.unicode_metadata.fetch_or(kStringImmortalFlag, std::memory_order_release);
+  else value.unicode_metadata.fetch_and(~kStringImmortalFlag, std::memory_order_relaxed);
+}
+
+XLANG3_HOT_INLINE void string_object_set_ascii(StringObject& value, bool ascii) {
+  const uintptr_t bit = ascii ? kStringAsciiFlag : 0;
+  const uintptr_t metadata = value.unicode_metadata.load(std::memory_order_relaxed);
+  if ((metadata & kStringAsciiFlag) == bit) return;
+  // A changed ASCII flag belongs to unfinished construction: published bytes
+  // are immutable. Unchanged published results can retain an existing index.
+  // Construction needs no atomic read-modify-write on every ASCII allocation.
+  value.unicode_metadata.store((metadata & ~kStringAsciiFlag) | bit, std::memory_order_relaxed);
 }
 
 XLANG3_HOT_INLINE void string_object_refresh_ascii(StringObject& value) {
-  value.ascii = true;
+  bool ascii = true;
   for (unsigned char ch : string_object_view(value)) {
     if (ch >= 0x80u) {
-      value.ascii = false;
-      return;
+      ascii = false;
+      break;
     }
   }
+  string_object_set_ascii(value, ascii);
 }
 
 XLANG3_HOT_INLINE size_t string_view_hash(std::string_view value) {
@@ -787,6 +877,38 @@ XLANG3_HOT_INLINE std::string_view utf8_codepoint_at(std::string_view text, size
   return text.substr(offset, (width <= text.size() - offset) ? width : 1);
 }
 
+size_t string_object_unicode_length(const StringObject& value);
+size_t string_object_unicode_offset(const StringObject& value, size_t index);
+size_t string_object_unicode_index(const StringObject& value, size_t byte_offset);
+
+XLANG3_HOT_INLINE size_t string_object_length(const StringObject& value) {
+  if (string_object_is_ascii(value)) return value.size;
+  // Tiny strings do not need another allocation just to examine a few bytes.
+  if (value.size <= 64) return utf8_codepoint_count(string_object_view(value));
+  return string_object_unicode_length(value);
+}
+
+XLANG3_HOT_INLINE size_t string_object_byte_offset(const StringObject& value, size_t index) {
+  if (string_object_is_ascii(value)) return index < value.size ? index : value.size;
+  if (value.size <= 64) return utf8_byte_offset(string_object_view(value), index);
+  return string_object_unicode_offset(value, index);
+}
+
+XLANG3_HOT_INLINE size_t string_object_character_index(const StringObject& value, size_t byte_offset) {
+  if (byte_offset > value.size) byte_offset = value.size;
+  if (string_object_is_ascii(value)) return byte_offset;
+  if (value.size <= 64) return utf8_codepoint_count(string_object_view(value).substr(0, byte_offset));
+  return string_object_unicode_index(value, byte_offset);
+}
+
+XLANG3_HOT_INLINE std::string_view string_object_codepoint_at(const StringObject& value, size_t index) {
+  const auto text = string_object_view(value);
+  const size_t offset = string_object_byte_offset(value, index);
+  if (offset >= text.size()) return {};
+  const size_t width = utf8_codepoint_width(static_cast<unsigned char>(text[offset]));
+  return text.substr(offset, width <= text.size() - offset ? width : 1);
+}
+
 XLANG3_HOT_INLINE BytesObject* value_as_bytes(const Value& value) {
   if (value.tag != ValueTag::Object || value.as.obj == nullptr || value.as.obj->kind != ObjectKind::Bytes) {
     return nullptr;
@@ -799,6 +921,9 @@ XLANG3_HOT_INLINE std::string_view bytes_object_view(const BytesObject& value) {
 }
 
 XLANG3_HOT_INLINE char* bytes_object_mutable_data(BytesObject& value) {
+  // This construction-only pointer must not be used after publishing bytes.
+  // Invalidate before native builders write; immutable readers share the hash.
+  value.cached_hash.store(static_cast<size_t>(-1), std::memory_order_relaxed);
   return reinterpret_cast<char*>(&value + 1);
 }
 
@@ -949,7 +1074,7 @@ XLANG3_HOT_INLINE void retain(const Value& value) {
     return;
   }
   if (value.as.obj->kind == ObjectKind::String &&
-      reinterpret_cast<StringObject*>(value.as.obj)->immortal.load(std::memory_order_relaxed)) {
+      string_object_is_immortal(*reinterpret_cast<StringObject*>(value.as.obj))) {
     return;
   }
   if (g_xlang_perf_enabled.load(std::memory_order_relaxed)) {
@@ -964,13 +1089,17 @@ XLANG3_HOT_INLINE void release(const Value& value) {
     return;
   }
   if (value.as.obj->kind == ObjectKind::String &&
-      reinterpret_cast<StringObject*>(value.as.obj)->immortal.load(std::memory_order_relaxed)) {
+      string_object_is_immortal(*reinterpret_cast<StringObject*>(value.as.obj))) {
     return;
   }
   if (g_xlang_perf_enabled.load(std::memory_order_relaxed)) {
     xlang_perf_note_value_decref(value.as.obj->kind);
   }
-  if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+  // Publish this reference's writes with release ordering. Acquire only when
+  // this was the final owner: non-final drops are common in VM register and
+  // frame cleanup, so a fence only at zero avoids an acquire barrier for each.
+  if (value.as.obj->refcnt.fetch_sub(1, std::memory_order_release) == 1) {
+    std::atomic_thread_fence(std::memory_order_acquire);
     release_last_reference(value);
   }
 }
@@ -989,6 +1118,16 @@ XLANG3_HOT_INLINE Value::Value(Value&& other) noexcept
 
 XLANG3_HOT_INLINE Value& Value::operator=(const Value& other) {
   if (this == &other) return *this;
+  if (tag == ValueTag::Object && other.tag == ValueTag::Object &&
+      as.obj == other.as.obj &&
+      (flags & kXlangValueBorrowedRefFlag) == 0) {
+    // Owning self-assignments are common when VM temporaries and container
+    // slots already hold the same object. Copy assignment would otherwise
+    // perform a redundant atomic retain/release pair. A borrowed destination
+    // must still take the general path so it acquires its own reference.
+    flags = other.flags & ~kXlangValueBorrowedRefFlag;
+    return *this;
+  }
   // The source can borrow the same object currently owned by this slot.
   // Acquire its reference before releasing the destination's reference.
   Value retained(other);
@@ -1111,6 +1250,8 @@ std::string value_to_string(const Value& value);
 std::string value_to_repr(const Value& value);
 bool value_truthy(const Value& value);
 bool value_finalize_temporary_instance(Runtime& runtime, const Value& value);
+// Shared version-cached finalizer predicate used by release and guarded execution.
+bool class_has_release_finalizer(const Value& klass_value);
 const char* value_binary_type_name(const Value& value);
 
 bool value_add(const Value& lhs, const Value& rhs, Value& out, std::string& error);

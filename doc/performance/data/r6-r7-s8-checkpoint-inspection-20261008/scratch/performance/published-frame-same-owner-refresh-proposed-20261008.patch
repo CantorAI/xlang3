@@ -1,0 +1,71 @@
+diff --git a/src/runtime/runtime.cpp b/src/runtime/runtime.cpp
+index 084dc48b..19b03a8a 100644
+--- a/src/runtime/runtime.cpp
++++ b/src/runtime/runtime.cpp
+@@ -184,6 +184,66 @@ void publish_current_frame_state(const Runtime& runtime) {
+   std::lock_guard<std::mutex> lock(g_runtime_frame_registry_mutex);
+   const auto& source = current_frame_state(runtime);
+   auto& published = g_runtime_frame_registry[&runtime][runtime_current_thread_ident()];
++  // Native suspension repeatedly publishes stacks with the same live owners.
++  // Retain the existing snapshot only after a complete identity proof: its
++  // Module/global owners keep every refreshed view valid without rebuilding
++  // owning records. Count/owner/null changes keep the original cold path and
++  // its retirement order; arbitrary local objects are never retained here.
++  const auto same_value_owner = [](const Value& old_value, const Value& new_value) {
++    if (old_value.tag != new_value.tag || old_value.flags != new_value.flags ||
++        (old_value.flags & kXlangValueBorrowedRefFlag) != 0) return false;
++    if (old_value.tag == ValueTag::Object)
++      return old_value.as.obj != nullptr && old_value.as.obj == new_value.as.obj;
++    return old_value.flags == 0 &&
++        (old_value.tag == ValueTag::Invalid || old_value.tag == ValueTag::None);
++  };
++  bool same_owners = source.frame_stack != nullptr && source.frame_stack_count != 0 &&
++      published.owned_frames.size() == source.frame_stack_count &&
++      published.frame_stack.size() == source.frame_stack_count &&
++      same_value_owner(published.state.current_globals_module, source.current_globals_module) &&
++      same_value_owner(published.state.trace_function, source.trace_function) &&
++      same_value_owner(published.state.profile_function, source.profile_function);
++  for (size_t i = 0; same_owners && i < source.frame_stack_count; ++i) {
++    const auto& frame = source.frame_stack[i];
++    const auto& owned = published.owned_frames[i];
++    same_owners = frame.module_owner != nullptr && frame.module_owner->get() != nullptr &&
++        owned.module_owner.get() == frame.module_owner->get() &&
++        !owned.module_owner.owner_before(*frame.module_owner) &&
++        !frame.module_owner->owner_before(owned.module_owner) &&
++        frame.globals_module != nullptr && frame.instruction_index != nullptr &&
++        same_value_owner(owned.globals_module, *frame.globals_module) &&
++        owned.local_values.empty();
++  }
++  if (same_owners) {
++    published.state = source;
++    for (size_t i = 0; i < source.frame_stack_count; ++i) {
++      const auto& frame = source.frame_stack[i];
++      auto& owned = published.owned_frames[i];
++      owned.instruction_index = *frame.instruction_index;
++      owned.function_id = frame.function_id;
++      owned.activation_id = frame.activation_id;
++      const std::vector<std::string>* local_names = nullptr;
++      if (owned.function_id < owned.module_owner->functions.size())
++        local_names = &owned.module_owner->functions[owned.function_id].locals;
++      published.frame_stack[i] = RuntimeFrameView{
++          &owned.module_owner,
++          &owned.globals_module,
++          local_names,
++          owned.local_values.data(),
++          &owned.instruction_index,
++          owned.local_values.size(),
++          owned.function_id,
++          owned.activation_id,
++          nullptr,
++          nullptr,
++          0,
++          nullptr,
++      };
++    }
++    published.state.frame_stack = published.frame_stack.data();
++    published.state.frame_stack_count = published.frame_stack.size();
++    return;
++  }
+   published.state = source;
+   published.owned_frames.clear();
+   published.frame_stack.clear();

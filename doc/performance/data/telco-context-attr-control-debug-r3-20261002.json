@@ -1,0 +1,1 @@
+{"benchmarks":[{"runs":[{"values":[0.2907489999997779]}]}],"metadata":{"description":"Telco decimal benchmark","duration":0.2921128999951179,"loops":1,"name":"telco","performance_version":"1.14.0","tags":[],"unit":"second"},"version":"1.0"}

@@ -1,0 +1,32 @@
+{
+  "status": "terminal",
+  "command": [
+    "C:\\Python\\Python314\\python.exe",
+    "benchmarks/diagnostics/run_pyperformance_xlang3_shimmed.py",
+    "--runtime",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe",
+    "--benchmarks",
+    "sqlite_synth",
+    "--mode",
+    "fast",
+    "--case-timeout",
+    "300",
+    "--dependency-site",
+    "D:\\CantorAI\\xlang3\\venv\\cpython3.14-a6792301b742-compat-31b33d68c68a\\Lib\\site-packages",
+    "--output",
+    "D:\\CantorAI\\xlang3\\doc\\performance\\data\\sqlite-r6-identity-r2-official-sqlite-synth-20261008.json"
+  ],
+  "hashes_before": {
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3.exe": "ad42bd56df4eab756cd7dfde4b7014cffd8476d3573f7a16a1720a28fa7bf373",
+    "D:\\CantorAI\\xlang3\\build-repro\\main-verify-20261006\\Release\\xlang3_runtime.dll": "183ec93182d0ac44416e6e6f801013e838672e7ebe5e2e2fccb8464aa92abb09",
+    "D:\\CantorAI\\xlang3\\src\\runtime\\value_hash.cpp": "aeb9abb4697569a3b28485000337e31d21f2cd9227dbf2ea0e76e2e125d439ed",
+    "C:\\Python\\Python314\\Lib\\site-packages\\pyperformance\\data-files\\benchmarks\\bm_sqlite_synth\\run_benchmark.py": "dcba7a6889e66f08480f4332860208d624678fc42a03be5c8f3b6f1f894231fd",
+    "D:\\CantorAI\\xlang3\\benchmarks\\diagnostics\\pyperf_compat\\sitecustomize.py": "2ffc217fe20497156bfcb1cebc7fb87203f33c6d4d3dbb6ecbcbcf91ea4cb317"
+  },
+  "acceptance": "unaccepted: full identity loop fixture and fixed gate pending",
+  "exit_code": 0,
+  "hashes_unchanged": true,
+  "log_sha256": "0bc3201fd7dba735e649f2b63fc93eeb8f7d3615d8f7ba89c80fede740f1b0f0",
+  "output_sha256": "5943bdb21f25a7de747b7267a1e494518828c79f610f64b3b019d6935f69deaa",
+  "terminal": true
+}

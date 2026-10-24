@@ -1,0 +1,46 @@
+executable D:\CantorAI\xlang3\build-repro\Release\xlang3.exe
+Task _asyncio Task
+Future _asyncio Future
+workload 4 3 1
+Python asyncio call events 2984
+458 base_events.py:BaseEventLoop.get_debug
+421 base_events.py:BaseEventLoop._check_closed
+292 base_events.py:BaseEventLoop.call_soon
+292 base_events.py:BaseEventLoop._call_soon
+292 events.py:Handle.__init__
+291 events.py:Handle._run
+126 base_futures.py:isfuture
+123 coroutines.py:iscoroutine
+123 base_events.py:BaseEventLoop.create_task
+123 tasks.py:ensure_future
+120 tasks.py:gather.<locals>._done_callback
+44 futures.py:_get_loop
+40 tasks.py:gather
+40 tasks.py:_GatheringFuture.__init__
+19 windows_events.py:IocpProactor._poll
+18 base_events.py:BaseEventLoop._run_once
+18 windows_events.py:IocpProactor.select
+18 proactor_events.py:BaseProactorEventLoop._process_events
+18 base_events.py:BaseEventLoop.time
+9 base_events.py:BaseEventLoop.is_running
+6 base_events.py:BaseEventLoop._check_running
+6 base_events.py:BaseEventLoop._set_coroutine_origin_tracking
+5 proactor_events.py:BaseProactorEventLoop._loop_self_reading
+3 events.py:_get_event_loop_policy
+3 base_events.py:BaseEventLoop.run_until_complete
+3 base_events.py:BaseEventLoop.run_forever
+3 windows_events.py:ProactorEventLoop._run_forever_setup
+3 base_events.py:BaseEventLoop._run_forever_setup
+3 windows_events.py:IocpProactor.recv
+3 windows_events.py:IocpProactor._register_with_iocp
+3 windows_events.py:IocpProactor._register
+3 windows_events.py:IocpProactor._check_closed
+3 windows_events.py:_OverlappedFuture.__init__
+3 base_events.py:_run_until_complete_cb
+3 base_events.py:BaseEventLoop.stop
+3 windows_events.py:ProactorEventLoop._run_forever_cleanup
+3 base_events.py:BaseEventLoop._run_forever_cleanup
+3 windows_events.py:_OverlappedFuture.cancel
+3 windows_events.py:_OverlappedFuture._cancel_overlapped
+2 runners.py:Runner._lazy_init
+visible native _asyncio call events 0

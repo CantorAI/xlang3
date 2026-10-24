@@ -1,0 +1,28 @@
+Benchmark dependency sites: C:\Python\Python314\Lib\site-packages
+Python benchmark suite 1.14.0
+
+
+==================================================
+( 1/1) creating venv for benchmark (json_loads)
+
+(trying common venv first)
+
+[1/1] json_loads...
+.........................................
+WARNING: the benchmark result may be unstable
+* the standard deviation (12.9 us) is 13% of the mean (98.6 us)
+* the maximum (184 us) is 87% greater than the mean (98.6 us)
+
+Try to rerun the benchmark with more runs, values and/or loops.
+Run 'xlang3.exe -m pyperf system tune' command to reduce the system jitter.
+Use pyperf stats, pyperf dump and pyperf hist to analyze results.
+Use --quiet option to hide these warnings.
+
+json_loads: Mean +- std dev: 98.6 us +- 12.9 us
+
+Performance version: 1.14.0
+
+### json_loads ###
+Mean +- std dev: 98.6 us +- 12.9 us
+
+\n
