@@ -103,6 +103,14 @@ bool ctypes_simple_init(Runtime&, const Value* args, uint32_t argc, Value& out,
   if (argc < 1 || argc > 2) { error = "_SimpleCData() takes at most one argument"; return false; }
   Value value = argc == 2 ? args[1] : Value::int64(0);
   Value self = args[0];
+  if (argc == 1) {
+    Value code;
+    if (attr(self, "_type_", code) && value_as_string(code) != nullptr) {
+      const auto kind = string_object_view(*value_as_string(code));
+      if (kind == "u") value = Value::string(std::string(1, '\0'));
+      else if (kind == "c") value = Value::bytes(std::string(1, '\0'));
+    }
+  }
   if (!object_set_attr(self, "value", value, error)) return false;
   out = Value::none();
   return true;
