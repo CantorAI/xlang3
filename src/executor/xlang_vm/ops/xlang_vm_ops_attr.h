@@ -1352,6 +1352,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow store_attr(
           : XlangVMOpFlow::ReturnResult;
     }
     if (error.find("immutable type") != std::string::npos ||
+        error.rfind("__class__", 0) == 0 ||
         error.rfind("__dict__ must be", 0) == 0 ||
         error.rfind("__defaults__ must be", 0) == 0 ||
         error.rfind("__kwdefaults__ must be", 0) == 0 ||

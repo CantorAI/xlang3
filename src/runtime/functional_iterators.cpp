@@ -497,6 +497,19 @@ bool runtime_call_callable(
     return event_fire(runtime, callable, args, argc, out, error);
   }
 
+  if (auto* module = value_as_module(callable)) {
+    Value method;
+    if (!class_get_bound_attr(runtime, module->klass, callable, "__call__", method, error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        runtime.set_pending_exception(std::move(pending));
+        return false;
+      }
+      return raise_type_error(runtime, "module object is not callable", error);
+    }
+    return runtime_call_callable(runtime, method, args, argc, out, error);
+  }
+
   if (auto* instance = value_as_instance(callable)) {
     Value call_method;
     std::string call_error;
@@ -584,6 +597,18 @@ bool runtime_call_callable_kw(
     for (uint32_t i = 0; i < argc; ++i) bound_args.push_back(args[i]);
     return runtime_call_callable_kw(runtime, bound->function, bound_args.data(),
         static_cast<uint32_t>(bound_args.size()), kwargs, out, error);
+  }
+  if (auto* module = value_as_module(callable)) {
+    Value method;
+    if (!class_get_bound_attr(runtime, module->klass, callable, "__call__", method, error)) {
+      Value pending;
+      if (runtime.take_pending_exception(pending)) {
+        runtime.set_pending_exception(std::move(pending));
+        return false;
+      }
+      return raise_type_error(runtime, "module object is not callable", error);
+    }
+    return runtime_call_callable_kw(runtime, method, args, argc, kwargs, out, error);
   }
   if (value_as_instance(callable) != nullptr) {
     Value method;

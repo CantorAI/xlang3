@@ -261,6 +261,16 @@ bool module_get_attr(const Value& object, const std::string& name, Value& out, s
     error = "object has no attributes";
     return false;
   }
+  if (name == "__class__" && module->runtime != nullptr) {
+    if (value_as_class(module->klass) != nullptr) {
+      value_assign_fast(out, module->klass);
+      return true;
+    }
+    if (const auto* base = module->runtime->find_builtin("module")) {
+      value_assign_fast(out, *base);
+      return true;
+    }
+  }
   if (name == "__name__") {
     const auto name_slot = module->name_to_slot.find(name);
     if (!module->implicit_name && (name_slot == module->name_to_slot.end() ||
@@ -381,6 +391,27 @@ bool module_set_attr(Value& object, const std::string& name, const Value& value,
     error = "object does not support attribute assignment";
     return false;
   }
+  if (name == "__class__") {
+    auto* candidate = value_as_class(value);
+    const auto* base_value = module->runtime != nullptr
+        ? module->runtime->find_builtin("module") : nullptr;
+    auto* base = base_value != nullptr ? value_as_class(*base_value) : nullptr;
+    if (candidate == nullptr) {
+      error = "__class__ must be set to a class";
+      return false;
+    }
+    if (base == nullptr || !class_is_subclass(candidate, base)) {
+      error = "__class__ assignment requires a module subclass";
+      return false;
+    }
+    if (candidate->instance_slot_names != base->instance_slot_names) {
+      error = "__class__ assignment: object layout differs";
+      return false;
+    }
+    value_assign_fast(module->klass, value);
+    ++module->version;
+    return true;
+  }
   if (name == "__name__" && value_as_string(value) != nullptr) {
     module->name = string_object_to_string(*value_as_string(value));
   }
@@ -472,6 +503,7 @@ bool module_find_attr_slot(const Value& object, const std::string& name, uint32_
 
 NativeModuleBuilder::NativeModuleBuilder(Runtime& runtime, std::string name)
     : runtime_(runtime), name_(std::move(name)), module_(Value::module(name_)) {
+  value_as_module(module_)->runtime = &runtime;
   std::string error;
   module_set_attr(module_, "__package__", Value::string(module_package_name(name_)), error);
 #if !defined(XLANG3_EMBEDDED)

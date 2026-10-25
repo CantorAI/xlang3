@@ -6046,6 +6046,9 @@ bool object_get_special_method(
     const std::string& name,
     Value& out,
     std::string& error) {
+  if (auto* module = value_as_module(object)) {
+    return class_get_bound_attr(runtime, module->klass, object, name, out, error);
+  }
   if (auto* klass = value_as_class(object)) {
     auto* metaclass = value_as_class(klass->metaclass);
     if (metaclass == nullptr) {
