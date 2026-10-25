@@ -535,7 +535,7 @@ bool marshal_argument(Runtime& runtime, const Value& argument, char code,
   if (output.abi == nullptr)
     return fail(runtime, "NotImplementedError",
                 "unsupported ctypes argument type code", error);
-  if (code == 'Z' || code == 'z') {
+  if (code == 'P' || code == 'Z' || code == 'z') {
     if (value_as_instance(argument) != nullptr) {
       Shape array_shape;
       const Value array_type = value_as_instance(argument)->klass;
@@ -552,6 +552,8 @@ bool marshal_argument(Runtime& runtime, const Value& argument, char code,
         return true;
       }
     }
+  }
+  if (code == 'Z' || code == 'z') {
     Value source = argument;
     if (value_as_instance(argument) != nullptr) {
       Value contained;
@@ -838,6 +840,14 @@ bool ctypes_foreign_call(Runtime& runtime, const Value* args,
   std::vector<void*> abi_values(argc - 1);
   for (uint32_t index = 1; index < argc; ++index) {
     char code = 'i';
+    if (!has_types) {
+      if (args[index].tag == ValueTag::None) code = 'P';
+      else if (const auto* instance = value_as_instance(args[index])) {
+        Shape inferred;
+        if (shape_of(instance->klass, inferred) && inferred.kind == Shape::Kind::Array)
+          code = 'P';
+      }
+    }
     const Value& argument_type = list_types != nullptr ? list_types->items[index - 1] :
                                  tuple_types != nullptr ? tuple_types->items[index - 1] : args[index];
     const bool simple = !has_types || type_code(argument_type, code);
