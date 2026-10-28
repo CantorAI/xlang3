@@ -109,6 +109,15 @@ except OverflowError:
 else:
     print("fd-overflow", False)
 
+unicode_path = directory + "/站台视频_Δ_🚆.tmp"
+with open(unicode_path, "wb") as stream:
+    stream.write(b"unicode")
+print("unicode-stat", os.stat(unicode_path).st_size == 7)
+print("unicode-stat-no-follow", os.stat(unicode_path, follow_symlinks=False).st_size == 7)
+from pathlib import Path
+print("unicode-pathlib", Path(unicode_path).is_file(), Path(unicode_path).stat().st_size == 7)
+os.remove(unicode_path)
+
 for item in (path, other):
     os.remove(item)
 os.rmdir(directory)

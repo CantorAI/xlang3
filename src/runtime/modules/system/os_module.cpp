@@ -3279,7 +3279,7 @@ bool os_stat_impl(Runtime& runtime, const Value* args, uint32_t argc,
     out = make_stat_result(state->stat_result_class, stat);
     return true;
   }
-  std::string basename = std::filesystem::path(path.text).filename().string();
+  std::string basename = std::filesystem::u8path(path.text).filename().u8string();
   std::transform(basename.begin(), basename.end(), basename.begin(), [](unsigned char ch) {
     return static_cast<char>(std::toupper(ch));
   });

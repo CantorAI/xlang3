@@ -21,3 +21,6 @@ fstat-index True
 dup-index True True
 inherit-index True
 fd-overflow True
+unicode-stat True
+unicode-stat-no-follow True
+unicode-pathlib True True
