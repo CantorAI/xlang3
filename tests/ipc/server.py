@@ -29,6 +29,21 @@ class IpcSmokeServer:
         time.sleep(0.01)
         return [count, payload]
 
+    def delayed_echo(self, token, payload):
+        # Intentionally does not cooperate: a late response must never overwrite
+        # a newer call after the original caller reclaims its slots.
+        time.sleep(0.6)
+        return [token, payload]
+
+    def wait_for_cancellation(self):
+        while not lrpc_call_cancelled():
+            time.sleep(0.01)
+        self.cancelled_calls = getattr(self, 'cancelled_calls', 0) + 1
+        return 'cancelled'
+
+    def cancellation_count(self):
+        return getattr(self, 'cancelled_calls', 0)
+
 
     def echo(self, value):
         return "echo:" + value

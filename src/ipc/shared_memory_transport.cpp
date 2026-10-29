@@ -21,6 +21,12 @@ namespace xlang3::ipc {
 std::atomic_bool g_server_started{false};
 LrpcDispatch g_dispatch;
 
+namespace { thread_local std::function<bool()> call_cancelled; }
+LrpcCancellationScope::LrpcCancellationScope(std::function<bool()> cancelled)
+    : previous_(std::move(call_cancelled)) { call_cancelled = std::move(cancelled); }
+LrpcCancellationScope::~LrpcCancellationScope() { call_cancelled = std::move(previous_); }
+bool lrpc_call_cancelled() { return call_cancelled && call_cancelled(); }
+
 uint64_t next_listener_session() {
   static std::atomic<uint64_t> previous{0};
   const auto now = static_cast<uint64_t>(std::chrono::duration_cast<std::chrono::nanoseconds>(
