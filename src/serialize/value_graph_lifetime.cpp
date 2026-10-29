@@ -50,8 +50,33 @@ void clear_edges(Value& value) {
 
 namespace xlang3 {
 void Runtime::retain_serialized_objects(std::vector<Value> objects) {
-  serialized_objects_.reserve(serialized_objects_.size() + objects.size());
-  for (auto& value : objects) serialized_objects_.push_back(std::move(value));
+  // Acyclic restored values already have ordinary reference-counted owners.
+  // Pinning every video frame makes each subsequent read scan the entire live
+  // frame history under the VM lock. Retain only nodes that can reach a cycle.
+  // Peel sinks using owning edges; aliases count with their full multiplicity.
+  // This is O(this message), independent of previously restored live frames.
+  const auto count = objects.size();
+  std::unordered_map<Object*, size_t> indices;
+  indices.reserve(count);
+  for (size_t i = 0; i < count; ++i) indices.emplace(objects[i].as.obj, i);
+  std::vector<size_t> outgoing(count, 0), sinks;
+  std::vector<std::vector<size_t>> parents(count);
+  for (size_t i = 0; i < count; ++i) {
+    serialize::graph::edges(objects[i], [&](Value& edge) {
+      if (edge.tag != ValueTag::Object || (edge.flags & kXlangValueBorrowedRefFlag)) return;
+      const auto target = indices.find(edge.as.obj);
+      if (target == indices.end()) return;
+      ++outgoing[i];
+      parents[target->second].push_back(i);
+    });
+  }
+  for (size_t i = 0; i < count; ++i) if (!outgoing[i]) sinks.push_back(i);
+  for (size_t i = 0; i < sinks.size(); ++i)
+    for (auto parent : parents[sinks[i]]) if (!--outgoing[parent]) sinks.push_back(parent);
+  // push_back's geometric growth avoids reallocating the retained registry for
+  // every new small cyclic graph when earlier graphs are still externally live.
+  for (size_t i = 0; i < count; ++i)
+    if (outgoing[i]) serialized_objects_.push_back(std::move(objects[i]));
 }
 uint64_t Runtime::collect_serialized_objects(bool force) {
   const size_t count = serialized_objects_.size();

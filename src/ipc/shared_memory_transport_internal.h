@@ -13,7 +13,9 @@ Licensed under the Apache License, Version 2.0
 namespace xlang3::ipc {
 
 constexpr uint32_t kSharedMagic = 0x33435049u;
-constexpr uint32_t kSharedVersion = 3;
+// Version 4 dispatches from owned message copies. A timed-out caller may
+// reclaim its slots even while the old handler is still unwinding.
+constexpr uint32_t kSharedVersion = 4;
 constexpr uint32_t kSharedSlotCount = 32;
 constexpr uint32_t kSharedSlotSize = 64 * 1024;
 
@@ -23,6 +25,7 @@ enum SlotState : uint32_t {
   SlotRequestReady = 2,
   SlotProcessing = 3,
   SlotResponseReady = 4,
+  SlotQueued = 5,
 };
 
 struct SharedSlot {

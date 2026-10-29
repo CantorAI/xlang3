@@ -1,0 +1,165 @@
+{
+  "root_causes": [
+    "Acyclic restored video frames were retained and repeatedly scanned under the VM lock.",
+    "Timed-out/dead-client Processing slots and model-lock waiters were not reclaimed.",
+    "Reclaiming slots also requires retiring cancelled queued closures and bounding dispatch work."
+  ],
+  "slot_count_unchanged": 32,
+  "shared_protocol_version": 4,
+  "targeted_ctest_passed": 13,
+  "core_fixtures": {
+    "baseline_passed": 358,
+    "candidate_passed": 358,
+    "total": 359,
+    "same_existing_failure": "mmap_native",
+    "compatibility_groups_passed": 12,
+    "expected_error_cases_passed": 3
+  },
+  "soak": {
+    "status": "passed_measured_window",
+    "finished": {
+      "started_ms": 1793252731775,
+      "finished_ms": 1793256331775,
+      "minutes": 60.0
+    },
+    "inferences": {
+      "count": 1145,
+      "median_tokens_per_second": 44.71408171312288,
+      "median_ttft_seconds": 0.46787990001030266,
+      "p95_ttft_seconds": 0.5072805999952834,
+      "median_input_seconds": 0.025053399993339553,
+      "median_prefill_seconds": 0.44153160000860225,
+      "median_model_seconds": 2.9476367000024766,
+      "median_frame_age_seconds": 22.421
+    },
+    "new_events": 138,
+    "ready_failures": 0,
+    "free_slots_range": [
+      27,
+      30
+    ],
+    "fixed_probes": {
+      "count": 12,
+      "success": 12,
+      "failed": 0,
+      "first_three_median_tps": 44.46806810523753,
+      "last_three_median_tps": 46.33113849208831,
+      "late_early_ratio": 1.0418968141912903,
+      "first_three_median_ttft_seconds": 0.10528309999790508,
+      "last_three_median_ttft_seconds": 0.0986370999889914,
+      "ttft_seconds_range": [
+        0.09647389999008738,
+        0.11309840000467375
+      ],
+      "median_round_trip_seconds": 3.130883300000278,
+      "median_queue_and_transport_seconds": 1.6079611999957706,
+      "first_three_median_queue_and_transport_seconds": 1.8335359999909997,
+      "last_three_median_queue_and_transport_seconds": 2.7075774000113597,
+      "prompt_tokens": [
+        [
+          95
+        ]
+      ],
+      "generated_tokens": [
+        [
+          64
+        ]
+      ],
+      "max_round_trip_seconds": 4.544574300001841
+    },
+    "calls_seen_for_60_seconds": [],
+    "dead_owner_samples": [],
+    "ten_minute_buckets": [
+      {
+        "minutes": [
+          0,
+          10
+        ],
+        "count": 185,
+        "median_tokens_per_second": 44.64290829022858,
+        "median_ttft_seconds": 0.4718258000066271,
+        "p95_ttft_seconds": 0.5023302000045078,
+        "median_input_seconds": 0.024882600002456456,
+        "median_prefill_seconds": 0.4449410999950487,
+        "median_model_seconds": 2.898124800005462,
+        "median_frame_age_seconds": 22.589
+      },
+      {
+        "minutes": [
+          10,
+          20
+        ],
+        "count": 190,
+        "median_tokens_per_second": 44.46015947395509,
+        "median_ttft_seconds": 0.47316209999553394,
+        "p95_ttft_seconds": 0.507068499995512,
+        "median_input_seconds": 0.02487220000330126,
+        "median_prefill_seconds": 0.4470080000028247,
+        "median_model_seconds": 2.9925766500018653,
+        "median_frame_age_seconds": 21.9925
+      },
+      {
+        "minutes": [
+          20,
+          30
+        ],
+        "count": 190,
+        "median_tokens_per_second": 44.103753313705205,
+        "median_ttft_seconds": 0.47581664999597706,
+        "p95_ttft_seconds": 0.5210564999870257,
+        "median_input_seconds": 0.025622350003686734,
+        "median_prefill_seconds": 0.4504028500014101,
+        "median_model_seconds": 2.9778728500023135,
+        "median_frame_age_seconds": 22.5795
+      },
+      {
+        "minutes": [
+          30,
+          40
+        ],
+        "count": 194,
+        "median_tokens_per_second": 45.355328942327446,
+        "median_ttft_seconds": 0.4621484000017517,
+        "p95_ttft_seconds": 0.5024879000120563,
+        "median_input_seconds": 0.024566200001572724,
+        "median_prefill_seconds": 0.4378216000040993,
+        "median_model_seconds": 2.914477350001107,
+        "median_frame_age_seconds": 22.1385
+      },
+      {
+        "minutes": [
+          40,
+          50
+        ],
+        "count": 189,
+        "median_tokens_per_second": 45.196478396748674,
+        "median_ttft_seconds": 0.46510390000185,
+        "p95_ttft_seconds": 0.5221043000055943,
+        "median_input_seconds": 0.02599910000571981,
+        "median_prefill_seconds": 0.43716840000706725,
+        "median_model_seconds": 3.036492899991572,
+        "median_frame_age_seconds": 22.579
+      },
+      {
+        "minutes": [
+          50,
+          60
+        ],
+        "count": 197,
+        "median_tokens_per_second": 46.16920110126304,
+        "median_ttft_seconds": 0.45278580000740476,
+        "p95_ttft_seconds": 0.48617360000207555,
+        "median_input_seconds": 0.02480890000879299,
+        "median_prefill_seconds": 0.42771869999705814,
+        "median_model_seconds": 2.858851599987247,
+        "median_frame_age_seconds": 22.89
+      }
+    ]
+  },
+  "limits": [
+    "Native CUDA work checks cancellation between orchestration stages; arbitrary noncooperative native handlers are not forcibly preempted.",
+    "Model TTFT excludes admission queue and IPC time; buffered probe API does not measure streamed first-token arrival.",
+    "Continuous final-version window is 60 minutes; the earlier interrupted 38-minute window is not combined.",
+    "Protocol version 4 requires matching client and server runtimes."
+  ]
+}

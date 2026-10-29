@@ -745,7 +745,20 @@ static bool builtin_lrpc_probe(Runtime&, const Value* args, uint32_t argc,
   return true;
 }
 
+bool builtin_lrpc_call_cancelled(Runtime&, const Value*, uint32_t argc,
+    Value& out, std::string& error, void*) {
+  if (argc) { error = "lrpc_call_cancelled() takes no arguments"; return false; }
+  bool cancelled;
+  {
+    XlangRuntimeExecutionSuspension suspension;
+    cancelled = ipc::lrpc_call_cancelled();
+  }
+  value_set_bool(out, cancelled);
+  return true;
+}
+
 void register_ipc_builtins(Runtime& runtime) {
+  runtime.register_native_builtin("lrpc_call_cancelled", builtin_lrpc_call_cancelled);
   runtime.register_native_builtin("lrpc_probe", builtin_lrpc_probe);
   runtime.register_native_builtin("register_remote_object", builtin_register_remote_object);
   runtime.register_native_builtin("lrpc_listen", builtin_lrpc_listen);

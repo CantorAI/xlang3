@@ -14,11 +14,22 @@ class XLangStream;
 
 namespace xlang3::ipc {
 
-// Dispatch must finish reading the request before its first response write.
-// The transport may reuse request blocks for that response.
+// Dispatch uses private request/response storage, independent of caller slots.
 using LrpcDispatch = std::function<bool(serialize::XLangStream& request, serialize::XLangStream& response, std::string& error)>;
 using LrpcRequestWriter = std::function<bool(serialize::XLangStream& request, std::string& error)>;
 using LrpcResponseReader = std::function<bool(serialize::XLangStream& response, std::string& error)>;
+
+// Long-running handlers can stop cooperatively after their caller times out
+// or exits. Nested dispatch restores its parent's cancellation context.
+class LrpcCancellationScope {
+  std::function<bool()> previous_;
+public:
+  explicit LrpcCancellationScope(std::function<bool()> cancelled);
+  ~LrpcCancellationScope();
+  LrpcCancellationScope(const LrpcCancellationScope&) = delete;
+  LrpcCancellationScope& operator=(const LrpcCancellationScope&) = delete;
+};
+bool lrpc_call_cancelled();
 
 struct LrpcEndpointInfo {
   uint32_t pid = 0;

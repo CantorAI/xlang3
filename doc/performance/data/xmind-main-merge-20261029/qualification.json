@@ -1,0 +1,105 @@
+{
+  "date": "2026-10-29",
+  "scope": "Local Windows Release integration of xMind-required xlang3 changes with upstream main; not full xMind, cross-platform or installed-runtime acceptance",
+  "parents": {
+    "main": "3c699e0c95cf399747406f6a35c5a45db9890a30",
+    "merged": "b1b6673f2410c6425808f72d7b0ca7ad2851d233"
+  },
+  "build": {
+    "pid": 50948,
+    "started": "2026-10-29T09:17:03.200Z",
+    "ended": "2026-10-29T09:18:25.968Z",
+    "exitCode": 0,
+    "signal": null
+  },
+  "correctness": {
+    "testCount": 16,
+    "exitCode": 0,
+    "logSha256": "43b32af78bab35b0c16fe8ecfdb18bc41d949cf1b97e1189933aa870ec8b830e"
+  },
+  "performance": {
+    "status": "pass",
+    "cases": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1,
+    "baseline": {
+      "executable": "D:\\CantorAI2026\\xMind\\.agentflow\\xlang3-ctypes-baseline\\xlang3.exe",
+      "sha256": {
+        "xlang3.exe": "210d9b1aec9d97376296b14c88596fc0d02ffb3fddf2c99c658ee242b4cbd5b0",
+        "xlang3_runtime.dll": "1ff2a8e71980a23773ea4d4ee863a14f59e7e56e8110c641a6b60e587a801cb3"
+      }
+    },
+    "candidate": {
+      "executable": "D:\\CantorAI2026\\xMind\\.agentflow\\sdk-module-class-candidate\\build\\Release\\xlang3.exe",
+      "sha256": {
+        "xlang3.exe": "3fc7d333a593167509ddc05b938fc8d23c61f2a31827bc1a1366f78ed479da4c",
+        "xlang3_runtime.dll": "f000212c4f46d09c53dd4de2ce19a98a7008c7b9b98aa3e455bf395b83ec6b03"
+      }
+    }
+  },
+  "productInputFiles": 3437,
+  "productInputsSha256": "938ab601ac5922968df740ca1e358afe30b09bcc5d5647498d0289e9abeddf64",
+  "originalQualifiedFileSetsAndHashesUnchanged": true,
+  "cpythonExecuted": false,
+  "fixtureLauncher": "Normalize Windows executable spelling for sys.orig_argv assertions and select stdlib distutils to prevent ambient setuptools .pth bootstrap hooks; assertions unchanged.",
+  "additionalChecks": {
+    "module-class": {
+      "pid": 6232,
+      "started": "2026-10-29T09:19:32.130Z",
+      "ended": "2026-10-29T09:19:32.197Z",
+      "exitCode": 0,
+      "signal": null
+    },
+    "ctypes-unicode": {
+      "pid": 45060,
+      "started": "2026-10-29T09:19:32.200Z",
+      "ended": "2026-10-29T09:19:32.268Z",
+      "exitCode": 0,
+      "signal": null
+    },
+    "ctypes_pointer_return": {
+      "pid": 33616,
+      "started": "2026-10-29T09:19:32.269Z",
+      "ended": "2026-10-29T09:19:32.335Z",
+      "exitCode": 0,
+      "signal": null
+    },
+    "ctypes_cast_errcheck_array": {
+      "pid": 56096,
+      "started": "2026-10-29T09:19:32.336Z",
+      "ended": "2026-10-29T09:19:32.399Z",
+      "exitCode": 0,
+      "signal": null
+    },
+    "ctypes_structure_layout": {
+      "pid": 55548,
+      "started": "2026-10-29T09:19:32.400Z",
+      "ended": "2026-10-29T09:19:32.464Z",
+      "exitCode": 0,
+      "signal": null
+    },
+    "pip-25.2-install": {
+      "pid": 42868,
+      "started": "2026-10-29T09:19:43.866Z",
+      "ended": "2026-10-29T09:20:07.723Z",
+      "exitCode": 0,
+      "signal": null
+    },
+    "pip-26.2.1-install": {
+      "pid": 16764,
+      "started": "2026-10-29T09:20:07.811Z",
+      "ended": "2026-10-29T09:20:15.312Z",
+      "exitCode": 0,
+      "signal": null
+    },
+    "pydantic-metadata": {
+      "pid": 33428,
+      "started": "2026-10-29T09:20:15.313Z",
+      "ended": "2026-10-29T09:20:15.803Z",
+      "exitCode": 0,
+      "signal": null
+    }
+  },
+  "originalFailureRetained": false
+}

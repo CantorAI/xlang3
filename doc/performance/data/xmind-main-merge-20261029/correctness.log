@@ -1,0 +1,37 @@
+Test project D:/CantorAI2026/xMind/.agentflow/sdk-module-class-candidate/build
+      Start  1: xlang3_import_errors
+ 1/16 Test  #1: xlang3_import_errors ...............   Passed    0.20 sec
+      Start  2: xlang3_bytes_split
+ 2/16 Test  #2: xlang3_bytes_split .................   Passed    0.05 sec
+      Start  3: xlang3_ipc_native_host_tests
+ 3/16 Test  #3: xlang3_ipc_native_host_tests .......   Passed    0.21 sec
+      Start  4: xlang3_native_host_guard_tests
+ 4/16 Test  #4: xlang3_native_host_guard_tests .....   Passed    1.73 sec
+      Start  6: xlang3_runtime_isolation_tests
+ 5/16 Test  #6: xlang3_runtime_isolation_tests .....   Passed    0.84 sec
+      Start  8: xlang3_static_runtime_shutdown
+ 6/16 Test  #8: xlang3_static_runtime_shutdown .....   Passed    0.14 sec
+      Start  9: xlang3_embedded_package_tests
+ 7/16 Test  #9: xlang3_embedded_package_tests ......   Passed    0.18 sec
+      Start 10: xlang3_sdk_stream_call_tests
+ 8/16 Test #10: xlang3_sdk_stream_call_tests .......   Passed    0.15 sec
+      Start 21: xlang3_ipc_capacity_tests
+ 9/16 Test #21: xlang3_ipc_capacity_tests ..........   Passed    0.16 sec
+      Start 22: xlang3_serialized_lifetime_tests
+10/16 Test #22: xlang3_serialized_lifetime_tests ...   Passed    0.14 sec
+      Start 28: xlang3_module_slot_tests
+11/16 Test #28: xlang3_module_slot_tests ...........   Passed    0.26 sec
+      Start 47: xlang3_cli_fixtures
+12/16 Test #47: xlang3_cli_fixtures ................   Passed   31.33 sec
+      Start 49: xlang3_cli_unicode_library_path
+13/16 Test #49: xlang3_cli_unicode_library_path ....   Passed    0.36 sec
+      Start 51: xlang3_ipc_lrpc_smoke
+14/16 Test #51: xlang3_ipc_lrpc_smoke ..............   Passed    1.11 sec
+      Start 53: xlang3_ipc_lrpc_backpressure
+15/16 Test #53: xlang3_ipc_lrpc_backpressure .......   Passed    1.46 sec
+      Start 54: xlang3_ipc_lrpc_timeout_recovery
+16/16 Test #54: xlang3_ipc_lrpc_timeout_recovery ...   Passed   15.17 sec
+
+100% tests passed, 0 tests failed out of 16
+
+Total Test time (real) =  53.52 sec
