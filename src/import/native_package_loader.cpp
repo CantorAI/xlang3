@@ -316,7 +316,11 @@ X3Package* package_from_host(X3PackageHost* host) {
   return host == nullptr ? nullptr : static_cast<X3Package*>(host->package_context);
 }
 
+// Native callbacks suspend VM execution while C++ runs. Package-host access
+// to module, class and exception state must reacquire the same execution
+// guard as the corresponding embedding C API.
 X3Status host_add_module(X3PackageHost* host, const char* name, X3Module** out_module) {
+  XlangRuntimeExecutionGuard guard;
   X3Package* package = package_from_host(host);
   if (package == nullptr || package->runtime == nullptr || name == nullptr || out_module == nullptr) {
     return X3_STATUS_ERROR;
@@ -369,6 +373,7 @@ X3Status host_add_module(X3PackageHost* host, const char* name, X3Module** out_m
 }
 
 X3Status host_module_add_value(X3Module* module, const char* name, X3Value value) {
+  XlangRuntimeExecutionGuard guard;
   if (module == nullptr || name == nullptr) {
     return X3_STATUS_ERROR;
   }
@@ -386,6 +391,7 @@ X3Status host_module_add_value(X3Module* module, const char* name, X3Value value
 }
 
 X3Status host_module_get_value(X3Module* module, X3Value* out_value) {
+  XlangRuntimeExecutionGuard guard;
   if (module == nullptr || out_value == nullptr) {
     return X3_STATUS_ERROR;
   }
@@ -394,6 +400,7 @@ X3Status host_module_get_value(X3Module* module, X3Value* out_value) {
 }
 
 X3Status host_module_get_attr(X3Module* module, const char* name, X3Value* out_value) {
+  XlangRuntimeExecutionGuard guard;
   if (module == nullptr || name == nullptr || out_value == nullptr) {
     return X3_STATUS_ERROR;
   }
@@ -410,6 +417,7 @@ X3Status host_module_get_attr(X3Module* module, const char* name, X3Value* out_v
 }
 
 X3Status host_module_set_attr(X3Module* module, const char* name, X3Value value) {
+  XlangRuntimeExecutionGuard guard;
   if (module == nullptr || name == nullptr) {
     return X3_STATUS_ERROR;
   }
@@ -425,6 +433,7 @@ X3Status host_module_set_attr(X3Module* module, const char* name, X3Value value)
 }
 
 X3Status host_module_add_function(X3Module* module, const X3NativeFunctionDef* def) {
+  XlangRuntimeExecutionGuard guard;
   if (module == nullptr || def == nullptr || def->size != sizeof(*def) || def->name == nullptr || (!def->callback && !def->keyword_callback)) {
     return X3_STATUS_ERROR;
   }
@@ -517,6 +526,7 @@ X3Status create_native_class(
 
 X3Status host_module_add_class(X3Module* module, const char* name,
     const X3NativeFunctionDef* methods, uint32_t count, X3Value* out) {
+  XlangRuntimeExecutionGuard guard;
   if (!module) return X3_STATUS_ERROR;
   X3Value raw = x3_value_invalid();
   auto status = create_native_class(module->runtime, name, methods, count, &raw);
@@ -540,12 +550,14 @@ X3Status host_module_add_class(X3Module* module, const char* name,
 
 X3Status host_create_class(X3PackageHost* host, const char* name,
     const X3NativeFunctionDef* methods, uint32_t count, X3Value* out) {
+  XlangRuntimeExecutionGuard guard;
   auto* package = package_from_host(host);
   if (!package || !out) return X3_STATUS_ERROR;
   return create_native_class(package->runtime, name, methods, count, out);
 }
 
 X3Status host_builtin_value(X3PackageHost* host, const char* name, X3Value* out_value) {
+  XlangRuntimeExecutionGuard guard;
   X3Package* package = package_from_host(host);
   if (package == nullptr || package->runtime == nullptr || name == nullptr || out_value == nullptr) {
     return X3_STATUS_ERROR;
@@ -560,6 +572,7 @@ X3Status host_builtin_value(X3PackageHost* host, const char* name, X3Value* out_
 }
 
 X3Status host_class_set_base(X3Value klass, X3Value base) {
+  XlangRuntimeExecutionGuard guard;
   std::string error;
   Value internal_class = from_c_value(klass, error);
   if (!error.empty()) {
@@ -593,6 +606,7 @@ void* host_instance_get_native_data(X3Value instance, const char* type_name) {
 }
 
 X3Value host_value_instance(X3Runtime* runtime, X3Value klass) {
+  XlangRuntimeExecutionGuard guard;
   auto* rt = reinterpret_cast<Runtime*>(runtime);
   if (rt == nullptr) {
     return x3_value_invalid();
@@ -621,6 +635,7 @@ X3Status host_package_set_cleanup(X3PackageHost* host, void* data, X3PackageClea
 }
 
 X3Status host_class_add_value(X3Value klass, const char* name, X3Value value) {
+  XlangRuntimeExecutionGuard guard;
   if (name == nullptr) {
     return X3_STATUS_ERROR;
   }
@@ -643,6 +658,7 @@ X3Status host_property_create(
     X3NativeFn setter,
     void* user_data,
     X3Value* result) {
+  XlangRuntimeExecutionGuard guard;
   auto* rt = reinterpret_cast<Runtime*>(runtime);
   if (rt == nullptr || name == nullptr || getter == nullptr || result == nullptr) {
     return X3_STATUS_ERROR;
@@ -679,6 +695,7 @@ X3Status host_property_create(
 
 X3Status host_module_add_property(X3Module* module, const char* name,
     X3NativeFn getter, X3NativeFn setter, void* user_data) {
+  XlangRuntimeExecutionGuard guard;
   if (!module || !module->runtime || !name || !*name || !getter) return X3_STATUS_ERROR;
   auto* object = value_as_module(module->value);
   if (!object) return X3_STATUS_ERROR;
@@ -705,6 +722,7 @@ X3Status host_module_add_property(X3Module* module, const char* name,
 }
 
 X3Status host_package_set_metadata(X3PackageHost* host, const char* key, const char* value) {
+  XlangRuntimeExecutionGuard guard;
   X3Package* package = package_from_host(host);
   if (package == nullptr || package->runtime == nullptr || key == nullptr || key[0] == '\0' || value == nullptr) {
     return X3_STATUS_ERROR;
@@ -728,6 +746,7 @@ X3Status host_set_error(X3CallContext* context, const char* message) {
 }
 
 X3Status host_raise_class_error(X3CallContext* context, const char* class_name, const char* message) {
+  XlangRuntimeExecutionGuard guard;
   if (context == nullptr || context->runtime == nullptr || class_name == nullptr) {
     return X3_STATUS_ERROR;
   }
@@ -751,6 +770,7 @@ X3Status host_instance_set_native_gc_references(X3Value instance,
 }
 
 X3Status host_raise_error(X3CallContext* context, X3Value exception_class, const char* message) {
+  XlangRuntimeExecutionGuard guard;
   if (context == nullptr || context->runtime == nullptr) {
     return X3_STATUS_ERROR;
   }
@@ -772,6 +792,7 @@ X3Status host_raise_error(X3CallContext* context, X3Value exception_class, const
 }
 
 X3Status host_raise_exception(X3CallContext* context, X3Value exception) {
+  XlangRuntimeExecutionGuard guard;
   if (context == nullptr || context->runtime == nullptr) {
     return X3_STATUS_ERROR;
   }
@@ -798,6 +819,7 @@ X3Status host_raise_exception(X3CallContext* context, X3Value exception) {
 }
 
 X3Status host_clear_exception(X3CallContext* context) {
+  XlangRuntimeExecutionGuard guard;
   if (context == nullptr || context->runtime == nullptr) return X3_STATUS_ERROR;
   if (context->error != nullptr) context->error->clear();
   if (context->exception != nullptr) {
@@ -810,6 +832,7 @@ X3Status host_clear_exception(X3CallContext* context) {
 }
 
 X3Status host_take_exception(X3CallContext* context, X3Value* out) {
+  XlangRuntimeExecutionGuard guard;
   if (context == nullptr || context->runtime == nullptr || out == nullptr)
     return X3_STATUS_ERROR;
   Value exception;

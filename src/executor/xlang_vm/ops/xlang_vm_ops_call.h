@@ -2193,7 +2193,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_method(
       return XlangVMOpFlow::ContinueLoop;
     }
     if (pushed_frame) return XlangVMOpFlow::SwitchFrame;
-  } else if (value_as_instance(method) != nullptr) {
+  } else if ((value_as_instance(method) != nullptr || value_as_module(method) != nullptr)) {
     Value call_attr;
     std::string call_error;
     if (!object_get_special_method(runtime, method, "__call__", call_attr, call_error)) {
@@ -3251,7 +3251,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call_ex(
     if (!event_fire(runtime, callee, args, static_cast<uint32_t>(call_args.size()), regs[in.dst], error)) {
       return raise_runtime_error(error) ? XlangVMOpFlow::ContinueLoop : XlangVMOpFlow::ReturnResult;
     }
-  } else if (value_as_instance(callee) != nullptr) {
+  } else if ((value_as_instance(callee) != nullptr || value_as_module(callee) != nullptr)) {
     Value call_attr;
     std::string attr_error;
     if (!object_get_special_method(runtime, callee, "__call__", call_attr, attr_error)) {
@@ -4395,7 +4395,7 @@ XLANG3_HOT_INLINE XlangVMOpFlow call(
       }
       return XlangVMOpFlow::Next;
     }
-    if (value_as_instance(callee) != nullptr) {
+    if ((value_as_instance(callee) != nullptr || value_as_module(callee) != nullptr)) {
       // Keep this guard at the original instance-callee site: after special
       // method lookup the generic dispatcher only sees the bound __call__.
       // Exact type and class-version checks leave subclasses and mutations on
@@ -5080,7 +5080,7 @@ inline bool call_callable_value(
     }
     return true;
   }
-  if (value_as_instance(function_value) != nullptr) {
+  if ((value_as_instance(function_value) != nullptr || value_as_module(function_value) != nullptr)) {
     Value call_attr;
     std::string attr_error;
     if (!object_get_special_method(runtime, function_value, "__call__", call_attr, attr_error)) {
@@ -5288,7 +5288,7 @@ inline bool call_callable_value_ex(
     return call_user_function(fn_obj, values, module, module_owner, return_dst, ip, out, pushed_frame,
                               make_generator_if_needed, push_frame);
   }
-  if (value_as_instance(function_value) != nullptr) {
+  if ((value_as_instance(function_value) != nullptr || value_as_module(function_value) != nullptr)) {
     Value call_attr;
     std::string attr_error;
     if (!object_get_special_method(runtime, function_value, "__call__", call_attr, attr_error)) {

@@ -187,10 +187,14 @@ bool call_value(
 extern "C" {
 
 X3Runtime* x3_runtime_create(void) {
+  // Serialize the complete lifetime, including object member ownership.
+  xlang3::XlangRuntimeExecutionGuard execution_guard;
   return as_c_runtime(new xlang3::Runtime(std::cout));
 }
 
 void x3_runtime_destroy(X3Runtime* runtime) {
+  // Serialize the complete lifetime, including object member ownership.
+  xlang3::XlangRuntimeExecutionGuard execution_guard;
   delete as_runtime(runtime);
 }
 

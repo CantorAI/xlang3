@@ -1,0 +1,64 @@
+{
+  "recordedAt": "2026-10-25T15:12:53.718Z",
+  "sourceParent": "35fa98d1513c8595f1c0e856be7c645a43d187f1",
+  "patchSha256": "3cd4aecc76f99eb28b3006b04f437de791cfbd18abcd6ba93041a5bc699754b0",
+  "runtimeSha256": "27199382abd7b0bf8c23ade5dd32749b373e9621704cb953d5211be7f9897446",
+  "sdkContracts": 5,
+  "ctypesCases": [
+    "ctypes_pointer_return",
+    "ctypes_cast_errcheck_array",
+    "ctypes_structure_layout",
+    "ctypes_unicode_buffer_contract"
+  ],
+  "performance": {
+    "passed": true,
+    "cases": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1,
+    "reportSha256": "bbbe621823cf7a9fead46eb435801df0d9976adf11ce2a1663f545979d5f8f5b"
+  },
+  "pip": {
+    "version": "26.2.1",
+    "normalWindowsLookupWithoutCacheOverride": true,
+    "offlineInstall": true,
+    "commands": [
+      {
+        "args": [
+          "-c",
+          "import sys; assert sys.implementation.name == 'xlang3'; print(sys.implementation.name)"
+        ],
+        "exitCode": 0
+      },
+      {
+        "args": [
+          "-m",
+          "pip",
+          "--version"
+        ],
+        "exitCode": 0
+      },
+      {
+        "args": [
+          "-m",
+          "pip",
+          "install",
+          "--no-cache-dir",
+          "--no-index",
+          "--only-binary=:all:",
+          "--target",
+          "D:/CantorAI2026/xMind/.agentflow/ctypes-unicode-v3-pip/site",
+          "C:/Python/Python314/Lib/ensurepip/_bundled/pip-26.2.1-py3-none-any.whl"
+        ],
+        "exitCode": 0
+      }
+    ]
+  },
+  "sourceFilesFrozen": 14062,
+  "protectedSdkFiles": 47,
+  "protectedNativeBinaries": 145,
+  "allInputSetsAndHashesUnchanged": true,
+  "cpythonExecuted": false,
+  "xmindReleaseQualified": false,
+  "earlierFailedCandidatesRetained": true
+}

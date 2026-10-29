@@ -2,3 +2,6 @@ local True 42 42
 null False
 null-error NULL pointer access
 native LP_c_wchar True 1 True
+untyped-null True
+untyped-buffer True True
+typed-null rejected

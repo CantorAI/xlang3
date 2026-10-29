@@ -348,7 +348,13 @@ void add_import_root_if_dir(Runtime& runtime, const std::filesystem::path& root)
 }
 
 void add_default_python_lib_roots(Runtime& runtime) {
+#if defined(_WIN32)
+  // Native hosts supply UTF-16 environment values. A narrow CRT lookup/path
+  // conversion loses valid library directory names outside the ANSI page.
+  if (const wchar_t* explicit_lib = _wgetenv(L"XLANG3_PYTHON_LIB")) {
+#else
   if (const char* explicit_lib = std::getenv("XLANG3_PYTHON_LIB")) {
+#endif
     add_import_root_if_dir(runtime, explicit_lib);
   }
   if (const char* explicit_debugpy = std::getenv("XLANG3_DEBUGPY_ROOT")) {

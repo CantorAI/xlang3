@@ -31,7 +31,6 @@ namespace {
 
 thread_local int64_t ctypes_errno = 0;
 thread_local int64_t ctypes_last_error = 0;
-Value ctypes_array_base;
 
 bool attr(const Value& object, const char* name, Value& out) {
   std::string ignored;
@@ -104,6 +103,14 @@ bool ctypes_simple_init(Runtime&, const Value* args, uint32_t argc, Value& out,
   if (argc < 1 || argc > 2) { error = "_SimpleCData() takes at most one argument"; return false; }
   Value value = argc == 2 ? args[1] : Value::int64(0);
   Value self = args[0];
+  if (argc == 1) {
+    Value code;
+    if (attr(self, "_type_", code) && value_as_string(code) != nullptr) {
+      const auto kind = string_object_view(*value_as_string(code));
+      if (kind == "u") value = Value::string(std::string(1, '\0'));
+      else if (kind == "c") value = Value::bytes(std::string(1, '\0'));
+    }
+  }
   if (!object_set_attr(self, "value", value, error)) return false;
   out = Value::none();
   return true;
@@ -228,7 +235,14 @@ bool ctypes_array_mul(Runtime& runtime, const Value* args, uint32_t argc, Value&
       {"_length_", args[1]},
   };
   std::string name = element_class->name + "_Array_" + std::to_string(args[1].as.i64);
-  out = Value::class_object(name, std::move(attrs), ctypes_array_base,
+  const auto* module = runtime.find_module("_ctypes");
+  Value array_base;
+  if (module == nullptr || !module_get_attr(*module, "Array", array_base, error) || value_as_class(array_base) == nullptr) {
+    error = "ctypes Array base is unavailable in this runtime";
+    runtime.raise_class_error("RuntimeError", error);
+    return false;
+  }
+  out = Value::class_object(name, std::move(attrs), array_base,
                             {}, element_class->metaclass);
   return true;
 }
@@ -481,7 +495,7 @@ void register_ctypes_module(Runtime& runtime) {
   };
   Value ctypes_meta = Value::class_object("PyCSimpleType", std::move(meta_attrs), type_type, {}, type_type);
   Value simple = make_base(runtime, "_SimpleCData", ctypes_meta, true);
-  ctypes_array_base = make_base(runtime, "Array", ctypes_meta);
+  Value ctypes_array_base = make_base(runtime, "Array", ctypes_meta);
   value_as_class(ctypes_array_base)->attrs["__init__"] =
       runtime.make_native_function("_ctypes.Array.__init__", ctypes_array_init);
   value_as_class(ctypes_array_base)->attrs["__len__"] =

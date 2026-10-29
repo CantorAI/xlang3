@@ -90,6 +90,44 @@ bool utf8_to_wide(std::string_view text, std::wstring& output) {
 #endif
 }
 
+// A c_wchar element is one native UTF-16 code unit, including NUL and
+// individual surrogate units. Unlike a wchar_t* string, it is not terminated.
+bool wide_unit_to_utf8(wchar_t character, std::string& output) {
+#if defined(_WIN32)
+  const auto unit = static_cast<uint16_t>(character);
+  output.clear();
+  if (unit < 0x80) output.push_back(static_cast<char>(unit));
+  else if (unit < 0x800) {
+    output.push_back(static_cast<char>(0xc0 | (unit >> 6)));
+    output.push_back(static_cast<char>(0x80 | (unit & 0x3f)));
+  } else {
+    output.push_back(static_cast<char>(0xe0 | (unit >> 12)));
+    output.push_back(static_cast<char>(0x80 | ((unit >> 6) & 0x3f)));
+    output.push_back(static_cast<char>(0x80 | (unit & 0x3f)));
+  }
+  return true;
+#else
+  (void)character;
+  (void)output;
+  return false;
+#endif
+}
+
+bool utf8_to_wide_unit(std::string_view text, wchar_t& output) {
+  // Python strings can retain an individual UTF-16 surrogate code unit.
+  if (text.size() == 3 && static_cast<uint8_t>(text[0]) == 0xed &&
+      static_cast<uint8_t>(text[1]) >= 0xa0 && static_cast<uint8_t>(text[1]) <= 0xbf &&
+      static_cast<uint8_t>(text[2]) >= 0x80 && static_cast<uint8_t>(text[2]) <= 0xbf) {
+    output = static_cast<wchar_t>(((static_cast<uint8_t>(text[0]) & 0x0f) << 12) |
+        ((static_cast<uint8_t>(text[1]) & 0x3f) << 6) | (static_cast<uint8_t>(text[2]) & 0x3f));
+    return true;
+  }
+  std::wstring decoded;
+  if (!utf8_to_wide(text, decoded) || decoded.size() != 1) return false;
+  output = decoded[0];
+  return true;
+}
+
 bool wide_to_utf8(const wchar_t* text, std::string& output) {
 #if defined(_WIN32)
   if (text == nullptr) return false;
@@ -243,6 +281,26 @@ bool store_scalar(const Value& object, const Shape& shape,
     if (attribute(object, "value", contained)) source = std::move(contained);
   }
   if (source.tag == ValueTag::None) return true;
+  if (shape.code == 'u') {
+    const auto* text = value_as_string(source);
+    wchar_t character = 0;
+    if (text == nullptr || !utf8_to_wide_unit(string_object_view(*text), character)) {
+      error = "expected one native wide character for c_wchar field";
+      return false;
+    }
+    std::memcpy(destination, &character, sizeof(character));
+    return true;
+  }
+  if (shape.code == 'c') {
+    const auto* bytes = value_as_bytes(source);
+    if (bytes == nullptr || bytes_object_view(*bytes).size() != 1) {
+      error = "expected one byte for c_char field";
+      return false;
+    }
+    const auto character = bytes_object_view(*bytes);
+    std::memcpy(destination, character.data(), 1);
+    return true;
+  }
   if (shape.code == 'Z' || shape.code == 'z') {
     uintptr_t address = 0;
     int64_t numeric_address = 0;
@@ -392,6 +450,18 @@ bool readback(Value object, const Value& type, const Shape& shape,
     if (!shape_of(shape.element, element)) return false;
     if (element.kind == Shape::Kind::Scalar && element.code == 'u') {
       const auto* characters = static_cast<const wchar_t*>(memory);
+      Value items;
+      if (!attribute(object, "_array_items_", items) || value_as_list(items) == nullptr ||
+          value_as_list(items)->items.size() != shape.length) {
+        error = "invalid native wide array storage";
+        return false;
+      }
+      for (size_t index = 0; index < shape.length; ++index) {
+        std::string character;
+        if (!wide_unit_to_utf8(characters[index], character) ||
+            !object_set_attr(value_as_list(items)->items[index], "value",
+                             Value::string(std::move(character)), error)) return false;
+      }
       size_t length = 0;
       while (length < shape.length && characters[length] != 0) ++length;
       std::wstring terminated(characters, characters + length);
@@ -494,6 +564,24 @@ bool marshal_pointer(Runtime& runtime, const Value& argument,
     return fail(runtime, "TypeError", "expected ctypes pointer type", error);
   output.abi = &ffi_type_pointer;
   if (argument.tag == ValueTag::None) return true;
+  if (value_as_instance(argument) != nullptr) {
+    const auto array_type = value_as_instance(argument)->klass;
+    Shape array_shape;
+    if (shape_of(array_type, array_shape) && array_shape.kind == Shape::Kind::Array) {
+      if (array_shape.element.tag != ValueTag::Object || pointer_shape.element.tag != ValueTag::Object ||
+          array_shape.element.as.obj != pointer_shape.element.as.obj)
+        return fail(runtime, "TypeError", "ctypes array element differs from pointer element", error);
+      auto* storage = storage_for(argument, array_shape.size, error);
+      if (storage == nullptr || !store_array(argument, array_shape, storage->data(), *storage, error))
+        return fail(runtime, "TypeError", "cannot marshal typed ctypes array", error);
+      output.storage = reinterpret_cast<uintptr_t>(storage->data());
+      output.pointee_object = argument;
+      output.pointee_type = array_type;
+      output.pointee_shape = array_shape;
+      output.pointee_storage = storage;
+      return true;
+    }
+  }
   Value address;
   int64_t raw_address = 0;
   if (attribute(argument, "_address_", address) && integer(address, raw_address)) {
@@ -535,7 +623,7 @@ bool marshal_argument(Runtime& runtime, const Value& argument, char code,
   if (output.abi == nullptr)
     return fail(runtime, "NotImplementedError",
                 "unsupported ctypes argument type code", error);
-  if (code == 'Z' || code == 'z') {
+  if (code == 'P' || code == 'Z' || code == 'z') {
     if (value_as_instance(argument) != nullptr) {
       Shape array_shape;
       const Value array_type = value_as_instance(argument)->klass;
@@ -552,6 +640,8 @@ bool marshal_argument(Runtime& runtime, const Value& argument, char code,
         return true;
       }
     }
+  }
+  if (code == 'Z' || code == 'z') {
     Value source = argument;
     if (value_as_instance(argument) != nullptr) {
       Value contained;
@@ -588,6 +678,21 @@ bool marshal_argument(Runtime& runtime, const Value& argument, char code,
   int64_t number = 0;
   if (source.tag == ValueTag::None && code == 'P') {
     output.storage = 0;
+    return true;
+  }
+  if (code == 'u') {
+    const auto* text = value_as_string(source);
+    wchar_t character = 0;
+    if (text == nullptr || !utf8_to_wide_unit(string_object_view(*text), character))
+      return fail(runtime, "TypeError", "expected one native wide character", error);
+    output.storage = static_cast<uint16_t>(character);
+    return true;
+  }
+  if (code == 'c') {
+    const auto* bytes = value_as_bytes(source);
+    if (bytes == nullptr || bytes_object_view(*bytes).size() != 1)
+      return fail(runtime, "TypeError", "expected one byte for c_char", error);
+    output.storage = static_cast<uint8_t>(bytes_object_view(*bytes)[0]);
     return true;
   }
   if (code == 'f' || code == 'd') {
@@ -692,7 +797,7 @@ bool ctypes_pointer_read(Runtime& runtime, const Value& pointer, int64_t index,
     wchar_t character[2] = {0, 0};
     std::memcpy(&character[0], source, sizeof(wchar_t));
     std::string utf8;
-    if (!wide_to_utf8(character, utf8))
+    if (!wide_unit_to_utf8(character[0], utf8))
       return fail(runtime, "UnicodeError", "invalid native wide character", error);
     decoded = Value::string(std::move(utf8));
   } else if (shape.code == 'c') {
@@ -838,6 +943,14 @@ bool ctypes_foreign_call(Runtime& runtime, const Value* args,
   std::vector<void*> abi_values(argc - 1);
   for (uint32_t index = 1; index < argc; ++index) {
     char code = 'i';
+    if (!has_types) {
+      if (args[index].tag == ValueTag::None) code = 'P';
+      else if (const auto* instance = value_as_instance(args[index])) {
+        Shape inferred;
+        if (shape_of(instance->klass, inferred) && inferred.kind == Shape::Kind::Array)
+          code = 'P';
+      }
+    }
     const Value& argument_type = list_types != nullptr ? list_types->items[index - 1] :
                                  tuple_types != nullptr ? tuple_types->items[index - 1] : args[index];
     const bool simple = !has_types || type_code(argument_type, code);

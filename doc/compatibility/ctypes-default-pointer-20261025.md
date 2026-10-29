@@ -1,0 +1,5 @@
+# Default ctypes pointer arguments required by pip
+
+Untyped WinDLL calls previously assigned the default integer ABI to None and ctypes arrays. Pip platformdirs calls SHGetFolderPathW(None, csidl, None, 0, unicode_buffer), which consequently raised TypeError before invocation. Infer a pointer ABI for these untyped arguments and reuse the existing pinned array storage/writeback path for void pointers. Explicit integer argtypes still reject None. No pip changes, platform spoofing or CPython interpreter use.
+
+Preserved8c7972d Release reproduces the failure. Candidate SDK contracts5/5, three ctypes fixtures and the fixed default performance gate11/11 pass (21 repeats,5 warmups,10% threshold unchanged). Candidate xlang3 CLI performs pip26.2.1 version discovery and a real no-index wheel installation; generated scripts select xlang3.exe. Inputs and runtime hashes/file sets remain unchanged during each gate. This qualifies the compatibility fix; full xMind package qualification remains separate. See the adjacent JSON receipt and original performance report.

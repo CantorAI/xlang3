@@ -26,6 +26,13 @@ if (-not $XLang3) {
     throw "XLang3 executable path is required"
 }
 
+# Match the native Windows executable spelling used by sys.executable when
+# testing sys.orig_argv. CMake otherwise supplies forward slashes here.
+$XLang3 = (Get-Item -LiteralPath $XLang3).FullName
+# An ambient setuptools .pth hook must not replace the bootstrap importer list
+# expected by the standard-module fixture. This leaves the assertions intact.
+$env:SETUPTOOLS_USE_DISTUTILS = 'stdlib'
+
 $root = $PSScriptRoot
 $cases = @(
     "sorted_key_scoped_entry",

@@ -2290,6 +2290,11 @@ bool value_is_callable(Runtime& runtime, const Value& value) {
     std::string ignored;
     return object_get_class_attr_for_instance(value, "__call__", call_attr, ignored);
   }
+  if (auto* module = value_as_module(value)) {
+    Value call_attr;
+    std::string ignored;
+    return object_lookup_class_attr(module->klass, "__call__", call_attr, ignored);
+  }
   return false;
 }
 
@@ -3962,6 +3967,7 @@ bool builtin_setattr(
   }
   if (!attribute_set(target, string_object_to_string(*name), args[2], error)) {
     const char* exception_type =
+        error.rfind("__class__", 0) == 0 ||
         error.rfind("__defaults__ must be", 0) == 0 ||
         error.rfind("__kwdefaults__ must be", 0) == 0 ||
         error.rfind("__code__ must be", 0) == 0 ||

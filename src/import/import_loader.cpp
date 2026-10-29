@@ -740,6 +740,7 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
       return false;
     }
     auto module_value = Value::module(name);
+    value_as_module(module_value)->runtime = &runtime;
     std::string attr_error;
     module_set_attr(module_value, "__name__", Value::string(name), attr_error);
     module_set_attr(module_value, "__file__", Value::none(), attr_error);
@@ -789,6 +790,7 @@ bool import_python_module(Runtime& runtime, const std::string& name, Value& out,
   trace_import_timing(name, "read", import_start);
 
   auto module_value = Value::module(name);
+  value_as_module(module_value)->runtime = &runtime;
   std::string attr_error;
   module_set_attr(module_value, "__name__", Value::string(name), attr_error);
   module_set_attr(module_value, "__file__", Value::string(module_file.path), attr_error);

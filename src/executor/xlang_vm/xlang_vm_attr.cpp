@@ -311,6 +311,9 @@ XLANG3_NOINLINE bool xlang_vm_store_attr_cached(
     std::string& error) {
   if (name == "__class__" || name == "__dict__") {
     cache.kind = AttrSiteKind::Empty;
+    if (name == "__class__" && value_as_module(object) != nullptr) {
+      return module_set_attr(object, name, value, error);
+    }
     return object_set_attr(object, name, value, error);
   }
   if (auto* instance = value_as_instance(object)) {

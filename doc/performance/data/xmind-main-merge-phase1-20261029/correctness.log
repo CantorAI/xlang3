@@ -1,0 +1,27 @@
+Test project D:/CantorAI2026/xMind/.agentflow/sdk-module-class-candidate/build
+      Start  1: xlang3_import_errors
+ 1/11 Test  #1: xlang3_import_errors ..............   Passed    0.05 sec
+      Start  2: xlang3_bytes_split
+ 2/11 Test  #2: xlang3_bytes_split ................   Passed    0.04 sec
+      Start  3: xlang3_ipc_native_host_tests
+ 3/11 Test  #3: xlang3_ipc_native_host_tests ......   Passed    0.05 sec
+      Start  4: xlang3_native_host_guard_tests
+ 4/11 Test  #4: xlang3_native_host_guard_tests ....   Passed    1.49 sec
+      Start  6: xlang3_runtime_isolation_tests
+ 5/11 Test  #6: xlang3_runtime_isolation_tests ....   Passed    0.76 sec
+      Start  8: xlang3_static_runtime_shutdown
+ 6/11 Test  #8: xlang3_static_runtime_shutdown ....   Passed    0.04 sec
+      Start  9: xlang3_embedded_package_tests
+ 7/11 Test  #9: xlang3_embedded_package_tests .....   Passed    0.06 sec
+      Start 10: xlang3_sdk_stream_call_tests
+ 8/11 Test #10: xlang3_sdk_stream_call_tests ......   Passed    0.06 sec
+      Start 27: xlang3_module_slot_tests
+ 9/11 Test #27: xlang3_module_slot_tests ..........   Passed    0.04 sec
+      Start 46: xlang3_cli_fixtures
+10/11 Test #46: xlang3_cli_fixtures ...............   Passed   26.47 sec
+      Start 48: xlang3_cli_unicode_library_path
+11/11 Test #48: xlang3_cli_unicode_library_path ...   Passed    0.33 sec
+
+100% tests passed, 0 tests failed out of 11
+
+Total Test time (real) =  29.41 sec

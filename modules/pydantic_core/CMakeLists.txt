@@ -1,6 +1,8 @@
 # Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
 # Licensed under the Apache License, Version 2.0
 
+set(XLANG3_PYDANTIC_CORE_VERSION "2.50.1")
+
 find_program(XLANG3_PYDANTIC_CARGO NAMES cargo cargo.exe)
 if(NOT XLANG3_PYDANTIC_CARGO)
   message(FATAL_ERROR "Cargo is required for pydantic-core's Rust regex engine")
@@ -44,6 +46,9 @@ add_custom_target(xlang_pydantic_regex_bridge DEPENDS "${PYDANTIC_REGEX_STATIC_L
 add_library(xlang_pydantic_core_native_package SHARED
   pydantic_core_module.cpp
 )
+target_compile_definitions(xlang_pydantic_core_native_package PRIVATE
+  XLANG3_PYDANTIC_CORE_VERSION="${XLANG3_PYDANTIC_CORE_VERSION}"
+)
 add_dependencies(xlang_pydantic_core_native_package xlang_pydantic_regex_bridge)
 target_link_libraries(xlang_pydantic_core_native_package PRIVATE "${PYDANTIC_REGEX_STATIC_LIB}")
 if(WIN32)
@@ -70,15 +75,26 @@ target_include_directories(xlang_pydantic_core_native_package PRIVATE
 # resolves without installing or loading a CPython extension.
 set(PYDANTIC_CORE_PYTHON_PACKAGE_DIR
   "${CMAKE_CURRENT_SOURCE_DIR}/python/pydantic_core")
+set(PYDANTIC_CORE_DIST_INFO_DIR
+  "${PROJECT_BINARY_DIR}/modules/pydantic_core-${XLANG3_PYDANTIC_CORE_VERSION}+xlang3.dist-info")
+file(MAKE_DIRECTORY "${PYDANTIC_CORE_DIST_INFO_DIR}")
+file(WRITE "${PYDANTIC_CORE_DIST_INFO_DIR}/METADATA"
+  "Metadata-Version: 2.1\nName: pydantic-core\nVersion: ${XLANG3_PYDANTIC_CORE_VERSION}+xlang3\nSummary: XLang3 native pydantic-core runtime package\n")
 add_custom_command(TARGET xlang_pydantic_core_native_package POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
     "${PYDANTIC_CORE_PYTHON_PACKAGE_DIR}"
     "$<TARGET_FILE_DIR:xlang_pydantic_core_native_package>/pydantic_core"
+  COMMAND ${CMAKE_COMMAND} -E copy_directory
+    "${PYDANTIC_CORE_DIST_INFO_DIR}"
+    "$<TARGET_FILE_DIR:xlang_pydantic_core_native_package>/pydantic_core-${XLANG3_PYDANTIC_CORE_VERSION}+xlang3.dist-info"
   VERBATIM
 )
 install(DIRECTORY "${PYDANTIC_CORE_PYTHON_PACKAGE_DIR}/"
   DESTINATION "modules/pydantic_core"
   FILES_MATCHING PATTERN "*.py"
+)
+install(FILES "${PYDANTIC_CORE_DIST_INFO_DIR}/METADATA"
+  DESTINATION "modules/pydantic_core-${XLANG3_PYDANTIC_CORE_VERSION}+xlang3.dist-info"
 )
 install(FILES "${CMAKE_CURRENT_SOURCE_DIR}/PYDANTIC_CORE_LICENSE.txt"
   DESTINATION "licenses/pydantic_core"
