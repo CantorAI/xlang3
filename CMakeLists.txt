@@ -777,6 +777,14 @@ else()
   add_test(NAME xlang3_ipc_lrpc_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.py $<TARGET_FILE:xlang3> --native-client $<TARGET_FILE:xlang3_cpp_ipc_client>)
   add_test(NAME xlang3_ipc_lrpc_server_exit COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_server_exit.py $<TARGET_FILE:xlang3>)
   add_test(NAME xlang3_ipc_lrpc_backpressure_server_exit COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_pressure_exit.py $<TARGET_FILE:xlang3>)
+  if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    add_test(NAME xlang3_ipc_lrpc_client_death
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_client_death.py $<TARGET_FILE:xlang3>)
+    add_test(NAME xlang3_ipc_lrpc_timeout_recovery
+      COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.py
+        $<TARGET_FILE:xlang3> --client timeout_client.py --expected timeout_expected.out)
+    set_tests_properties(xlang3_ipc_lrpc_client_death xlang3_ipc_lrpc_timeout_recovery PROPERTIES TIMEOUT 120)
+  endif()
   add_test(NAME xlang3_cli_dap_stdio_smoke COMMAND ${Python3_EXECUTABLE} ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_dap_stdio_smoke.py $<TARGET_FILE:xlang3>)
 endif()
 if(TEST xlang3_ipc_lrpc_backpressure)
