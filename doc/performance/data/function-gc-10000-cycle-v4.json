@@ -1,0 +1,1 @@
+{"runtime": "xlang3", "gc_enabled": true, "threshold": [700, 10, 10], "before": 3602, "after_cycles": 43602, "manual_collected": 40000, "after_manual_collect": 3602}

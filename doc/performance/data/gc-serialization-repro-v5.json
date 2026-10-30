@@ -1,0 +1,75 @@
+{
+  "runtime": "xlang3",
+  "duration_seconds": 120.09205385303358,
+  "final": true,
+  "errors": [],
+  "counts": [
+    1096,
+    1095,
+    1094,
+    1099,
+    1101,
+    1098,
+    1094,
+    1092,
+    1093,
+    1101,
+    1091,
+    1091,
+    1097,
+    1097,
+    1097,
+    1099
+  ],
+  "first": {
+    "count": 6000,
+    "median_ms": 0.45101752039045095,
+    "p95_ms": 4.5390750165097415
+  },
+  "last": {
+    "count": 6000,
+    "median_ms": 0.4169160092715174,
+    "p95_ms": 3.4751109778881073
+  },
+  "samples": [
+    {
+      "seconds": 30.009218575025443,
+      "calls": 4356,
+      "rss_kib": 106148,
+      "objects": 17206,
+      "collected": 121968
+    },
+    {
+      "seconds": 60.04855181701714,
+      "calls": 8746,
+      "rss_kib": 106752,
+      "objects": 17213,
+      "collected": 244916
+    },
+    {
+      "seconds": 90.07935577601893,
+      "calls": 13161,
+      "rss_kib": 107068,
+      "objects": 17215,
+      "collected": 368564
+    },
+    {
+      "seconds": 120.03989089204697,
+      "calls": 17535,
+      "rss_kib": 107316,
+      "objects": 16965,
+      "collected": 491064
+    },
+    {
+      "seconds": 120.09182607103139,
+      "calls": 17535,
+      "rss_kib": 100364,
+      "objects": 15623,
+      "collected": 491236
+    }
+  ],
+  "collected": 491236,
+  "threads_stopped": true,
+  "steady_rss_growth_kib": -6952,
+  "passed": true
+}

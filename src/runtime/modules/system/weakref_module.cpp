@@ -25,6 +25,7 @@ limitations under the License.
 #include "xlang3/sequence.h"
 #include "xlang3/set_object.h"
 #include "xlang3/value_hash.h"
+#include "runtime/modules/thread/runtime_lock.h"
 
 #include <algorithm>
 #include <atomic>
@@ -1650,6 +1651,12 @@ std::unordered_set<ClassObject*> collect_class_hierarchy(Runtime& runtime) {
 }
 
 uint64_t weakref_collect_cycles(Runtime& runtime) {
+  // Native gc.collect callbacks run outside the caller's VM execution guard.
+  // Registry locking alone does not freeze coroutine frames or Future/Task
+  // payloads: another interpreter can resume and retire the frame vector we
+  // are tracing. Serialize the whole graph walk and trial deletion, taking
+  // execution before registry locks to match ordinary VM weakref mutations.
+  XlangRuntimeExecutionGuard execution_lock;
   std::lock_guard registry_lock(weakref_registry_mutex());
   // Class inheritance already tracks live subclasses without owning them.
   // Search local classes too: a local generic origin can hold a specialization

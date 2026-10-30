@@ -666,9 +666,19 @@ void json_float_state_cleanup(void* data) {
 
 bool initialize_json_python_encoder(Runtime& runtime, JsonEncoderState& state,
                                     std::string& error) {
-  auto* float_state = new JsonFloatState{state.bound[8]};
+  // The ordinary bool option owns no Python graph. Retain immutable scalar
+  // state without a cleanup callback so recursive Python encoder closures
+  // do not acquire an opaque native-owner boundary just to capture a bool.
+  // Other values retain their original owning/deferred-truthiness semantics.
+  static JsonFloatState allow_nan_true{Value::boolean(true)};
+  static JsonFloatState allow_nan_false{Value::boolean(false)};
+  const bool scalar_option = state.bound[8].tag == ValueTag::Bool;
+  auto* float_state = scalar_option
+      ? (state.bound[8].as.b ? &allow_nan_true : &allow_nan_false)
+      : new JsonFloatState{state.bound[8]};
   Value floatstr = runtime.make_native_function(
-      "_json._floatstr", json_floatstr, float_state, json_float_state_cleanup,
+      "_json._floatstr", json_floatstr, float_state,
+      scalar_option ? nullptr : json_float_state_cleanup,
       nullptr, false, nullptr, false);
   Value helper_args[] = {
       state.bound[0], state.bound[1], state.bound[2], state.bound[3], floatstr,

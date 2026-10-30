@@ -209,8 +209,11 @@ bool gc_collect(Runtime& runtime, const Value* args, uint32_t argc, Value& out, 
     return true;
   }
   GcCollectionScope collection_scope;
-  runtime.synchronize_modules_from_registry();
-  runtime.release_dead_frame_registers();
+  {
+    XlangRuntimeExecutionGuard execution_lock;
+    runtime.synchronize_modules_from_registry();
+    runtime.release_dead_frame_registers();
+  }
   emit_pending_socket_resource_warnings(runtime);
   uint64_t collected = weakref_collect_cycles(runtime);
   collected += gc_collect_plain_cycles();
@@ -243,6 +246,7 @@ bool gc_get_objects(Runtime&, const Value*, uint32_t argc, Value& out, std::stri
     error = "gc.get_objects() generation selection is not yet supported";
     return false;
   }
+  XlangRuntimeExecutionGuard execution_lock;
   out = Value::list(gc_snapshot_tracked_objects());
   return true;
 }
@@ -384,6 +388,9 @@ bool gc_object_references_any(Runtime& runtime, const Value& source,
 
 bool gc_get_referrers(Runtime& runtime, const Value* args, uint32_t argc,
                       Value& out, std::string&, void*) {
+  // This also visits suspended coroutine frames and native payload edges.
+  // Use the same execution-before-registry lock order as cycle collection.
+  XlangRuntimeExecutionGuard execution_lock;
   std::vector<Value> referrers;
   for (auto& candidate : gc_snapshot_tracked_objects())
     if (gc_object_references_any(runtime, candidate, args, argc))

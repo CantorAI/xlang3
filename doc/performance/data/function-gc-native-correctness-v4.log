@@ -1,0 +1,53 @@
+Test project /home/shawn/CantorServeAzureBuild/20261029/build-release
+      Start   3: xlang3_ipc_native_host_tests
+ 1/24 Test   #3: xlang3_ipc_native_host_tests ...............   Passed    0.02 sec
+      Start   7: xlang3_abi_ownership
+ 2/24 Test   #7: xlang3_abi_ownership .......................   Passed    0.84 sec
+      Start  10: xlang3_sdk_stream_call_tests
+ 3/24 Test  #10: xlang3_sdk_stream_call_tests ...............   Passed    0.02 sec
+      Start  16: xlang3_runtime_value_tests
+ 4/24 Test  #16: xlang3_runtime_value_tests .................   Passed    0.10 sec
+      Start  21: xlang3_ipc_capacity_tests
+ 5/24 Test  #21: xlang3_ipc_capacity_tests ..................   Passed    0.00 sec
+      Start  36: xlang3_ipc_client
+ 6/24 Test  #36: xlang3_ipc_client ..........................   Passed    0.35 sec
+      Start  37: xlang3_ipc_pressure_client
+ 7/24 Test  #37: xlang3_ipc_pressure_client .................   Passed    0.90 sec
+      Start  38: xlang3_ipc_expression_client
+ 8/24 Test  #38: xlang3_ipc_expression_client ...............   Passed    0.34 sec
+      Start  42: xlang3_pydantic_core_schema_gather
+ 9/24 Test  #42: xlang3_pydantic_core_schema_gather .........   Passed    0.14 sec
+      Start  59: xlang3_ipc_lrpc_smoke
+10/24 Test  #59: xlang3_ipc_lrpc_smoke ......................   Passed    0.72 sec
+      Start  60: xlang3_ipc_lrpc_server_exit
+11/24 Test  #60: xlang3_ipc_lrpc_server_exit ................   Passed    0.16 sec
+      Start  61: xlang3_ipc_lrpc_backpressure_server_exit
+12/24 Test  #61: xlang3_ipc_lrpc_backpressure_server_exit ...   Passed    1.20 sec
+      Start  62: xlang3_ipc_lrpc_client_death
+13/24 Test  #62: xlang3_ipc_lrpc_client_death ...............   Passed    4.08 sec
+      Start  63: xlang3_ipc_lrpc_timeout_recovery
+14/24 Test  #63: xlang3_ipc_lrpc_timeout_recovery ...........   Passed   14.43 sec
+      Start  83: cantor_resource_offer
+15/24 Test  #83: cantor_resource_offer ......................   Passed    0.01 sec
+      Start  84: cantor_task_data
+16/24 Test  #84: cantor_task_data ...........................   Passed    0.02 sec
+      Start  89: cantor_frame_serialization
+17/24 Test  #89: cantor_frame_serialization .................   Passed    0.01 sec
+      Start  91: cantor_registry_wire
+18/24 Test  #91: cantor_registry_wire .......................   Passed    0.01 sec
+      Start  94: cantor_registry_requests
+19/24 Test  #94: cantor_registry_requests ...................   Passed    0.39 sec
+      Start 110: galaxy_frame_lifetime
+20/24 Test #110: galaxy_frame_lifetime ......................   Passed    0.03 sec
+      Start 119: galaxy_python_filter
+21/24 Test #119: galaxy_python_filter .......................   Passed    0.72 sec
+      Start 120: galaxy_python_filter_standalone
+22/24 Test #120: galaxy_python_filter_standalone ............   Passed    0.31 sec
+      Start 135: principia_brain_passive_filter
+23/24 Test #135: principia_brain_passive_filter .............   Passed    0.07 sec
+      Start 136: principia_brain_startup
+24/24 Test #136: principia_brain_startup ....................   Passed    0.11 sec
+
+100% tests passed, 0 tests failed out of 24
+
+Total Test time (real) =  25.00 sec

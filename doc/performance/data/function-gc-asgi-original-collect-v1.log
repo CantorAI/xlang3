@@ -1,0 +1,14 @@
+{"requests": 0, "objects": 14157, "collected": 0, "rss": "VmRSS:\t   66492 kB", "types": {"function": 5054, "dict": 1645, "tuple": 1327, "type": 1184, "cell": 772, "list": 693, "property": 472, "member_descriptor": 286}}
+/home/shawn/CantorServeAzureBuild/20261029/validation/azure-native-stability-20261030/asgi_gc_diagnostic.py:59: ResourceWarning: unclosed file <file '/proc/self/status'>
+  collected = gc.collect() if mode == 'collect' else 0
+{"requests": 1000, "objects": 42163, "collected": 0, "rss": "VmRSS:\t   73460 kB", "types": {"cell": 22772, "function": 8054, "dict": 2648, "tuple": 1329, "type": 1184, "method": 1045, "JSONEncoder": 1011, "list": 694}}
+{"requests": 2000, "objects": 70165, "collected": 0, "rss": "VmRSS:\t   82248 kB", "types": {"cell": 44772, "function": 11054, "dict": 3650, "method": 2045, "JSONEncoder": 2011, "tuple": 1329, "type": 1184, "list": 694}}
+{"requests": 3000, "objects": 98167, "collected": 0, "rss": "VmRSS:\t   90588 kB", "types": {"cell": 66772, "function": 14054, "dict": 4652, "method": 3045, "JSONEncoder": 3011, "tuple": 1329, "type": 1184, "list": 694}}
+{"requests": 4000, "objects": 126169, "collected": 0, "rss": "VmRSS:\t   98744 kB", "types": {"cell": 88772, "function": 17054, "dict": 5654, "method": 4045, "JSONEncoder": 4011, "tuple": 1329, "type": 1184, "list": 694}}
+{"requests": 5000, "objects": 154171, "collected": 0, "rss": "VmRSS:\t  106928 kB", "types": {"cell": 110772, "function": 20054, "dict": 6656, "method": 5045, "JSONEncoder": 5011, "tuple": 1329, "type": 1184, "list": 694}}
+{"requests": 6000, "objects": 182173, "collected": 0, "rss": "VmRSS:\t  115104 kB", "types": {"cell": 132772, "function": 23054, "dict": 7658, "method": 6045, "JSONEncoder": 6011, "tuple": 1329, "type": 1184, "list": 694}}
+{"requests": 7000, "objects": 210175, "collected": 0, "rss": "VmRSS:\t  123768 kB", "types": {"cell": 154772, "function": 26054, "dict": 8660, "method": 7045, "JSONEncoder": 7011, "tuple": 1329, "type": 1184, "list": 694}}
+{"requests": 8000, "objects": 238177, "collected": 0, "rss": "VmRSS:\t  133160 kB", "types": {"cell": 176772, "function": 29054, "dict": 9662, "method": 8045, "JSONEncoder": 8011, "tuple": 1329, "type": 1184, "list": 694}}
+{"requests": 9000, "objects": 266179, "collected": 0, "rss": "VmRSS:\t  140756 kB", "types": {"cell": 198772, "function": 32054, "dict": 10664, "method": 9045, "JSONEncoder": 9011, "tuple": 1329, "type": 1184, "list": 694}}
+{"requests": 10000, "objects": 294181, "collected": 0, "rss": "VmRSS:\t  152904 kB", "types": {"cell": 220772, "function": 35054, "dict": 11666, "method": 10045, "JSONEncoder": 10011, "tuple": 1329, "type": 1184, "list": 694}}
+{"runtime": "xlang3", "mode": "collect", "elapsed_seconds": 6.077249266032595, "growth": 280024}

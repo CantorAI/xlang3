@@ -1,0 +1,7 @@
+PASS unseeded-mutual-closures-reclaimed-repeatedly
+PASS live-closure-remains-callable
+PASS defaults-keyword-annotations-owning-multiplicity
+PASS closure-bound-method-instance-cycle
+PASS captured-types-and-intrinsic-builtins
+PASS repeated-json-response-encoder-closures
+PASS other-thread-closure-root

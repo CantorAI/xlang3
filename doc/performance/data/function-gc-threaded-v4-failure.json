@@ -1,0 +1,10 @@
+{
+  "runtime_sha256": "3103ae7e036f03701701971754685fd4eb5f24377719d88a6e1a8e5437ae22b9",
+  "qualification_passed": false,
+  "deployed": false,
+  "last_checkpoint_seconds": 660,
+  "last_checkpoint_calls": 25815,
+  "failure": "glibc: corrupted size vs. prev_size; process exited before final 900-second acceptance",
+  "final_report_exists": false,
+  "production_unchanged": true
+}

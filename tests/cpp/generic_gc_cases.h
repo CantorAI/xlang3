@@ -18,6 +18,7 @@ limitations under the License.
 #include "xlang3/module_object.h"
 #include "xlang3/sequence.h"
 #include "../../src/runtime/modules/system/gc_plain_node_index.h"
+#include "../../src/runtime/modules/thread/runtime_lock.h"
 
 namespace xlang3::test {
 namespace generic_gc_cases {
@@ -54,6 +55,31 @@ inline bool noop(Runtime&, const Value*, uint32_t, Value& out, std::string& erro
   out = Value::none(); error.clear(); return true;
 }
 inline void cleanup(void* context) { ++*static_cast<unsigned*>(context); }
+struct FunctionMetadataCleanup {
+  Runtime* runtime;
+  unsigned calls = 0;
+  bool reentry_rejected = false;
+};
+inline void cleanup_function_metadata(void* context) {
+  auto& state = *static_cast<FunctionMetadataCleanup*>(context);
+  ++state.calls;
+  uint64_t count = 1;
+  state.reentry_rejected = collect(*state.runtime, count) && count == 0;
+}
+struct TraversalSerializationAudit {
+  Value self;
+  unsigned visits = 0;
+  bool serialized = true;
+};
+inline void trace_serialization_audit(void* payload, NativeGCReferenceVisitor visitor, void* context) {
+  auto& audit = *static_cast<TraversalSerializationAudit*>(payload);
+  ++audit.visits;
+  audit.serialized &= xlang_runtime_execution_depth() != 0;
+  if (audit.self.tag == ValueTag::Object) visitor(audit.self.as.obj, context);
+}
+inline void clear_serialization_audit(void* payload) {
+  value_set_none(static_cast<TraversalSerializationAudit*>(payload)->self);
+}
 }
 
 inline void check_generic_gc_cases(CaseResult& result) {
@@ -96,6 +122,39 @@ inline void check_generic_gc_cases(CaseResult& result) {
   std::ostringstream output;
   Runtime runtime(output);
   uint64_t count = 0;
+  {
+    TraversalSerializationAudit audit;
+    Value traced = Value::instance(*runtime.find_builtin("object"));
+    audit.self = traced;
+    std::string error;
+    expect_true(result, instance_set_native_data(traced, "GCTraversalSerialization", &audit, nullptr, error) &&
+        instance_set_native_gc_traversal(traced, trace_serialization_audit, clear_serialization_audit, error),
+        "native traversal audit is registered without exposing a new SDK export");
+    Value module, function, answer;
+    expect_true(result, runtime.import_module("gc", module, error) &&
+        module_get_attr(module, "collect", function, error), "native collector callback is available");
+    auto* callback = value_as_native_function(function);
+    expect_true(result, callback != nullptr && xlang_runtime_execution_depth() == 0,
+        "the direct native callback test enters without a VM execution guard");
+    if (callback != nullptr) {
+      expect_true(result, callback->callback(runtime, nullptr, 0, answer, error, callback->user_data) &&
+          audit.visits != 0 && audit.serialized,
+          "native Future/coroutine graph traversal is serialized with VM frame mutation");
+    }
+    const unsigned visits = audit.visits;
+    audit.serialized = true;
+    expect_true(result, module_get_attr(module, "get_referrers", function, error),
+        "native referrer introspection callback is available");
+    callback = value_as_native_function(function);
+    if (callback != nullptr) {
+      expect_true(result, callback->callback(runtime, &traced, 1, answer, error, callback->user_data) &&
+          audit.visits > visits && audit.serialized,
+          "native referrer introspection also serializes suspended-frame traversal");
+    }
+    value_set_invalid(answer);
+    value_set_none(audit.self);
+    value_set_invalid(traced);
+  }
   Value self = Value::list({});
   auto* object = self.as.obj;
   value_as_list(self)->items.push_back(self);
@@ -185,7 +244,71 @@ inline void check_generic_gc_cases(CaseResult& result) {
   expect_true(result, collect(runtime, count) && count >= 1 && !contains(runtime, cell_object, result),
       "cell storage participates in ordinary owning-edge discovery");
 
+  {
+    FunctionMetadataCleanup metadata{&runtime};
+    Value captured = Value::cell(Value::none());
+    Value function = Value::function(0, {captured});
+    auto* function_object = function.as.obj;
+    auto* captured_object = captured.as.obj;
+    value_as_cell(captured)->value = function;
+    value_as_function(function)->builtins = Value::native_function(
+        0, "gc_function_metadata_owner", noop, &metadata, cleanup_function_metadata);
+    value_set_invalid(captured);
+    expect_true(result, collect(runtime, count) && contains(runtime, function_object, result) &&
+        metadata.calls == 0 && value_as_function(function)->closure.size() == 1,
+        "an embedding owner keeps a function/cell cycle and its opaque metadata intact");
+    value_set_invalid(function);
+    expect_true(result, collect(runtime, count) && count >= 2 &&
+        !contains(runtime, function_object, result) && !contains(runtime, captured_object, result) &&
+        metadata.calls == 1 && metadata.reentry_rejected,
+        "unseeded function cycles retire opaque native metadata once with GC reentry excluded");
+  }
+
+  {
+    Value captured = Value::cell(Value::none());
+    Value function = Value::function(0, {captured});
+    auto* function_object = function.as.obj;
+    value_as_cell(captured)->value = function;
+    // A captured globals dictionary is opaque, so its back-reference remains
+    // external ownership. The collector must not empty a reachable namespace
+    // merely to make this component's trial count balance.
+    value_as_function(function)->globals_dict = Value::dict({{Value::string("callback"), function}});
+    value_set_invalid(captured);
+    value_set_invalid(function);
+    expect_true(result, collect(runtime, count) && contains(runtime, function_object, result),
+        "opaque captured-global back-edges remain conservative roots");
+    {
+      Value snapshot = objects(runtime);
+      for (const auto& value : value_as_list(snapshot)->items)
+        if (value.as.obj == function_object) value_set_invalid(value_as_function(value)->globals_dict);
+    }
+    expect_true(result, collect(runtime, count) && !contains(runtime, function_object, result),
+        "explicitly releasing the opaque globals owner permits closure-cycle reclamation");
+  }
+
   unsigned cleanups = 0;
+  {
+    unsigned function_cleanups = 0;
+    Value captured = Value::cell(Value::none());
+    Value function = Value::function(0, {captured});
+    auto* function_object = function.as.obj;
+    value_as_cell(captured)->value = function;
+    value_as_function(function)->attrs_dict = Value::dict({{Value::string("owner"),
+        Value::native_function(0, "gc_function_opaque_attr", noop, &function_cleanups, cleanup)}});
+    value_set_invalid(captured);
+    value_set_invalid(function);
+    expect_true(result, collect(runtime, count) && contains(runtime, function_object, result) &&
+        function_cleanups == 0,
+        "a native attribute with cleanup remains a conservative function-cycle boundary");
+    {
+      Value snapshot = objects(runtime);
+      for (const auto& value : value_as_list(snapshot)->items)
+        if (value.as.obj == function_object) value_set_invalid(value_as_function(value)->attrs_dict);
+    }
+    expect_true(result, function_cleanups == 1 && collect(runtime, count) &&
+        !contains(runtime, function_object, result),
+        "explicit opaque attribute cleanup permits subsequent function-cycle collection");
+  }
   Value opaque_cycle = Value::list({});
   auto* opaque_object = opaque_cycle.as.obj;
   value_as_list(opaque_cycle)->items.push_back(opaque_cycle);

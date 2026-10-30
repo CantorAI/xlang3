@@ -1,0 +1,21 @@
+{
+  "cpu": 2,
+  "governor": "powersave",
+  "cpu_counter_deltas": [
+    128,
+    0,
+    8,
+    68,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "idle_fraction": 0.3333333333333333,
+  "observed_build_test_blockers": [],
+  "unchanged_candidate_sha256": "3103ae7e036f03701701971754685fd4eb5f24377719d88a6e1a8e5437ae22b9",
+  "original_inconclusive_report": "function-gc-performance-gate-v4.json",
+  "reason": "Both function-call confidence intervals crossed 1.10 with nominal ratios about 1.08; other ten cases passed. Confirm idle and rerun complete unchanged gate once."
+}

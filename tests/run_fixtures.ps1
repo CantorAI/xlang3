@@ -274,6 +274,7 @@ $cases = @(
     "type_parameter_repr",
     "gc_class_components",
     "gc_generic_cycles",
+    "gc_function_cycles",
     "two_argument_double_ir_plan",
     "deque_class_getitem",
     "sre_class_getitem",

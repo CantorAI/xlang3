@@ -40,7 +40,8 @@ namespace {
 bool gc_plain_storage_kind(ObjectKind kind) {
   return kind == ObjectKind::Instance || kind == ObjectKind::List ||
       kind == ObjectKind::Dict || kind == ObjectKind::Tuple ||
-      kind == ObjectKind::Set || kind == ObjectKind::Cell;
+      kind == ObjectKind::Set || kind == ObjectKind::Cell ||
+      kind == ObjectKind::Function || kind == ObjectKind::BoundMethod;
 }
 
 bool gc_plain_callback_boundary(Object* object) {
@@ -60,6 +61,11 @@ bool gc_plain_callback_boundary(Object* object) {
 }
 
 bool gc_plain_atomic_leaf(Object* object) {
+  // Like Instance.klass, captured classes are opaque metadata owners. The
+  // collector snapshot pins every class through graph retirement. A class
+  // pointing back into this graph contributes uncounted external ownership,
+  // so admitting this outgoing edge never makes a class cycle collectible.
+  if (object->kind == ObjectKind::Class) return true;
   if ((object->gc_tracking_state.load(std::memory_order_relaxed) &
        kObjectWeakrefFlagsMask) != 0) return false;
   switch (object->kind) {
@@ -69,6 +75,14 @@ bool gc_plain_atomic_leaf(Object* object) {
     case ObjectKind::BigInt:
     case ObjectKind::Complex:
       return true;
+    case ObjectKind::NativeFunction: {
+      const auto* function = reinterpret_cast<NativeFunctionObject*>(object);
+      // Intrinsic builtins captured by closures (isinstance, len, etc.) have
+      // no owning Python attributes or cleanup callback. Stateful extensions
+      // remain conservative boundaries, including the existing opaque-owner
+      // tests; do not treat all native callables as leaf objects.
+      return function->user_data_cleanup == nullptr && function->attrs_dict == nullptr;
+    }
     case ObjectKind::Tuple:
       return reinterpret_cast<TupleObject*>(object)->items.empty();
     default:
@@ -96,6 +110,28 @@ void gc_visit_plain_storage(Object* object, Visit&& visit) {
     case ObjectKind::Cell:
       visit(reinterpret_cast<CellObject*>(object)->value);
       break;
+    case ObjectKind::BoundMethod: {
+      auto* method = reinterpret_cast<BoundMethodObject*>(object);
+      visit(method->self);
+      visit(method->function);
+      break;
+    }
+    case ObjectKind::Function: {
+      auto* function = reinterpret_cast<FunctionObject*>(object);
+      for (auto& value : function->closure) visit(value);
+      for (auto& value : function->defaults) visit(value);
+      for (auto& value : function->positional_defaults) visit(value);
+      for (auto& entry : function->kwdefaults) visit(entry.second);
+      visit(function->kwdefaults_dict);
+      visit(function->attrs_dict);
+      visit(function->annotations);
+      visit(function->doc);
+      // Code and captured global/builtin namespaces remain opaque owners.
+      // Their incoming references are deliberately not subtracted: a module
+      // or code constant pointing back into this graph must keep it alive.
+      // Pin this metadata separately before retiring a collected function.
+      break;
+    }
     case ObjectKind::Instance: {
       auto* instance = reinterpret_cast<InstanceObject*>(object);
       // Class metadata stays owned until final release. All classes retain
@@ -240,6 +276,12 @@ void gc_publish_empty_plain_storage(Object* object) {
       auto* instance = reinterpret_cast<InstanceObject*>(object);
       instance->attrs.clear(); instance->has_separate_attribute_storage = false; break;
     }
+    case ObjectKind::Function: {
+      auto* function = reinterpret_cast<FunctionObject*>(object);
+      function->closure.clear(); function->defaults.clear();
+      function->positional_defaults.clear(); function->kwdefaults.clear();
+      break;
+    }
     default: break;
   }
 }
@@ -262,6 +304,8 @@ uint64_t gc_collect_plain_cycles() {
   // Release opaque metadata pins after leaving VM serialization. There are no
   // graph/field reads then, and the outer collect guard rejects reentrant GC.
   std::vector<Value> snapshot;
+  std::vector<Value> function_metadata_pins;
+  std::vector<std::shared_ptr<const ir::Module>> function_module_pins;
   uint64_t collected = 0;
   {
     XlangRuntimeExecutionGuard execution_lock;
@@ -322,7 +366,8 @@ uint64_t gc_collect_plain_cycles() {
       auto& node = nodes[i];
       const uint64_t references = node.object->refcnt.load(std::memory_order_acquire);
       // Exactly one reference belongs to our snapshot. Uncounted ownership
-      // from modules, frames, functions and native payloads remains external.
+      // from modules, frames, opaque function metadata and native payloads
+      // remains external.
       // Inconsistent counts fail closed; borrowed Values are never subtracted.
       if (node.unsafe || references != node.incoming + 1) {
         node.reachable = true; pending.push_back(i);
@@ -347,6 +392,25 @@ uint64_t gc_collect_plain_cycles() {
     }
     std::vector<Value> retired, candidate_pins;
     retired.reserve(retired_count); candidate_pins.reserve(static_cast<size_t>(collected));
+    size_t collected_functions = 0;
+    for (const auto& node : nodes)
+      if (!node.reachable && node.object->kind == ObjectKind::Function)
+        ++collected_functions;
+    function_metadata_pins.reserve(collected_functions * 4);
+    function_module_pins.reserve(collected_functions);
+    // These opaque owners are not graph edges and can perform native cleanup
+    // on final release. Keep them alive through the entire empty-graph publish
+    // and candidate retirement, then release outside VM serialization. Allocate
+    // all pins before mutation; no raw function pointers survive retirement.
+    for (const auto& node : nodes)
+      if (!node.reachable && node.object->kind == ObjectKind::Function) {
+        const auto* function = reinterpret_cast<FunctionObject*>(node.object);
+        function_metadata_pins.push_back(function->code_object);
+        function_metadata_pins.push_back(function->globals_module);
+        function_metadata_pins.push_back(function->builtins);
+        function_metadata_pins.push_back(function->globals_dict);
+        function_module_pins.push_back(function->module);
+      }
     // Allocate everything before mutation. Move ownership rather than adding
     // pins, publish the entire empty graph and coherent indexes, then retire.
     // The specialized weakref/native collector runs separately, before this
@@ -360,6 +424,8 @@ uint64_t gc_collect_plain_cycles() {
     candidate_pins.clear(); // Class/opaque snapshot pins still prevent cleanup callbacks.
   }
   snapshot.clear(); // No registry lock or cached graph references across cleanup/reentry.
+  function_metadata_pins.clear();
+  function_module_pins.clear();
   return collected;
 #endif
 }
