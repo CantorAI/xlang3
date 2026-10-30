@@ -1,0 +1,1496 @@
+{
+  "schema": 1,
+  "collected_at_unix": 1793394917.097624,
+  "deployment": {
+    "stage_only": true,
+    "old_release": "/data/Cantor/releases/native-stability-20261030-json-6747e744",
+    "new_release": "/data/Cantor/releases/native-stability-20261030-linuxipc-9c089b14",
+    "archive_sha256": "4d7221a1f0bc903100e4125019b0ec96b3f5786718c10ab1297563bce5e97197",
+    "files_verified": 2891,
+    "runtime_sha256": "c03fde877d91d479a011d635f23a70abc754b36cadb2e819ac5efd1b0b50604b",
+    "cantor_sha256": "de3360fdd31d2c9cd1b4976b5b242758257285fbce521ed400d1b625ba08f543",
+    "commits": {
+      "Cantor": "cabb8d05e16d2b210abd4d9d73fa1d8b371d2343",
+      "xlang3": "9c089b14535eaa643ad569f8462faa3ee0ac386e"
+    },
+    "preserved_runtime_state_links": {
+      "bin/Logs": "/data/CantorStorage/SharedNode/Logs",
+      "bin/Database": "/data/CantorStorage/SharedNode/Database",
+      "bin/CantorStore": "/data/CantorStorage/SharedNode/CantorStore"
+    }
+  },
+  "core": {
+    "MainPID": "872751",
+    "NRestarts": "0",
+    "ActiveState": "active"
+  },
+  "api": {
+    "MainPID": "873110",
+    "NRestarts": "0",
+    "ActiveState": "active"
+  },
+  "runtime_sha256": "c03fde877d91d479a011d635f23a70abc754b36cadb2e819ac5efd1b0b50604b",
+  "production_soak_completed": true,
+  "soak": {
+    "runtime": "xlang3",
+    "duration_seconds": 2700.2702654870227,
+    "requested_seconds": 2700,
+    "initial_service": {
+      "MainPID": "872751",
+      "NRestarts": "0",
+      "ApiMainPID": "873110",
+      "ApiNRestarts": "0"
+    },
+    "final_service": {
+      "MainPID": "872751",
+      "NRestarts": "0",
+      "ApiMainPID": "873110",
+      "ApiNRestarts": "0"
+    },
+    "calls": 10482,
+    "errors": [],
+    "samples": [
+      {
+        "elapsed_seconds": 30.03055363614112,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "132560 kB",
+          "Threads": "74"
+        },
+        "calls": 120,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 60.0611301260069,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "132996 kB",
+          "Threads": "74"
+        },
+        "calls": 240,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 90.09227898251265,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "133540 kB",
+          "Threads": "74"
+        },
+        "calls": 354,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 120.12997900135815,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "134344 kB",
+          "Threads": "74"
+        },
+        "calls": 468,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 150.17179860919714,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "135588 kB",
+          "Threads": "74"
+        },
+        "calls": 585,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 180.210628782399,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "135956 kB",
+          "Threads": "74"
+        },
+        "calls": 705,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 210.25214455928653,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "136220 kB",
+          "Threads": "74"
+        },
+        "calls": 825,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 240.2972197830677,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "136620 kB",
+          "Threads": "74"
+        },
+        "calls": 943,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 270.34382062219083,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "136980 kB",
+          "Threads": "74"
+        },
+        "calls": 1062,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 300.45602471008897,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "136988 kB",
+          "Threads": "74"
+        },
+        "calls": 1179,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 330.5319380648434,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "137272 kB",
+          "Threads": "74"
+        },
+        "calls": 1299,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 360.59636329021305,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "137700 kB",
+          "Threads": "74"
+        },
+        "calls": 1416,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 390.6564391506836,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "138068 kB",
+          "Threads": "74"
+        },
+        "calls": 1536,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 420.7135680709034,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "137544 kB",
+          "Threads": "74"
+        },
+        "calls": 1624,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 450.7745515592396,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "137848 kB",
+          "Threads": "74"
+        },
+        "calls": 1693,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 480.83404997736216,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "138340 kB",
+          "Threads": "74"
+        },
+        "calls": 1780,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 510.899493040517,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "138888 kB",
+          "Threads": "74"
+        },
+        "calls": 1894,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 540.9706311412156,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "139296 kB",
+          "Threads": "74"
+        },
+        "calls": 2012,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 571.0440623220056,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "140076 kB",
+          "Threads": "74"
+        },
+        "calls": 2127,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 601.1255591260269,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "140716 kB",
+          "Threads": "74"
+        },
+        "calls": 2242,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 631.2031911136582,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "141352 kB",
+          "Threads": "74"
+        },
+        "calls": 2358,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 661.2767509920523,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "142116 kB",
+          "Threads": "74"
+        },
+        "calls": 2457,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 691.3510479880497,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "142524 kB",
+          "Threads": "74"
+        },
+        "calls": 2574,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 721.4611511277035,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "143448 kB",
+          "Threads": "74"
+        },
+        "calls": 2694,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 751.5463186530396,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "143336 kB",
+          "Threads": "74"
+        },
+        "calls": 2812,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 781.6286355527118,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "143852 kB",
+          "Threads": "74"
+        },
+        "calls": 2931,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 811.7078343434259,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "144572 kB",
+          "Threads": "74"
+        },
+        "calls": 3048,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 841.7924370625988,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "145264 kB",
+          "Threads": "74"
+        },
+        "calls": 3168,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 871.875312063843,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "146000 kB",
+          "Threads": "74"
+        },
+        "calls": 3288,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 901.9791130265221,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "146684 kB",
+          "Threads": "74"
+        },
+        "calls": 3405,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 932.0777470665053,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "146652 kB",
+          "Threads": "74"
+        },
+        "calls": 3525,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 962.1689705271274,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "147336 kB",
+          "Threads": "74"
+        },
+        "calls": 3645,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 992.2647796208039,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "148024 kB",
+          "Threads": "74"
+        },
+        "calls": 3762,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1022.3621331462637,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "148780 kB",
+          "Threads": "74"
+        },
+        "calls": 3879,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1052.45986623317,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "149388 kB",
+          "Threads": "74"
+        },
+        "calls": 3999,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1082.5560208680108,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "149780 kB",
+          "Threads": "74"
+        },
+        "calls": 4119,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1112.6559697948396,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "150264 kB",
+          "Threads": "74"
+        },
+        "calls": 4236,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1142.7629856150597,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "150016 kB",
+          "Threads": "74"
+        },
+        "calls": 4356,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1172.866250379011,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "150480 kB",
+          "Threads": "74"
+        },
+        "calls": 4473,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1202.9695386486128,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "150776 kB",
+          "Threads": "74"
+        },
+        "calls": 4591,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1233.0832783291116,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "151224 kB",
+          "Threads": "74"
+        },
+        "calls": 4709,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1263.1896676542237,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "151628 kB",
+          "Threads": "74"
+        },
+        "calls": 4828,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1293.3046078570187,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "151972 kB",
+          "Threads": "74"
+        },
+        "calls": 4948,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1323.4419075939804,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "152456 kB",
+          "Threads": "74"
+        },
+        "calls": 5066,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1353.6163168940693,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "152828 kB",
+          "Threads": "74"
+        },
+        "calls": 5186,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1383.8017891915515,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "153200 kB",
+          "Threads": "74"
+        },
+        "calls": 5306,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1413.970328329131,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "153544 kB",
+          "Threads": "74"
+        },
+        "calls": 5424,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1444.134048213251,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "154000 kB",
+          "Threads": "74"
+        },
+        "calls": 5544,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1474.2684722356498,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "154368 kB",
+          "Threads": "74"
+        },
+        "calls": 5661,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1504.4049670808017,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "154496 kB",
+          "Threads": "74"
+        },
+        "calls": 5781,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1534.5382560091093,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "154852 kB",
+          "Threads": "74"
+        },
+        "calls": 5901,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1564.6808621035889,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "154932 kB",
+          "Threads": "74"
+        },
+        "calls": 6019,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1594.8197651673108,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "154968 kB",
+          "Threads": "74"
+        },
+        "calls": 6139,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1624.981134421192,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "155640 kB",
+          "Threads": "74"
+        },
+        "calls": 6259,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1655.1190298032016,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "155664 kB",
+          "Threads": "74"
+        },
+        "calls": 6379,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1685.2589548239484,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "155680 kB",
+          "Threads": "74"
+        },
+        "calls": 6499,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1715.4069358678535,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "155920 kB",
+          "Threads": "74"
+        },
+        "calls": 6610,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1745.5606608083472,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "156408 kB",
+          "Threads": "74"
+        },
+        "calls": 6727,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1775.7036994071677,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "156792 kB",
+          "Threads": "74"
+        },
+        "calls": 6847,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1805.8537799371406,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "157160 kB",
+          "Threads": "74"
+        },
+        "calls": 6964,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1836.0392629746348,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "157568 kB",
+          "Threads": "74"
+        },
+        "calls": 7081,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1866.2362332046032,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "157828 kB",
+          "Threads": "74"
+        },
+        "calls": 7201,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1896.3978029387072,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "158352 kB",
+          "Threads": "74"
+        },
+        "calls": 7319,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1926.5718251662329,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "158844 kB",
+          "Threads": "74"
+        },
+        "calls": 7438,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1956.7419451484457,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "159224 kB",
+          "Threads": "74"
+        },
+        "calls": 7558,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 1986.9210231928155,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "159672 kB",
+          "Threads": "74"
+        },
+        "calls": 7675,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2017.106587833725,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "160060 kB",
+          "Threads": "74"
+        },
+        "calls": 7795,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2047.2730792406946,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "160464 kB",
+          "Threads": "74"
+        },
+        "calls": 7912,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2077.442401968874,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "160904 kB",
+          "Threads": "74"
+        },
+        "calls": 8032,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2107.62122236751,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "161360 kB",
+          "Threads": "74"
+        },
+        "calls": 8152,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2137.796347993426,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "161800 kB",
+          "Threads": "74"
+        },
+        "calls": 8269,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2167.9891872173175,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "162140 kB",
+          "Threads": "74"
+        },
+        "calls": 8387,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2198.180385774933,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "162536 kB",
+          "Threads": "74"
+        },
+        "calls": 8507,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2228.3807457676157,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "163064 kB",
+          "Threads": "74"
+        },
+        "calls": 8626,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2258.587218613364,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "163460 kB",
+          "Threads": "74"
+        },
+        "calls": 8746,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2288.775008847937,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "163808 kB",
+          "Threads": "74"
+        },
+        "calls": 8866,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2318.9757205778733,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "164188 kB",
+          "Threads": "74"
+        },
+        "calls": 8984,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2349.215195648372,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "164752 kB",
+          "Threads": "74"
+        },
+        "calls": 9101,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2379.5435973191634,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "165132 kB",
+          "Threads": "74"
+        },
+        "calls": 9221,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2409.794858144596,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "165588 kB",
+          "Threads": "74"
+        },
+        "calls": 9338,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2440.0221387352794,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "166124 kB",
+          "Threads": "74"
+        },
+        "calls": 9458,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2470.259756816551,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "166488 kB",
+          "Threads": "74"
+        },
+        "calls": 9578,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2500.459764665924,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "166796 kB",
+          "Threads": "74"
+        },
+        "calls": 9695,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2530.6839096434414,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "167228 kB",
+          "Threads": "74"
+        },
+        "calls": 9815,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2560.8988628862426,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "167636 kB",
+          "Threads": "74"
+        },
+        "calls": 9935,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2591.120711494237,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "168116 kB",
+          "Threads": "74"
+        },
+        "calls": 10055,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2621.3329943222925,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "169332 kB",
+          "Threads": "74"
+        },
+        "calls": 10175,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2651.5557083413005,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "169700 kB",
+          "Threads": "74"
+        },
+        "calls": 10292,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2681.8744992511347,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "170148 kB",
+          "Threads": "74"
+        },
+        "calls": 10412,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2700.037024065852,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "170352 kB",
+          "Threads": "74"
+        },
+        "calls": 10482,
+        "errors": 0
+      },
+      {
+        "elapsed_seconds": 2700.2702536052093,
+        "service": {
+          "MainPID": "872751",
+          "NRestarts": "0",
+          "ApiMainPID": "873110",
+          "ApiNRestarts": "0"
+        },
+        "native_memory": {
+          "VmRSS": "170352 kB",
+          "Threads": "74"
+        },
+        "calls": 10482,
+        "errors": 0
+      }
+    ],
+    "latency": {
+      "count": 10482,
+      "median_ms": 5.284199025481939,
+      "p95_ms": 14.779233373701572,
+      "max_ms": 10010.60598064214
+    },
+    "first_five_minutes": {
+      "count": 1179,
+      "median_ms": 5.325239151716232,
+      "p95_ms": 11.681399308145046,
+      "max_ms": 1101.4890121296048
+    },
+    "last_five_minutes": {
+      "count": 1180,
+      "median_ms": 4.8524378798902035,
+      "p95_ms": 10.983170941472054,
+      "max_ms": 479.84387166798115
+    },
+    "single_cached_proxy": true,
+    "last_success_age_seconds": 0.796655404381454,
+    "threads_stopped": true,
+    "final": true,
+    "passed": true,
+    "connection_mutations": false,
+    "inference_requests_sent": 0,
+    "cpu_available_calls": 7494,
+    "cpu_unavailable_calls": 2638,
+    "started_at_unix": 1793392199.876011,
+    "observed_at_unix": 1793394900.297456,
+    "native_release": "/data/Cantor/releases/native-stability-20261030-linuxipc-9c089b14"
+  },
+  "registry_observer_fault": {
+    "native_pid": 872751,
+    "sequence": 9,
+    "fired_at": 1793392132.129732,
+    "unsubscribed": true
+  },
+  "public_http_status": 200,
+  "public_cluster_polling_enabled_at_utc": "2026-10-30T20:37:36.732Z",
+  "public_cluster_polling_note": "Enabled after 7m37s, so first/last five-minute latency windows have different total UI load.",
+  "windows_runtime_replaced": false,
+  "api_feature_overlay_included": false,
+  "original_state_overwritten_or_merged_by_deployment": false,
+  "initial_candidate_failures": {
+    "post_candidate_native_crashes_before_json_fix": 3,
+    "client_allocator_abort_before_json_fix": true,
+    "blocked_shutdown_hit_existing_systemd_90_second_timeout": true,
+    "first_staging_missing_state_links_corrected": true
+  },
+  "source_commits": {
+    "Cantor": "cabb8d05e16d2b210abd4d9d73fa1d8b371d2343",
+    "xlang3_runtime": "9c089b14535eaa643ad569f8462faa3ee0ac386e",
+    "api_observability_recovery": "35c4808"
+  },
+  "scope": "Observed production interval; not an all-platform or indefinite uptime guarantee.",
+  "api_cluster_source_sha256": "7450549b5540ee40e370c4d4e3171772788ebe43b8899d9b4a50662f21885ff3",
+  "memory_convergence_certified": false,
+  "open_memory_finding": {
+    "status": "unresolved; separate from crash-and-IPC acceptance",
+    "api_tracked_slots_observed": [
+      775876,
+      805599,
+      823814
+    ],
+    "sampling_note": "Includes tracked caches, but 4098 of 4099 sampled headers had nonzero references; not an atomic heap snapshot or reachability proof.",
+    "isolated_closure_repro": {
+      "runtime": "same c03fde87 Release on XPS",
+      "iterations": 10000,
+      "tracked_before": 3602,
+      "tracked_after": 43602,
+      "manual_gc_collected": 0,
+      "tracked_after_manual_gc": 43602,
+      "cpython_after_manual_gc": 6826
+    },
+    "production_gc_or_heap_mutation_applied": false,
+    "production_causal_graph_confirmed": false
+  }
+}

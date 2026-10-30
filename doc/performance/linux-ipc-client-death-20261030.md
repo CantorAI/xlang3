@@ -58,3 +58,35 @@ The unchanged VM function retains size `0x2f37c9`; all 90 C API exports remain.
 - [ABI and VM layout](data/linux-ipc-client-death-20261030-abi.json)
 
 Production sustained testing is separate from these checks.
+
+## Azure crash and IPC acceptance
+
+The compiled `9c089b14` runtime (`c03fde87...`) was deployed beside the previous
+Release and activated through the existing service path. All 2891 tracked files
+were verified, and the original external Database, CantorStore and Logs links
+were retained. A real registry reply with a one-shot throwing observer was
+caught without process exit; that probe unsubscribed and stopped its own module.
+
+The production run completed 2700.27 seconds and 10,482 signed calls with no
+call errors, no core or API restart, and one unchanged cached client proxy.
+Its worker threads joined normally. Core/API PIDs were 872751/873110 throughout.
+The last five minutes measured median 4.85 ms / p95 10.98 ms, versus 5.33 ms /
+11.68 ms in the first five minutes. The full run includes a 10.01-second maximum;
+it is not a bounded-tail latency guarantee. Public Cluster polling was added
+after 7m37s, so these windows do not have identical total UI traffic.
+
+Real serial HTTP streaming passed at the beginning and end for both 2B and 27B
+models, using actual completion usage rather than chunk counts. These few
+samples establish availability, not native GPU decode performance. The owned
+debugger was detached after the run without signalling or restarting either
+application. Source, state links, runtime hash and HTTP 200 were checked again.
+
+[Production receipt and full time series](data/azure-native-stability-20261030-production.json)
+also preserve the first candidate's failures and the corrected staging omission.
+The shared Windows runtime and its protected test service were not replaced.
+
+**Open finding:** API tracked objects and RSS still grew. An isolated same-Release
+test leaves 40,000 function/cell objects from 10,000 unreachable closure pairs
+even after explicit `gc.collect()`; CPython collects them. This is being
+investigated separately. No production GC was forced, and memory convergence
+is not certified by this crash/IPC acceptance run.
