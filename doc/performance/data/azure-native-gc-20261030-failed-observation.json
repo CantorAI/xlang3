@@ -1,0 +1,2568 @@
+{
+  "source_artifacts": [
+    {
+      "name": "native-gc-finalsource-failed-receipt-20261030.json",
+      "sha256": "b30d4185ca2175a904729f63790bafa01f91f271c0b19e53269dcb162b7a7694"
+    },
+    {
+      "name": "scanner-stream-start-20261030T224628Z.json",
+      "sha256": "3ec3dcc9165acbb427065ccd0079b4934863db47c762af18418e415bbb50e74e"
+    },
+    {
+      "name": "scanner-stream-end-20261030T232922Z.json",
+      "sha256": "0b2d47294546a033b51bf7c70514e58604177b8777c8dba73ba7e4c0f5803a44"
+    }
+  ],
+  "native_completion_gap_seconds": 10.958358764648438,
+  "http_ttft_tail_resolved": false,
+  "load_scope": "Three signed-RPC workers with 0.75-second pauses plus one real HTTP health worker with one-second pauses. Actual public Chat/Search qualification and a separate private metrics/calendar canary also used the shared core during this interval; those requests are not merged into START/END.",
+  "scope_limits": "Recorded 45-minute source/PID/load interval; not continuous GPU saturation, a GPU decode benchmark, indefinite memory convergence, or a Windows deployment. The later Cantor resource-publication/API metrics rollout requires a separate interval.",
+  "production_observation": {
+    "schema": 3,
+    "collected_at_unix": 1793403086.6576755,
+    "verdict": "memory_gate_failed",
+    "memory_convergence_certified": false,
+    "runtime_sha256": "b06aa789a7b3bba4307d1231edff343e0a4509189c23e23e123f0202b321bb7c",
+    "native_commit": "3684136714bb02fe2cde4cb45e6aa7915a42ae92",
+    "api_source_commit": "4a843fe8d0029767d5c769074861219d80e20211",
+    "api_app_sha256": "4430304a8330c21d10bd0cccc5a0611b5af686ff89a93ffae9b228e0f50c026f",
+    "api_gc_helper_sha256": "5ed70db87e07586477bf063322fcb55003012c1b1a3c6c03afc634a8328386b9",
+    "native_release": "/data/Cantor/releases/native-stability-20261030-gc-36841367",
+    "service_identity": {
+      "core": {
+        "MainPID": "892287",
+        "NRestarts": "0"
+      },
+      "api": {
+        "MainPID": "896837",
+        "NRestarts": "0"
+      }
+    },
+    "preserved_state_links": {
+      "bin/Logs": "/data/CantorStorage/SharedNode/Logs",
+      "bin/Database": "/data/CantorStorage/SharedNode/Database",
+      "bin/CantorStore": "/data/CantorStorage/SharedNode/CantorStore"
+    },
+    "production_soak_sha256": "86de4e53b5e29100184a64d4444169ce3789f2e66f65d9cfc7f8bd18712d9373",
+    "production_soak": {
+      "runtime": "xlang3",
+      "native_release": "/data/Cantor/releases/native-stability-20261030-gc-36841367",
+      "runtime_sha256": "b06aa789a7b3bba4307d1231edff343e0a4509189c23e23e123f0202b321bb7c",
+      "started_at_unix": 1793400363.693334,
+      "duration_seconds": 2700.2996717896312,
+      "initial_service": {
+        "core": {
+          "MainPID": "892287",
+          "NRestarts": "0"
+        },
+        "api": {
+          "MainPID": "896837",
+          "NRestarts": "0"
+        }
+      },
+      "final_service": {
+        "core": {
+          "MainPID": "892287",
+          "NRestarts": "0"
+        },
+        "api": {
+          "MainPID": "896837",
+          "NRestarts": "0"
+        }
+      },
+      "final": true,
+      "rpc_calls": 10704,
+      "http_calls": 2662,
+      "errors": [],
+      "samples": [
+        {
+          "seconds": 30.07909429911524,
+          "memory": {
+            "core": {
+              "VmRSS": 139316,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 240332,
+              "Threads": 11
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 60.14439004752785,
+          "memory": {
+            "core": {
+              "VmRSS": 140084,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 242856,
+              "Threads": 11
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 90.222113548778,
+          "memory": {
+            "core": {
+              "VmRSS": 140528,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 247504,
+              "Threads": 11
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 120.30835521407425,
+          "memory": {
+            "core": {
+              "VmRSS": 141372,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 273108,
+              "Threads": 11
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 150.3983921641484,
+          "memory": {
+            "core": {
+              "VmRSS": 141992,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 278708,
+              "Threads": 11
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 180.4671591538936,
+          "memory": {
+            "core": {
+              "VmRSS": 142928,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 280312,
+              "Threads": 11
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 210.52339588850737,
+          "memory": {
+            "core": {
+              "VmRSS": 143204,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 282896,
+              "Threads": 11
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 240.584272922948,
+          "memory": {
+            "core": {
+              "VmRSS": 143636,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 282980,
+              "Threads": 11
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 270.64637267496437,
+          "memory": {
+            "core": {
+              "VmRSS": 144092,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 283184,
+              "Threads": 11
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 300.7149461340159,
+          "memory": {
+            "core": {
+              "VmRSS": 144436,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 283416,
+              "Threads": 11
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 330.79436044953763,
+          "memory": {
+            "core": {
+              "VmRSS": 145296,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 284592,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 360.8708456903696,
+          "memory": {
+            "core": {
+              "VmRSS": 145604,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 282832,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 390.94623295776546,
+          "memory": {
+            "core": {
+              "VmRSS": 145808,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 282876,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 421.02214090991765,
+          "memory": {
+            "core": {
+              "VmRSS": 145120,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 283160,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 451.1005534315482,
+          "memory": {
+            "core": {
+              "VmRSS": 138448,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 279068,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 481.1865202803165,
+          "memory": {
+            "core": {
+              "VmRSS": 139396,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 281128,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 511.29940222389996,
+          "memory": {
+            "core": {
+              "VmRSS": 139232,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 279644,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 541.385438865982,
+          "memory": {
+            "core": {
+              "VmRSS": 138348,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 279628,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 571.4767025206238,
+          "memory": {
+            "core": {
+              "VmRSS": 138364,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 279632,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 601.5899387681857,
+          "memory": {
+            "core": {
+              "VmRSS": 138376,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 279632,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 631.6867446927354,
+          "memory": {
+            "core": {
+              "VmRSS": 138412,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 279636,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 661.7820403752849,
+          "memory": {
+            "core": {
+              "VmRSS": 138468,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 279636,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 691.884129148908,
+          "memory": {
+            "core": {
+              "VmRSS": 138540,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 279640,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 721.9818777171895,
+          "memory": {
+            "core": {
+              "VmRSS": 138644,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 279640,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 752.0928789377213,
+          "memory": {
+            "core": {
+              "VmRSS": 138664,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 279716,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 782.1971069155261,
+          "memory": {
+            "core": {
+              "VmRSS": 138692,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 279812,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 812.304563687183,
+          "memory": {
+            "core": {
+              "VmRSS": 138724,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 280032,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 842.4187936959788,
+          "memory": {
+            "core": {
+              "VmRSS": 138788,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 280340,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 872.5358071466908,
+          "memory": {
+            "core": {
+              "VmRSS": 138808,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 280564,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 902.6508225351572,
+          "memory": {
+            "core": {
+              "VmRSS": 138840,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 280932,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 932.7675670096651,
+          "memory": {
+            "core": {
+              "VmRSS": 138904,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 280936,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 962.8875599401072,
+          "memory": {
+            "core": {
+              "VmRSS": 139288,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 281344,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 993.066968572326,
+          "memory": {
+            "core": {
+              "VmRSS": 139320,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 281640,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1023.1981199616566,
+          "memory": {
+            "core": {
+              "VmRSS": 139332,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 281868,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1053.3521982152015,
+          "memory": {
+            "core": {
+              "VmRSS": 139344,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 282128,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1083.5125292530283,
+          "memory": {
+            "core": {
+              "VmRSS": 139584,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 282360,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1113.6417983863503,
+          "memory": {
+            "core": {
+              "VmRSS": 140392,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 282588,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1143.7792424326763,
+          "memory": {
+            "core": {
+              "VmRSS": 141192,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 282848,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1173.9169203015044,
+          "memory": {
+            "core": {
+              "VmRSS": 141332,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 283052,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1204.0722668729722,
+          "memory": {
+            "core": {
+              "VmRSS": 141496,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 283364,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1234.2093679904938,
+          "memory": {
+            "core": {
+              "VmRSS": 141540,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 283412,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1264.3516200650483,
+          "memory": {
+            "core": {
+              "VmRSS": 141552,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 283632,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1294.5014942642301,
+          "memory": {
+            "core": {
+              "VmRSS": 141584,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 283816,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1324.6500274734572,
+          "memory": {
+            "core": {
+              "VmRSS": 141708,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 284148,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1354.8232977138832,
+          "memory": {
+            "core": {
+              "VmRSS": 146292,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 284356,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1385.0133984582499,
+          "memory": {
+            "core": {
+              "VmRSS": 146712,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 284756,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1415.200540154241,
+          "memory": {
+            "core": {
+              "VmRSS": 147476,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 285044,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1445.408858849667,
+          "memory": {
+            "core": {
+              "VmRSS": 147836,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 285288,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1475.5780852194875,
+          "memory": {
+            "core": {
+              "VmRSS": 148416,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 285496,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1505.7635882217437,
+          "memory": {
+            "core": {
+              "VmRSS": 148460,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 285756,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1536.0344338472933,
+          "memory": {
+            "core": {
+              "VmRSS": 149356,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 286368,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1566.240226160735,
+          "memory": {
+            "core": {
+              "VmRSS": 151692,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 286600,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1596.4564218511805,
+          "memory": {
+            "core": {
+              "VmRSS": 151720,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 286816,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1626.6270155487582,
+          "memory": {
+            "core": {
+              "VmRSS": 151744,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 287036,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1656.8371449317783,
+          "memory": {
+            "core": {
+              "VmRSS": 152012,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 287296,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1687.1072390237823,
+          "memory": {
+            "core": {
+              "VmRSS": 152284,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 287560,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1717.2924956949428,
+          "memory": {
+            "core": {
+              "VmRSS": 152300,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 287772,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1747.507975032553,
+          "memory": {
+            "core": {
+              "VmRSS": 152328,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 287928,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1777.6899542696774,
+          "memory": {
+            "core": {
+              "VmRSS": 152356,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 288212,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1807.8818561555818,
+          "memory": {
+            "core": {
+              "VmRSS": 152608,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 288412,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1838.0998436380178,
+          "memory": {
+            "core": {
+              "VmRSS": 152844,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 288672,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1868.3323328262195,
+          "memory": {
+            "core": {
+              "VmRSS": 152864,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 288960,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1898.6114790644497,
+          "memory": {
+            "core": {
+              "VmRSS": 152888,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 289204,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1928.845336488448,
+          "memory": {
+            "core": {
+              "VmRSS": 152908,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 289428,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1959.0837480397895,
+          "memory": {
+            "core": {
+              "VmRSS": 153404,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 289628,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 1989.2895180853084,
+          "memory": {
+            "core": {
+              "VmRSS": 154024,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 289860,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2019.489545985125,
+          "memory": {
+            "core": {
+              "VmRSS": 154052,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 290140,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2049.689868779853,
+          "memory": {
+            "core": {
+              "VmRSS": 154076,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 290404,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2079.9323655646294,
+          "memory": {
+            "core": {
+              "VmRSS": 154112,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 290644,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2110.1523375762627,
+          "memory": {
+            "core": {
+              "VmRSS": 154248,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 290852,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2140.3863683314994,
+          "memory": {
+            "core": {
+              "VmRSS": 154276,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 304844,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2170.6058968622237,
+          "memory": {
+            "core": {
+              "VmRSS": 154308,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 291324,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2200.8335313610733,
+          "memory": {
+            "core": {
+              "VmRSS": 153756,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 305112,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2231.077038944699,
+          "memory": {
+            "core": {
+              "VmRSS": 153804,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 291592,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2261.30663287919,
+          "memory": {
+            "core": {
+              "VmRSS": 153816,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 305584,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2291.5330331800506,
+          "memory": {
+            "core": {
+              "VmRSS": 153824,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 292048,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2321.767304125242,
+          "memory": {
+            "core": {
+              "VmRSS": 153824,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 306084,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2351.9885729700327,
+          "memory": {
+            "core": {
+              "VmRSS": 153916,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 292548,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2382.224254653789,
+          "memory": {
+            "core": {
+              "VmRSS": 154044,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 307248,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2412.456424708478,
+          "memory": {
+            "core": {
+              "VmRSS": 154156,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 293776,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2442.722789339721,
+          "memory": {
+            "core": {
+              "VmRSS": 155368,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 314544,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2472.977127281949,
+          "memory": {
+            "core": {
+              "VmRSS": 155996,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 304240,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2503.2150475438684,
+          "memory": {
+            "core": {
+              "VmRSS": 156364,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 305180,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2533.478003140539,
+          "memory": {
+            "core": {
+              "VmRSS": 157124,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 319772,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2563.7417778521776,
+          "memory": {
+            "core": {
+              "VmRSS": 157320,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 305756,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2594.026533814147,
+          "memory": {
+            "core": {
+              "VmRSS": 158740,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 323312,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2624.3054666751996,
+          "memory": {
+            "core": {
+              "VmRSS": 159380,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 308980,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2654.5811384879053,
+          "memory": {
+            "core": {
+              "VmRSS": 160328,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 325432,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2684.889058253728,
+          "memory": {
+            "core": {
+              "VmRSS": 160844,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 312844,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2700.0530197462067,
+          "memory": {
+            "core": {
+              "VmRSS": 160868,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 312844,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        },
+        {
+          "seconds": 2700.2996717896312,
+          "memory": {
+            "core": {
+              "VmRSS": 160868,
+              "Threads": 74
+            },
+            "api": {
+              "VmRSS": 312844,
+              "Threads": 8
+            }
+          },
+          "state": {
+            "core": {
+              "MainPID": "892287",
+              "NRestarts": "0"
+            },
+            "api": {
+              "MainPID": "896837",
+              "NRestarts": "0"
+            }
+          }
+        }
+      ],
+      "single_cached_proxy": true,
+      "threads_stopped": true,
+      "server_gc_forced_by_checker": false,
+      "connection_mutations": false,
+      "inference_requests_sent": 0,
+      "coordinated_interruption_requested": false,
+      "rpc_first_five_minutes": {
+        "count": 1182,
+        "median_ms": 5.179546307772398,
+        "p95_ms": 14.077609404921532,
+        "max_ms": 464.76675011217594
+      },
+      "rpc_last_five_minutes": {
+        "count": 1192,
+        "median_ms": 5.704483948647976,
+        "p95_ms": 8.764289319515228,
+        "max_ms": 56.23647104948759
+      },
+      "rpc_overall": {
+        "count": 10704,
+        "median_ms": 5.490409210324287,
+        "p95_ms": 9.014365263283253,
+        "max_ms": 464.76675011217594
+      },
+      "http_first_five_minutes": {
+        "count": 294,
+        "median_ms": 12.038279324769974,
+        "p95_ms": 24.06322304159403,
+        "max_ms": 1753.355598077178
+      },
+      "http_last_five_minutes": {
+        "count": 296,
+        "median_ms": 12.14813208207488,
+        "p95_ms": 17.593959346413612,
+        "max_ms": 168.956546112895
+      },
+      "http_overall": {
+        "count": 2662,
+        "median_ms": 11.938572395592928,
+        "p95_ms": 19.07044928520918,
+        "max_ms": 1753.355598077178
+      },
+      "steady_rss_growth_kib": {
+        "core": 16432,
+        "api": 29428
+      },
+      "passed": false
+    },
+    "gate_unchanged": true,
+    "local_windows_shared_service_modified": false,
+    "limits": "No call errors or restarts do not certify bounded memory. Subsequent source/PID changes are a separate interval."
+  },
+  "memory_gate_passed": false,
+  "streaming_measurements": [
+    {
+      "phase": "start",
+      "measurement": {
+        "timestamp_utc": "2026-10-30T15:46:29.362505-07:00",
+        "label": "scanner-soak-start",
+        "endpoint": "https://serve.cantorai.com",
+        "model": "qwen3.5-2b-code-32k",
+        "prompt": "Explain resource-based inference routing in two concise sentences.",
+        "max_tokens": 64,
+        "client_runtime": "cpython",
+        "concurrency": 1,
+        "warmups": 0,
+        "automatic_retries": 0,
+        "metric_scope": "Client-observed HTTP streaming; includes network, API and prefill. Token rate uses actual final completion usage / total request duration; not a native GPU decode benchmark. Delta count is not token count.",
+        "executor_node_id": null,
+        "executor_limitation": "Not exposed by this streaming contract",
+        "state": "passed",
+        "samples": [
+          {
+            "state": "passed",
+            "http_status": 200,
+            "headers_seconds": 0.20171140000456944,
+            "http_reference": "c9bb1a5058e540088ca5274540560715",
+            "completion_id": "chatcmpl-c9bb1a5058e540088ca5274540560715",
+            "inference_request_id": "c9bb1a5058e540088ca5274540560715",
+            "first_visible_content_seconds": 0.5055446000042139,
+            "last_visible_content_seconds": 1.4065187000087462,
+            "elapsed_seconds": 1.560772700002417,
+            "content_events": 43,
+            "usage": {
+              "completion_tokens": 44,
+              "prompt_tokens": 23,
+              "total_tokens": 67
+            },
+            "end_to_end_output_tokens_per_second": 28.191164543006078,
+            "finish_reason": "stop",
+            "output_characters": 297,
+            "output_sha256": "87aee3fd81457cd4b30f2468046673304c3c4edf3ed2639aa84ccc7cd0c72bcb",
+            "output": "Resource-based inference routing dynamically assigns incoming requests to the most suitable computational resources based on real-time availability and performance metrics. This approach ensures that workloads are efficiently distributed to prevent bottlenecks and maintain high system throughput."
+          },
+          {
+            "state": "passed",
+            "http_status": 200,
+            "headers_seconds": 0.1900441000034334,
+            "http_reference": "18b37baca7d449ac83440ed75178b788",
+            "completion_id": "chatcmpl-18b37baca7d449ac83440ed75178b788",
+            "inference_request_id": "18b37baca7d449ac83440ed75178b788",
+            "first_visible_content_seconds": 0.4053222999937134,
+            "last_visible_content_seconds": 1.0977072999958182,
+            "elapsed_seconds": 1.2530832000047667,
+            "content_events": 43,
+            "usage": {
+              "completion_tokens": 44,
+              "prompt_tokens": 23,
+              "total_tokens": 67
+            },
+            "end_to_end_output_tokens_per_second": 35.113390714864444,
+            "finish_reason": "stop",
+            "output_characters": 297,
+            "output_sha256": "87aee3fd81457cd4b30f2468046673304c3c4edf3ed2639aa84ccc7cd0c72bcb",
+            "output": "Resource-based inference routing dynamically assigns incoming requests to the most suitable computational resources based on real-time availability and performance metrics. This approach ensures that workloads are efficiently distributed to prevent bottlenecks and maintain high system throughput."
+          }
+        ]
+      }
+    },
+    {
+      "phase": "start",
+      "measurement": {
+        "timestamp_utc": "2026-10-30T15:46:32.383125-07:00",
+        "label": "scanner-soak-start",
+        "endpoint": "https://serve.cantorai.com",
+        "model": "qwen3.8-27b-chat-32k",
+        "prompt": "Explain resource-based inference routing in two concise sentences.",
+        "max_tokens": 64,
+        "client_runtime": "cpython",
+        "concurrency": 1,
+        "warmups": 0,
+        "automatic_retries": 0,
+        "metric_scope": "Client-observed HTTP streaming; includes network, API and prefill. Token rate uses actual final completion usage / total request duration; not a native GPU decode benchmark. Delta count is not token count.",
+        "executor_node_id": null,
+        "executor_limitation": "Not exposed by this streaming contract",
+        "state": "passed",
+        "samples": [
+          {
+            "state": "passed",
+            "http_status": 200,
+            "headers_seconds": 0.5973202999884961,
+            "http_reference": "d8624a8b09084eacb69c210e8b59bf77",
+            "completion_id": "chatcmpl-d8624a8b09084eacb69c210e8b59bf77",
+            "inference_request_id": "d8624a8b09084eacb69c210e8b59bf77",
+            "first_visible_content_seconds": 1.4152049999975134,
+            "last_visible_content_seconds": 2.9487353000004077,
+            "elapsed_seconds": 3.3823453999939375,
+            "content_events": 52,
+            "usage": {
+              "completion_tokens": 53,
+              "prompt_tokens": 23,
+              "total_tokens": 76
+            },
+            "end_to_end_output_tokens_per_second": 15.669600153814864,
+            "finish_reason": "stop",
+            "output_characters": 332,
+            "output_sha256": "8480b6e6e9ef83775aac5ad542cc38945c39ac3f10332474fbc304f37c6d966b",
+            "output": "Resource-based inference routing directs computational tasks to specific hardware or nodes based on their available resources, such as memory, processing power, or energy constraints. This approach optimizes system efficiency and performance by matching the demands of inference workloads with the most suitable available resources."
+          },
+          {
+            "state": "passed",
+            "http_status": 200,
+            "headers_seconds": 0.8223981000046479,
+            "http_reference": "fa31507173bf45dcbc2df48c9af1f97d",
+            "completion_id": "chatcmpl-fa31507173bf45dcbc2df48c9af1f97d",
+            "inference_request_id": "fa31507173bf45dcbc2df48c9af1f97d",
+            "first_visible_content_seconds": 8.925320700000157,
+            "last_visible_content_seconds": 10.529923000009148,
+            "elapsed_seconds": 10.960547000009683,
+            "content_events": 52,
+            "usage": {
+              "completion_tokens": 53,
+              "prompt_tokens": 23,
+              "total_tokens": 76
+            },
+            "end_to_end_output_tokens_per_second": 4.835525088296522,
+            "finish_reason": "stop",
+            "output_characters": 332,
+            "output_sha256": "8480b6e6e9ef83775aac5ad542cc38945c39ac3f10332474fbc304f37c6d966b",
+            "output": "Resource-based inference routing directs computational tasks to specific hardware or nodes based on their available resources, such as memory, processing power, or energy constraints. This approach optimizes system efficiency and performance by matching the demands of inference workloads with the most suitable available resources."
+          }
+        ]
+      }
+    },
+    {
+      "phase": "end",
+      "measurement": {
+        "timestamp_utc": "2026-10-30T16:29:22.580843-07:00",
+        "label": "scanner-soak-end",
+        "endpoint": "https://serve.cantorai.com",
+        "model": "qwen3.5-2b-code-32k",
+        "prompt": "Explain resource-based inference routing in two concise sentences.",
+        "max_tokens": 64,
+        "client_runtime": "cpython",
+        "concurrency": 1,
+        "warmups": 0,
+        "automatic_retries": 0,
+        "metric_scope": "Client-observed HTTP streaming; includes network, API and prefill. Token rate uses actual final completion usage / total request duration; not a native GPU decode benchmark. Delta count is not token count.",
+        "executor_node_id": null,
+        "executor_limitation": "Not exposed by this streaming contract",
+        "state": "passed",
+        "samples": [
+          {
+            "state": "passed",
+            "http_status": 200,
+            "headers_seconds": 0.1439198000007309,
+            "http_reference": "40b3dc006a80426daa4aeb93a6651d92",
+            "completion_id": "chatcmpl-40b3dc006a80426daa4aeb93a6651d92",
+            "inference_request_id": "40b3dc006a80426daa4aeb93a6651d92",
+            "first_visible_content_seconds": 0.57117220001237,
+            "last_visible_content_seconds": 1.2655956000089645,
+            "elapsed_seconds": 1.4521954000083497,
+            "content_events": 43,
+            "usage": {
+              "completion_tokens": 44,
+              "prompt_tokens": 23,
+              "total_tokens": 67
+            },
+            "end_to_end_output_tokens_per_second": 30.29895288178644,
+            "finish_reason": "stop",
+            "output_characters": 297,
+            "output_sha256": "87aee3fd81457cd4b30f2468046673304c3c4edf3ed2639aa84ccc7cd0c72bcb",
+            "output": "Resource-based inference routing dynamically assigns incoming requests to the most suitable computational resources based on real-time availability and performance metrics. This approach ensures that workloads are efficiently distributed to prevent bottlenecks and maintain high system throughput."
+          },
+          {
+            "state": "passed",
+            "http_status": 200,
+            "headers_seconds": 0.16592999998829328,
+            "http_reference": "19ca922a3dfd4b0caf7d72b2cfcedbc8",
+            "completion_id": "chatcmpl-19ca922a3dfd4b0caf7d72b2cfcedbc8",
+            "inference_request_id": "19ca922a3dfd4b0caf7d72b2cfcedbc8",
+            "first_visible_content_seconds": 0.3807970999914687,
+            "last_visible_content_seconds": 1.034692699991865,
+            "elapsed_seconds": 1.3123201999987941,
+            "content_events": 43,
+            "usage": {
+              "completion_tokens": 44,
+              "prompt_tokens": 23,
+              "total_tokens": 67
+            },
+            "end_to_end_output_tokens_per_second": 33.52840259567782,
+            "finish_reason": "stop",
+            "output_characters": 297,
+            "output_sha256": "87aee3fd81457cd4b30f2468046673304c3c4edf3ed2639aa84ccc7cd0c72bcb",
+            "output": "Resource-based inference routing dynamically assigns incoming requests to the most suitable computational resources based on real-time availability and performance metrics. This approach ensures that workloads are efficiently distributed to prevent bottlenecks and maintain high system throughput."
+          }
+        ]
+      }
+    },
+    {
+      "phase": "end",
+      "measurement": {
+        "timestamp_utc": "2026-10-30T16:29:25.534439-07:00",
+        "label": "scanner-soak-end",
+        "endpoint": "https://serve.cantorai.com",
+        "model": "qwen3.8-27b-chat-32k",
+        "prompt": "Explain resource-based inference routing in two concise sentences.",
+        "max_tokens": 64,
+        "client_runtime": "cpython",
+        "concurrency": 1,
+        "warmups": 0,
+        "automatic_retries": 0,
+        "metric_scope": "Client-observed HTTP streaming; includes network, API and prefill. Token rate uses actual final completion usage / total request duration; not a native GPU decode benchmark. Delta count is not token count.",
+        "executor_node_id": null,
+        "executor_limitation": "Not exposed by this streaming contract",
+        "state": "passed",
+        "samples": [
+          {
+            "state": "passed",
+            "http_status": 200,
+            "headers_seconds": 0.5199350999901071,
+            "http_reference": "9af440a100684c34ab1fd60a052e9bc7",
+            "completion_id": "chatcmpl-9af440a100684c34ab1fd60a052e9bc7",
+            "inference_request_id": "9af440a100684c34ab1fd60a052e9bc7",
+            "first_visible_content_seconds": 1.2523530999897048,
+            "last_visible_content_seconds": 2.891702399996575,
+            "elapsed_seconds": 3.299413899992942,
+            "content_events": 52,
+            "usage": {
+              "completion_tokens": 53,
+              "prompt_tokens": 23,
+              "total_tokens": 76
+            },
+            "end_to_end_output_tokens_per_second": 16.063459028318142,
+            "finish_reason": "stop",
+            "output_characters": 332,
+            "output_sha256": "8480b6e6e9ef83775aac5ad542cc38945c39ac3f10332474fbc304f37c6d966b",
+            "output": "Resource-based inference routing directs computational tasks to specific hardware or nodes based on their available resources, such as memory, processing power, or energy constraints. This approach optimizes system efficiency and performance by matching the demands of inference workloads with the most suitable available resources."
+          },
+          {
+            "state": "passed",
+            "http_status": 200,
+            "headers_seconds": 3.8914715999999316,
+            "http_reference": "e93045db910940fbb49b6282f57d29b5",
+            "completion_id": "chatcmpl-e93045db910940fbb49b6282f57d29b5",
+            "inference_request_id": "e93045db910940fbb49b6282f57d29b5",
+            "first_visible_content_seconds": 4.654584600008093,
+            "last_visible_content_seconds": 8.90420570000424,
+            "elapsed_seconds": 9.292264100004104,
+            "content_events": 52,
+            "usage": {
+              "completion_tokens": 53,
+              "prompt_tokens": 23,
+              "total_tokens": 76
+            },
+            "end_to_end_output_tokens_per_second": 5.7036691412996525,
+            "finish_reason": "stop",
+            "output_characters": 332,
+            "output_sha256": "8480b6e6e9ef83775aac5ad542cc38945c39ac3f10332474fbc304f37c6d966b",
+            "output": "Resource-based inference routing directs computational tasks to specific hardware or nodes based on their available resources, such as memory, processing power, or energy constraints. This approach optimizes system efficiency and performance by matching the demands of inference workloads with the most suitable available resources."
+          }
+        ]
+      }
+    }
+  ],
+  "native_receipt_comparison": {
+    "read_only": true,
+    "new_inferences": 0,
+    "remote_mutations": false,
+    "cases": [
+      {
+        "request_id": "d8624a8b09084eacb69c210e8b59bf77",
+        "node_id": "4700c065d4d742379c48d9d5328be19b",
+        "model_id": "Qwen3.8-27B",
+        "profile_id": "qwen38_27b_nvfp4_chat_32k_v2",
+        "receipt_sha256": "94e960d125b7d3c9f873cb4cfbefff746b55fd076335a353de7a7e5771e167e6",
+        "timings": {
+          "ttft_seconds": 0.22542100003920496,
+          "input_seconds": 0.06772180006373674,
+          "prefill_seconds": 0.15769919997546822,
+          "decode_seconds": 1.432700900011696,
+          "total_seconds": 1.6581219000509009,
+          "prompt_tokens": [
+            23
+          ],
+          "generated_tokens": [
+            52
+          ],
+          "sampled_tokens_including_stop": [
+            53
+          ],
+          "finish_reasons": [
+            "eos"
+          ]
+        },
+        "queue_timing_available": false
+      },
+      {
+        "request_id": "fa31507173bf45dcbc2df48c9af1f97d",
+        "node_id": "4700c065d4d742379c48d9d5328be19b",
+        "model_id": "Qwen3.8-27B",
+        "profile_id": "qwen38_27b_nvfp4_chat_32k_v2",
+        "receipt_sha256": "8e9a0d3d04b90fc7188f8e1fee01c66a893c8e08c312f6f27727dbb93a1f04c8",
+        "timings": {
+          "ttft_seconds": 0.30673579999711365,
+          "input_seconds": 0.06798699998762459,
+          "prefill_seconds": 0.23874880000948906,
+          "decode_seconds": 1.4328396000200883,
+          "total_seconds": 1.739575400017202,
+          "prompt_tokens": [
+            23
+          ],
+          "generated_tokens": [
+            52
+          ],
+          "sampled_tokens_including_stop": [
+            53
+          ],
+          "finish_reasons": [
+            "eos"
+          ]
+        },
+        "queue_timing_available": false
+      }
+    ]
+  },
+  "collected_at_utc": "2026-10-30T23:34:34.0178611Z",
+  "sampled_steady_rss": {
+    "core": {
+      "minimum_kib": 138348.0,
+      "baseline_kib": 144436,
+      "maximum_kib": 160868.0,
+      "final_kib": 160868,
+      "sampled_peak_growth_kib": 16432.0
+    },
+    "api": {
+      "minimum_kib": 279068.0,
+      "baseline_kib": 283416,
+      "maximum_kib": 325432.0,
+      "final_kib": 312844,
+      "sampled_peak_growth_kib": 42016.0
+    }
+  },
+  "memory_gate_definition": "The predeclared 20 MiB criterion compares final RSS with the first sample after 300 seconds; it is not a peak-RSS limit. All samples and transient peaks are retained.",
+  "schema": 3,
+  "tail_attribution": "Existing timing is consistent with a delay before native execution, but request-to-task/resource timing is not independently proven. Keep the 8.925-second HTTP sample; do not attribute it to GPU decode or claim it repaired."
+}

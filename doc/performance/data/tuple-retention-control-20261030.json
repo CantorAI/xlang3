@@ -1,0 +1,86 @@
+[
+  {
+    "runtime_executable": "python3",
+    "case": "literal",
+    "returncode": 0,
+    "stdout": "{\"runtime\": \"cpython\", \"case\": \"literal\", \"iterations\": 10000, \"before\": {\"tuple\": 420, \"list\": 143, \"dict\": 640}, \"after\": {\"tuple\": 417, \"list\": 143, \"dict\": 640}, \"delta\": {\"tuple\": -3, \"list\": 0, \"dict\": 0}, \"collected\": 0, \"production_changed\": false}\n",
+    "stderr": ""
+  },
+  {
+    "runtime_executable": "python3",
+    "case": "construction",
+    "returncode": 0,
+    "stdout": "{\"runtime\": \"cpython\", \"case\": \"construction\", \"iterations\": 10000, \"before\": {\"tuple\": 420, \"list\": 143, \"dict\": 640}, \"after\": {\"tuple\": 417, \"list\": 143, \"dict\": 640}, \"delta\": {\"tuple\": -3, \"list\": 0, \"dict\": 0}, \"collected\": 0, \"production_changed\": false}\n",
+    "stderr": ""
+  },
+  {
+    "runtime_executable": "python3",
+    "case": "items",
+    "returncode": 0,
+    "stdout": "{\"runtime\": \"cpython\", \"case\": \"items\", \"iterations\": 10000, \"before\": {\"tuple\": 420, \"list\": 143, \"dict\": 640}, \"after\": {\"tuple\": 417, \"list\": 143, \"dict\": 640}, \"delta\": {\"tuple\": -3, \"list\": 0, \"dict\": 0}, \"collected\": 0, \"production_changed\": false}\n",
+    "stderr": ""
+  },
+  {
+    "runtime_executable": "python3",
+    "case": "enumeration",
+    "returncode": 0,
+    "stdout": "{\"runtime\": \"cpython\", \"case\": \"enumeration\", \"iterations\": 10000, \"before\": {\"tuple\": 420, \"list\": 143, \"dict\": 640}, \"after\": {\"tuple\": 417, \"list\": 143, \"dict\": 640}, \"delta\": {\"tuple\": -3, \"list\": 0, \"dict\": 0}, \"collected\": 0, \"production_changed\": false}\n",
+    "stderr": ""
+  },
+  {
+    "runtime_executable": "python3",
+    "case": "zip",
+    "returncode": 0,
+    "stdout": "{\"runtime\": \"cpython\", \"case\": \"zip\", \"iterations\": 10000, \"before\": {\"tuple\": 420, \"list\": 143, \"dict\": 640}, \"after\": {\"tuple\": 417, \"list\": 143, \"dict\": 640}, \"delta\": {\"tuple\": -3, \"list\": 0, \"dict\": 0}, \"collected\": 0, \"production_changed\": false}\n",
+    "stderr": ""
+  },
+  {
+    "runtime_executable": "python3",
+    "case": "arguments",
+    "returncode": 0,
+    "stdout": "{\"runtime\": \"cpython\", \"case\": \"arguments\", \"iterations\": 10000, \"before\": {\"tuple\": 420, \"list\": 143, \"dict\": 640}, \"after\": {\"tuple\": 417, \"list\": 143, \"dict\": 640}, \"delta\": {\"tuple\": -3, \"list\": 0, \"dict\": 0}, \"collected\": 0, \"production_changed\": false}\n",
+    "stderr": ""
+  },
+  {
+    "runtime_executable": "/home/shawn/CantorServeAzureBuild/20261029/build-release/bin/xlang3",
+    "case": "literal",
+    "returncode": 0,
+    "stdout": "{\"runtime\": \"xlang3\", \"case\": \"literal\", \"iterations\": 10000, \"before\": {\"tuple\": 514, \"list\": 193, \"dict\": 465}, \"after\": {\"tuple\": 514, \"list\": 193, \"dict\": 466}, \"delta\": {\"tuple\": 0, \"list\": 0, \"dict\": 1}, \"collected\": 0, \"production_changed\": false}\n",
+    "stderr": ""
+  },
+  {
+    "runtime_executable": "/home/shawn/CantorServeAzureBuild/20261029/build-release/bin/xlang3",
+    "case": "construction",
+    "returncode": 0,
+    "stdout": "{\"runtime\": \"xlang3\", \"case\": \"construction\", \"iterations\": 10000, \"before\": {\"tuple\": 514, \"list\": 193, \"dict\": 465}, \"after\": {\"tuple\": 514, \"list\": 193, \"dict\": 466}, \"delta\": {\"tuple\": 0, \"list\": 0, \"dict\": 1}, \"collected\": 0, \"production_changed\": false}\n",
+    "stderr": ""
+  },
+  {
+    "runtime_executable": "/home/shawn/CantorServeAzureBuild/20261029/build-release/bin/xlang3",
+    "case": "items",
+    "returncode": 0,
+    "stdout": "{\"runtime\": \"xlang3\", \"case\": \"items\", \"iterations\": 10000, \"before\": {\"tuple\": 514, \"list\": 193, \"dict\": 465}, \"after\": {\"tuple\": 514, \"list\": 193, \"dict\": 466}, \"delta\": {\"tuple\": 0, \"list\": 0, \"dict\": 1}, \"collected\": 0, \"production_changed\": false}\n",
+    "stderr": ""
+  },
+  {
+    "runtime_executable": "/home/shawn/CantorServeAzureBuild/20261029/build-release/bin/xlang3",
+    "case": "enumeration",
+    "returncode": 0,
+    "stdout": "{\"runtime\": \"xlang3\", \"case\": \"enumeration\", \"iterations\": 10000, \"before\": {\"tuple\": 514, \"list\": 193, \"dict\": 465}, \"after\": {\"tuple\": 514, \"list\": 193, \"dict\": 466}, \"delta\": {\"tuple\": 0, \"list\": 0, \"dict\": 1}, \"collected\": 0, \"production_changed\": false}\n",
+    "stderr": ""
+  },
+  {
+    "runtime_executable": "/home/shawn/CantorServeAzureBuild/20261029/build-release/bin/xlang3",
+    "case": "zip",
+    "returncode": 0,
+    "stdout": "{\"runtime\": \"xlang3\", \"case\": \"zip\", \"iterations\": 10000, \"before\": {\"tuple\": 514, \"list\": 193, \"dict\": 465}, \"after\": {\"tuple\": 514, \"list\": 193, \"dict\": 466}, \"delta\": {\"tuple\": 0, \"list\": 0, \"dict\": 1}, \"collected\": 0, \"production_changed\": false}\n",
+    "stderr": ""
+  },
+  {
+    "runtime_executable": "/home/shawn/CantorServeAzureBuild/20261029/build-release/bin/xlang3",
+    "case": "arguments",
+    "returncode": 0,
+    "stdout": "{\"runtime\": \"xlang3\", \"case\": \"arguments\", \"iterations\": 10000, \"before\": {\"tuple\": 514, \"list\": 193, \"dict\": 465}, \"after\": {\"tuple\": 514, \"list\": 193, \"dict\": 466}, \"delta\": {\"tuple\": 0, \"list\": 0, \"dict\": 1}, \"collected\": 0, \"production_changed\": false}\n",
+    "stderr": ""
+  }
+]

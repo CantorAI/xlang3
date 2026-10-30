@@ -1,8 +1,10 @@
 # Unseeded closures and ASGI JSON encoder cycles, 2026-10-30
 
-This is an offline candidate, separate from the deployed crash/IPC acceptance
-record. Production memory convergence has not been certified. No local Windows
-Release executable or shared CantorServe test service was replaced.
+V5 has completed the offline qualification below and is deployed to the Azure
+Linux node. Its subsequent complete live interval **fails the original memory
+gate** despite zero call errors or restarts. Production memory convergence is
+not certified. No local Windows Release executable or shared CantorServe test
+service was replaced.
 
 The v4 candidate is **rejected for deployment**: its four-thread ASGI/GC soak
 aborts with `corrupted size vs. prev_size` after the 660-second checkpoint
@@ -134,18 +136,89 @@ failed, incomplete and refused observations are retained separately.
 
 Native `gc.enable()` and threshold settings currently do not trigger automatic
 collection (`get_count()` is a stub). Fixing explicit collection alone cannot
-bound a long-lived API. The API owner is preparing a separately tested,
+bound a long-lived API. The API owner supplies a separately tested,
 XLang3-only lifespan maintenance task with cancellation and shutdown joining;
-CPython automatic GC remains unchanged. It is not enabled on the deployed old
-runtime. Its unchanged helper has also been tested on this native candidate:
+CPython automatic GC remains unchanged. It was not enabled on the old runtime.
+Its unchanged helper has also been tested on this native candidate:
 the actual default 30-second timer reclaims the 28,000 objects from 1,000
 JSONResponses, and both normal and exceptional context exits cancel and await
 the owned task without leaving a named GC task behind. The first probe failed
 only because the native CLI did not automatically add its script directory to
 the import path; its corrected probe, not the helper, adds that path.
-Concurrent ASGI/collection qualification, coordinated deployment and a
-new live memory/latency soak are still required. This change does not claim
-complete native/finalizer/weakref cycle parity or automatic-GC semantics.
+Concurrent ASGI/collection qualification and coordinated Azure deployment are
+complete. The helper is now enabled at its original 30-second interval on the
+qualified V5 runtime; final-source live memory/latency acceptance remains
+separate. This change does not claim complete native/finalizer/weakref cycle
+parity or automatic-GC semantics.
+
+## Live interval: memory gate failed
+
+The final-source interval runs 2,700.30 seconds on core PID 892287 and API PID
+896837, both with zero restarts. It completes 10,704 signed RPCs and 2,662 real
+HTTP health requests with zero errors, one cached proxy, and all checker
+threads joined. The API source is `4a843fe8`, app SHA-256 `4430304a...`; native
+runtime is the qualified `b06aa789...`. This interval is complete, not an
+interrupted or combined observation. The earlier GC-only interval was
+interrupted for an authorized API source rollout and is not counted as a full
+qualification.
+
+The unchanged memory criterion compares final RSS with the first sample after
+300 seconds and requires less than 20 MiB growth for **each** process:
+
+| Process | RSS after 300 s, KiB | Final RSS, KiB | Sampled peak, KiB | Final growth, KiB |
+| --- | ---: | ---: | ---: | ---: |
+| Core | 144,436 | 160,868 | 160,868 | 16,432 |
+| API | 283,416 | 312,844 | 325,432 | **29,428** |
+
+The API exceeds the original limit. The checker exits 1 with `passed: false`;
+the strict passing collector is not run. A separate fixed-source/PID failure
+receipt explicitly records `memory_convergence_certified: false`. No threshold,
+collection period, final sample timing or server collection is changed to make
+the result pass. A new source/PID interval cannot replace this failure.
+
+Call latency does not progressively stall in this observation. First/last five
+minutes have RPC median/p95 5.180/14.078 ms and 5.704/8.764 ms; HTTP median/p95
+12.038/24.063 ms and 12.148/17.594 ms. The complete report retains maxima and
+every RSS sample. Concurrent public Chat/Search qualification, a separate
+private metrics/calendar canary, and a bounded read-only scheduler sampler
+around END are recorded background load, not merged into the stream samples.
+
+START and END each complete two serial requests per model with the same prompt,
+64-token budget, actual final usage, no warmups and no retries. HTTP first
+content times are:
+
+| Model | START, seconds | END, seconds |
+| --- | --- | --- |
+| 2B | 0.506, 0.405 | 0.571, 0.381 |
+| 27B | 1.415, **8.925** | 1.252, **4.655** |
+
+These are client-observed HTTP timings, not native GPU decode measurements.
+Both 27B tails are retained and unresolved. Actual 5090 receipts for the two
+START requests report native TTFT 0.225/0.307 seconds and decode 1.433/1.433
+seconds. Existing dispatch logs are consistent with a delay before native
+execution, but do not independently prove the resource-snapshot cause.
+
+A read-only 65-second `/proc` sample records API RSS moving
+291,596 -> 305,584 -> 292,048 KiB, including an approximately 30-second high
+plateau. CPU ticks increase at both transitions. Correlation with maintenance
+timing does not prove the allocation owner or establish convergence. Separate
+10,000-iteration controls for ordinary tuple literals/construction, dict item
+iteration, enumerate, zip and argument packing leave zero additional tuples
+under V5; they do not rule out HTTP/async lifecycle retention.
+
+Before the authorized subsequent source/core maintenance, admission is gated
+and drained. An owned debugger preserves the old API heap in a private
+0700/0600 diagnostics location under Cantor storage and detaches, with API PID
+unchanged. The heap itself is not published. The following Cantor-only
+resource-broadcast update (`2fa099f1`) is separate from this memory finding and
+does not change this runtime or certify a fix for the remaining API growth.
+
+Remaining work is to identify and reproduce the residual full-service memory
+retention, fix its owner, and repeat a complete unchanged-source qualification.
+
+Live evidence: [failed interval, exact identities and raw START/END samples](data/azure-native-gc-20261030-failed-observation.json),
+[read-only RSS/CPU series](data/api-rss-working-set-20261030.json),
+[isolated tuple allocation controls](data/tuple-retention-control-20261030.json).
 
 ## Evidence
 
