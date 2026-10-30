@@ -12,8 +12,11 @@ static void require(bool value, const char* message) {
   if (!value) throw std::runtime_error(message);
 }
 
+#include "sdk_collection_thread_cases.h"
+
 int main() {
   try {
+    sdk_collection_thread_cases();
     for (uint64_t number : {uint64_t{0}, uint64_t{42},
         static_cast<uint64_t>(INT64_MAX), static_cast<uint64_t>(INT64_MAX) + 1,
         std::numeric_limits<uint64_t>::max()}) {

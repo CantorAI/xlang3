@@ -378,6 +378,7 @@ X3Value x3_value_dict(X3Runtime* runtime) {
 }
 
 const char* x3_value_to_cstr(X3Runtime* runtime, X3Value value) {
+  xlang3::XlangRuntimeExecutionGuard guard;
   thread_local std::string rendered;
   auto* rt = as_runtime(runtime);
   std::string error;
@@ -480,6 +481,7 @@ X3Status x3_value_bytes_data(X3Runtime* runtime, X3Value value, const void** dat
 }
 
 X3Status x3_value_to_bytes(X3Runtime* runtime, X3Value value, X3Value* result) try {
+  xlang3::XlangRuntimeExecutionGuard guard;
   auto* rt = as_runtime(runtime);
   if (rt == nullptr || result == nullptr) {
     return fail(rt, "runtime/result is null");
@@ -505,6 +507,7 @@ X3Status x3_value_to_bytes(X3Runtime* runtime, X3Value value, X3Value* result) t
 }
 
 X3Status x3_value_to_stream(X3Runtime* runtime, X3Value value, X3Stream* stream) {
+  xlang3::XlangRuntimeExecutionGuard guard;
   auto* rt = as_runtime(runtime);
   if (!rt || !stream || stream->runtime != runtime || stream->reading || stream->failed)
     return fail(rt, "invalid stream for serialization");
@@ -525,6 +528,7 @@ X3Status x3_value_to_stream(X3Runtime* runtime, X3Value value, X3Stream* stream)
 }
 
 X3Status x3_value_from_stream(X3Runtime* runtime, X3Stream* stream, X3Value* result) {
+  xlang3::XlangRuntimeExecutionGuard guard;
   auto* rt = as_runtime(runtime);
   if (!rt || !result || !stream || stream->runtime != runtime || !stream->reading || stream->failed)
     return fail(rt, "invalid stream for deserialization");
@@ -545,6 +549,7 @@ X3Status x3_value_from_stream(X3Runtime* runtime, X3Stream* stream, X3Value* res
 }
 
 X3Status x3_value_from_bytes(X3Runtime* runtime, X3Value bytes, X3Value* result) try {
+  xlang3::XlangRuntimeExecutionGuard guard;
   auto* rt = as_runtime(runtime);
   if (rt == nullptr || result == nullptr) {
     return fail(rt, "runtime/result is null");
@@ -1042,6 +1047,7 @@ X3Status x3_get_item(X3Runtime* runtime, X3Value object, X3Value key, X3Value* r
 }
 
 X3Status x3_list_append(X3Runtime* runtime, X3Value list, X3Value item) {
+  xlang3::XlangRuntimeExecutionGuard guard;
   auto* rt = as_runtime(runtime);
   if (rt == nullptr) {
     return fail(rt, "runtime is null");
@@ -1058,7 +1064,15 @@ X3Status x3_list_append(X3Runtime* runtime, X3Value list, X3Value item) {
   return X3_STATUS_OK;
 }
 
+// Give ELF text a cache-line alignment anchor. Growing cold embedding APIs
+// must not shift the unchanged VM dispatch loop across cache-line boundaries.
+#if defined(__ELF__) && defined(__GNUC__)
+__attribute__((aligned(64)))
+#endif
 X3Status x3_dict_set_item(X3Runtime* runtime, X3Value dict, X3Value key, X3Value item) {
+  // Native host threads share dictionaries with VM/IPC threads. Match the
+  // read-side guard so mutation cannot race lazy-index construction or resize.
+  xlang3::XlangRuntimeExecutionGuard guard;
   auto* rt = as_runtime(runtime);
   if (rt == nullptr) {
     return fail(rt, "runtime is null");
@@ -1077,6 +1091,7 @@ X3Status x3_dict_set_item(X3Runtime* runtime, X3Value dict, X3Value key, X3Value
 }
 
 X3Status x3_dict_get_entry(X3Runtime* runtime, X3Value dict, uint64_t index, X3Value* key, X3Value* value) {
+  xlang3::XlangRuntimeExecutionGuard guard;
   auto* rt = as_runtime(runtime);
   if (rt == nullptr || key == nullptr || value == nullptr) {
     return fail(rt, "runtime/key/value is null");
