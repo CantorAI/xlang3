@@ -209,6 +209,7 @@ $cases = @(
     "native_import",
     "sha2_complete",
     "json_module",
+    "json_threaded_decoder",
     "math_module",
     "time_module",
     "native_sys_time_audit",

@@ -46,3 +46,5 @@ builds or tests. Relative to the original preserved Release, arithmetic is
 
 Production deployment acceptance is separate; these checks alone do not
 establish production longevity or inference token throughput.
+The concurrent fixture is registered in both platform runners. This task built
+and qualified the Linux artifact; it did not replace the shared Windows runtime.
