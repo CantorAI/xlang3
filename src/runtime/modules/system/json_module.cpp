@@ -23,6 +23,7 @@ limitations under the License.
 #include "xlang3/object_model.h"
 #include "xlang3/sequence.h"
 #include "xlang3/value.h"
+#include "runtime/modules/thread/runtime_lock.h"
 
 #include <algorithm>
 #include <array>
@@ -410,6 +411,10 @@ private:
 bool json_scanner_call(
     Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     std::string& error, void* data) {
+  // Ordinary native callbacks run without the VM lock. JSONDecoder reuses
+  // this scanner and its key memo across loads(), including on other threads.
+  // Keep memo lookup, mutation and clearing under the same execution lock.
+  XlangRuntimeExecutionGuard execution_guard;
   auto* state = static_cast<JsonScannerState*>(data);
   if (argc != 2 || value_as_string(args[0]) == nullptr || args[1].tag != ValueTag::Int64 || args[1].as.i64 < 0) {
     error = "JSON scanner expected a string and integer index";
@@ -714,6 +719,9 @@ bool json_encoder_python_fallback(
 bool json_encoder_call(
     Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     std::string& error, void* data) {
+  // Captured encoders also use the ordinary unlocked callback path. Protect
+  // both their lazy fallback state and the container graph being traversed.
+  XlangRuntimeExecutionGuard execution_guard;
   if (argc != 2) {
     error = "_iterencode() takes exactly 2 arguments";
     runtime.raise_class_error("TypeError", error);
