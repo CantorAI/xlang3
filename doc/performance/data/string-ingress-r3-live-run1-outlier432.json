@@ -1,0 +1,259 @@
+{
+  "state": "collected",
+  "read_only": true,
+  "model_requests_added": 0,
+  "request_id": "6cc3b3e70b25436fb376918f39ce307e",
+  "client": {
+    "sequence": 432,
+    "model": "qwen3.8-27b-chat-32k",
+    "state": "passed",
+    "started_utc": "2026-10-31T03:27:21.749322+00:00",
+    "admitted_seconds": 1150.38702200001,
+    "http_status": 200,
+    "headers_seconds": 21.89945679999073,
+    "http_reference": "6cc3b3e70b25436fb376918f39ce307e",
+    "completion_id": "chatcmpl-6cc3b3e70b25436fb376918f39ce307e",
+    "inference_request_id": "6cc3b3e70b25436fb376918f39ce307e",
+    "first_visible_content_seconds": 23.090348800003994,
+    "last_visible_content_seconds": 37.51024279999547,
+    "elapsed_seconds": 38.82752530000289,
+    "content_events": 52,
+    "usage": {
+      "completion_tokens": 53,
+      "prompt_tokens": 23,
+      "total_tokens": 76
+    },
+    "end_to_end_output_tokens_per_second": 1.365011022219231,
+    "finish_reason": "stop",
+    "output_characters": 332,
+    "output_sha256": "8480b6e6e9ef83775aac5ad542cc38945c39ac3f10332474fbc304f37c6d966b",
+    "output": "Resource-based inference routing directs computational tasks to specific hardware or nodes based on their available resources, such as memory, processing power, or energy constraints. This approach optimizes system efficiency and performance by matching the demands of inference workloads with the most suitable available resources.",
+    "completed_seconds": 1189.2145767000038
+  },
+  "source_client_samples": "D:\\CantorStorage\\CantorServe\\logs\\final-native-model-load-e8a1b8d2-20261031T0307Z\\samples.jsonl",
+  "native_receipt_source": "192.168.193.113:D:/CantorAI/worldsense-5090/storage/CantorServe/runtimes/garnet-qwen38-long-context-emb-v2/receipts/6cc3b3e70b25436fb376918f39ce307e.json",
+  "native_receipt_sha256": "9f034d31e271e2830b1f9694f26b784835e0946919343c634634f0d1a67525c7",
+  "native": {
+    "cache_state": "disabled",
+    "ttft_seconds": 0.17011459998320788,
+    "input_seconds": 0.06832969991955906,
+    "prefill_seconds": 0.10178490006364882,
+    "decode_seconds": 1.4655678999843076,
+    "total_seconds": 1.6356824999675155,
+    "generated_tokens": 52,
+    "decode_tokens_per_second": 35.481126463370806
+  },
+  "native_status": "ok",
+  "node_id": "4700c065d4d742379c48d9d5328be19b",
+  "profile_id": "qwen38_27b_nvfp4_chat_32k_v2",
+  "native_queue_timer_available": false,
+  "api": {
+    "journal": {
+      "__REALTIME_TIMESTAMP": "1793417280652072",
+      "__MONOTONIC_TIMESTAMP": "6803664648045",
+      "_PID": "940098",
+      "_BOOT_ID": "d75c5f2618a3453db7517623ffa4f1ee"
+    },
+    "request_timing": {
+      "disconnected": true,
+      "errors": {},
+      "http_request_id": "333bc09ca24c4a1997c585285592d63f",
+      "inference_request_id": "6cc3b3e70b25436fb376918f39ce307e",
+      "marks_ms": {
+        "execution_finished": 38739.932,
+        "first_body": 21825.296,
+        "first_text_yield": 23016.734,
+        "first_visible_yield": 23016.742,
+        "headers": 21823.225,
+        "http_finished": 38762.611
+      },
+      "preflight_id": "60c545f6ebab42c5bc1a1248c74177b3",
+      "rpc": {
+        "admit.status": {
+          "await_ms": 3.802,
+          "call_ms": 2.658,
+          "count": 1,
+          "first_begin_ms": 94.859,
+          "incomplete": 0,
+          "queue_ms": 0.481
+        },
+        "control.poll": {
+          "await_ms": 1322.855,
+          "call_ms": 658.613,
+          "count": 510,
+          "first_begin_ms": 21837.355,
+          "incomplete": 0,
+          "queue_ms": 271.317
+        },
+        "control.release": {
+          "await_ms": 15.433,
+          "call_ms": 7.787,
+          "count": 7,
+          "first_begin_ms": 22506.234,
+          "incomplete": 0,
+          "queue_ms": 3.264
+        },
+        "control.submit": {
+          "await_ms": 38.275,
+          "call_ms": 23.433,
+          "count": 9,
+          "first_begin_ms": 21834.07,
+          "incomplete": 0,
+          "queue_ms": 4.896
+        },
+        "db.poll": {
+          "await_ms": 6.245,
+          "call_ms": 3.14,
+          "count": 2,
+          "first_begin_ms": 7.725,
+          "incomplete": 0,
+          "queue_ms": 1.292
+        },
+        "db.release": {
+          "await_ms": 2.06,
+          "call_ms": 1.101,
+          "count": 1,
+          "first_begin_ms": 44.905,
+          "incomplete": 0,
+          "queue_ms": 0.372
+        },
+        "db.submit": {
+          "await_ms": 3.411,
+          "call_ms": 1.917,
+          "count": 1,
+          "first_begin_ms": 4.245,
+          "incomplete": 0,
+          "queue_ms": 0.57
+        },
+        "invoke.poll": {
+          "await_ms": 17.889,
+          "call_ms": 9.139,
+          "count": 7,
+          "first_begin_ms": 21830.407,
+          "incomplete": 0,
+          "queue_ms": 3.641
+        },
+        "invoke.release": {
+          "await_ms": 2.117,
+          "call_ms": 1.034,
+          "count": 1,
+          "first_begin_ms": 38677.728,
+          "incomplete": 0,
+          "queue_ms": 0.439
+        },
+        "invoke.submit": {
+          "await_ms": 4.105,
+          "call_ms": 2.465,
+          "count": 1,
+          "first_begin_ms": 21826.244,
+          "incomplete": 0,
+          "queue_ms": 0.637
+        },
+        "preflight.poll": {
+          "await_ms": 1669.41,
+          "call_ms": 827.964,
+          "count": 655,
+          "first_begin_ms": 104.141,
+          "incomplete": 0,
+          "queue_ms": 352.101
+        },
+        "preflight.release": {
+          "await_ms": 2.175,
+          "call_ms": 1.038,
+          "count": 1,
+          "first_begin_ms": 21818.805,
+          "incomplete": 0,
+          "queue_ms": 0.501
+        },
+        "preflight.submit": {
+          "await_ms": 4.337,
+          "call_ms": 2.931,
+          "count": 1,
+          "first_begin_ms": 99.752,
+          "incomplete": 0,
+          "queue_ms": 0.598
+        },
+        "reserve.poll": {
+          "await_ms": 5.727,
+          "call_ms": 3.028,
+          "count": 2,
+          "first_begin_ms": 53.037,
+          "incomplete": 0,
+          "queue_ms": 0.894
+        },
+        "reserve.release": {
+          "await_ms": 4.226,
+          "call_ms": 2.971,
+          "count": 1,
+          "first_begin_ms": 89.859,
+          "incomplete": 0,
+          "queue_ms": 0.443
+        },
+        "reserve.submit": {
+          "await_ms": 3.963,
+          "call_ms": 1.955,
+          "count": 1,
+          "first_begin_ms": 49.014,
+          "incomplete": 0,
+          "queue_ms": 0.461
+        },
+        "settle.poll": {
+          "await_ms": 6.982,
+          "call_ms": 2.59,
+          "count": 2,
+          "first_begin_ms": 38698.276,
+          "incomplete": 0,
+          "queue_ms": 3.181
+        },
+        "settle.release": {
+          "await_ms": 2.039,
+          "call_ms": 0.909,
+          "count": 1,
+          "first_begin_ms": 38735.91,
+          "incomplete": 0,
+          "queue_ms": 0.436
+        },
+        "settle.submit": {
+          "await_ms": 3.536,
+          "call_ms": 2.217,
+          "count": 1,
+          "first_begin_ms": 38694.672,
+          "incomplete": 0,
+          "queue_ms": 0.476
+        }
+      },
+      "schema": "cantorserve.request-timing.v1",
+      "spans": {
+        "admit": {
+          "count": 1,
+          "ms": 21773.626
+        },
+        "control": {
+          "count": 7,
+          "ms": 16643.274
+        },
+        "db": {
+          "count": 1,
+          "ms": 43.229
+        },
+        "invoke": {
+          "count": 1,
+          "ms": 16913.862
+        },
+        "preflight": {
+          "count": 1,
+          "ms": 21721.703
+        },
+        "reserve": {
+          "count": 1,
+          "ms": 45.897
+        },
+        "settle": {
+          "count": 1,
+          "ms": 43.813
+        }
+      },
+      "status": 200
+    }
+  }
+}

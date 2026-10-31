@@ -97,9 +97,68 @@ threads joined, 962,368 objects collected, 3,824 KiB final RSS growth and
 is 2.551/2.281 ms, p95 8.947/8.683 ms. It exits 0. Its load differs from the earlier ASGI tests; their
 latencies are not treated as identical-workload performance comparisons.
 
-Final-source production deployment and sustained qualification remain pending.
-The preceding iterator-runtime production interval cannot qualify this candidate.
-The protected shared Windows Release and test service are unchanged.
+The final source is deployed on the Azure core/API. Sustained joint qualification
+remains incomplete after the interrupted attempt below. The preceding
+iterator-runtime production interval cannot qualify this candidate. The protected
+shared Windows Release and test service are unchanged.
+
+## Production follow-up: interrupted joint load
+
+After a full HTTPS admission gate and two API drain observations, the API is
+stopped. Three further native observations confirm zero running, pending and
+owned unfinished tasks before the reversible core switch. The running core and
+API both map runtime `4e301465c4cc184bd1a4a7a3d518e6682a49ea126edd35c4d5577f3aac49d01a`
+from engine commit `e8a1b8d2`. Cantor remains `07ff7059...`. All 55 backend Python
+files, configuration hashes, external state links and accepted frontend assets
+are recorded before model admission and verified unchanged after this attempt.
+No GPU worker or protected shared Windows service is restarted.
+
+The planned workload is 2,850 seconds of serial public HTTPS streaming,
+alternating 2B and 27B with the fixed routing prompt, 64 output tokens, no warmups
+and no retries. The unchanged 2,700-second signed-RPC/HTTP checker starts after
+the first fsynced successful model sample. The recorded client phase begins at
+2026-10-31 03:08:11.338789 UTC and stops after 1,249.44 seconds: 438 attempts,
+437 successful completions and one `ConnectError`. Attempt 438 has no HTTP
+status, response reference, inference identity or visible content. The original
+client saves the exception class but not its underlying cause chain; a specific
+TCP, TLS, DNS or worker failure cannot be inferred from that record.
+
+The model phase stops admissions on that first error. The predeclared stop file
+then ends the control checker, which joins all four threads and preserves
+`final=true`, `passed=false`, `coordinated_interruption_requested=true`. Its
+1,294.68 seconds contain 5,140 signed RPC calls and 1,278 real HTTP health
+requests, zero call errors and zero service restarts. Core/API PIDs remain
+939673/940098 throughout. Final core RSS is 163,036 KiB, 18,692 KiB above its
+first sample after 300 seconds; API RSS is 212,048 KiB, 6,092 KiB above that
+baseline. These are partial observations, **not a completed 45-minute pass**.
+There is no complete model coverage or final first/last-window speed claim.
+
+Successful attempt 432 also retains a significant latency tail. Client TTFT is
+23.090 seconds and total HTTP duration 38.828 seconds. Its same-ID API trace
+records 21.722 seconds of preflight and 16.914 seconds of invoke, including an
+overlapping 16.643 seconds of control work. The measured local IPC queue/call
+totals are much smaller than those wall waits. The matching RTX5090 receipt is
+successful: native TTFT 0.170 seconds, total model execution 1.636 seconds and
+52 generated tokens over 1.466 seconds of decode, or 35.481 tokens/second.
+Those worker timers exclude unreported queue time and are not GPU kernel timers.
+This tail is already visible inside the API and is not explained by the measured
+GPU execution or client-only HTTP delivery. The exact provider/control/resource
+wait remains under investigation; it is distinct from attempt 438's connection
+failure. Neither tail is removed from the evidence or treated as fixed.
+
+The client and checker use clocks on different hosts. Their recorded wall
+windows have an initial lead, but no independent cross-host clock-error bound
+was measured. More importantly, the model phase stopped before the checker;
+complete planned containment is false regardless of clock alignment. A new,
+independent full interval is required after diagnosis. Passing offline engine
+qualification does not replace it.
+
+Evidence: [initial fixed identity](data/string-ingress-r3-live-run1-identity.json),
+[full interrupted control series and unchanged identity](data/string-ingress-r3-live-run1-interrupted.json),
+[exact model plan](data/string-ingress-r3-live-run1-model-plan.json),
+[all fsynced model attempts](data/string-ingress-r3-live-run1-model-samples.jsonl),
+[failed model summary](data/string-ingress-r3-live-run1-model-summary.json), and
+[same-ID client/API/worker comparison for attempt 432](data/string-ingress-r3-live-run1-outlier432.json).
 
 ## Evidence
 

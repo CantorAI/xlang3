@@ -1,0 +1,1260 @@
+{
+  "schema": 1,
+  "collected_at_unix": 1793417437.5816193,
+  "passed": false,
+  "complete_joint_qualification": false,
+  "complete_45_minute_interval": false,
+  "reason": "The separate serial model client stopped on its first HTTP ConnectError (attempt 438). The predeclared stop file then ended the control checker normally, preserving its partial observations and joined threads.",
+  "xlang_commit": "e8a1b8d277ef75bb9797f7ac452d045c4ad7d2fc",
+  "api_source_label": "ddc62f81-overlay-plus-inline-audio-0199291-static",
+  "unchanged_interval_identity": {
+    "native_release": "/data/Cantor/releases/native-stability-20261030-string-ingress-e8a1b8d2",
+    "backend": "/data/CantorServe/releases/a96c218187e80bb791d8e9e7eabf78b194eb8028/backend",
+    "services": {
+      "core": {
+        "MainPID": "939673",
+        "NRestarts": "0"
+      },
+      "api": {
+        "MainPID": "940098",
+        "NRestarts": "0"
+      }
+    },
+    "native_sha256": {
+      "Cantor": "07ff70595b4e13e1a875e2f19a92e771d9d24392e02242e87cfaeee91a98a67c",
+      "xlang3": "8a64dda34a38cee93f8986c4854f7415ecd3dd85e354ed3519c29bedead92ab7",
+      "libxlang3_runtime.so": "4e301465c4cc184bd1a4a7a3d518e6682a49ea126edd35c4d5577f3aac49d01a"
+    },
+    "manifest_sha256": "400356f74023c504f3c9717a1bca69b2b58b0181185082f75e3d4a8e06b2e05b",
+    "backend_python_sha256": {
+      "cantorserve/__init__.py": "d9d6d706e59ae70313e8e6bf2d6b929872c22e4c6d82acdb411184f153945aa1",
+      "cantorserve/accounting.py": "8f3f3c69fb2f25b9fa3985a73689943a83012067c9f7883e9dee406fefb85e80",
+      "cantorserve/app.py": "81a5e8d9b398d7e277424f4b58e094e3374670fb253d63060468d8867536b1c1",
+      "cantorserve/cantorproxy.py": "2de39c7c411d48d3826b287cabbc2e02628e518877c59f840b3edd8d93c8af29",
+      "cantorserve/catalog.py": "0a3d53f70683daec97db8f45adec24d18812755af6057013147a1fd6bce86eab",
+      "cantorserve/chat_api.py": "6384bf85116e652336341ddc1262006a0bf4582b61a0d062ae429c2a76037a62",
+      "cantorserve/chat_clock.py": "4a25546cbaa1b3430ad773f2dccc9b44d180f5450dd2a8a59a9f1119382f2661",
+      "cantorserve/chat_database.py": "fce3271d562793286ee98f475212dbf873fee8dc4ac86973e3d67579d6b32366",
+      "cantorserve/chat_file_process.py": "74925cdc343cf1d04e22e4fef57c3e95ff9bcd50769ffc101dd8506e194e515f",
+      "cantorserve/chat_files.py": "7a35011f051497662e9312abc2e252743198a959708b548d30a3f419ba0cc806",
+      "cantorserve/chat_outbox.py": "44360c1307fc33450da3a8efda8de5ecf5339654527783a6c118182a1cdc507f",
+      "cantorserve/cli.py": "cbeb388081fd3a0419d310e2db1f36e061cf293e9c5473f72ce312780e54c099",
+      "cantorserve/cluster.py": "7450549b5540ee40e370c4d4e3171772788ebe43b8899d9b4a50662f21885ff3",
+      "cantorserve/config.py": "948c3cafd4446c9e93e8db51cfa4b956bfa43651a1ab7fb989f1ba576eed9af9",
+      "cantorserve/contracts.py": "eb68689fa17a07dddb2724595ba9f6155a7179cf6b68559cbdc901ff8fe7d4be",
+      "cantorserve/database.py": "60d8ea61303bdd080ea020bbe4edb98a8baebb004c43316cc03c7b8a4b33f97f",
+      "cantorserve/errors.py": "5cea300c13da84ce9df31564b5acefa3309fd2f4660328c299642a658dbb335b",
+      "cantorserve/external_keys_api.py": "90be80c2f78a77f6a2fbbf3739c11739e86a131930ba56b60edc99288f787b53",
+      "cantorserve/external_keys_database.py": "b9ef599ff469be6429f414002be5b8097185a93f8158b11f54a79e59d7e3df16",
+      "cantorserve/image_validation.py": "511f28c37efc788cfce7284df3ead30099593a3a37f9b9462c0c55e4fb3283c3",
+      "cantorserve/middleware.py": "4fcdb8ffcc6a3dd74ca0752dfe46dc2110cd8d58d10d3bd3ccf4a7fb5a906204",
+      "cantorserve/native/broker.py": "a2ee84433aa4e5d287bafdb4acd3bb44d7a9b1477746acfc6c641e5c2207e530",
+      "cantorserve/native/chat_file_worker.py": "f915636181b8b1cf961830b7ee20a490054dabc77ba07482f46350ab5bb2edea",
+      "cantorserve/native/database_filter.py": "9c636c5be31e72e3b5684f0477c04840a053a386d94d06d8bac25abd1b44f3ed",
+      "cantorserve/native/database_publisher.py": "5e848d0f82252d8531c070d0bde2a9ad6818fdef948df7ef29ebcd697524e2bd",
+      "cantorserve/native/garnet_publisher.py": "25a989f796a24e65b09515dd4b29037b07bc8af64fb3c0c31f696a4e3298aac9",
+      "cantorserve/native/garnet_service.py": "5763a2108a7ef05932e30275b54ad339a85ab6898644b2db8acb468898962a36",
+      "cantorserve/native/observability.py": "949e171fcc32a57ba2d833b81058ff210321ffaab53213ad0bb73fa041fcbd2b",
+      "cantorserve/native/portal_database_filter.py": "7499a68f821d3b44d16366884ba9e0b1256c8a266cb771fc8c540eb62f7baedc",
+      "cantorserve/native/portal_database_publisher.py": "0a611d4ecd1cfabff8d69aa2204ab6b632ce51a9c8d6b6cf77ebc401806b6cb7",
+      "cantorserve/native/provider_filter.py": "55f4a8ae61705e223400d0669a859871e523c890c4a092e68bfcbe7c43a29ba2",
+      "cantorserve/native/quanta_filter.py": "1b50128e0d5c44cb78cdc1ac3bda7524f14de47625b2e0545f303fbd11b01165",
+      "cantorserve/native/speech_filter.py": "a772f8948133daac5aaeab37f13c98c92cf54ede6be9f2f887c7ad10a64c7971",
+      "cantorserve/native/speech_publisher.py": "8258d87fd93437cfb11125b1283f746ff8c0b33452c3629c6962fbe6f5591407",
+      "cantorserve/native/speech_service.py": "c951437ef85d487527e8599cea1794eb4e839cf3442caf5c9cbee77a2e1d08ac",
+      "cantorserve/native/speech_worker.py": "b13d26401e7f29c1fec5102b4e501228ed4f34c23e537502a6373528c770a369",
+      "cantorserve/native_admission.py": "bc951b9b21e775e11349c297b2e493aa70fe1941d44d6157d881a648f01518f4",
+      "cantorserve/native_gc.py": "5ed70db87e07586477bf063322fcb55003012c1b1a3c6c03afc634a8328386b9",
+      "cantorserve/native_runtime.py": "4248360f0b5ca001d54c460e4db57230bd2246cdb9265d78f01afa54710ff3c4",
+      "cantorserve/ollama_api.py": "7a0632a29ed633c887d12fb3a01f64e09f48de3a20c14b54f637d3dd12414be2",
+      "cantorserve/providers/__init__.py": "becec3ec598d2caa02d2e0cd29c18514525eb1ea936261099715daf89a07e623",
+      "cantorserve/providers/garnet.py": "21ba90c4f6a39ea9870899dda23f6374360923ab1c626f996aed62534c633266",
+      "cantorserve/request_timings.py": "f056456fec198542dc2f678818dd5e14889a6ccf518dffc49bb75cffe4359dd5",
+      "cantorserve/search_agent.py": "100ea17803e0bae5fc20660959b1ae6ec15b592d065527a1688603094e83a2b9",
+      "cantorserve/search_config.py": "9040dac6515d7b59f8439051df465eeceba3e2eabea24bc87991c73e46f6f343",
+      "cantorserve/search_exa.py": "be88ce51ce999afc8ed8b080b8d8d32237667bb3cf615798594a78e10a6b5388",
+      "cantorserve/search_tools.py": "ff5dd25be08c1794fdd0e9166182384157241f038c266dd9c8409802b2f7946e",
+      "cantorserve/security.py": "782ad0884adce46fe1b044455411791906e011912d36e84c2dfdd6c18b4a8830",
+      "cantorserve/storage.py": "03cc15d05b8b6e0fe3f9d826722f0e8248a8f92d17d4e1cd3386ff8fe134c465",
+      "cantorserve/streaming.py": "693d0886a5ada25a53cd085bc46d64552302f06809b37ba8390092500fb4a8e3",
+      "cantorserve/testlab_api.py": "563b92711f20e016d2c1a3d5b20c0ebbd73e5d1f54d41c194a5e7dba1bf5efc1",
+      "cantorserve/transport.py": "92fc31e1ef5c537569177096ae4e0a6309ba695d495802c980cdc17a5286cc81",
+      "cantorserve/usage.py": "90c249397f0b20961fae2801a45fd537792a10839084b7d77dacadef7d94dea8",
+      "cantorserve/xlang3_direct.py": "229e6a939add1eb38e4f3dff1e5402441d8f1d3259d1ca36c39774a420a0350a",
+      "launch.py": "71cb65ec07ac04a2a63bbcc34eb47e6fded30bf54fd12ca6b6c225cb1016cad9"
+    },
+    "backend_static_sha256": {
+      "app.css": "25741ce330b5b8b225bbafa363b4f79b199d8076799f8b47a5af72d39b2f49e6",
+      "app.js": "10b4a4dc45576ca493933ee54ff586aad4ebe2cf4c6089074268e6031c76a0ab",
+      "cantor-gauge.js": "88329c7ce5c2173a11c12c4e827a50a3789d260331a66806162499d9c965c95f",
+      "cantor-renderers-LICENSE.txt": "1eb85fc97224598dad1852b5d6483bbcf0aa8608790dcc657a5a2a761ae9c8c6",
+      "chat-audio.js": "d8d1e65ef6a35d1aba07046b2501acb2b544f7d6d824162f6736b84ada29c267",
+      "chat-markdown.js": "52d3ccf39f4468662840641610051acbf920fef0b8d5942a873c45c961395581",
+      "chat-metrics.js": "71084a5ee747e4e98ec1cafa32ca06dce15e48a831b959cdbf09c7d7f4e34f8b",
+      "chat-ui/LICENSES-252005a.txt": "376fefc9d9d4ccb1878f9c758ba7618488b9fb9362013649427b3107f693551c",
+      "chat-ui/LICENSES-517fb8a.txt": "376fefc9d9d4ccb1878f9c758ba7618488b9fb9362013649427b3107f693551c",
+      "chat-ui/LICENSES-973f085.txt": "376fefc9d9d4ccb1878f9c758ba7618488b9fb9362013649427b3107f693551c",
+      "chat-ui/LICENSES-e581cdb.txt": "376fefc9d9d4ccb1878f9c758ba7618488b9fb9362013649427b3107f693551c",
+      "chat-ui/NOTICES-252005a.json": "d6245749d20d2c63b3626fd3c2da0f43863dac5c77264cbbb14a74b56108a930",
+      "chat-ui/NOTICES-517fb8a.json": "d6245749d20d2c63b3626fd3c2da0f43863dac5c77264cbbb14a74b56108a930",
+      "chat-ui/NOTICES-973f085.json": "d6245749d20d2c63b3626fd3c2da0f43863dac5c77264cbbb14a74b56108a930",
+      "chat-ui/NOTICES-e581cdb.json": "d6245749d20d2c63b3626fd3c2da0f43863dac5c77264cbbb14a74b56108a930",
+      "chat-ui/chat-35VTFVKF.js": "f21483cc74df2ea59b60b2dac5536c09514b18ecabb362bf56ebfd112fe2a90b",
+      "chat-ui/chat-3ZM26LGX.js": "432f62db46065a52062ffe891bba5977a0feef8fd210787b184ad44dcb9db6f0",
+      "chat-ui/chat-56VSRGQ7.css": "14a042a840f63acb14e65d5efa42f868bc7b03932c681a5e76074a66e558024d",
+      "chat-ui/chat-EAEN6AQF.js": "0b4710543a7d545434b4009fe8b09e68f3608cfe347be30b7848a100a9c1c28c",
+      "chat-ui/chat-I2PUMZUD.css": "a8d921563704cd8453216507a1f26c282bb4fb548eeed126407d91b02677362a",
+      "chat-ui/chat-N67U5YGY.js": "f79a7495e64338f5935d2c3f01e993220c31b37faf38cd389c0ddb620f02b64a",
+      "chat-ui/chat-URL5XDAP.css": "c952e5fc8e3640d208411b8d247f738c397b8390e864b9bd2efe25fcd6d70a14",
+      "chat-ui/chat-XWDM7E7P.js": "ff691bbbc7a87037cb80c87688b578aa6ca840965d5058aa8bc7818511eae1fd",
+      "chat-ui/chunk-4IXPBBCZ.js": "cb44b474725949162f78396267129080daefb796e8f708cc52e87e204932b1fb",
+      "chat-ui/chunk-AQJANXEA.js": "ab03a99644cda74a221318a867a820f93263165ac90364800ebe7166eb2f6f4f",
+      "chat-ui/chunk-VKG6XKT7.js": "90a230a8109754721f48963011fd0a7be61f1ca5fde8687003f1401e394e7831",
+      "chat-ui/preview-252005a.html": "3fffbb94cca1ac1f6560e9137870bfd405d1f8a0718e01f4db8891e60d8090d1",
+      "chat-ui/preview-517fb8a.html": "2abefddb9ce0ade7b7e410336500feb86b272faea932a18ce0e31a90bda5654b",
+      "chat-ui/preview-973f085.html": "ef21e7400564e8285df72b44c56b1df11273281750853a8165b6a4f886d77b41",
+      "chat-ui/preview-e581cdb.html": "57aef7a2922335118856f8f2c17d95722eeec6eca7b3c24c1f72e78694f2f89f",
+      "chat-ui/preview-inline-audio-ce4a00df0d7e.html": "ce4a00df0d7ea154acc8c49e1c2bc0155584648d3bc049c35e395ad3cccc83ab",
+      "chat.css": "ff068772bfb892347fb05d1bf1658beed53bfbe8b0a1648fe118e85557440a9c",
+      "chat.html": "ce4a00df0d7ea154acc8c49e1c2bc0155584648d3bc049c35e395ad3cccc83ab",
+      "chat.js": "68297ba5c582e8f67e82186438ee842b34a835bc7ad0275056ea1f8b77c629c0",
+      "cluster-canvas-state.js": "0b40cec88dcb7ea11b8ceb9c93af2bbbd5c3ad6777030abcdfa97f3f622dae34",
+      "cluster-task-state.js": "604495f9c3f32100ae9a585d4146781fedb8480b5c3a3eb31e4f9739a075c8bb",
+      "cluster.js": "2c338cbd3dbd1cb8665aa4ee2c1992561bad9839066b085df34bc792f6809b91",
+      "dompurify-3.4.17.js": "60c5d5ccbb466de3de3ba863461a92bf134f8c156cef7992da43e0f659bc5cbd",
+      "dompurify-LICENSE": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30",
+      "dygraph.css": "25167ea52a90fca01ab217fccc3304be5fa24455f07155caae49f81d27383ca9",
+      "dygraph.js": "5680b8066718b47b8f555f1164ea5aeb8b3093bb3926d9f37fa9b8e56871e437",
+      "dygraphs-crosshair.js": "04d42dd79cdedd484a59dd236fc123090a76e9ad9627025dae88f014eebb8cbd",
+      "graph-layout.js": "71bc683dee6a62c7645448c06fa97462c035e595de43a04953b87a55ff1727be",
+      "graph-navigation.js": "d58449b5418355bb800012e0baa93eedd9adfd68b4f9aa09b32095a3a05d7346",
+      "index.html": "e8993a67e45705bf7394492dda999b63da5a8dfb3e2b1396517a4ba6e44c872e",
+      "lab-embed.css": "affd6dff943e4c33b328a8bb83d08d048a0e2a9d7a2e289999e4404a8f81f613",
+      "lab-view.js": "ea3b373edb8e3c9b5318948358f8ad6ef98a8ef8d0676f035f86acc9266db403",
+      "marked-18.1.2.js": "e7b0919876c54c2d9ca6b927db18420a081f6fee8cf1ecfd7cb6ea97a3b55309",
+      "marked-LICENSE.md": "8e3a3f82f59a60958f56ca08f445647c32a4733dc7ca6c2c46f6eb898471ab9c",
+      "metric-series.js": "bde0256f876809f5d46e16c5d391aabe33b92e643cf23bc4e6e9d0233dd95b19",
+      "metrics-preferences.js": "7c2c60bee46fbcf053535a7f65536b2eddb5d5130fdc0bc431fc50c7e8b7bc17",
+      "metrics-view.js": "977b423fdf3b27083e4257cd0d94d2eed14b85596ed5a2a6f1689d6edeefd2c0",
+      "metrics-workspace.js": "9769e5f203b2dd1b1a8a189c0fa8d26e8f021b5e07d01e59e84060728e30107d",
+      "observability.js": "379adc1bdc4e34539f7b070e8f0d81420780c67671fc0caf079cd109b91193bd",
+      "portal-api.js": "2a68913a5a53707ec08e292040c472c5ddbc821a1c522b8519cd406095cc7633",
+      "portal-session.js": "0a460748326110fa6a7925947fe8f74c163cd3f0757de7ae6210793ee510bb79",
+      "testlab-auth.js": "2bce08b343823bd28cd3769259791b42f040719ceceef90a1faae265731af7ef",
+      "testlab.css": "4bccc1477b5808d6b5419eefc382852814593d60badd86c3394499b7973d630e",
+      "testlab.html": "3ab83799931c520ddcb251f22aaaad03b0eeb19e1213cbb837c8ef32fa5aeb30",
+      "testlab.js": "12d626bfa94e9b2a3aee51d261d4a223ff2e845859d7c5716d12b1a54d40e422",
+      "theme.css": "27c615e672d2fc299434155398de0688936638a7f509b1241c2474403ed94a3d",
+      "theme.js": "1ff94895ced17d9e487dcf396133e031ecc3d9177183b463c648b5cec0ff628b",
+      "workspace.css": "a18bee659a783227f38ab8c35481bb0036e0d69a74f1827a2e0ff5c94e7581bc"
+    },
+    "config_sha256": {
+      "/data/CantorStorage/SharedNode/config/shared-node.yaml": "eef1c68ec062a2fb7bab28f8b998a1ad9946b450216b18ab6797adc67654475f",
+      "/data/CantorStorage/CantorServe/config/public.env": "0f7d23f166b9c328d7917ebbcba5f214cf893b728433bc8fca65074132f37ee4",
+      "/data/CantorStorage/SharedNode/config/serving-host.env": "1882672bc3bebafad52afcb3c0a7b1323815fbda9398e588259b2a299a71f295"
+    },
+    "storage_source_sha256": {
+      "/data/CantorStorage/CantorServe/pipelines/azure-serving-v1.json": "0561c68628b1c3886ee0498e6f4b4ada0de2df8350034130a57f71aad2912a6e",
+      "/data/CantorStorage/CantorServe/pipelines/database-role.json": "be0424f95cb0ce766bec4f68bb7a0715b974734f8f26db19cfecc60da6ebe3e2",
+      "/data/CantorStorage/CantorServe/pipelines/azure-database-publisher.py": "1fb9757376bd64a9906fbec9404c3be7473ad10102c080fff3ea33c5d495a245"
+    },
+    "loaded_runtime_sha256": {
+      "core": {
+        "/data/Cantor/releases/native-stability-20261030-string-ingress-e8a1b8d2/bin/libxlang3_runtime.so": "4e301465c4cc184bd1a4a7a3d518e6682a49ea126edd35c4d5577f3aac49d01a"
+      },
+      "api": {
+        "/data/Cantor/releases/native-stability-20261030-string-ingress-e8a1b8d2/bin/libxlang3_runtime.so": "4e301465c4cc184bd1a4a7a3d518e6682a49ea126edd35c4d5577f3aac49d01a"
+      }
+    },
+    "state_links": {
+      "bin/Logs": "/data/CantorStorage/SharedNode/Logs",
+      "bin/Database": "/data/CantorStorage/SharedNode/Database",
+      "bin/CantorStore": "/data/CantorStorage/SharedNode/CantorStore"
+    }
+  },
+  "production_soak": {
+    "runtime": "xlang3",
+    "native_release": "/data/Cantor/releases/native-stability-20261030-string-ingress-e8a1b8d2",
+    "runtime_sha256": "4e301465c4cc184bd1a4a7a3d518e6682a49ea126edd35c4d5577f3aac49d01a",
+    "started_at_unix": 1793416111.5236824,
+    "duration_seconds": 1294.6823607748374,
+    "initial_service": {
+      "core": {
+        "MainPID": "939673",
+        "NRestarts": "0"
+      },
+      "api": {
+        "MainPID": "940098",
+        "NRestarts": "0"
+      }
+    },
+    "final_service": {
+      "core": {
+        "MainPID": "939673",
+        "NRestarts": "0"
+      },
+      "api": {
+        "MainPID": "940098",
+        "NRestarts": "0"
+      }
+    },
+    "final": true,
+    "rpc_calls": 5140,
+    "http_calls": 1278,
+    "errors": [],
+    "samples": [
+      {
+        "seconds": 30.04990982171148,
+        "memory": {
+          "core": {
+            "VmRSS": 132356,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 199952,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 60.096953853964806,
+        "memory": {
+          "core": {
+            "VmRSS": 133840,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 199688,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 90.15640927292407,
+        "memory": {
+          "core": {
+            "VmRSS": 135336,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 204524,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 120.20917629543692,
+        "memory": {
+          "core": {
+            "VmRSS": 136680,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 202148,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 150.25905727222562,
+        "memory": {
+          "core": {
+            "VmRSS": 137988,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 203088,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 180.3135124705732,
+        "memory": {
+          "core": {
+            "VmRSS": 139384,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 203740,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 210.37811179086566,
+        "memory": {
+          "core": {
+            "VmRSS": 140720,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 203824,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 240.44815029855818,
+        "memory": {
+          "core": {
+            "VmRSS": 141996,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 205044,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 270.51541924104095,
+        "memory": {
+          "core": {
+            "VmRSS": 143184,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 205564,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 300.5983419297263,
+        "memory": {
+          "core": {
+            "VmRSS": 144344,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 205956,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 330.7299766186625,
+        "memory": {
+          "core": {
+            "VmRSS": 143044,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 205432,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 360.8163699666038,
+        "memory": {
+          "core": {
+            "VmRSS": 144276,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 207552,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 390.9023201437667,
+        "memory": {
+          "core": {
+            "VmRSS": 145488,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 205816,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 420.9853267511353,
+        "memory": {
+          "core": {
+            "VmRSS": 146916,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 209612,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 451.079323775135,
+        "memory": {
+          "core": {
+            "VmRSS": 148428,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 213708,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 481.1752325743437,
+        "memory": {
+          "core": {
+            "VmRSS": 149636,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 210992,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 511.26264613773674,
+        "memory": {
+          "core": {
+            "VmRSS": 150996,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211008,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 541.359535546042,
+        "memory": {
+          "core": {
+            "VmRSS": 152096,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211044,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 571.4582120543346,
+        "memory": {
+          "core": {
+            "VmRSS": 153232,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211056,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 601.5732255596668,
+        "memory": {
+          "core": {
+            "VmRSS": 154400,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211060,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 631.6736994525418,
+        "memory": {
+          "core": {
+            "VmRSS": 155524,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211528,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 661.767791910097,
+        "memory": {
+          "core": {
+            "VmRSS": 156820,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211544,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 691.8816468445584,
+        "memory": {
+          "core": {
+            "VmRSS": 157948,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 212736,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 722.0015592901036,
+        "memory": {
+          "core": {
+            "VmRSS": 158612,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211620,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 752.1030316129327,
+        "memory": {
+          "core": {
+            "VmRSS": 159760,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211708,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 782.2132122879848,
+        "memory": {
+          "core": {
+            "VmRSS": 160508,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211704,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 812.3195813046768,
+        "memory": {
+          "core": {
+            "VmRSS": 161036,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 212168,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 842.4890605704859,
+        "memory": {
+          "core": {
+            "VmRSS": 161580,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211752,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 872.6130781695247,
+        "memory": {
+          "core": {
+            "VmRSS": 162024,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211840,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 902.749065944925,
+        "memory": {
+          "core": {
+            "VmRSS": 162144,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211864,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 932.8888076758012,
+        "memory": {
+          "core": {
+            "VmRSS": 162220,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211884,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 963.0253070266917,
+        "memory": {
+          "core": {
+            "VmRSS": 162284,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 212432,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 993.1459447667003,
+        "memory": {
+          "core": {
+            "VmRSS": 162372,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211948,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 1023.2880544522777,
+        "memory": {
+          "core": {
+            "VmRSS": 162456,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211960,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 1053.42016909644,
+        "memory": {
+          "core": {
+            "VmRSS": 162712,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211960,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 1083.5689104264602,
+        "memory": {
+          "core": {
+            "VmRSS": 162784,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211960,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 1113.7178827645257,
+        "memory": {
+          "core": {
+            "VmRSS": 162812,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211952,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 1143.8475585123524,
+        "memory": {
+          "core": {
+            "VmRSS": 162872,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 211960,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 1173.9808405935764,
+        "memory": {
+          "core": {
+            "VmRSS": 162944,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 212064,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 1204.1168621918187,
+        "memory": {
+          "core": {
+            "VmRSS": 162996,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 212056,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 1234.2711008088663,
+        "memory": {
+          "core": {
+            "VmRSS": 163024,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 212056,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 1264.4240940744057,
+        "memory": {
+          "core": {
+            "VmRSS": 163028,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 212048,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 1294.562623295933,
+        "memory": {
+          "core": {
+            "VmRSS": 163036,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 212048,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      },
+      {
+        "seconds": 1294.6823607748374,
+        "memory": {
+          "core": {
+            "VmRSS": 163036,
+            "Threads": 74
+          },
+          "api": {
+            "VmRSS": 212048,
+            "Threads": 8
+          }
+        },
+        "state": {
+          "core": {
+            "MainPID": "939673",
+            "NRestarts": "0"
+          },
+          "api": {
+            "MainPID": "940098",
+            "NRestarts": "0"
+          }
+        }
+      }
+    ],
+    "single_cached_proxy": true,
+    "threads_stopped": true,
+    "server_gc_forced_by_checker": false,
+    "connection_mutations": false,
+    "inference_requests_sent": 0,
+    "coordinated_interruption_requested": true,
+    "rpc_first_five_minutes": {
+      "count": 1192,
+      "median_ms": 4.435427952557802,
+      "p95_ms": 9.324338287115097,
+      "max_ms": 18.06542370468378
+    },
+    "rpc_last_five_minutes": null,
+    "rpc_overall": {
+      "count": 5140,
+      "median_ms": 4.867770709097385,
+      "p95_ms": 9.263691492378712,
+      "max_ms": 35.76149605214596
+    },
+    "http_first_five_minutes": {
+      "count": 297,
+      "median_ms": 11.642323806881905,
+      "p95_ms": 16.848763450980186,
+      "max_ms": 75.72545018047094
+    },
+    "http_last_five_minutes": null,
+    "http_overall": {
+      "count": 1278,
+      "median_ms": 11.773131787776947,
+      "p95_ms": 18.032513558864594,
+      "max_ms": 111.26956436783075
+    },
+    "steady_rss_growth_kib": {
+      "core": 18692,
+      "api": 6092
+    },
+    "passed": false
+  },
+  "local_windows_shared_service_modified": false,
+  "gpu_workers_modified": false,
+  "qualification_limits": "Interrupted observation only. No completed 2700-second or continuous 2850-second model-load qualification is claimed."
+}
