@@ -1,0 +1,629 @@
+{
+  "candidate_sha256": {
+    "xlang3": "8a64dda34a38cee93f8986c4854f7415ecd3dd85e354ed3519c29bedead92ab7",
+    "libxlang3_runtime.so": "6b8a6a36f7ffe7905cf2a010aa0dcb133e8ed4dc5cb94ae897eec2271d1ad9e0"
+  },
+  "baseline_runtime_sha256": "b06aa789a7b3bba4307d1231edff343e0a4509189c23e23e123f0202b321bb7c",
+  "passed": true,
+  "rows": [
+    {
+      "runtime": "pre_iterator",
+      "command": [
+        "/home/shawn/CantorServeAzureBuild/20261029/validation/azure-native-stability-20261030/pre-iterator-release/bin/xlang3",
+        "-B",
+        "/home/shawn/CantorServeAzureBuild/20261029/workspace/xlang3/tests/fixtures/core/iterator_owner_release.py"
+      ],
+      "returncode": 0,
+      "stdout": "protocol False\ngetitem False\ncallable False\nchain False\nchain-from False\ntokenizer False\nyielded-values-survive False True True\n",
+      "stderr": ""
+    },
+    {
+      "runtime": "candidate",
+      "command": [
+        "/home/shawn/CantorServeAzureBuild/20261029/build-release/bin/xlang3",
+        "-B",
+        "/home/shawn/CantorServeAzureBuild/20261029/workspace/xlang3/tests/fixtures/core/iterator_owner_release.py"
+      ],
+      "returncode": 0,
+      "stdout": "protocol True\ngetitem True\ncallable True\nchain True\nchain-from True\ntokenizer True\nyielded-values-survive True True True\n",
+      "stderr": ""
+    },
+    {
+      "runtime": "cpython",
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "/home/shawn/CantorServeAzureBuild/20261029/workspace/xlang3/tests/fixtures/core/iterator_owner_release.py"
+      ],
+      "returncode": 0,
+      "stdout": "protocol True\ngetitem True\ncallable True\nchain True\nchain-from True\ntokenizer True\nyielded-values-survive True True True\n",
+      "stderr": ""
+    },
+    {
+      "runtime": "pre_iterator",
+      "case": "native",
+      "returncode": 0,
+      "observation": {
+        "case": "native",
+        "runtime": "xlang3",
+        "changes": [
+          [
+            "tuple",
+            27000
+          ],
+          [
+            "builtin_function_or_method",
+            1000
+          ],
+          [
+            "TokenizerIter",
+            1000
+          ],
+          [
+            "StringIO",
+            1000
+          ],
+          [
+            "ReferenceType",
+            5
+          ],
+          [
+            "dict",
+            1
+          ],
+          [
+            "classmethod_descriptor",
+            0
+          ],
+          [
+            "type",
+            0
+          ],
+          [
+            "staticmethod",
+            0
+          ],
+          [
+            "member_descriptor",
+            0
+          ],
+          [
+            "ellipsis",
+            0
+          ],
+          [
+            "NotImplementedType",
+            0
+          ],
+          [
+            "module",
+            0
+          ],
+          [
+            "ModuleSpec",
+            0
+          ],
+          [
+            "property",
+            0
+          ],
+          [
+            "list",
+            0
+          ],
+          [
+            "version_info",
+            0
+          ],
+          [
+            "flags",
+            0
+          ],
+          [
+            "int_info",
+            0
+          ],
+          [
+            "float_info",
+            0
+          ]
+        ],
+        "objects_before": 3753,
+        "objects_after": 33759
+      }
+    },
+    {
+      "runtime": "pre_iterator",
+      "case": "stdlib",
+      "returncode": 0,
+      "observation": {
+        "case": "stdlib",
+        "runtime": "xlang3",
+        "changes": [
+          [
+            "tuple",
+            27000
+          ],
+          [
+            "builtin_function_or_method",
+            1000
+          ],
+          [
+            "TokenizerIter",
+            1000
+          ],
+          [
+            "StringIO",
+            1000
+          ],
+          [
+            "ReferenceType",
+            5
+          ],
+          [
+            "dict",
+            1
+          ],
+          [
+            "classmethod_descriptor",
+            0
+          ],
+          [
+            "type",
+            0
+          ],
+          [
+            "staticmethod",
+            0
+          ],
+          [
+            "member_descriptor",
+            0
+          ],
+          [
+            "ellipsis",
+            0
+          ],
+          [
+            "NotImplementedType",
+            0
+          ],
+          [
+            "module",
+            0
+          ],
+          [
+            "ModuleSpec",
+            0
+          ],
+          [
+            "property",
+            0
+          ],
+          [
+            "list",
+            0
+          ],
+          [
+            "version_info",
+            0
+          ],
+          [
+            "flags",
+            0
+          ],
+          [
+            "int_info",
+            0
+          ],
+          [
+            "float_info",
+            0
+          ]
+        ],
+        "objects_before": 3753,
+        "objects_after": 33759
+      }
+    },
+    {
+      "runtime": "pre_iterator",
+      "case": "break",
+      "returncode": 0,
+      "observation": {
+        "case": "break",
+        "runtime": "xlang3",
+        "changes": [
+          [
+            "tuple",
+            27000
+          ],
+          [
+            "builtin_function_or_method",
+            1000
+          ],
+          [
+            "TokenizerIter",
+            1000
+          ],
+          [
+            "StringIO",
+            1000
+          ],
+          [
+            "ReferenceType",
+            5
+          ],
+          [
+            "dict",
+            1
+          ],
+          [
+            "classmethod_descriptor",
+            0
+          ],
+          [
+            "type",
+            0
+          ],
+          [
+            "staticmethod",
+            0
+          ],
+          [
+            "member_descriptor",
+            0
+          ],
+          [
+            "ellipsis",
+            0
+          ],
+          [
+            "NotImplementedType",
+            0
+          ],
+          [
+            "module",
+            0
+          ],
+          [
+            "ModuleSpec",
+            0
+          ],
+          [
+            "property",
+            0
+          ],
+          [
+            "list",
+            0
+          ],
+          [
+            "version_info",
+            0
+          ],
+          [
+            "flags",
+            0
+          ],
+          [
+            "int_info",
+            0
+          ],
+          [
+            "float_info",
+            0
+          ]
+        ],
+        "objects_before": 3753,
+        "objects_after": 33759
+      }
+    },
+    {
+      "runtime": "candidate",
+      "case": "native",
+      "returncode": 0,
+      "observation": {
+        "case": "native",
+        "runtime": "xlang3",
+        "changes": [
+          [
+            "ReferenceType",
+            5
+          ],
+          [
+            "dict",
+            1
+          ],
+          [
+            "classmethod_descriptor",
+            0
+          ],
+          [
+            "type",
+            0
+          ],
+          [
+            "staticmethod",
+            0
+          ],
+          [
+            "member_descriptor",
+            0
+          ],
+          [
+            "ellipsis",
+            0
+          ],
+          [
+            "NotImplementedType",
+            0
+          ],
+          [
+            "tuple",
+            0
+          ],
+          [
+            "module",
+            0
+          ],
+          [
+            "ModuleSpec",
+            0
+          ],
+          [
+            "property",
+            0
+          ],
+          [
+            "list",
+            0
+          ],
+          [
+            "version_info",
+            0
+          ],
+          [
+            "flags",
+            0
+          ],
+          [
+            "int_info",
+            0
+          ],
+          [
+            "float_info",
+            0
+          ],
+          [
+            "hash_info",
+            0
+          ],
+          [
+            "thread_info",
+            0
+          ],
+          [
+            "frozenset",
+            0
+          ]
+        ],
+        "objects_before": 3753,
+        "objects_after": 3759
+      }
+    },
+    {
+      "runtime": "candidate",
+      "case": "stdlib",
+      "returncode": 0,
+      "observation": {
+        "case": "stdlib",
+        "runtime": "xlang3",
+        "changes": [
+          [
+            "ReferenceType",
+            5
+          ],
+          [
+            "dict",
+            1
+          ],
+          [
+            "classmethod_descriptor",
+            0
+          ],
+          [
+            "type",
+            0
+          ],
+          [
+            "staticmethod",
+            0
+          ],
+          [
+            "member_descriptor",
+            0
+          ],
+          [
+            "ellipsis",
+            0
+          ],
+          [
+            "NotImplementedType",
+            0
+          ],
+          [
+            "tuple",
+            0
+          ],
+          [
+            "module",
+            0
+          ],
+          [
+            "ModuleSpec",
+            0
+          ],
+          [
+            "property",
+            0
+          ],
+          [
+            "list",
+            0
+          ],
+          [
+            "version_info",
+            0
+          ],
+          [
+            "flags",
+            0
+          ],
+          [
+            "int_info",
+            0
+          ],
+          [
+            "float_info",
+            0
+          ],
+          [
+            "hash_info",
+            0
+          ],
+          [
+            "thread_info",
+            0
+          ],
+          [
+            "frozenset",
+            0
+          ]
+        ],
+        "objects_before": 3753,
+        "objects_after": 3759
+      }
+    },
+    {
+      "runtime": "candidate",
+      "case": "break",
+      "returncode": 0,
+      "observation": {
+        "case": "break",
+        "runtime": "xlang3",
+        "changes": [
+          [
+            "ReferenceType",
+            5
+          ],
+          [
+            "dict",
+            1
+          ],
+          [
+            "classmethod_descriptor",
+            0
+          ],
+          [
+            "type",
+            0
+          ],
+          [
+            "staticmethod",
+            0
+          ],
+          [
+            "member_descriptor",
+            0
+          ],
+          [
+            "ellipsis",
+            0
+          ],
+          [
+            "NotImplementedType",
+            0
+          ],
+          [
+            "tuple",
+            0
+          ],
+          [
+            "module",
+            0
+          ],
+          [
+            "ModuleSpec",
+            0
+          ],
+          [
+            "property",
+            0
+          ],
+          [
+            "list",
+            0
+          ],
+          [
+            "version_info",
+            0
+          ],
+          [
+            "flags",
+            0
+          ],
+          [
+            "int_info",
+            0
+          ],
+          [
+            "float_info",
+            0
+          ],
+          [
+            "hash_info",
+            0
+          ],
+          [
+            "thread_info",
+            0
+          ],
+          [
+            "frozenset",
+            0
+          ]
+        ],
+        "objects_before": 3753,
+        "objects_after": 3759
+      }
+    },
+    {
+      "runtime": "pre_iterator",
+      "case": "inspect.getblock",
+      "returncode": 0,
+      "observation": {
+        "runtime": "xlang3",
+        "iterations": 20,
+        "changes": {
+          "tuple": 12720,
+          "TokenizerIter": 20
+        },
+        "synthetic_source_only": true
+      }
+    },
+    {
+      "runtime": "candidate",
+      "case": "inspect.getblock",
+      "returncode": 0,
+      "observation": {
+        "runtime": "xlang3",
+        "iterations": 20,
+        "changes": {
+          "tuple": 0,
+          "TokenizerIter": 0
+        },
+        "synthetic_source_only": true
+      }
+    }
+  ]
+}

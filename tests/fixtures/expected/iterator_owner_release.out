@@ -1,0 +1,7 @@
+protocol True
+getitem True
+callable True
+chain True
+chain-from True
+tokenizer True
+yielded-values-survive True True True

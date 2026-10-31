@@ -1,0 +1,32 @@
+{
+  "removed_c_api_exports": [],
+  "old_c_api_exports": 90,
+  "new_c_api_exports": 90,
+  "final_runtime_sha256": "6b8a6a36f7ffe7905cf2a010aa0dcb133e8ed4dc5cb94ae897eec2271d1ad9e0",
+  "fixture_cli_matches_candidate": true,
+  "vm_source_sha256": "3499665cb97d1f3123041b47e0d7c7580d47cdc679e804e8c43be1f42ab69883",
+  "baseline_vm_symbol": "0000000000acac00 00000000002f37c9 T xlang3::Interpreter::run_function(xlang3::ir::Module const&, unsigned int, xlang3::CallArgsView, std::vector<xlang3::Value, std::allocator<xlang3::Value> > const&, std::vector<xlang3::Value, std::allocator<xlang3::Value> > const&, xlang3::Value, std::shared_ptr<xlang3::ir::Module const>, xlang3::GeneratorObject*, std::shared_ptr<xlang3::RuntimeDebugPauseState>)",
+  "candidate_vm_symbol": "0000000000acb4c0 00000000002f37c9 T xlang3::Interpreter::run_function(xlang3::ir::Module const&, unsigned int, xlang3::CallArgsView, std::vector<xlang3::Value, std::allocator<xlang3::Value> > const&, std::vector<xlang3::Value, std::allocator<xlang3::Value> > const&, xlang3::Value, std::shared_ptr<xlang3::ir::Module const>, xlang3::GeneratorObject*, std::shared_ptr<xlang3::RuntimeDebugPauseState>)",
+  "vm_size_unchanged": true,
+  "vm_entry_cache_line_aligned": true,
+  "vm_implementation_source_sha256": "24bf78fe56d1f6f66538e06c98f8846112b0bdd1e1d27f7068c9a394095ae553",
+  "vm_object_text": {
+    "old_sha256": "a0f0bdacd349c3fc201d10a34d701afda4d5a64ac1ddf1419cdfe72912f6a842",
+    "new_sha256": "a0f0bdacd349c3fc201d10a34d701afda4d5a64ac1ddf1419cdfe72912f6a842",
+    "identical_bytes": true,
+    "old_alignment": 16,
+    "new_alignment": 64,
+    "old_bytes": 3327596,
+    "new_bytes": 3327596,
+    "old_function_sha256": "1d9f76231309e6ec5d8d54186d7c2b3d04629a774c28ebf1cab087ac07b54064",
+    "new_function_sha256": "1d9f76231309e6ec5d8d54186d7c2b3d04629a774c28ebf1cab087ac07b54064",
+    "function_bytes_identical": true
+  },
+  "qualification_source_sha256": {
+    "src/runtime/value.cpp": "f1a07a8a0a389b733df4e525c480baf1a84cf81340cc37c1447cccabd7e1fd98",
+    "src/executor/xlang_vm/xlang_vm_loop.cpp": "3499665cb97d1f3123041b47e0d7c7580d47cdc679e804e8c43be1f42ab69883",
+    "tests/fixtures/core/iterator_owner_release.py": "1cd7b2813fac5f282ffa7b1791451c5049ddc797bf39c7d864b22d59c3e67610",
+    "tests/fixtures/expected/iterator_owner_release.out": "4cc172ef0e22880ff4f83399d7d177d9a332245a8d70d80e981e30303141b902",
+    "tests/run_fixtures.py": "1014844e827d979d75f45cb5d7c62e7a96e3549748385724ffebccf601790c8d"
+  }
+}

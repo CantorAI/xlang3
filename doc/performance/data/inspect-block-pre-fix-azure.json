@@ -1,0 +1,9 @@
+{
+  "schema": 1,
+  "scope": "Standalone synthetic inspect.getblock control on preserved Azure b06 runtime; no IPC, HTTP, model requests or service mutations",
+  "native_release": "/data/Cantor/releases/native-stability-20261030-gc-36841367",
+  "runtime_sha256": "b06aa789a7b3bba4307d1231edff343e0a4509189c23e23e123f0202b321bb7c",
+  "diagnostic_sha256": "3032d04bdb43991234518ca8a0ebf21d0ec2a3d11864adad38cd7e34e42d9d79",
+  "stdout": "{\"runtime\": \"xlang3\", \"iterations\": 20, \"changes\": {\"tuple\": 12720, \"TokenizerIter\": 20}, \"synthetic_source_only\": true}",
+  "returncode": 0
+}

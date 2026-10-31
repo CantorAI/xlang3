@@ -1,0 +1,151 @@
+{
+  "offline_only": true,
+  "core": "failed-api-896837-20261030.core",
+  "heap_strings_or_business_values_disclosed": false,
+  "five_element_tuples": 76143,
+  "token_record_shapes": 75998,
+  "unique_token_position_tuples": 151996,
+  "token_kind_counts": {
+    "55": 31591,
+    "66": 4067,
+    "4": 5292,
+    "5": 1773,
+    "1": 24508,
+    "3": 6227,
+    "0": 19,
+    "6": 1773,
+    "2": 553,
+    "65": 195
+  },
+  "token_record_refcounts": {
+    "1": 75998
+  },
+  "known_native_owner_types": {
+    "_tokenize.TokenizerIter": 19,
+    "_io.StringIO": 0
+  },
+  "invalid_metadata": 0,
+  "native_tokenizer_state_offsets": {
+    "tokens": 360,
+    "index": 56,
+    "size": 400
+  },
+  "tokenizer_states": [
+    {
+      "token_count": 10,
+      "consumed_index": 10,
+      "five_field_records": 10,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 3555,
+      "consumed_index": 185,
+      "five_field_records": 3555,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 10,
+      "consumed_index": 10,
+      "five_field_records": 10,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 6036,
+      "consumed_index": 79,
+      "five_field_records": 6036,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 5593,
+      "consumed_index": 40,
+      "five_field_records": 5593,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 5294,
+      "consumed_index": 55,
+      "five_field_records": 5294,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 5240,
+      "consumed_index": 46,
+      "five_field_records": 5240,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 5554,
+      "consumed_index": 55,
+      "five_field_records": 5554,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 3650,
+      "consumed_index": 32,
+      "five_field_records": 3650,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 5646,
+      "consumed_index": 54,
+      "five_field_records": 5646,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 6096,
+      "consumed_index": 61,
+      "five_field_records": 6096,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 4749,
+      "consumed_index": 265,
+      "five_field_records": 4749,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 3011,
+      "consumed_index": 1800,
+      "five_field_records": 3011,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 3589,
+      "consumed_index": 35,
+      "five_field_records": 3589,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 5781,
+      "consumed_index": 29,
+      "five_field_records": 5781,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 3371,
+      "consumed_index": 58,
+      "five_field_records": 3371,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 2229,
+      "consumed_index": 2063,
+      "five_field_records": 2229,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 3270,
+      "consumed_index": 48,
+      "five_field_records": 3270,
+      "source_callable_object_kind": 37
+    },
+    {
+      "token_count": 3314,
+      "consumed_index": 45,
+      "five_field_records": 3314,
+      "source_callable_object_kind": 37
+    }
+  ],
+  "records_owned_by_tokenizer_states": 75998,
+  "scope": "Structural token-record metadata; no source lines, token strings or credentials are read or reported."
+}

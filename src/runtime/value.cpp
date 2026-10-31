@@ -1827,6 +1827,9 @@ void release_last_reference(const Value& value) {
     case ObjectKind::ZipLongestIterator:
     case ObjectKind::MapIterator:
     case ObjectKind::FilterIterator:
+    case ObjectKind::CallableIterator:
+    case ObjectKind::ChainIterator:
+    case ObjectKind::ProtocolIterator:
       functional_iterator_release_object(value.as.obj);
       break;
     case ObjectKind::Generator:

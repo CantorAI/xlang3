@@ -1,0 +1,29 @@
+{
+  "offline_only": true,
+  "core": "failed-api-896837-20261030.core",
+  "heap_strings_or_business_values_disclosed": false,
+  "five_element_tuples": 76143,
+  "token_record_shapes": 75998,
+  "unique_token_position_tuples": 151996,
+  "token_kind_counts": {
+    "55": 31591,
+    "66": 4067,
+    "4": 5292,
+    "5": 1773,
+    "1": 24508,
+    "3": 6227,
+    "0": 19,
+    "6": 1773,
+    "2": 553,
+    "65": 195
+  },
+  "token_record_refcounts": {
+    "1": 75998
+  },
+  "known_native_owner_types": {
+    "_tokenize.TokenizerIter": 19,
+    "_io.StringIO": 0
+  },
+  "invalid_metadata": 0,
+  "scope": "Structural token-record metadata; no source lines, token strings or credentials are read or reported."
+}

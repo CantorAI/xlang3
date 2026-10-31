@@ -169,6 +169,12 @@ bool generator_vm_frame_snapshot(const GeneratorObject& generator, Value& out) {
   return false;
 }
 
+// An ELF text-section anchor alone cannot preserve this entry's alignment
+// when an earlier translation unit changes size. Keep the dispatch loop on a
+// cache-line boundary independently of unrelated runtime cleanup code.
+#if defined(__ELF__) && defined(__GNUC__)
+__attribute__((aligned(64)))
+#endif
 RuntimeResult Interpreter::run_function(
     const ir::Module& module,
     uint32_t function_id,
