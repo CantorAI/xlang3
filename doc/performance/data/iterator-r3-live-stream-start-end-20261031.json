@@ -1,0 +1,1012 @@
+{
+  "schema": 1,
+  "scope": "Eight real serial START/END samples around the separate 2700s control-plane/HTTP interval; not sustained inference",
+  "clientTimingsAreWorkerTimings": false,
+  "startNative": {
+    "state": "correlated",
+    "scope": "Four existing START samples, not a sustained model-load benchmark",
+    "no_new_inferences": true,
+    "interpretation": "Native timers cover worker/model execution including input processing; they are not pure GPU kernel time. RPC/control totals overlap invocation and are not sequential wall-time components.",
+    "cases": [
+      {
+        "request_id": "b3f5fc850c444de89545ba31e8b44bd5",
+        "model": "qwen3.5-2b-code-32k",
+        "node_id": "618367c4896d99c06ae8cf663909a519",
+        "profile_id": "qwen35_2b_chat_32k_v1",
+        "receipt_sha256": "3fe0c9200bc9000b9278d1e013fe4fd9915b0914904d7ed5368cd6fe559f0e18",
+        "client_headers_seconds": 0.1782398000068497,
+        "client_first_visible_seconds": 0.6579789000097662,
+        "client_elapsed_seconds": 1.6116664000146557,
+        "client_final_usage": {
+          "completion_tokens": 44,
+          "prompt_tokens": 23,
+          "total_tokens": 67
+        },
+        "client_end_to_end_tokens_per_second": 27.300935230516618,
+        "native_observation_same_as_chat_metrics": {
+          "cache_state": "disabled",
+          "ttft_seconds": 0.30702549999114126,
+          "input_seconds": 0.04875829999218695,
+          "prefill_seconds": 0.2582671999989543,
+          "decode_seconds": 0.8786192999978084,
+          "total_seconds": 1.1856447999889497,
+          "generated_tokens": 43,
+          "decode_tokens_per_second": 48.94042277480959
+        },
+        "api_marks_ms": {
+          "execution_finished": 1515.747,
+          "first_body": 103.902,
+          "first_text_yield": 583.056,
+          "first_visible_yield": 583.092,
+          "headers": 101.717,
+          "http_finished": 1541.377
+        },
+        "api_spans": {
+          "admit": {
+            "count": 1,
+            "ms": 49.37
+          },
+          "control": {
+            "count": 15,
+            "ms": 822.616
+          },
+          "db": {
+            "count": 1,
+            "ms": 43.605
+          },
+          "invoke": {
+            "count": 1,
+            "ms": 1411.155
+          },
+          "reserve": {
+            "count": 1,
+            "ms": 43.84
+          },
+          "settle": {
+            "count": 1,
+            "ms": 44.934
+          }
+        },
+        "native_queue_timer_available": false
+      },
+      {
+        "request_id": "d2ca520e9da24c6fabd12338a21e7562",
+        "model": "qwen3.5-2b-code-32k",
+        "node_id": "618367c4896d99c06ae8cf663909a519",
+        "profile_id": "qwen35_2b_chat_32k_v1",
+        "receipt_sha256": "dd33958e302d06f8f4eba31c14dc603a0dd66013d3ff03c6861099bc40a68dcf",
+        "client_headers_seconds": 0.13832290002028458,
+        "client_first_visible_seconds": 0.2923016000131611,
+        "client_elapsed_seconds": 1.259290800022427,
+        "client_final_usage": {
+          "completion_tokens": 44,
+          "prompt_tokens": 23,
+          "total_tokens": 67
+        },
+        "client_end_to_end_tokens_per_second": 34.94030131818353,
+        "native_observation_same_as_chat_metrics": {
+          "cache_state": "disabled",
+          "ttft_seconds": 0.03483079999568872,
+          "input_seconds": 0.00239280000096187,
+          "prefill_seconds": 0.03243799999472685,
+          "decode_seconds": 0.8893090999918059,
+          "total_seconds": 0.9241398999874946,
+          "generated_tokens": 43,
+          "decode_tokens_per_second": 48.35214212965571
+        },
+        "api_marks_ms": {
+          "execution_finished": 1163.969,
+          "first_body": 71.49,
+          "first_text_yield": 224.322,
+          "first_visible_yield": 224.331,
+          "headers": 69.329,
+          "http_finished": 1196.85
+        },
+        "api_spans": {
+          "admit": {
+            "count": 1,
+            "ms": 48.883
+          },
+          "control": {
+            "count": 13,
+            "ms": 623.04
+          },
+          "db": {
+            "count": 1,
+            "ms": 13.524
+          },
+          "invoke": {
+            "count": 1,
+            "ms": 1091.866
+          },
+          "reserve": {
+            "count": 1,
+            "ms": 43.56
+          },
+          "settle": {
+            "count": 1,
+            "ms": 46.153
+          }
+        },
+        "native_queue_timer_available": false
+      },
+      {
+        "request_id": "c98952b12a264fe69fcf44f14a198b3e",
+        "model": "qwen3.8-27b-chat-32k",
+        "node_id": "4700c065d4d742379c48d9d5328be19b",
+        "profile_id": "qwen38_27b_nvfp4_chat_32k_v2",
+        "receipt_sha256": "64a3c10987e75cdab4b33f32149e3f21eafc1f76a1101bd6b643bf4142d4e96c",
+        "client_headers_seconds": 1.0827860000135843,
+        "client_first_visible_seconds": 2.1534265000082087,
+        "client_elapsed_seconds": 4.0493972999975085,
+        "client_final_usage": {
+          "completion_tokens": 53,
+          "prompt_tokens": 23,
+          "total_tokens": 76
+        },
+        "client_end_to_end_tokens_per_second": 13.088367496079629,
+        "native_observation_same_as_chat_metrics": {
+          "cache_state": "disabled",
+          "ttft_seconds": 0.1920903999125585,
+          "input_seconds": 0.06985059997532517,
+          "prefill_seconds": 0.12223979993723333,
+          "decode_seconds": 1.453929900075309,
+          "total_seconds": 1.6460202999878675,
+          "generated_tokens": 52,
+          "decode_tokens_per_second": 35.76513557999362
+        },
+        "api_marks_ms": {
+          "execution_finished": 3966.26,
+          "first_body": 1013.234,
+          "first_text_yield": 2084.033,
+          "first_visible_yield": 2084.042,
+          "headers": 1011.018,
+          "http_finished": 3984.194
+        },
+        "api_spans": {
+          "admit": {
+            "count": 1,
+            "ms": 958.218
+          },
+          "control": {
+            "count": 4,
+            "ms": 2765.894
+          },
+          "db": {
+            "count": 1,
+            "ms": 46.186
+          },
+          "invoke": {
+            "count": 1,
+            "ms": 2952.302
+          },
+          "preflight": {
+            "count": 1,
+            "ms": 906.16
+          },
+          "reserve": {
+            "count": 1,
+            "ms": 43.623
+          },
+          "settle": {
+            "count": 1,
+            "ms": 43.811
+          }
+        },
+        "native_queue_timer_available": false
+      },
+      {
+        "request_id": "aafd3758a96048d290400ba590cc9a2d",
+        "model": "qwen3.8-27b-chat-32k",
+        "node_id": "4700c065d4d742379c48d9d5328be19b",
+        "profile_id": "qwen38_27b_nvfp4_chat_32k_v2",
+        "receipt_sha256": "82f5c840a97447fbeea4856686e9d9bdbd60111a7adc6ae8d59335ee1ff0c320",
+        "client_headers_seconds": 1.032781599991722,
+        "client_first_visible_seconds": 1.9796544999990147,
+        "client_elapsed_seconds": 3.905612200003816,
+        "client_final_usage": {
+          "completion_tokens": 53,
+          "prompt_tokens": 23,
+          "total_tokens": 76
+        },
+        "client_end_to_end_tokens_per_second": 13.570215701381775,
+        "native_observation_same_as_chat_metrics": {
+          "cache_state": "disabled",
+          "ttft_seconds": 0.0804527000291273,
+          "input_seconds": 0.0051287999376654625,
+          "prefill_seconds": 0.07532390009146184,
+          "decode_seconds": 1.482497299904935,
+          "total_seconds": 1.5629499999340624,
+          "generated_tokens": 52,
+          "decode_tokens_per_second": 35.07594921308423
+        },
+        "api_marks_ms": {
+          "execution_finished": 3791.524,
+          "first_body": 954.539,
+          "first_text_yield": 1901.14,
+          "first_visible_yield": 1901.15,
+          "headers": 952.51,
+          "http_finished": 3833.369
+        },
+        "api_spans": {
+          "admit": {
+            "count": 1,
+            "ms": 902.803
+          },
+          "control": {
+            "count": 6,
+            "ms": 2575.64
+          },
+          "db": {
+            "count": 1,
+            "ms": 43.139
+          },
+          "invoke": {
+            "count": 1,
+            "ms": 2836.392
+          },
+          "preflight": {
+            "count": 1,
+            "ms": 852.513
+          },
+          "reserve": {
+            "count": 1,
+            "ms": 42.872
+          },
+          "settle": {
+            "count": 1,
+            "ms": 47.727
+          }
+        },
+        "native_queue_timer_available": false
+      }
+    ]
+  },
+  "endNative": {
+    "state": "collected",
+    "read_only": true,
+    "new_inferences": 0,
+    "source_client_report": "D:\\CantorStorage\\CantorServe\\logs\\scanner-stream-end-20261031T021049Z.json",
+    "cases": [
+      {
+        "request_id": "bba13fd0fabf44b3a73d518ac68e093f",
+        "available": true,
+        "source": "D:\\CantorStorage\\CantorServe\\runtimes\\garnet-chat32k-v1\\receipts\\bba13fd0fabf44b3a73d518ac68e093f.json",
+        "local_receipt": "D:\\CantorStorage\\CantorServe\\logs\\native-end-evidence-20261031T021049Z\\bba13fd0fabf44b3a73d518ac68e093f.json",
+        "sha256": "332a9ad70e92bed261a5ac1d928e689dd472181e677645d9ac2cedd66b92bd79",
+        "node_id": "618367c4896d99c06ae8cf663909a519",
+        "profile_id": "qwen35_2b_chat_32k_v1",
+        "model_id": "Qwen3.5-2B",
+        "status": "ok",
+        "client_sample": {
+          "state": "passed",
+          "http_status": 200,
+          "headers_seconds": 0.18013230001088232,
+          "http_reference": "bba13fd0fabf44b3a73d518ac68e093f",
+          "completion_id": "chatcmpl-bba13fd0fabf44b3a73d518ac68e093f",
+          "inference_request_id": "bba13fd0fabf44b3a73d518ac68e093f",
+          "first_visible_content_seconds": 0.6389073000173084,
+          "last_visible_content_seconds": 1.3557538000168279,
+          "elapsed_seconds": 1.5126275999937207,
+          "content_events": 43,
+          "usage": {
+            "completion_tokens": 44,
+            "prompt_tokens": 23,
+            "total_tokens": 67
+          },
+          "end_to_end_output_tokens_per_second": 29.088455083182836,
+          "finish_reason": "stop",
+          "output_characters": 297,
+          "output_sha256": "87aee3fd81457cd4b30f2468046673304c3c4edf3ed2639aa84ccc7cd0c72bcb",
+          "output": "Resource-based inference routing dynamically assigns incoming requests to the most suitable computational resources based on real-time availability and performance metrics. This approach ensures that workloads are efficiently distributed to prevent bottlenecks and maintain high system throughput."
+        },
+        "native_observation_same_as_chat_metrics": {
+          "cache_state": "disabled",
+          "ttft_seconds": 0.31929549999767914,
+          "input_seconds": 0.04817119997460395,
+          "prefill_seconds": 0.2711243000230752,
+          "decode_seconds": 0.7998832000012044,
+          "total_seconds": 1.1191786999988835,
+          "generated_tokens": 43,
+          "decode_tokens_per_second": 53.75784864582136
+        },
+        "native_queue_timer_available": false,
+        "api_marks_ms": {
+          "execution_finished": 1402.938,
+          "first_body": 98.496,
+          "first_text_yield": 557.028,
+          "first_visible_yield": 557.04,
+          "headers": 95.951,
+          "http_finished": 1433.89
+        },
+        "api_spans": {
+          "admit": {
+            "count": 1,
+            "ms": 47.918
+          },
+          "control": {
+            "count": 16,
+            "ms": 733.344
+          },
+          "db": {
+            "count": 1,
+            "ms": 42.152
+          },
+          "invoke": {
+            "count": 1,
+            "ms": 1303.799
+          },
+          "reserve": {
+            "count": 1,
+            "ms": 42.789
+          },
+          "settle": {
+            "count": 1,
+            "ms": 44.732
+          }
+        }
+      },
+      {
+        "request_id": "fbfca065909c4e9f99602f6dd98d5193",
+        "available": true,
+        "source": "D:\\CantorStorage\\CantorServe\\runtimes\\garnet-chat32k-v1\\receipts\\fbfca065909c4e9f99602f6dd98d5193.json",
+        "local_receipt": "D:\\CantorStorage\\CantorServe\\logs\\native-end-evidence-20261031T021049Z\\fbfca065909c4e9f99602f6dd98d5193.json",
+        "sha256": "a33f2dec9eeaf7a1957f1a9bbfdd8c00c97884984c3e70949e511361cbfbb366",
+        "node_id": "618367c4896d99c06ae8cf663909a519",
+        "profile_id": "qwen35_2b_chat_32k_v1",
+        "model_id": "Qwen3.5-2B",
+        "status": "ok",
+        "client_sample": {
+          "state": "passed",
+          "http_status": 200,
+          "headers_seconds": 0.17387100000632927,
+          "http_reference": "fbfca065909c4e9f99602f6dd98d5193",
+          "completion_id": "chatcmpl-fbfca065909c4e9f99602f6dd98d5193",
+          "inference_request_id": "fbfca065909c4e9f99602f6dd98d5193",
+          "first_visible_content_seconds": 0.3259707000106573,
+          "last_visible_content_seconds": 1.072085200023139,
+          "elapsed_seconds": 1.1970291000034194,
+          "content_events": 43,
+          "usage": {
+            "completion_tokens": 44,
+            "prompt_tokens": 23,
+            "total_tokens": 67
+          },
+          "end_to_end_output_tokens_per_second": 36.75766946674422,
+          "finish_reason": "stop",
+          "output_characters": 297,
+          "output_sha256": "87aee3fd81457cd4b30f2468046673304c3c4edf3ed2639aa84ccc7cd0c72bcb",
+          "output": "Resource-based inference routing dynamically assigns incoming requests to the most suitable computational resources based on real-time availability and performance metrics. This approach ensures that workloads are efficiently distributed to prevent bottlenecks and maintain high system throughput."
+        },
+        "native_observation_same_as_chat_metrics": {
+          "cache_state": "disabled",
+          "ttft_seconds": 0.030723399977432564,
+          "input_seconds": 0.0021212999999988824,
+          "prefill_seconds": 0.02860209997743368,
+          "decode_seconds": 0.7950385000149254,
+          "total_seconds": 0.8257618999923579,
+          "generated_tokens": 43,
+          "decode_tokens_per_second": 54.08543108188189
+        },
+        "native_queue_timer_available": false,
+        "api_marks_ms": {
+          "execution_finished": 1123.292,
+          "first_body": 101.824,
+          "first_text_yield": 254.095,
+          "first_visible_yield": 254.107,
+          "headers": 99.478,
+          "http_finished": 1130.895
+        },
+        "api_spans": {
+          "admit": {
+            "count": 1,
+            "ms": 49.911
+          },
+          "control": {
+            "count": 12,
+            "ms": 584.853
+          },
+          "db": {
+            "count": 1,
+            "ms": 43.184
+          },
+          "invoke": {
+            "count": 1,
+            "ms": 1020.886
+          },
+          "reserve": {
+            "count": 1,
+            "ms": 44.281
+          },
+          "settle": {
+            "count": 1,
+            "ms": 42.343
+          }
+        }
+      },
+      {
+        "request_id": "a3790f2ab18e47d3bd932a77824c3060",
+        "available": true,
+        "source": "192.168.193.113:D:/CantorAI/worldsense-5090/storage/CantorServe/runtimes/garnet-qwen38-long-context-emb-v2/receipts/a3790f2ab18e47d3bd932a77824c3060.json",
+        "local_receipt": "D:\\CantorStorage\\CantorServe\\logs\\native-end-evidence-20261031T021049Z\\a3790f2ab18e47d3bd932a77824c3060.json",
+        "sha256": "076451e220e074c5cc4c9cd187e0ccd2571b36eeb76c9ef70527dadcd625f64b",
+        "node_id": "4700c065d4d742379c48d9d5328be19b",
+        "profile_id": "qwen38_27b_nvfp4_chat_32k_v2",
+        "model_id": "Qwen3.8-27B",
+        "status": "ok",
+        "client_sample": {
+          "state": "passed",
+          "http_status": 200,
+          "headers_seconds": 0.5705161000078078,
+          "http_reference": "a3790f2ab18e47d3bd932a77824c3060",
+          "completion_id": "chatcmpl-a3790f2ab18e47d3bd932a77824c3060",
+          "inference_request_id": "a3790f2ab18e47d3bd932a77824c3060",
+          "first_visible_content_seconds": 1.6642535999999382,
+          "last_visible_content_seconds": 3.427782200014917,
+          "elapsed_seconds": 3.8861879000032786,
+          "content_events": 52,
+          "usage": {
+            "completion_tokens": 53,
+            "prompt_tokens": 23,
+            "total_tokens": 76
+          },
+          "end_to_end_output_tokens_per_second": 13.638043595358651,
+          "finish_reason": "stop",
+          "output_characters": 332,
+          "output_sha256": "8480b6e6e9ef83775aac5ad542cc38945c39ac3f10332474fbc304f37c6d966b",
+          "output": "Resource-based inference routing directs computational tasks to specific hardware or nodes based on their available resources, such as memory, processing power, or energy constraints. This approach optimizes system efficiency and performance by matching the demands of inference workloads with the most suitable available resources."
+        },
+        "native_observation_same_as_chat_metrics": {
+          "cache_state": "disabled",
+          "ttft_seconds": 0.2717588000232354,
+          "input_seconds": 0.06783319998066872,
+          "prefill_seconds": 0.20392560004256666,
+          "decode_seconds": 1.4268776999088004,
+          "total_seconds": 1.6986364999320358,
+          "generated_tokens": 52,
+          "decode_tokens_per_second": 36.44320743349174
+        },
+        "native_queue_timer_available": false,
+        "api_marks_ms": {
+          "execution_finished": 3800.165,
+          "first_body": 495.705,
+          "first_text_yield": 1591.96,
+          "first_visible_yield": 1591.969,
+          "headers": 493.589,
+          "http_finished": 3817.055
+        },
+        "api_spans": {
+          "admit": {
+            "count": 1,
+            "ms": 464.877
+          },
+          "control": {
+            "count": 6,
+            "ms": 3062.372
+          },
+          "db": {
+            "count": 1,
+            "ms": 20.448
+          },
+          "invoke": {
+            "count": 1,
+            "ms": 3303.663
+          },
+          "preflight": {
+            "count": 1,
+            "ms": 410.774
+          },
+          "reserve": {
+            "count": 1,
+            "ms": 47.869
+          },
+          "settle": {
+            "count": 1,
+            "ms": 43.385
+          }
+        }
+      },
+      {
+        "request_id": "feeb8ee2c0484ec7be712191b1302610",
+        "available": true,
+        "source": "192.168.193.113:D:/CantorAI/worldsense-5090/storage/CantorServe/runtimes/garnet-qwen38-long-context-emb-v2/receipts/feeb8ee2c0484ec7be712191b1302610.json",
+        "local_receipt": "D:\\CantorStorage\\CantorServe\\logs\\native-end-evidence-20261031T021049Z\\feeb8ee2c0484ec7be712191b1302610.json",
+        "sha256": "8f96ac57755281dc65f1c716b4b53cf5db23a7c3319fb7d05ea7165795af2082",
+        "node_id": "4700c065d4d742379c48d9d5328be19b",
+        "profile_id": "qwen38_27b_nvfp4_chat_32k_v2",
+        "model_id": "Qwen3.8-27B",
+        "status": "ok",
+        "client_sample": {
+          "state": "passed",
+          "http_status": 200,
+          "headers_seconds": 1.032789100019727,
+          "http_reference": "feeb8ee2c0484ec7be712191b1302610",
+          "completion_id": "chatcmpl-feeb8ee2c0484ec7be712191b1302610",
+          "inference_request_id": "feeb8ee2c0484ec7be712191b1302610",
+          "first_visible_content_seconds": 1.7323476000165101,
+          "last_visible_content_seconds": 3.060208800015971,
+          "elapsed_seconds": 4.157481100002769,
+          "content_events": 52,
+          "usage": {
+            "completion_tokens": 53,
+            "prompt_tokens": 23,
+            "total_tokens": 76
+          },
+          "end_to_end_output_tokens_per_second": 12.748103653427238,
+          "finish_reason": "stop",
+          "output_characters": 332,
+          "output_sha256": "8480b6e6e9ef83775aac5ad542cc38945c39ac3f10332474fbc304f37c6d966b",
+          "output": "Resource-based inference routing directs computational tasks to specific hardware or nodes based on their available resources, such as memory, processing power, or energy constraints. This approach optimizes system efficiency and performance by matching the demands of inference workloads with the most suitable available resources."
+        },
+        "native_observation_same_as_chat_metrics": {
+          "cache_state": "disabled",
+          "ttft_seconds": 0.08018669998273253,
+          "input_seconds": 0.00417520001064986,
+          "prefill_seconds": 0.07601149997208267,
+          "decode_seconds": 1.49048010003753,
+          "total_seconds": 1.5706668000202626,
+          "generated_tokens": 52,
+          "decode_tokens_per_second": 34.888087401294825
+        },
+        "native_queue_timer_available": false,
+        "api_marks_ms": {
+          "execution_finished": 4063.341,
+          "first_body": 960.457,
+          "first_text_yield": 1660.837,
+          "first_visible_yield": 1660.845,
+          "headers": 958.377,
+          "http_finished": 4089.045
+        },
+        "api_spans": {
+          "admit": {
+            "count": 1,
+            "ms": 939.717
+          },
+          "control": {
+            "count": 6,
+            "ms": 2858.072
+          },
+          "db": {
+            "count": 1,
+            "ms": 12.066
+          },
+          "invoke": {
+            "count": 1,
+            "ms": 3102.239
+          },
+          "preflight": {
+            "count": 1,
+            "ms": 889.11
+          },
+          "reserve": {
+            "count": 1,
+            "ms": 44.801
+          },
+          "settle": {
+            "count": 1,
+            "ms": 44.951
+          }
+        }
+      }
+    ],
+    "api_phase_source": "/data/CantorStorage/CantorServe/logs/request-timing-end-20261031T021049Z.json"
+  },
+  "startClient": {
+    "timestamp_utc": "2026-10-30T18:22:32.192792-07:00",
+    "phase": "start",
+    "runtime_label": "iterator8468-ddc62f8",
+    "endpoint": "https://serve.cantorai.com",
+    "existing_credentials_only": true,
+    "accounts_created": false,
+    "keys_created": false,
+    "quota_changed": false,
+    "state": "passed",
+    "cases": [
+      {
+        "model": "qwen3.5-2b-code-32k",
+        "state": "passed",
+        "catalog": {
+          "id": "qwen3.5-2b-code-32k",
+          "task": "llm",
+          "profiles": [
+            {
+              "id": "qwen35_2b_chat_32k_v1",
+              "model_id": "Qwen3.5-2B",
+              "max_output_tokens": 4096,
+              "provider_capabilities": [
+                {
+                  "chat_messages": true,
+                  "control_resource": "GarnetQwen352BChat32KControlSrv001",
+                  "llm": true,
+                  "max_input_tokens": 28672,
+                  "max_output_tokens": 4096,
+                  "streaming": true,
+                  "tools": true
+                }
+              ]
+            }
+          ],
+          "availability": {
+            "ready_instances": 1,
+            "state": "ready",
+            "available_capacity": 1.0
+          }
+        },
+        "returncode": 0,
+        "report": "D:\\CantorStorage\\CantorServe\\logs\\scanner-stream-start-qwen3.5-2b-code-32k-20261031T012232Z.json",
+        "measurement": {
+          "timestamp_utc": "2026-10-30T18:22:32.533242-07:00",
+          "label": "scanner-soak-start",
+          "endpoint": "https://serve.cantorai.com",
+          "model": "qwen3.5-2b-code-32k",
+          "prompt": "Explain resource-based inference routing in two concise sentences.",
+          "max_tokens": 64,
+          "client_runtime": "cpython",
+          "concurrency": 1,
+          "warmups": 0,
+          "automatic_retries": 0,
+          "metric_scope": "Client-observed HTTP streaming; includes network, API and prefill. Token rate uses actual final completion usage / total request duration; not a native GPU decode benchmark. Delta count is not token count.",
+          "executor_node_id": null,
+          "executor_limitation": "Not exposed by this streaming contract",
+          "state": "passed",
+          "samples": [
+            {
+              "state": "passed",
+              "http_status": 200,
+              "headers_seconds": 0.1782398000068497,
+              "http_reference": "b3f5fc850c444de89545ba31e8b44bd5",
+              "completion_id": "chatcmpl-b3f5fc850c444de89545ba31e8b44bd5",
+              "inference_request_id": "b3f5fc850c444de89545ba31e8b44bd5",
+              "first_visible_content_seconds": 0.6579789000097662,
+              "last_visible_content_seconds": 1.4570883000269532,
+              "elapsed_seconds": 1.6116664000146557,
+              "content_events": 43,
+              "usage": {
+                "completion_tokens": 44,
+                "prompt_tokens": 23,
+                "total_tokens": 67
+              },
+              "end_to_end_output_tokens_per_second": 27.300935230516618,
+              "finish_reason": "stop",
+              "output_characters": 297,
+              "output_sha256": "87aee3fd81457cd4b30f2468046673304c3c4edf3ed2639aa84ccc7cd0c72bcb",
+              "output": "Resource-based inference routing dynamically assigns incoming requests to the most suitable computational resources based on real-time availability and performance metrics. This approach ensures that workloads are efficiently distributed to prevent bottlenecks and maintain high system throughput."
+            },
+            {
+              "state": "passed",
+              "http_status": 200,
+              "headers_seconds": 0.13832290002028458,
+              "http_reference": "d2ca520e9da24c6fabd12338a21e7562",
+              "completion_id": "chatcmpl-d2ca520e9da24c6fabd12338a21e7562",
+              "inference_request_id": "d2ca520e9da24c6fabd12338a21e7562",
+              "first_visible_content_seconds": 0.2923016000131611,
+              "last_visible_content_seconds": 1.101554799999576,
+              "elapsed_seconds": 1.259290800022427,
+              "content_events": 43,
+              "usage": {
+                "completion_tokens": 44,
+                "prompt_tokens": 23,
+                "total_tokens": 67
+              },
+              "end_to_end_output_tokens_per_second": 34.94030131818353,
+              "finish_reason": "stop",
+              "output_characters": 297,
+              "output_sha256": "87aee3fd81457cd4b30f2468046673304c3c4edf3ed2639aa84ccc7cd0c72bcb",
+              "output": "Resource-based inference routing dynamically assigns incoming requests to the most suitable computational resources based on real-time availability and performance metrics. This approach ensures that workloads are efficiently distributed to prevent bottlenecks and maintain high system throughput."
+            }
+          ]
+        }
+      },
+      {
+        "model": "qwen3.8-27b-chat-32k",
+        "state": "passed",
+        "catalog": {
+          "id": "qwen3.8-27b-chat-32k",
+          "task": "llm",
+          "profiles": [
+            {
+              "id": "qwen38_27b_nvfp4_chat_32k_v2",
+              "model_id": "Qwen3.8-27B",
+              "max_output_tokens": 4096,
+              "provider_capabilities": [
+                {
+                  "chat_messages": true,
+                  "control_resource": "GarnetQwen3827BChat32KControlRTX5090V2",
+                  "llm": true,
+                  "max_input_tokens": 28672,
+                  "max_output_tokens": 4096,
+                  "native_input_admission": true,
+                  "streaming": true,
+                  "tools": true
+                }
+              ]
+            }
+          ],
+          "availability": {
+            "ready_instances": 1,
+            "state": "ready",
+            "available_capacity": 1.0
+          }
+        },
+        "returncode": 0,
+        "report": "D:\\CantorStorage\\CantorServe\\logs\\scanner-stream-start-qwen3.8-27b-chat-32k-20261031T012232Z.json",
+        "measurement": {
+          "timestamp_utc": "2026-10-30T18:22:35.633224-07:00",
+          "label": "scanner-soak-start",
+          "endpoint": "https://serve.cantorai.com",
+          "model": "qwen3.8-27b-chat-32k",
+          "prompt": "Explain resource-based inference routing in two concise sentences.",
+          "max_tokens": 64,
+          "client_runtime": "cpython",
+          "concurrency": 1,
+          "warmups": 0,
+          "automatic_retries": 0,
+          "metric_scope": "Client-observed HTTP streaming; includes network, API and prefill. Token rate uses actual final completion usage / total request duration; not a native GPU decode benchmark. Delta count is not token count.",
+          "executor_node_id": null,
+          "executor_limitation": "Not exposed by this streaming contract",
+          "state": "passed",
+          "samples": [
+            {
+              "state": "passed",
+              "http_status": 200,
+              "headers_seconds": 1.0827860000135843,
+              "http_reference": "c98952b12a264fe69fcf44f14a198b3e",
+              "completion_id": "chatcmpl-c98952b12a264fe69fcf44f14a198b3e",
+              "inference_request_id": "c98952b12a264fe69fcf44f14a198b3e",
+              "first_visible_content_seconds": 2.1534265000082087,
+              "last_visible_content_seconds": 3.6147220999991987,
+              "elapsed_seconds": 4.0493972999975085,
+              "content_events": 52,
+              "usage": {
+                "completion_tokens": 53,
+                "prompt_tokens": 23,
+                "total_tokens": 76
+              },
+              "end_to_end_output_tokens_per_second": 13.088367496079629,
+              "finish_reason": "stop",
+              "output_characters": 332,
+              "output_sha256": "8480b6e6e9ef83775aac5ad542cc38945c39ac3f10332474fbc304f37c6d966b",
+              "output": "Resource-based inference routing directs computational tasks to specific hardware or nodes based on their available resources, such as memory, processing power, or energy constraints. This approach optimizes system efficiency and performance by matching the demands of inference workloads with the most suitable available resources."
+            },
+            {
+              "state": "passed",
+              "http_status": 200,
+              "headers_seconds": 1.032781599991722,
+              "http_reference": "aafd3758a96048d290400ba590cc9a2d",
+              "completion_id": "chatcmpl-aafd3758a96048d290400ba590cc9a2d",
+              "inference_request_id": "aafd3758a96048d290400ba590cc9a2d",
+              "first_visible_content_seconds": 1.9796544999990147,
+              "last_visible_content_seconds": 3.3117919999931473,
+              "elapsed_seconds": 3.905612200003816,
+              "content_events": 52,
+              "usage": {
+                "completion_tokens": 53,
+                "prompt_tokens": 23,
+                "total_tokens": 76
+              },
+              "end_to_end_output_tokens_per_second": 13.570215701381775,
+              "finish_reason": "stop",
+              "output_characters": 332,
+              "output_sha256": "8480b6e6e9ef83775aac5ad542cc38945c39ac3f10332474fbc304f37c6d966b",
+              "output": "Resource-based inference routing directs computational tasks to specific hardware or nodes based on their available resources, such as memory, processing power, or energy constraints. This approach optimizes system efficiency and performance by matching the demands of inference workloads with the most suitable available resources."
+            }
+          ]
+        }
+      }
+    ],
+    "catalog_http_status": 200
+  },
+  "workerTimingsArePureGpuKernelTimings": false,
+  "sourceReportSha256": {
+    "endNative": "42c8124f8a7b0c415510e33ea04ebabcc16af064cf26ca8fa6764710ed8fdba3",
+    "end": "0e8a0fcfa2329b9517bad5fe2784d12184a58540fc8153db8a3e0221f1e366dd",
+    "start": "9fdda936fe0a30ce467a3c1c3d8ce9efbff1b89854bce1267ca56364c119655a",
+    "startNative": "0053d5c84636006143ebb14f8182145118fdaf4d4edf4d49d4df963be66d8ad1"
+  },
+  "endClient": {
+    "timestamp_utc": "2026-10-30T19:10:49.442502-07:00",
+    "phase": "end",
+    "runtime_label": "iterator8468-ddc62f8",
+    "endpoint": "https://serve.cantorai.com",
+    "existing_credentials_only": true,
+    "accounts_created": false,
+    "keys_created": false,
+    "quota_changed": false,
+    "state": "passed",
+    "cases": [
+      {
+        "model": "qwen3.5-2b-code-32k",
+        "state": "passed",
+        "catalog": {
+          "id": "qwen3.5-2b-code-32k",
+          "task": "llm",
+          "profiles": [
+            {
+              "id": "qwen35_2b_chat_32k_v1",
+              "model_id": "Qwen3.5-2B",
+              "max_output_tokens": 4096,
+              "provider_capabilities": [
+                {
+                  "chat_messages": true,
+                  "control_resource": "GarnetQwen352BChat32KControlSrv001",
+                  "llm": true,
+                  "max_input_tokens": 28672,
+                  "max_output_tokens": 4096,
+                  "streaming": true,
+                  "tools": true
+                }
+              ]
+            }
+          ],
+          "availability": {
+            "ready_instances": 1,
+            "state": "ready",
+            "available_capacity": 1.0
+          }
+        },
+        "returncode": 0,
+        "report": "D:\\CantorStorage\\CantorServe\\logs\\scanner-stream-end-qwen3.5-2b-code-32k-20261031T021049Z.json",
+        "measurement": {
+          "timestamp_utc": "2026-10-30T19:10:49.843385-07:00",
+          "label": "scanner-soak-end",
+          "endpoint": "https://serve.cantorai.com",
+          "model": "qwen3.5-2b-code-32k",
+          "prompt": "Explain resource-based inference routing in two concise sentences.",
+          "max_tokens": 64,
+          "client_runtime": "cpython",
+          "concurrency": 1,
+          "warmups": 0,
+          "automatic_retries": 0,
+          "metric_scope": "Client-observed HTTP streaming; includes network, API and prefill. Token rate uses actual final completion usage / total request duration; not a native GPU decode benchmark. Delta count is not token count.",
+          "executor_node_id": null,
+          "executor_limitation": "Not exposed by this streaming contract",
+          "state": "passed",
+          "samples": [
+            {
+              "state": "passed",
+              "http_status": 200,
+              "headers_seconds": 0.18013230001088232,
+              "http_reference": "bba13fd0fabf44b3a73d518ac68e093f",
+              "completion_id": "chatcmpl-bba13fd0fabf44b3a73d518ac68e093f",
+              "inference_request_id": "bba13fd0fabf44b3a73d518ac68e093f",
+              "first_visible_content_seconds": 0.6389073000173084,
+              "last_visible_content_seconds": 1.3557538000168279,
+              "elapsed_seconds": 1.5126275999937207,
+              "content_events": 43,
+              "usage": {
+                "completion_tokens": 44,
+                "prompt_tokens": 23,
+                "total_tokens": 67
+              },
+              "end_to_end_output_tokens_per_second": 29.088455083182836,
+              "finish_reason": "stop",
+              "output_characters": 297,
+              "output_sha256": "87aee3fd81457cd4b30f2468046673304c3c4edf3ed2639aa84ccc7cd0c72bcb",
+              "output": "Resource-based inference routing dynamically assigns incoming requests to the most suitable computational resources based on real-time availability and performance metrics. This approach ensures that workloads are efficiently distributed to prevent bottlenecks and maintain high system throughput."
+            },
+            {
+              "state": "passed",
+              "http_status": 200,
+              "headers_seconds": 0.17387100000632927,
+              "http_reference": "fbfca065909c4e9f99602f6dd98d5193",
+              "completion_id": "chatcmpl-fbfca065909c4e9f99602f6dd98d5193",
+              "inference_request_id": "fbfca065909c4e9f99602f6dd98d5193",
+              "first_visible_content_seconds": 0.3259707000106573,
+              "last_visible_content_seconds": 1.072085200023139,
+              "elapsed_seconds": 1.1970291000034194,
+              "content_events": 43,
+              "usage": {
+                "completion_tokens": 44,
+                "prompt_tokens": 23,
+                "total_tokens": 67
+              },
+              "end_to_end_output_tokens_per_second": 36.75766946674422,
+              "finish_reason": "stop",
+              "output_characters": 297,
+              "output_sha256": "87aee3fd81457cd4b30f2468046673304c3c4edf3ed2639aa84ccc7cd0c72bcb",
+              "output": "Resource-based inference routing dynamically assigns incoming requests to the most suitable computational resources based on real-time availability and performance metrics. This approach ensures that workloads are efficiently distributed to prevent bottlenecks and maintain high system throughput."
+            }
+          ]
+        }
+      },
+      {
+        "model": "qwen3.8-27b-chat-32k",
+        "state": "passed",
+        "catalog": {
+          "id": "qwen3.8-27b-chat-32k",
+          "task": "llm",
+          "profiles": [
+            {
+              "id": "qwen38_27b_nvfp4_chat_32k_v2",
+              "model_id": "Qwen3.8-27B",
+              "max_output_tokens": 4096,
+              "provider_capabilities": [
+                {
+                  "chat_messages": true,
+                  "control_resource": "GarnetQwen3827BChat32KControlRTX5090V2",
+                  "llm": true,
+                  "max_input_tokens": 28672,
+                  "max_output_tokens": 4096,
+                  "native_input_admission": true,
+                  "streaming": true,
+                  "tools": true
+                }
+              ]
+            }
+          ],
+          "availability": {
+            "ready_instances": 1,
+            "state": "ready",
+            "available_capacity": 1.0
+          }
+        },
+        "returncode": 0,
+        "report": "D:\\CantorStorage\\CantorServe\\logs\\scanner-stream-end-qwen3.8-27b-chat-32k-20261031T021049Z.json",
+        "measurement": {
+          "timestamp_utc": "2026-10-30T19:10:52.786894-07:00",
+          "label": "scanner-soak-end",
+          "endpoint": "https://serve.cantorai.com",
+          "model": "qwen3.8-27b-chat-32k",
+          "prompt": "Explain resource-based inference routing in two concise sentences.",
+          "max_tokens": 64,
+          "client_runtime": "cpython",
+          "concurrency": 1,
+          "warmups": 0,
+          "automatic_retries": 0,
+          "metric_scope": "Client-observed HTTP streaming; includes network, API and prefill. Token rate uses actual final completion usage / total request duration; not a native GPU decode benchmark. Delta count is not token count.",
+          "executor_node_id": null,
+          "executor_limitation": "Not exposed by this streaming contract",
+          "state": "passed",
+          "samples": [
+            {
+              "state": "passed",
+              "http_status": 200,
+              "headers_seconds": 0.5705161000078078,
+              "http_reference": "a3790f2ab18e47d3bd932a77824c3060",
+              "completion_id": "chatcmpl-a3790f2ab18e47d3bd932a77824c3060",
+              "inference_request_id": "a3790f2ab18e47d3bd932a77824c3060",
+              "first_visible_content_seconds": 1.6642535999999382,
+              "last_visible_content_seconds": 3.427782200014917,
+              "elapsed_seconds": 3.8861879000032786,
+              "content_events": 52,
+              "usage": {
+                "completion_tokens": 53,
+                "prompt_tokens": 23,
+                "total_tokens": 76
+              },
+              "end_to_end_output_tokens_per_second": 13.638043595358651,
+              "finish_reason": "stop",
+              "output_characters": 332,
+              "output_sha256": "8480b6e6e9ef83775aac5ad542cc38945c39ac3f10332474fbc304f37c6d966b",
+              "output": "Resource-based inference routing directs computational tasks to specific hardware or nodes based on their available resources, such as memory, processing power, or energy constraints. This approach optimizes system efficiency and performance by matching the demands of inference workloads with the most suitable available resources."
+            },
+            {
+              "state": "passed",
+              "http_status": 200,
+              "headers_seconds": 1.032789100019727,
+              "http_reference": "feeb8ee2c0484ec7be712191b1302610",
+              "completion_id": "chatcmpl-feeb8ee2c0484ec7be712191b1302610",
+              "inference_request_id": "feeb8ee2c0484ec7be712191b1302610",
+              "first_visible_content_seconds": 1.7323476000165101,
+              "last_visible_content_seconds": 3.060208800015971,
+              "elapsed_seconds": 4.157481100002769,
+              "content_events": 52,
+              "usage": {
+                "completion_tokens": 53,
+                "prompt_tokens": 23,
+                "total_tokens": 76
+              },
+              "end_to_end_output_tokens_per_second": 12.748103653427238,
+              "finish_reason": "stop",
+              "output_characters": 332,
+              "output_sha256": "8480b6e6e9ef83775aac5ad542cc38945c39ac3f10332474fbc304f37c6d966b",
+              "output": "Resource-based inference routing directs computational tasks to specific hardware or nodes based on their available resources, such as memory, processing power, or energy constraints. This approach optimizes system efficiency and performance by matching the demands of inference workloads with the most suitable available resources."
+            }
+          ]
+        }
+      }
+    ],
+    "catalog_http_status": 200
+  },
+  "runtime": "iterator8468-ddc62f8"
+}

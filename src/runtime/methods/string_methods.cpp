@@ -78,7 +78,7 @@ bool string_repr_method(Runtime& runtime, const Value* args, uint32_t argc, Valu
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  out = Value::string(value_to_repr(make_string_from_view(text)));
+  out = noninterned_string_value(value_to_repr(make_string_from_view(text)));
   return true;
 }
 
@@ -134,7 +134,7 @@ std::string_view as_view(memory::X3StringView value) {
 }
 
 Value make_string_from_view(memory::X3StringView text) {
-  return Value::string_view(std::string_view(text.data == nullptr ? "" : text.data, text.size));
+  return noninterned_string_value(std::string_view(text.data == nullptr ? "" : text.data, text.size));
 }
 
 Value make_string_range(memory::X3StringView text, size_t start, size_t size) {
@@ -145,11 +145,11 @@ Value make_string_range(memory::X3StringView text, size_t start, size_t size) {
   if (size > text_view.size() - start) {
     size = text_view.size() - start;
   }
-  return Value::string_view(std::string_view(text_view.data() + start, size));
+  return noninterned_string_value(std::string_view(text_view.data() + start, size));
 }
 
 Value make_string_range_unchecked(memory::X3StringView text, size_t start, size_t size) {
-  return Value::string_view(std::string_view(text.data + start, size));
+  return noninterned_string_value(std::string_view(text.data + start, size));
 }
 
 Value make_uninitialized_string_value(size_t size, char*& data) {
@@ -623,7 +623,7 @@ bool transform_ascii_case(
         ? unicode_data_case(characters[index], UnicodeCaseMapping::Upper)
         : unicode_lower_at(characters, index);
   }
-  out = Value::string(std::move(result));
+  out = noninterned_string_value(result);
   return true;
 }
 
@@ -1709,7 +1709,7 @@ bool string_translate_method(Runtime&, const Value* args, uint32_t argc, Value& 
     }
     result.append(replacement_text.data, replacement_text.size);
   }
-  out = Value::string(std::move(result));
+  out = noninterned_string_value(result);
   return true;
 }
 
@@ -1762,7 +1762,7 @@ bool resolve_format_access(
       char* end = nullptr;
       const long long parsed = std::strtoll(token.c_str(), &end, 10);
       Value key = end != token.c_str() && *end == '\0'
-          ? Value::int64(static_cast<int64_t>(parsed)) : Value::string(token);
+          ? Value::int64(static_cast<int64_t>(parsed)) : noninterned_string_value(token);
       Value next;
       const auto* instance = value_as_instance(out);
       const bool mapping = value_as_dict(out) != nullptr ||
@@ -1882,7 +1882,7 @@ bool string_format_method(Runtime& runtime, const Value* args, uint32_t argc, Va
     }
     result.push_back(format[i++]);
   }
-  out = Value::string(std::move(result));
+  out = noninterned_string_value(result);
   return true;
 }
 
@@ -2001,7 +2001,7 @@ std::string format_replacement_value(
     if (!object_get_attr(value, "__format__", format_method, error)) {
       return {};
     }
-    Value format_spec = Value::string(std::string(spec));
+    Value format_spec = noninterned_string_value(spec);
     Value formatted;
     if (!runtime_call_callable(runtime, format_method, &format_spec, 1, formatted, error)) {
       return {};
@@ -2020,7 +2020,7 @@ std::string format_replacement_value(
   }
 
   if (const Value* format_builtin = runtime.find_builtin("format")) {
-    Value format_args[] = {value, Value::string(std::string(spec))};
+    Value format_args[] = {value, noninterned_string_value(spec)};
     Value formatted;
     if (!runtime_call_callable(runtime, *format_builtin, format_args, 2, formatted, error)) return {};
     if (auto* text = value_as_string(formatted)) {
@@ -2207,7 +2207,7 @@ bool string_format_method_kw(
     }
     result.push_back(format[i++]);
   }
-  out = Value::string(std::move(result));
+  out = noninterned_string_value(result);
   return true;
 }
 
@@ -2253,7 +2253,7 @@ bool string_format_map_method(
         error = "Format string contains positional fields";
         return false;
       }
-      Value key = Value::string(std::string(field_name));
+      Value key = noninterned_string_value(field_name);
       Value replacement;
       if (!mapping_get_item_runtime(
               runtime, args[1], key, replacement, error)) {
@@ -2272,7 +2272,7 @@ bool string_format_map_method(
     }
     result.push_back(format[i++]);
   }
-  out = Value::string(std::move(result));
+  out = noninterned_string_value(result);
   return true;
 }
 
@@ -2364,7 +2364,7 @@ bool string_encode_method(Runtime& runtime, const Value* args, uint32_t argc, Va
     if (!runtime_call_callable(runtime, *import_function, &import_arg, 1, codecs_module, error)) return false;
     Value lookup_function;
     Value codec_info;
-    Value lookup_arg = Value::string(encoding);
+    Value lookup_arg = noninterned_string_value(encoding);
     if (!module_get_attr(codecs_module, "lookup", lookup_function, error) ||
         !runtime_call_callable(runtime, lookup_function, &lookup_arg, 1, codec_info, error)) {
       return false;
@@ -2383,7 +2383,7 @@ bool string_encode_method(Runtime& runtime, const Value* args, uint32_t argc, Va
     }
     Value encode_function;
     if (!module_get_attr(codecs_module, "encode", encode_function, error)) return false;
-    Value call_args[3] = {args[0], Value::string(encoding), Value::string(errors)};
+    Value call_args[3] = {args[0], noninterned_string_value(encoding), noninterned_string_value(errors)};
     Value encoded;
     if (!runtime_call_callable(runtime, encode_function, call_args, 3, encoded, error)) return false;
     if (value_as_bytes(encoded) == nullptr) {
@@ -3233,7 +3233,7 @@ bool string_casefold_method(Runtime& runtime, const Value* args, uint32_t argc, 
     folded += unicode_data_case(codepoint, UnicodeCaseMapping::Fold);
     offset += width;
   }
-  out = Value::string(std::move(folded));
+  out = noninterned_string_value(folded);
   return true;
 }
 
@@ -3258,7 +3258,7 @@ bool string_capitalize_method(Runtime&, const Value* args, uint32_t argc, Value&
   for (size_t index = 1; index < characters.size(); ++index) {
     result += unicode_lower_at(characters, index);
   }
-  out = Value::string(std::move(result));
+  out = noninterned_string_value(result);
   return true;
 }
 
@@ -3287,7 +3287,7 @@ bool string_swapcase_method(Runtime&, const Value* args, uint32_t argc, Value& o
     else if (flags & (kUnicodeUpper | kUnicodeTitle)) result += unicode_lower_at(characters, index);
     else result += unicode_data_case(cp, UnicodeCaseMapping::Lower);
   }
-  out = Value::string(std::move(result));
+  out = noninterned_string_value(result);
   return true;
 }
 
@@ -3317,7 +3317,7 @@ bool string_title_method(Runtime&, const Value* args, uint32_t argc, Value& out,
         unicode_data_case(cp, UnicodeCaseMapping::Title);
     previous_cased = (flags & kUnicodeCased) != 0;
   }
-  out = Value::string(std::move(result));
+  out = noninterned_string_value(result);
   return true;
 }
 
@@ -3393,7 +3393,7 @@ bool parse_fill_width_args(
 bool make_padded_string(std::string_view text, int64_t width, std::string_view fill, size_t left_pad, Value& out) {
   const size_t text_length = utf8_codepoint_count(text);
   if (width <= static_cast<int64_t>(text_length)) {
-    out = Value::string_view(text);
+    out = noninterned_string_value(text);
     return true;
   }
   const size_t padding = static_cast<size_t>(width) - text_length;
@@ -3402,7 +3402,7 @@ bool make_padded_string(std::string_view text, int64_t width, std::string_view f
   for (size_t i = 0; i < left_pad; ++i) result.append(fill);
   result.append(text);
   for (size_t i = left_pad; i < padding; ++i) result.append(fill);
-  out = Value::string(std::move(result));
+  out = noninterned_string_value(result);
   return true;
 }
 
@@ -3459,7 +3459,7 @@ bool string_zfill_method(Runtime&, const Value* args, uint32_t argc, Value& out,
   const int64_t width = args[1].as.i64;
   const size_t text_length = utf8_codepoint_count(view);
   if (width <= static_cast<int64_t>(text_length)) {
-    out = Value::string_view(view);
+    out = noninterned_string_value(view);
     return true;
   }
   const size_t padding = static_cast<size_t>(width) - text_length;
@@ -3473,7 +3473,7 @@ bool string_zfill_method(Runtime&, const Value* args, uint32_t argc, Value& out,
   }
   std::memcpy(result.data() + source + padding, view.data() + source, view.size() - source);
   (void)dest;
-  out = Value::string(std::move(result));
+  out = noninterned_string_value(result);
   return true;
 }
 
@@ -3490,7 +3490,7 @@ bool string_removeprefix_method(Runtime&, const Value* args, uint32_t argc, Valu
   auto t = as_view(text);
   auto p = as_view(prefix);
   if (t.size() >= p.size() && t.substr(0, p.size()) == p) {
-    out = Value::string_view(t.substr(p.size()));
+    out = noninterned_string_value(t.substr(p.size()));
   } else {
     value_assign_fast(out, args[0]);
   }
@@ -3510,7 +3510,7 @@ bool string_removesuffix_method(Runtime&, const Value* args, uint32_t argc, Valu
   auto t = as_view(text);
   auto s = as_view(suffix);
   if (!s.empty() && t.size() >= s.size() && t.substr(t.size() - s.size()) == s) {
-    out = Value::string_view(t.substr(0, t.size() - s.size()));
+    out = noninterned_string_value(t.substr(0, t.size() - s.size()));
   } else {
     value_assign_fast(out, args[0]);
   }
@@ -3554,12 +3554,12 @@ bool string_splitlines_method(Runtime&, const Value* args, uint32_t argc, Value&
     if (keepends) {
       end = next;
     }
-    lines.push_back(Value::string_view(view.substr(start, end - start)));
+    lines.push_back(noninterned_string_value(view.substr(start, end - start)));
     i = next - 1;
     start = next;
   }
   if (start < view.size()) {
-    lines.push_back(Value::string_view(view.substr(start)));
+    lines.push_back(noninterned_string_value(view.substr(start)));
   }
   out = Value::list(std::move(lines));
   return true;
@@ -3626,7 +3626,7 @@ bool string_add_method(Runtime& runtime, const Value* args, uint32_t argc, Value
   result.reserve(left.size + right.size);
   result.append(left.data == nullptr ? "" : left.data, left.size);
   result.append(right.data == nullptr ? "" : right.data, right.size);
-  out = Value::string(std::move(result));
+  out = noninterned_string_value(result);
   return true;
 }
 
@@ -3687,7 +3687,7 @@ bool string_expandtabs_method(Runtime&, const Value* args, uint32_t argc, Value&
       column = (ch == '\n' || ch == '\r') ? 0 : column + 1;
     }
   }
-  out = Value::string(std::move(result));
+  out = noninterned_string_value(result);
   return true;
 }
 

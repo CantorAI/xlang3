@@ -1,0 +1,224 @@
+{
+  "passed": true,
+  "candidate_sha256": {
+    "xlang3": "8a64dda34a38cee93f8986c4854f7415ecd3dd85e354ed3519c29bedead92ab7",
+    "libxlang3_runtime.so": "922e098a0afc645fb8c107687aeee1a86d46a541931b61964575794487cd376e"
+  },
+  "baseline_runtime_sha256": "6b8a6a36f7ffe7905cf2a010aa0dcb133e8ed4dc5cb94ae897eec2271d1ad9e0",
+  "rows": [
+    {
+      "label": "pre_string_ingress",
+      "command": [
+        "/home/shawn/CantorServeAzureBuild/20261029/validation/azure-native-stability-20261030/pre-string-ingress-release/bin/xlang3",
+        "-B",
+        "/home/shawn/CantorServeAzureBuild/20261029/validation/azure-native-stability-20261030/probe_dynamic_json_string_retention.py",
+        "--prefix",
+        "identifier"
+      ],
+      "observation": {
+        "implementation": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [GCC]",
+        "iterations": 20000,
+        "prefix": "identifier",
+        "before": {
+          "stage": "before",
+          "rss_kib": 41068,
+          "interned_strings": 5737,
+          "immortal_strings": 5368
+        },
+        "after": {
+          "stage": "after_final_collection",
+          "rss_kib": 43016,
+          "interned_strings": 25742,
+          "immortal_strings": 25372
+        },
+        "collected": 0,
+        "last_value_was_interned": true,
+        "last_value_was_immortal": true,
+        "payloads_reported": false,
+        "network_or_ipc": false
+      }
+    },
+    {
+      "label": "pre_string_ingress",
+      "command": [
+        "/home/shawn/CantorServeAzureBuild/20261029/validation/azure-native-stability-20261030/pre-string-ingress-release/bin/xlang3",
+        "-B",
+        "/home/shawn/CantorServeAzureBuild/20261029/validation/azure-native-stability-20261030/probe_dynamic_json_string_retention.py",
+        "--prefix",
+        "numeric"
+      ],
+      "observation": {
+        "implementation": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [GCC]",
+        "iterations": 20000,
+        "prefix": "numeric",
+        "before": {
+          "stage": "before",
+          "rss_kib": 41128,
+          "interned_strings": 5737,
+          "immortal_strings": 5368
+        },
+        "after": {
+          "stage": "after_final_collection",
+          "rss_kib": 43072,
+          "interned_strings": 25742,
+          "immortal_strings": 5372
+        },
+        "collected": 0,
+        "last_value_was_interned": true,
+        "last_value_was_immortal": false,
+        "payloads_reported": false,
+        "network_or_ipc": false
+      }
+    },
+    {
+      "label": "candidate",
+      "command": [
+        "/home/shawn/CantorServeAzureBuild/20261029/build-release/bin/xlang3",
+        "-B",
+        "/home/shawn/CantorServeAzureBuild/20261029/validation/azure-native-stability-20261030/probe_dynamic_json_string_retention.py",
+        "--prefix",
+        "identifier"
+      ],
+      "observation": {
+        "implementation": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [GCC]",
+        "iterations": 20000,
+        "prefix": "identifier",
+        "before": {
+          "stage": "before",
+          "rss_kib": 40956,
+          "interned_strings": 5736,
+          "immortal_strings": 5367
+        },
+        "after": {
+          "stage": "after_final_collection",
+          "rss_kib": 41020,
+          "interned_strings": 5741,
+          "immortal_strings": 5371
+        },
+        "collected": 0,
+        "last_value_was_interned": false,
+        "last_value_was_immortal": false,
+        "payloads_reported": false,
+        "network_or_ipc": false
+      }
+    },
+    {
+      "label": "candidate",
+      "command": [
+        "/home/shawn/CantorServeAzureBuild/20261029/build-release/bin/xlang3",
+        "-B",
+        "/home/shawn/CantorServeAzureBuild/20261029/validation/azure-native-stability-20261030/probe_dynamic_json_string_retention.py",
+        "--prefix",
+        "numeric"
+      ],
+      "observation": {
+        "implementation": "xlang3",
+        "version": "3.14.7 (tags/v3.14.7:823f032, Aug  5 2026, 10:51:32) [GCC]",
+        "iterations": 20000,
+        "prefix": "numeric",
+        "before": {
+          "stage": "before",
+          "rss_kib": 40944,
+          "interned_strings": 5736,
+          "immortal_strings": 5367
+        },
+        "after": {
+          "stage": "after_final_collection",
+          "rss_kib": 41008,
+          "interned_strings": 5741,
+          "immortal_strings": 5371
+        },
+        "collected": 0,
+        "last_value_was_interned": false,
+        "last_value_was_immortal": false,
+        "payloads_reported": false,
+        "network_or_ipc": false
+      }
+    },
+    {
+      "label": "cpython_3_12_control",
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "/home/shawn/CantorServeAzureBuild/20261029/validation/azure-native-stability-20261030/probe_dynamic_json_string_retention.py",
+        "--prefix",
+        "identifier"
+      ],
+      "observation": {
+        "implementation": "cpython",
+        "version": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+        "iterations": 20000,
+        "prefix": "identifier",
+        "before": {
+          "stage": "before",
+          "rss_kib": 12840,
+          "interned_strings": 6999,
+          "immortal_strings": null
+        },
+        "after": {
+          "stage": "after_final_collection",
+          "rss_kib": 12844,
+          "interned_strings": 6999,
+          "immortal_strings": null
+        },
+        "collected": 0,
+        "last_value_was_interned": null,
+        "last_value_was_immortal": null,
+        "payloads_reported": false,
+        "network_or_ipc": false
+      }
+    },
+    {
+      "label": "cpython_3_12_control",
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "/home/shawn/CantorServeAzureBuild/20261029/validation/azure-native-stability-20261030/probe_dynamic_json_string_retention.py",
+        "--prefix",
+        "numeric"
+      ],
+      "observation": {
+        "implementation": "cpython",
+        "version": "3.12.3 (main, Aug 31 2026, 10:18:26) [GCC 13.3.0]",
+        "iterations": 20000,
+        "prefix": "numeric",
+        "before": {
+          "stage": "before",
+          "rss_kib": 12808,
+          "interned_strings": 6999,
+          "immortal_strings": null
+        },
+        "after": {
+          "stage": "after_final_collection",
+          "rss_kib": 12812,
+          "interned_strings": 6999,
+          "immortal_strings": null
+        },
+        "collected": 0,
+        "last_value_was_interned": null,
+        "last_value_was_immortal": null,
+        "payloads_reported": false,
+        "network_or_ipc": false
+      }
+    },
+    {
+      "label": "pre_string_ingress",
+      "case": "fixture",
+      "stdout": "transient strings released False\ncontents preserved True\nexplicit interning True\n"
+    },
+    {
+      "label": "candidate",
+      "case": "fixture",
+      "stdout": "transient strings released True\ncontents preserved True\nexplicit interning True\n"
+    },
+    {
+      "label": "cpython_3_12_control",
+      "case": "fixture",
+      "stdout": "transient strings released True\ncontents preserved True\nexplicit interning True\n"
+    }
+  ],
+  "production_traffic": false
+}

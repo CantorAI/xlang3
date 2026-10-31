@@ -17,6 +17,32 @@ static void require(bool value, const char* message) {
 int main() {
   try {
     sdk_collection_thread_cases();
+    {
+      X::Runtime runtime;
+      const auto before = xlang3::interned_string_count();
+      for (int i = 0; i < 2000; ++i) {
+        const auto text = "abi_runtime_payload_" + std::to_string(i);
+        for (auto value : {x3_value_string(runtime.get(), text.c_str()),
+                           x3_value_string_utf8(runtime.get(), text.data(), text.size())}) {
+          std::string error;
+          auto imported = xlang3::from_c_value(value, error);
+          require(error.empty() && xlang3::value_to_string(imported) == text,
+                  "runtime ABI string changed its contents");
+          require(!xlang3::string_value_is_interned(imported),
+                  "runtime ABI data was permanently interned");
+          x3_value_release(value);
+        }
+      }
+      require(xlang3::interned_string_count() == before,
+              "released ABI data accumulated in the intern table");
+      const std::string binary("a\0b", 3);
+      auto value = x3_value_string_utf8(runtime.get(), binary.data(), binary.size());
+      std::string error;
+      auto imported = xlang3::from_c_value(value, error);
+      require(error.empty() && xlang3::value_to_string(imported) == binary,
+              "length-delimited ABI string lost an embedded NUL");
+      x3_value_release(value);
+    }
     for (uint64_t number : {uint64_t{0}, uint64_t{42},
         static_cast<uint64_t>(INT64_MAX), static_cast<uint64_t>(INT64_MAX) + 1,
         std::numeric_limits<uint64_t>::max()}) {

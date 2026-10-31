@@ -1676,7 +1676,7 @@ bool builtin_bytes_repr(
       return false;
     }
   }
-  out = Value::string(value_to_repr(payload));
+  out = noninterned_string_value(value_to_repr(payload));
   return true;
 }
 
@@ -3250,7 +3250,7 @@ bool builtin_object_repr(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  out = Value::string(value_to_repr(args[0]));
+  out = noninterned_string_value(value_to_repr(args[0]));
   return true;
 }
 
@@ -3281,7 +3281,7 @@ bool builtin_object_str(
     out = result;
     return true;
   }
-  out = Value::string(value_to_repr(args[0]));
+  out = noninterned_string_value(value_to_repr(args[0]));
   return true;
 }
 
@@ -4159,7 +4159,7 @@ bool builtin_numeric_repr(
     runtime.raise_class_error("TypeError", error);
     return false;
   }
-  out = Value::string(value_to_repr(numeric));
+  out = noninterned_string_value(value_to_repr(numeric));
   return true;
 }
 

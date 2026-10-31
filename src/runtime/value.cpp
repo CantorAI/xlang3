@@ -1109,6 +1109,12 @@ Value Value::string_view(std::string_view value) {
 }
 
 Value noninterned_string_value(std::string_view value) {
+  // Empty and single ASCII strings use only the fixed singleton cache.
+  // Variable runtime data must never be inserted into the identifier table.
+  if (value.empty() ||
+      (value.size() == 1 && static_cast<unsigned char>(value[0]) < 128)) {
+    return Value::string_view(value);
+  }
   return make_plain_string(value);
 }
 

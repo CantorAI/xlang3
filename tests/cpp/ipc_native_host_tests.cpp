@@ -1,4 +1,5 @@
 #include "xlang3/xlang3.h"
+#include "xlang3/value.h"
 #include <cstdint>
 #include <iostream>
 #include <random>
@@ -56,6 +57,16 @@ int main() {
       throw std::runtime_error("native LRPC string round trip failed");
     if (remote["add"](20, 22).ToInt64() != 42)
       throw std::runtime_error("native LRPC integer round trip failed");
+
+    // Both the embedding and wire ingress paths must release transient data.
+    const auto before = xlang3::interned_string_count();
+    for (int i = 0; i < 1000; ++i) {
+      const auto text = "ipc_runtime_payload_" + std::to_string(i);
+      if (remote["echo"](text).ToString() != "native:" + text)
+        throw std::runtime_error("native LRPC transient string changed contents");
+    }
+    if (xlang3::interned_string_count() != before)
+      throw std::runtime_error("native LRPC data accumulated in the intern table");
 
     X3LrpcEndpointInfo info{};
     info.size = sizeof(info);

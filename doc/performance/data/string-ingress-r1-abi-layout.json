@@ -1,0 +1,39 @@
+{
+  "removed_c_api_exports": [],
+  "old_c_api_exports": 90,
+  "new_c_api_exports": 90,
+  "final_runtime_sha256": "922e098a0afc645fb8c107687aeee1a86d46a541931b61964575794487cd376e",
+  "fixture_cli_matches_candidate": true,
+  "vm_source_sha256": "3499665cb97d1f3123041b47e0d7c7580d47cdc679e804e8c43be1f42ab69883",
+  "baseline_vm_symbol": "0000000000acac00 00000000002f37c9 T xlang3::Interpreter::run_function(xlang3::ir::Module const&, unsigned int, xlang3::CallArgsView, std::vector<xlang3::Value, std::allocator<xlang3::Value> > const&, std::vector<xlang3::Value, std::allocator<xlang3::Value> > const&, xlang3::Value, std::shared_ptr<xlang3::ir::Module const>, xlang3::GeneratorObject*, std::shared_ptr<xlang3::RuntimeDebugPauseState>)",
+  "candidate_vm_symbol": "0000000000acb3c0 00000000002f37c9 T xlang3::Interpreter::run_function(xlang3::ir::Module const&, unsigned int, xlang3::CallArgsView, std::vector<xlang3::Value, std::allocator<xlang3::Value> > const&, std::vector<xlang3::Value, std::allocator<xlang3::Value> > const&, xlang3::Value, std::shared_ptr<xlang3::ir::Module const>, xlang3::GeneratorObject*, std::shared_ptr<xlang3::RuntimeDebugPauseState>)",
+  "vm_size_unchanged": true,
+  "vm_entry_cache_line_aligned": true,
+  "vm_implementation_source_sha256": "24bf78fe56d1f6f66538e06c98f8846112b0bdd1e1d27f7068c9a394095ae553",
+  "vm_object_text": {
+    "old_sha256": "a0f0bdacd349c3fc201d10a34d701afda4d5a64ac1ddf1419cdfe72912f6a842",
+    "new_sha256": "a0f0bdacd349c3fc201d10a34d701afda4d5a64ac1ddf1419cdfe72912f6a842",
+    "identical_bytes": true,
+    "old_alignment": 16,
+    "new_alignment": 64,
+    "old_bytes": 3327596,
+    "new_bytes": 3327596,
+    "old_function_sha256": "1d9f76231309e6ec5d8d54186d7c2b3d04629a774c28ebf1cab087ac07b54064",
+    "new_function_sha256": "1d9f76231309e6ec5d8d54186d7c2b3d04629a774c28ebf1cab087ac07b54064",
+    "function_bytes_identical": true
+  },
+  "qualification_source_sha256": {
+    "src/runtime/value.cpp": "f1a07a8a0a389b733df4e525c480baf1a84cf81340cc37c1447cccabd7e1fd98",
+    "src/executor/xlang_vm/xlang_vm_loop.cpp": "3499665cb97d1f3123041b47e0d7c7580d47cdc679e804e8c43be1f42ab69883",
+    "tests/fixtures/core/iterator_owner_release.py": "1cd7b2813fac5f282ffa7b1791451c5049ddc797bf39c7d864b22d59c3e67610",
+    "tests/fixtures/expected/iterator_owner_release.out": "4cc172ef0e22880ff4f83399d7d177d9a332245a8d70d80e981e30303141b902",
+    "tests/run_fixtures.py": "dd2f152b10decebaa319e24a24d49b0430c9638c8c8aad0c67e27d8e33bf28f1",
+    "src/api/c_api.cpp": "5fd4dff0302b9ad951d39d2d3c121aeee8adcf0e0a978fc6ec93402d1c2b2e40",
+    "src/ipc/ipc_runtime.cpp": "d9d6d6fc573931244fa848727ec2c95ad2c9ea4d0ad3ee9f4bc5739521459dca",
+    "src/runtime/modules/system/json_module.cpp": "4c7fc42fdd04bd5e7c8c0e62636010a2a68c60b3680d9f5aecd59fa727272acb",
+    "tests/cpp/abi_ownership_tests.cpp": "135e279118882e30c041edd118bb8a7bb7649955143364860946c0a49acd2e86",
+    "tests/cpp/ipc_native_host_tests.cpp": "1a149335cfc94cbedd3e1c4740f9631afa75a2662c02a2a2d6e7c1ea3b79f7fa",
+    "tests/fixtures/core/json_transient_strings.py": "7f2edb5625435f78b428e4cf58c69ce32dd4f1af499c05f0d5415e17620b310d",
+    "tests/fixtures/expected/json_transient_strings.out": "c633592f53f115b8bb63cc35362f2c5764926ddbc35163523312a4ed9dcbf5fc"
+  }
+}

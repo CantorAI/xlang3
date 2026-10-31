@@ -343,11 +343,11 @@ bool raise_codec_encode_error(
   error = reason;
   Value exception = runtime.make_exception("UnicodeEncodeError", reason);
   std::string ignored;
-  object_set_attr(exception, "encoding", Value::string(encoding), ignored);
+  object_set_attr(exception, "encoding", noninterned_string_value(encoding), ignored);
   object_set_attr(exception, "object", object, ignored);
   object_set_attr(exception, "start", Value::int64(static_cast<int64_t>(start)), ignored);
   object_set_attr(exception, "end", Value::int64(static_cast<int64_t>(end)), ignored);
-  object_set_attr(exception, "reason", Value::string(reason), ignored);
+  object_set_attr(exception, "reason", noninterned_string_value(reason), ignored);
   runtime.set_pending_exception(std::move(exception));
   return false;
 }
@@ -709,11 +709,11 @@ bool raise_codec_decode_error(
   error = reason;
   Value exception = runtime.make_exception("UnicodeDecodeError", reason);
   std::string ignored;
-  object_set_attr(exception, "encoding", Value::string(encoding), ignored);
+  object_set_attr(exception, "encoding", noninterned_string_value(encoding), ignored);
   object_set_attr(exception, "object", object, ignored);
   object_set_attr(exception, "start", Value::int64(static_cast<int64_t>(start)), ignored);
   object_set_attr(exception, "end", Value::int64(static_cast<int64_t>(end)), ignored);
-  object_set_attr(exception, "reason", Value::string(reason), ignored);
+  object_set_attr(exception, "reason", noninterned_string_value(reason), ignored);
   runtime.set_pending_exception(std::move(exception));
   return false;
 }
@@ -818,7 +818,7 @@ bool decode_with_codec(Runtime& runtime, const Value& value, const std::string& 
         decoded.push_back('\\');
         append_utf8(escaped, decoded);
       }
-      out = Value::string(std::move(decoded));
+      out = noninterned_string_value(decoded);
     } else if (encoding == "raw_unicode_escape") {
       std::string decoded;
       for (size_t i = 0; i < data.size();) {
@@ -858,7 +858,7 @@ bool decode_with_codec(Runtime& runtime, const Value& value, const std::string& 
         }
         append_utf8(static_cast<unsigned char>(data[i++]), decoded);
       }
-      out = Value::string(std::move(decoded));
+      out = noninterned_string_value(decoded);
     } else if (encoding == "utf_7") {
       std::string decoded;
       for (size_t i = 0; i < data.size();) {
@@ -938,7 +938,7 @@ bool decode_with_codec(Runtime& runtime, const Value& value, const std::string& 
           }
         }
       }
-      out = Value::string(std::move(decoded));
+      out = noninterned_string_value(decoded);
     } else if (encoding == "utf_8") {
       std::string decoded;
       for (size_t i = 0; i < data.size();) {
@@ -995,7 +995,7 @@ bool decode_with_codec(Runtime& runtime, const Value& value, const std::string& 
         return raise_codec_decode_error(runtime, "utf-8", value, i, i + 1,
                                         "invalid start byte", error);
       }
-      out = Value::string(std::move(decoded));
+      out = noninterned_string_value(decoded);
     } else if (encoding == "utf_32" || encoding == "utf_32_le" || encoding == "utf_32_be") {
       size_t start = 0;
       bool big_endian = encoding == "utf_32_be";
@@ -1052,7 +1052,7 @@ bool decode_with_codec(Runtime& runtime, const Value& value, const std::string& 
                                           "truncated data", error);
         }
       }
-      out = Value::string(std::move(decoded));
+      out = noninterned_string_value(decoded);
     } else if (encoding == "utf_16" || encoding == "utf_16_le" || encoding == "utf_16_be") {
       size_t start = 0;
       bool big_endian = encoding == "utf_16_be";
@@ -1132,23 +1132,23 @@ bool decode_with_codec(Runtime& runtime, const Value& value, const std::string& 
                                           "truncated data", error);
         }
       }
-      out = Value::string(std::move(decoded));
+      out = noninterned_string_value(decoded);
     } else if (encoding == "ascii") {
       std::string decoded = ascii_decode_text(runtime, data, errors, error);
       if (!error.empty()) {
         return false;
       }
-      out = Value::string(std::move(decoded));
+      out = noninterned_string_value(decoded);
     } else if (encoding == "latin_1") {
-      out = Value::string(latin1_decode_text(data));
+      out = noninterned_string_value(latin1_decode_text(data));
     } else if (encoding == "cp437") {
-      out = Value::string(cp437_decode_bytes(data));
+      out = noninterned_string_value(cp437_decode_bytes(data));
     } else if (encoding == "idna") {
       std::string decoded = ascii_decode_text(runtime, data, errors, error);
       if (!error.empty()) {
         return false;
       }
-      out = Value::string(std::move(decoded));
+      out = noninterned_string_value(decoded);
     } else if (encoding == "utf_8_sig") {
       if (data.size() >= 3 &&
           static_cast<unsigned char>(data[0]) == 0xef &&
@@ -1156,9 +1156,9 @@ bool decode_with_codec(Runtime& runtime, const Value& value, const std::string& 
           static_cast<unsigned char>(data[2]) == 0xbf) {
         data.erase(0, 3);
       }
-      out = Value::string(std::move(data));
+      out = noninterned_string_value(data);
     } else {
-      out = Value::string(std::move(data));
+      out = noninterned_string_value(data);
     }
     return true;
   }
@@ -1174,7 +1174,7 @@ bool decode_with_codec(Runtime& runtime, const Value& value, const std::string& 
       runtime.raise_class_error("UnicodeDecodeError", error);
       return false;
     }
-    out = Value::string(std::move(decoded));
+    out = noninterned_string_value(decoded);
     return true;
   }
   error = "unknown encoding: " + encoding;
@@ -1381,7 +1381,7 @@ bool codecs_code_page_decode(Runtime& runtime, const Value* args, uint32_t argc,
         nullptr, nullptr);
   }
   out = Value::tuple({
-      Value::string(std::move(decoded)),
+      noninterned_string_value(decoded),
       Value::int64(static_cast<int64_t>(bytes.size()))});
   return true;
 }
@@ -2272,7 +2272,7 @@ bool codecs_charmap_decode(Runtime& runtime, const Value* args, uint32_t argc, V
       return false;
     }
   }
-  out = Value::tuple({Value::string(std::move(decoded)), Value::int64(static_cast<int64_t>(input.size()))});
+  out = Value::tuple({noninterned_string_value(decoded), Value::int64(static_cast<int64_t>(input.size()))});
   return true;
 }
 

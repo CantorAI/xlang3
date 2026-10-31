@@ -1,0 +1,105 @@
+{
+  "recorded_at_unix": 1793409652.5658731,
+  "xlang_commit": "8468be8faf2b69663fa177c6d37d2bbe06cccc73",
+  "api_source_label": "ddc62f81-overlay",
+  "snapshot": {
+    "native_release": "/data/Cantor/releases/native-stability-20261030-iterator-8468be8f",
+    "backend": "/data/CantorServe/releases/a96c218187e80bb791d8e9e7eabf78b194eb8028/backend",
+    "services": {
+      "core": {
+        "MainPID": "923645",
+        "NRestarts": "0"
+      },
+      "api": {
+        "MainPID": "923939",
+        "NRestarts": "0"
+      }
+    },
+    "native_sha256": {
+      "Cantor": "07ff70595b4e13e1a875e2f19a92e771d9d24392e02242e87cfaeee91a98a67c",
+      "xlang3": "8a64dda34a38cee93f8986c4854f7415ecd3dd85e354ed3519c29bedead92ab7",
+      "libxlang3_runtime.so": "6b8a6a36f7ffe7905cf2a010aa0dcb133e8ed4dc5cb94ae897eec2271d1ad9e0"
+    },
+    "manifest_sha256": "a250ec8cb6fd6bb4eae047f7bedf213a0ee511ced0f5b42fe9055e1c9215cd33",
+    "backend_python_sha256": {
+      "cantorserve/__init__.py": "d9d6d706e59ae70313e8e6bf2d6b929872c22e4c6d82acdb411184f153945aa1",
+      "cantorserve/accounting.py": "8f3f3c69fb2f25b9fa3985a73689943a83012067c9f7883e9dee406fefb85e80",
+      "cantorserve/app.py": "81a5e8d9b398d7e277424f4b58e094e3374670fb253d63060468d8867536b1c1",
+      "cantorserve/cantorproxy.py": "2de39c7c411d48d3826b287cabbc2e02628e518877c59f840b3edd8d93c8af29",
+      "cantorserve/catalog.py": "0a3d53f70683daec97db8f45adec24d18812755af6057013147a1fd6bce86eab",
+      "cantorserve/chat_api.py": "6384bf85116e652336341ddc1262006a0bf4582b61a0d062ae429c2a76037a62",
+      "cantorserve/chat_clock.py": "4a25546cbaa1b3430ad773f2dccc9b44d180f5450dd2a8a59a9f1119382f2661",
+      "cantorserve/chat_database.py": "fce3271d562793286ee98f475212dbf873fee8dc4ac86973e3d67579d6b32366",
+      "cantorserve/chat_file_process.py": "74925cdc343cf1d04e22e4fef57c3e95ff9bcd50769ffc101dd8506e194e515f",
+      "cantorserve/chat_files.py": "7a35011f051497662e9312abc2e252743198a959708b548d30a3f419ba0cc806",
+      "cantorserve/chat_outbox.py": "44360c1307fc33450da3a8efda8de5ecf5339654527783a6c118182a1cdc507f",
+      "cantorserve/cli.py": "cbeb388081fd3a0419d310e2db1f36e061cf293e9c5473f72ce312780e54c099",
+      "cantorserve/cluster.py": "7450549b5540ee40e370c4d4e3171772788ebe43b8899d9b4a50662f21885ff3",
+      "cantorserve/config.py": "948c3cafd4446c9e93e8db51cfa4b956bfa43651a1ab7fb989f1ba576eed9af9",
+      "cantorserve/contracts.py": "eb68689fa17a07dddb2724595ba9f6155a7179cf6b68559cbdc901ff8fe7d4be",
+      "cantorserve/database.py": "60d8ea61303bdd080ea020bbe4edb98a8baebb004c43316cc03c7b8a4b33f97f",
+      "cantorserve/errors.py": "5cea300c13da84ce9df31564b5acefa3309fd2f4660328c299642a658dbb335b",
+      "cantorserve/external_keys_api.py": "90be80c2f78a77f6a2fbbf3739c11739e86a131930ba56b60edc99288f787b53",
+      "cantorserve/external_keys_database.py": "b9ef599ff469be6429f414002be5b8097185a93f8158b11f54a79e59d7e3df16",
+      "cantorserve/image_validation.py": "511f28c37efc788cfce7284df3ead30099593a3a37f9b9462c0c55e4fb3283c3",
+      "cantorserve/middleware.py": "4fcdb8ffcc6a3dd74ca0752dfe46dc2110cd8d58d10d3bd3ccf4a7fb5a906204",
+      "cantorserve/native/broker.py": "a2ee84433aa4e5d287bafdb4acd3bb44d7a9b1477746acfc6c641e5c2207e530",
+      "cantorserve/native/chat_file_worker.py": "f915636181b8b1cf961830b7ee20a490054dabc77ba07482f46350ab5bb2edea",
+      "cantorserve/native/database_filter.py": "9c636c5be31e72e3b5684f0477c04840a053a386d94d06d8bac25abd1b44f3ed",
+      "cantorserve/native/database_publisher.py": "5e848d0f82252d8531c070d0bde2a9ad6818fdef948df7ef29ebcd697524e2bd",
+      "cantorserve/native/garnet_publisher.py": "25a989f796a24e65b09515dd4b29037b07bc8af64fb3c0c31f696a4e3298aac9",
+      "cantorserve/native/garnet_service.py": "5763a2108a7ef05932e30275b54ad339a85ab6898644b2db8acb468898962a36",
+      "cantorserve/native/observability.py": "949e171fcc32a57ba2d833b81058ff210321ffaab53213ad0bb73fa041fcbd2b",
+      "cantorserve/native/portal_database_filter.py": "7499a68f821d3b44d16366884ba9e0b1256c8a266cb771fc8c540eb62f7baedc",
+      "cantorserve/native/portal_database_publisher.py": "0a611d4ecd1cfabff8d69aa2204ab6b632ce51a9c8d6b6cf77ebc401806b6cb7",
+      "cantorserve/native/provider_filter.py": "55f4a8ae61705e223400d0669a859871e523c890c4a092e68bfcbe7c43a29ba2",
+      "cantorserve/native/quanta_filter.py": "1b50128e0d5c44cb78cdc1ac3bda7524f14de47625b2e0545f303fbd11b01165",
+      "cantorserve/native/speech_filter.py": "a772f8948133daac5aaeab37f13c98c92cf54ede6be9f2f887c7ad10a64c7971",
+      "cantorserve/native/speech_publisher.py": "8258d87fd93437cfb11125b1283f746ff8c0b33452c3629c6962fbe6f5591407",
+      "cantorserve/native/speech_service.py": "c951437ef85d487527e8599cea1794eb4e839cf3442caf5c9cbee77a2e1d08ac",
+      "cantorserve/native/speech_worker.py": "b13d26401e7f29c1fec5102b4e501228ed4f34c23e537502a6373528c770a369",
+      "cantorserve/native_admission.py": "bc951b9b21e775e11349c297b2e493aa70fe1941d44d6157d881a648f01518f4",
+      "cantorserve/native_gc.py": "5ed70db87e07586477bf063322fcb55003012c1b1a3c6c03afc634a8328386b9",
+      "cantorserve/native_runtime.py": "4248360f0b5ca001d54c460e4db57230bd2246cdb9265d78f01afa54710ff3c4",
+      "cantorserve/ollama_api.py": "7a0632a29ed633c887d12fb3a01f64e09f48de3a20c14b54f637d3dd12414be2",
+      "cantorserve/providers/__init__.py": "becec3ec598d2caa02d2e0cd29c18514525eb1ea936261099715daf89a07e623",
+      "cantorserve/providers/garnet.py": "21ba90c4f6a39ea9870899dda23f6374360923ab1c626f996aed62534c633266",
+      "cantorserve/request_timings.py": "f056456fec198542dc2f678818dd5e14889a6ccf518dffc49bb75cffe4359dd5",
+      "cantorserve/search_agent.py": "100ea17803e0bae5fc20660959b1ae6ec15b592d065527a1688603094e83a2b9",
+      "cantorserve/search_config.py": "9040dac6515d7b59f8439051df465eeceba3e2eabea24bc87991c73e46f6f343",
+      "cantorserve/search_exa.py": "be88ce51ce999afc8ed8b080b8d8d32237667bb3cf615798594a78e10a6b5388",
+      "cantorserve/search_tools.py": "ff5dd25be08c1794fdd0e9166182384157241f038c266dd9c8409802b2f7946e",
+      "cantorserve/security.py": "782ad0884adce46fe1b044455411791906e011912d36e84c2dfdd6c18b4a8830",
+      "cantorserve/storage.py": "03cc15d05b8b6e0fe3f9d826722f0e8248a8f92d17d4e1cd3386ff8fe134c465",
+      "cantorserve/streaming.py": "693d0886a5ada25a53cd085bc46d64552302f06809b37ba8390092500fb4a8e3",
+      "cantorserve/testlab_api.py": "563b92711f20e016d2c1a3d5b20c0ebbd73e5d1f54d41c194a5e7dba1bf5efc1",
+      "cantorserve/transport.py": "92fc31e1ef5c537569177096ae4e0a6309ba695d495802c980cdc17a5286cc81",
+      "cantorserve/usage.py": "90c249397f0b20961fae2801a45fd537792a10839084b7d77dacadef7d94dea8",
+      "cantorserve/xlang3_direct.py": "229e6a939add1eb38e4f3dff1e5402441d8f1d3259d1ca36c39774a420a0350a",
+      "launch.py": "71cb65ec07ac04a2a63bbcc34eb47e6fded30bf54fd12ca6b6c225cb1016cad9"
+    },
+    "config_sha256": {
+      "/data/CantorStorage/SharedNode/config/shared-node.yaml": "eef1c68ec062a2fb7bab28f8b998a1ad9946b450216b18ab6797adc67654475f",
+      "/data/CantorStorage/CantorServe/config/public.env": "0f7d23f166b9c328d7917ebbcba5f214cf893b728433bc8fca65074132f37ee4",
+      "/data/CantorStorage/SharedNode/config/serving-host.env": "1882672bc3bebafad52afcb3c0a7b1323815fbda9398e588259b2a299a71f295"
+    },
+    "storage_source_sha256": {
+      "/data/CantorStorage/CantorServe/pipelines/azure-serving-v1.json": "0561c68628b1c3886ee0498e6f4b4ada0de2df8350034130a57f71aad2912a6e",
+      "/data/CantorStorage/CantorServe/pipelines/database-role.json": "be0424f95cb0ce766bec4f68bb7a0715b974734f8f26db19cfecc60da6ebe3e2",
+      "/data/CantorStorage/CantorServe/pipelines/azure-database-publisher.py": "1fb9757376bd64a9906fbec9404c3be7473ad10102c080fff3ea33c5d495a245"
+    },
+    "loaded_runtime_sha256": {
+      "core": {
+        "/data/Cantor/releases/native-stability-20261030-iterator-8468be8f/bin/libxlang3_runtime.so": "6b8a6a36f7ffe7905cf2a010aa0dcb133e8ed4dc5cb94ae897eec2271d1ad9e0"
+      },
+      "api": {
+        "/data/Cantor/releases/native-stability-20261030-iterator-8468be8f/bin/libxlang3_runtime.so": "6b8a6a36f7ffe7905cf2a010aa0dcb133e8ed4dc5cb94ae897eec2271d1ad9e0"
+      }
+    },
+    "state_links": {
+      "bin/Logs": "/data/CantorStorage/SharedNode/Logs",
+      "bin/Database": "/data/CantorStorage/SharedNode/Database",
+      "bin/CantorStore": "/data/CantorStorage/SharedNode/CantorStore"
+    }
+  }
+}

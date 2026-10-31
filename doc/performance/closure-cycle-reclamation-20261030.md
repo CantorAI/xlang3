@@ -216,6 +216,12 @@ does not change this runtime or certify a fix for the remaining API growth.
 Remaining work is to identify and reproduce the residual full-service memory
 retention, fix its owner, and repeat a complete unchanged-source qualification.
 
+The subsequent [iterator-owner investigation](iterator-owner-release-20261030.md)
+identifies a separate missing native deleter and records a new complete live
+interval on its corrected artifact. That later result does not replace this
+failed observation. A further [data-string ingress finding](transient-string-ingress-20261030.md)
+and its candidate qualification are recorded separately.
+
 Live evidence: [failed interval, exact identities and raw START/END samples](data/azure-native-gc-20261030-failed-observation.json),
 [read-only RSS/CPU series](data/api-rss-working-set-20261030.json),
 [isolated tuple allocation controls](data/tuple-retention-control-20261030.json).

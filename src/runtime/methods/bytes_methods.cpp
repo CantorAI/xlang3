@@ -55,11 +55,11 @@ bool raise_unicode_decode_error(
   error = display;
   Value exception = runtime.make_exception("UnicodeDecodeError", display);
   std::string ignored;
-  object_set_attr(exception, "encoding", Value::string(encoding), ignored);
+  object_set_attr(exception, "encoding", noninterned_string_value(encoding), ignored);
   object_set_attr(exception, "object", object, ignored);
   object_set_attr(exception, "start", Value::int64(static_cast<int64_t>(start)), ignored);
   object_set_attr(exception, "end", Value::int64(static_cast<int64_t>(end)), ignored);
-  object_set_attr(exception, "reason", Value::string(reason), ignored);
+  object_set_attr(exception, "reason", noninterned_string_value(reason), ignored);
   runtime.set_pending_exception(std::move(exception));
   return false;
 }
@@ -306,7 +306,7 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
       if (!runtime_call_callable(runtime, *import_function, &import_arg, 1, codecs_module, error)) return false;
       Value lookup_function;
       Value codec_info;
-      Value lookup_arg = Value::string(encoding);
+      Value lookup_arg = noninterned_string_value(encoding);
       if (!module_get_attr(codecs_module, "lookup", lookup_function, error) ||
           !runtime_call_callable(runtime, lookup_function, &lookup_arg, 1, codec_info, error)) {
         return false;
@@ -325,7 +325,7 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
       }
       Value decode_function;
       if (!module_get_attr(codecs_module, "decode", decode_function, error)) return false;
-      Value call_args[3] = {args[0], Value::string(encoding), argc == 3 ? args[2] : Value::string("strict")};
+      Value call_args[3] = {args[0], noninterned_string_value(encoding), argc == 3 ? args[2] : Value::string("strict")};
       Value decoded;
       if (!runtime_call_callable(runtime, decode_function, call_args, 3, decoded, error)) return false;
       if (value_as_string(decoded) == nullptr) {
@@ -373,19 +373,19 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
             "ordinal not in range(128)", error);
       }
     }
-    out = Value::string(std::move(decoded));
+    out = noninterned_string_value(decoded);
     return true;
   }
   if (encoding == "latin_1") {
-    out = Value::string(latin1_decode_text(text));
+    out = noninterned_string_value(latin1_decode_text(text));
     return true;
   }
   if (encoding == "latin_9") {
-    out = Value::string(latin9_decode_text(text));
+    out = noninterned_string_value(latin9_decode_text(text));
     return true;
   }
   if (encoding == "cp437") {
-    out = Value::string(cp437_decode_bytes(text));
+    out = noninterned_string_value(cp437_decode_bytes(text));
     return true;
   }
   if (encoding.rfind("utf_16", 0) == 0 || encoding.rfind("utf_32", 0) == 0) {
@@ -393,7 +393,7 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
     if (!decode_utf16_or_utf32(runtime, text, encoding, errors, decoded, error)) {
       return false;
     }
-    out = Value::string(std::move(decoded));
+    out = noninterned_string_value(decoded);
     return true;
   }
   if (encoding == "mbcs") {
@@ -402,7 +402,7 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
       runtime.raise_class_error("UnicodeDecodeError", error);
       return false;
     }
-    out = Value::string(std::move(decoded));
+    out = noninterned_string_value(decoded);
     return true;
   }
   if (encoding == "gbk") {
@@ -411,7 +411,7 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
       runtime.raise_class_error("UnicodeDecodeError", error);
       return false;
     }
-    out = Value::string(std::move(decoded));
+    out = noninterned_string_value(decoded);
     return true;
   }
   if (encoding == "utf_8_sig") {
@@ -473,7 +473,7 @@ bool bytes_decode_method(Runtime& runtime, const Value* args, uint32_t argc, Val
           runtime, "utf-8", args[0], i, i + 1, "invalid start byte", error);
     }
   }
-  out = Value::string(std::move(decoded));
+  out = noninterned_string_value(decoded);
   return true;
 }
 
@@ -850,7 +850,7 @@ bool bytes_hex_method(Runtime&, const Value* args, uint32_t argc, Value& out, st
     result[i * 2] = digits[byte >> 4u];
     result[i * 2 + 1] = digits[byte & 0x0fu];
   }
-  out = Value::string(std::move(result));
+  out = noninterned_string_value(result);
   return true;
 }
 
@@ -1949,7 +1949,7 @@ bool memoryview_hex_method(Runtime& runtime, const Value* args, uint32_t argc, V
   if (!append_hex_string(bytes, sep, bytes_per_sep, result, error)) {
     return false;
   }
-  out = Value::string(std::move(result));
+  out = noninterned_string_value(result);
   return true;
 }
 

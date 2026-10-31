@@ -278,7 +278,8 @@ X3Value x3_value_string(X3Runtime* runtime, const char* value) {
   if (rt == nullptr || value == nullptr) {
     return x3_value_invalid();
   }
-  return xlang3::to_c_value(xlang3::Value::string(value));
+  // Embedding callers supply runtime data, not compiler identifier literals.
+  return xlang3::to_c_value(xlang3::noninterned_string_value(value));
 }
 
 X3Value x3_value_string_utf8(X3Runtime* runtime, const char* data, uint64_t size) {
@@ -290,7 +291,7 @@ X3Value x3_value_string_utf8(X3Runtime* runtime, const char* data, uint64_t size
     return x3_value_invalid();
   }
   try {
-    return xlang3::to_c_value(xlang3::Value::string_view(
+    return xlang3::to_c_value(xlang3::noninterned_string_value(
         std::string_view(size ? data : "", static_cast<size_t>(size))));
   } catch (const std::exception& error) {
     rt->set_last_error(error.what());

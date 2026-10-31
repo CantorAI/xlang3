@@ -175,7 +175,7 @@ bool materialize_wire_value(
       out = Value::number(wire.double_value);
       return true;
     case serialize::IpcWireValueKind::String:
-      out = Value::string(wire.bytes);
+      out = noninterned_string_value(wire.bytes);
       return true;
     case serialize::IpcWireValueKind::Bytes:
       out = Value::bytes(wire.bytes);

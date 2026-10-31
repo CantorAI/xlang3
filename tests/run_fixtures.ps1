@@ -276,6 +276,8 @@ $cases = @(
     "gc_generic_cycles",
     "gc_function_cycles",
     "iterator_owner_release",
+    "json_transient_strings",
+    "runtime_transient_text",
     "two_argument_double_ir_plan",
     "deque_class_getitem",
     "sre_class_getitem",

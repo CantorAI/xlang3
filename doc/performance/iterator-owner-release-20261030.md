@@ -129,7 +129,55 @@ criterion. First/last 6,000-request median is 1.914/1.869 ms, with p95
 7.402/7.384 ms. It exits 0. This is an isolated ASGI/inspect/GC workload, not
 HTTP socket or native GPU decode qualification.
 
-A new complete live memory/latency interval remains pending.
+## Complete live interval on the iterator runtime
+
+The deployed `6b8a6a36...` runtime completes 2,700.28 seconds with 10,676
+signed RPCs and 2,665 HTTP health requests. The original checker exits 0:
+zero errors, all client threads joined, one unchanged cached proxy and no
+core/API restart. Core/API PIDs remain 923645/923939. The strict collector
+also verifies unchanged native images, all 55 backend Python source hashes,
+configuration hashes, stored role/graph sources and external state links.
+
+The unchanged less-than-20-MiB-per-process criterion passes. Core RSS changes
+from 138,580 KiB after 300 seconds to 158,300 KiB, growth 19,720 KiB; API changes
+from 207,780 to 223,640 KiB, growth 15,860 KiB. These are also the sampled final
+peaks. No server collection is forced and no sampling phase or threshold is
+adjusted. The API helper retains its original 30-second interval.
+
+First/last five-minute RPC median is 5.291/5.395 ms, p95 11.661/7.823 ms;
+HTTP median is 12.286/11.916 ms, p95 19.467/15.632 ms. The full RPC maximum is
+1,000.97 ms and the HTTP maximum is 98.93 ms. Passing the recorded interval
+does not establish a bounded latency tail or indefinite memory convergence.
+
+Four real streaming START requests complete before this interval, with four
+matched END requests completing after its verified completion. All eight use
+the same prompt, 64-token limit, serial concurrency, zero warmups/retries and
+actual final usage. All return HTTP 200 and finish normally. Client first
+visible content times are:
+
+| Model | START, seconds | END, seconds |
+| --- | --- | --- |
+| 2B | 0.658, 0.292 | 0.639, 0.326 |
+| 27B | 2.153, 1.980 | 1.664, 1.732 |
+
+Same-request worker receipts are present for all eight calls. Their reported
+decode rates are 48.94/48.35 -> 53.76/54.09 tokens/s for 2B and 35.77/35.08 ->
+36.44/34.89 tokens/s for 27B. These worker/model timers include their documented
+execution boundary, not pure GPU kernel time. They use 43/52 generated tokens;
+client final completion usage is 44/53 including the sampled stop token.
+This small sample does not certify sustained model throughput or exclude a
+future long TTFT tail. There is no model
+inference emitted by the checker. This arrangement differs from the older
+failed interval's recorded overlapping background work, so it is not an
+identical-total-load before/after comparison or a sustained GPU decode test.
+Client timings and native worker timings must remain separate.
+
+Read-only counter inspection during this interval also leads to a distinct,
+reproducible [transient-string ingress finding](transient-string-ingress-20261030.md).
+That follow-up candidate is not deployed during this iterator qualification.
+Its future qualification cannot reuse this interval. The older complete
+45-minute API-memory failure remains failed.
+
 No protected shared Windows Release files or service are modified.
 
 ## Evidence
@@ -150,3 +198,6 @@ No protected shared Windows Release files or service are modified.
   [direct tokenizer-vector ownership](data/failed-api-896837-token-state-ownership.json).
 - [Default collection and shutdown](data/iterator-r3-native-lifespan.log),
   [900-second concurrent ASGI/inspect/GC record](data/iterator-r3-threaded-soak.json).
+- Live interval: [initial exact identity](data/iterator-r3-live-initial-identity-20261031.json),
+  [strict acceptance and full time series](data/iterator-r3-live-acceptance-20261031.json),
+  [all START/END client, API and worker observations](data/iterator-r3-live-stream-start-end-20261031.json).

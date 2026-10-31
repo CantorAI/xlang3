@@ -187,12 +187,13 @@ private:
             // The source view is copied directly into XLang's owned string.
             // Avoid constructing a temporary std::string for every unescaped
             // JSON key/value; json_loads contains many short strings per parse.
-            out = Value::string_view(text);
+            // Runtime JSON values must not become permanent identifier interns.
+            out = noninterned_string_value(text);
           } else {
-            out = Value::string(std::string{});
+            out = noninterned_string_value({});
           }
         } else {
-          out = Value::string(std::move(decoded));
+          out = noninterned_string_value(decoded);
         }
         return true;
       }
@@ -264,7 +265,7 @@ private:
     // The memo contains string keys only, so the view lookup is exact. On a
     // miss we now pay to create the owned key once; repeated keys avoid this
     // allocation on the decoder's JSON records.
-    key = Value::string_view(text);
+    key = noninterned_string_value(text);
     error.clear();
     return mapping_set_item(memo_, key, key, error);
   }
@@ -303,7 +304,7 @@ private:
         // boundary cases; ordinary JSON floats stay entirely on the native path.
         const Value* float_class = runtime_.find_builtin("float");
         Value parsed;
-        Value text_value = Value::string(std::string(token));
+        Value text_value = noninterned_string_value(token);
         std::string error;
         if (float_class == nullptr ||
             !runtime_call_callable(runtime_, *float_class, &text_value, 1, parsed, error) ||
@@ -750,7 +751,7 @@ bool json_encoder_call(
     JsonActiveStack active;
     bool supported = true;
     if (append_json_builtin(args[0], encoded, active, supported)) {
-      out = Value::list({Value::string(std::move(encoded))});
+      out = Value::list({noninterned_string_value(encoded)});
       return true;
     }
     // Construct fallback state only for unsupported values. The frequent
@@ -778,7 +779,7 @@ bool json_encoder_call(
     JsonActiveStack active;
     bool supported = true;
     if (append_json_builtin(args[0], encoded, active, supported)) {
-      out = Value::list({Value::string(std::move(encoded))});
+      out = Value::list({noninterned_string_value(encoded)});
       return true;
     }
   }

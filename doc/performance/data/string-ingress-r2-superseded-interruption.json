@@ -1,0 +1,298 @@
+{
+  "reason": "Intentionally interrupt incomplete R2 qualification after independently reproducing 5000 UUIDs retaining 5002 intern entries; expand generic runtime text operations and rerun the full fixed qualification.",
+  "owned_test_pid": 204516,
+  "runtime_sha256": "7cfe5eac77647a13485285a60bdfffa4e8d38d1a249cf0dc6bf3973625c13174",
+  "requested_at_unix": 1793413724.47904,
+  "service_or_gpu_process_signalled": false,
+  "source_interval_complete": false,
+  "partial_report_before_stop": {
+    "runtime": "xlang3",
+    "runtime_sha256": "7cfe5eac77647a13485285a60bdfffa4e8d38d1a249cf0dc6bf3973625c13174",
+    "workload": "Four ASGI/JSON threads plus synthetic inspect.getblock early exit and a unique parsed JSON request ID on every request; original 0.1s sleeps and 2s collection cadence.",
+    "duration_seconds": 420.3796641109511,
+    "final": false,
+    "errors": [],
+    "counts": [
+      4052,
+      4052,
+      4050,
+      4052
+    ],
+    "first": {
+      "count": 6000,
+      "median_ms": 1.833514019381255,
+      "p95_ms": 7.1546530816704035
+    },
+    "last": {
+      "count": 6000,
+      "median_ms": 1.5490910154767334,
+      "p95_ms": 6.610637996345758
+    },
+    "samples": [
+      {
+        "seconds": 30.294419966987334,
+        "calls": 1169,
+        "rss_kib": 84052,
+        "objects": 15909,
+        "collected": 32732,
+        "interned_strings": 11304
+      },
+      {
+        "seconds": 60.56908777996432,
+        "calls": 2332,
+        "rss_kib": 86796,
+        "objects": 15855,
+        "collected": 65324,
+        "interned_strings": 11306
+      },
+      {
+        "seconds": 90.825779434992,
+        "calls": 3501,
+        "rss_kib": 89476,
+        "objects": 15856,
+        "collected": 98084,
+        "interned_strings": 11307
+      },
+      {
+        "seconds": 121.10098300594836,
+        "calls": 4669,
+        "rss_kib": 91088,
+        "objects": 16529,
+        "collected": 130816,
+        "interned_strings": 11308
+      },
+      {
+        "seconds": 151.39965917391237,
+        "calls": 5834,
+        "rss_kib": 91320,
+        "objects": 15918,
+        "collected": 163408,
+        "interned_strings": 11309
+      },
+      {
+        "seconds": 181.71486737392843,
+        "calls": 7001,
+        "rss_kib": 91740,
+        "objects": 15899,
+        "collected": 196140,
+        "interned_strings": 11310
+      },
+      {
+        "seconds": 211.9727927239146,
+        "calls": 8173,
+        "rss_kib": 92056,
+        "objects": 15866,
+        "collected": 229012,
+        "interned_strings": 11311
+      },
+      {
+        "seconds": 240.25134432595223,
+        "calls": 9262,
+        "rss_kib": 92248,
+        "objects": 15861,
+        "collected": 259532,
+        "interned_strings": 11312
+      },
+      {
+        "seconds": 270.6070926049724,
+        "calls": 10432,
+        "rss_kib": 92444,
+        "objects": 15862,
+        "collected": 292320,
+        "interned_strings": 11313
+      },
+      {
+        "seconds": 300.9495379049331,
+        "calls": 11601,
+        "rss_kib": 92712,
+        "objects": 15863,
+        "collected": 325080,
+        "interned_strings": 11314
+      },
+      {
+        "seconds": 331.2308316389099,
+        "calls": 12770,
+        "rss_kib": 92828,
+        "objects": 15892,
+        "collected": 357812,
+        "interned_strings": 11315
+      },
+      {
+        "seconds": 361.6922222810099,
+        "calls": 13945,
+        "rss_kib": 92984,
+        "objects": 15925,
+        "collected": 390768,
+        "interned_strings": 11316
+      },
+      {
+        "seconds": 390.0775635339087,
+        "calls": 15039,
+        "rss_kib": 93144,
+        "objects": 15926,
+        "collected": 421428,
+        "interned_strings": 11317
+      },
+      {
+        "seconds": 420.3793440730078,
+        "calls": 16206,
+        "rss_kib": 93424,
+        "objects": 15867,
+        "collected": 454132,
+        "interned_strings": 11318
+      }
+    ],
+    "collected": 454132,
+    "threads_stopped": false,
+    "steady_rss_growth_kib": 2336,
+    "steady_intern_growth": 10,
+    "passed": false
+  },
+  "preserved_release": "/home/shawn/CantorServeAzureBuild/20261029/validation/azure-native-stability-20261030/superseded-string-ingress-r2/bin",
+  "stopped_at_unix": 1793413755.6065774,
+  "qualification_passed": false,
+  "actual_stop": "Owned SIGINT terminated CLI without a Python final sample; do not claim joined worker threads.",
+  "last_partial_report": {
+    "runtime": "xlang3",
+    "runtime_sha256": "7cfe5eac77647a13485285a60bdfffa4e8d38d1a249cf0dc6bf3973625c13174",
+    "workload": "Four ASGI/JSON threads plus synthetic inspect.getblock early exit and a unique parsed JSON request ID on every request; original 0.1s sleeps and 2s collection cadence.",
+    "duration_seconds": 420.3796641109511,
+    "final": false,
+    "errors": [],
+    "counts": [
+      4052,
+      4052,
+      4050,
+      4052
+    ],
+    "first": {
+      "count": 6000,
+      "median_ms": 1.833514019381255,
+      "p95_ms": 7.1546530816704035
+    },
+    "last": {
+      "count": 6000,
+      "median_ms": 1.5490910154767334,
+      "p95_ms": 6.610637996345758
+    },
+    "samples": [
+      {
+        "seconds": 30.294419966987334,
+        "calls": 1169,
+        "rss_kib": 84052,
+        "objects": 15909,
+        "collected": 32732,
+        "interned_strings": 11304
+      },
+      {
+        "seconds": 60.56908777996432,
+        "calls": 2332,
+        "rss_kib": 86796,
+        "objects": 15855,
+        "collected": 65324,
+        "interned_strings": 11306
+      },
+      {
+        "seconds": 90.825779434992,
+        "calls": 3501,
+        "rss_kib": 89476,
+        "objects": 15856,
+        "collected": 98084,
+        "interned_strings": 11307
+      },
+      {
+        "seconds": 121.10098300594836,
+        "calls": 4669,
+        "rss_kib": 91088,
+        "objects": 16529,
+        "collected": 130816,
+        "interned_strings": 11308
+      },
+      {
+        "seconds": 151.39965917391237,
+        "calls": 5834,
+        "rss_kib": 91320,
+        "objects": 15918,
+        "collected": 163408,
+        "interned_strings": 11309
+      },
+      {
+        "seconds": 181.71486737392843,
+        "calls": 7001,
+        "rss_kib": 91740,
+        "objects": 15899,
+        "collected": 196140,
+        "interned_strings": 11310
+      },
+      {
+        "seconds": 211.9727927239146,
+        "calls": 8173,
+        "rss_kib": 92056,
+        "objects": 15866,
+        "collected": 229012,
+        "interned_strings": 11311
+      },
+      {
+        "seconds": 240.25134432595223,
+        "calls": 9262,
+        "rss_kib": 92248,
+        "objects": 15861,
+        "collected": 259532,
+        "interned_strings": 11312
+      },
+      {
+        "seconds": 270.6070926049724,
+        "calls": 10432,
+        "rss_kib": 92444,
+        "objects": 15862,
+        "collected": 292320,
+        "interned_strings": 11313
+      },
+      {
+        "seconds": 300.9495379049331,
+        "calls": 11601,
+        "rss_kib": 92712,
+        "objects": 15863,
+        "collected": 325080,
+        "interned_strings": 11314
+      },
+      {
+        "seconds": 331.2308316389099,
+        "calls": 12770,
+        "rss_kib": 92828,
+        "objects": 15892,
+        "collected": 357812,
+        "interned_strings": 11315
+      },
+      {
+        "seconds": 361.6922222810099,
+        "calls": 13945,
+        "rss_kib": 92984,
+        "objects": 15925,
+        "collected": 390768,
+        "interned_strings": 11316
+      },
+      {
+        "seconds": 390.0775635339087,
+        "calls": 15039,
+        "rss_kib": 93144,
+        "objects": 15926,
+        "collected": 421428,
+        "interned_strings": 11317
+      },
+      {
+        "seconds": 420.3793440730078,
+        "calls": 16206,
+        "rss_kib": 93424,
+        "objects": 15867,
+        "collected": 454132,
+        "interned_strings": 11318
+      }
+    ],
+    "collected": 454132,
+    "threads_stopped": false,
+    "steady_rss_growth_kib": 2336,
+    "steady_intern_growth": 10,
+    "passed": false
+  }
+}

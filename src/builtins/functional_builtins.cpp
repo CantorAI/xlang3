@@ -4908,7 +4908,7 @@ bool builtin_repr(
           text += string_object_to_string(*item_text);
         }
       }
-      out = Value::string(std::move(text));
+      out = noninterned_string_value(text);
       return true;
     }
     const auto class_type_name = [](const ClassObject* klass) {
@@ -4948,7 +4948,7 @@ bool builtin_repr(
       return false;
     }
     text.push_back(']');
-    out = Value::string(std::move(text));
+    out = noninterned_string_value(text);
     return true;
   }
   if (auto* proxy = value_as_mapping_proxy(args[0])) {
@@ -4996,7 +4996,7 @@ bool builtin_repr(
       return true;
     }
   }
-  out = Value::string(value_to_repr(args[0]));
+  out = noninterned_string_value(value_to_repr(args[0]));
   return true;
 }
 
@@ -5056,7 +5056,7 @@ bool builtin_ascii(
     for (int shift = (digits - 1) * 4; shift >= 0; shift -= 4)
       escaped.push_back(hex[(codepoint >> shift) & 0xf]);
   }
-  out = Value::string(std::move(escaped));
+  out = noninterned_string_value(escaped);
   return true;
 }
 
@@ -5206,7 +5206,7 @@ bool format_integer_digits(bool negative, std::string digits,
     text = sign + prefix + digits;
     text = apply_format_width(std::move(text), spec);
   }
-  out = Value::string(std::move(text));
+  out = noninterned_string_value(text);
   return true;
 }
 
@@ -5257,7 +5257,7 @@ bool format_double_value(double value, const ParsedFormatSpec& spec, Value& out,
   if (percent) {
     text.push_back('%');
   }
-  out = Value::string(apply_format_width(std::move(text), spec));
+  out = noninterned_string_value(apply_format_width(std::move(text), spec));
   return true;
 }
 
@@ -5272,7 +5272,7 @@ bool format_string_value(const Value& value, const ParsedFormatSpec& spec, Value
   }
   ParsedFormatSpec string_spec = spec;
   if (string_spec.align == '\0') string_spec.align = '<';
-  out = Value::string(apply_format_width(std::move(text), string_spec));
+  out = noninterned_string_value(apply_format_width(std::move(text), string_spec));
   return true;
 }
 
@@ -5418,7 +5418,7 @@ bool builtin_chr(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
     runtime.raise_class_error("ValueError", error);
     return false;
   }
-  out = Value::string(std::move(text));
+  out = noninterned_string_value(text);
   return true;
 }
 
@@ -5497,7 +5497,7 @@ bool builtin_bin(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if (argc != 1 || (args[0].tag != ValueTag::Int64 && value_as_bigint(args[0]) == nullptr)) {
     return raise_type_error(runtime, "bin() expected int argument", error);
   }
-  out = Value::string(args[0].tag == ValueTag::Int64
+  out = noninterned_string_value(args[0].tag == ValueTag::Int64
       ? format_integer_base(args[0].as.i64, 2, "0b")
       : format_bigint_base(args[0], 1, "0b"));
   return true;
@@ -5507,7 +5507,7 @@ bool builtin_oct(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if (argc != 1 || (args[0].tag != ValueTag::Int64 && value_as_bigint(args[0]) == nullptr)) {
     return raise_type_error(runtime, "oct() expected int argument", error);
   }
-  out = Value::string(args[0].tag == ValueTag::Int64
+  out = noninterned_string_value(args[0].tag == ValueTag::Int64
       ? format_integer_base(args[0].as.i64, 8, "0o")
       : format_bigint_base(args[0], 3, "0o"));
   return true;
@@ -5517,7 +5517,7 @@ bool builtin_hex(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if (argc != 1 || (args[0].tag != ValueTag::Int64 && value_as_bigint(args[0]) == nullptr)) {
     return raise_type_error(runtime, "hex() expected int argument", error);
   }
-  out = Value::string(args[0].tag == ValueTag::Int64
+  out = noninterned_string_value(args[0].tag == ValueTag::Int64
       ? format_integer_base(args[0].as.i64, 16, "0x")
       : format_bigint_base(args[0], 4, "0x"));
   return true;
