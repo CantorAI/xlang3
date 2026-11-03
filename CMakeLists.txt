@@ -319,6 +319,13 @@ set_target_properties(xlang3_thread_runtime xlang3_task_runtime
 set_target_properties(xlang3_runtime PROPERTIES
   WINDOWS_EXPORT_ALL_SYMBOLS ON
 )
+if(MSVC AND CMAKE_SIZEOF_VOID_P EQUAL 8)
+  # The inline execution guards used by native tests share the DLL's lock and
+  # recursion depth. Their definitions come from a /GL static component, which
+  # CMake's automatic object export scanner cannot inspect.
+  target_sources(xlang3_runtime PRIVATE
+    src/runtime/modules/thread/runtime_lock_exports.def)
+endif()
 
 if(NOT XLANG3_RELEASE_PGO_STAGE STREQUAL "OFF")
   if(NOT MSVC OR NOT WIN32)
@@ -752,7 +759,9 @@ if(WIN32)
   add_test(NAME xlang3_cli_compat COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_cli_compat.ps1 -XLang3 $<TARGET_FILE:xlang3> -WorkDir ${CMAKE_CURRENT_BINARY_DIR}/cli_compat)
   add_test(NAME xlang3_cli_unicode_library_path COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_unicode_library_path.ps1 -XLang3 $<TARGET_FILE:xlang3>)
   set_tests_properties(xlang3_cli_unicode_library_path PROPERTIES TIMEOUT 30)
-  add_test(NAME xlang3_cli_pickle_interop COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_pickle_interop.ps1 -XLang3 $<TARGET_FILE:xlang3> -WorkDir ${CMAKE_CURRENT_BINARY_DIR}/pickle_interop)
+  if(XLANG3_PYTHON314_EXECUTABLE)
+    add_test(NAME xlang3_cli_pickle_interop COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/cli/run_pickle_interop.ps1 -XLang3 $<TARGET_FILE:xlang3> -CPython ${XLANG3_PYTHON314_EXECUTABLE} -WorkDir ${CMAKE_CURRENT_BINARY_DIR}/pickle_interop)
+  endif()
   add_test(NAME xlang3_ipc_lrpc_smoke COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1 -XLang3 $<TARGET_FILE:xlang3> -NativeClient $<TARGET_FILE:xlang3_cpp_ipc_client>)
   add_test(NAME xlang3_ipc_lrpc_server_exit COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_server_exit.ps1 -XLang3 $<TARGET_FILE:xlang3>)
   add_test(NAME xlang3_ipc_lrpc_backpressure COMMAND ${XLANG3_POWERSHELL} -NoProfile -ExecutionPolicy Bypass -File ${CMAKE_CURRENT_SOURCE_DIR}/tests/ipc/run_lrpc_smoke.ps1 -XLang3 $<TARGET_FILE:xlang3> -ClientScript pressure_client.py -Expected pressure_expected.out)

@@ -1,0 +1,4 @@
+EXPORTS
+  ?xlang_runtime_execution_acquired@xlang3@@YAXXZ
+  ?xlang_runtime_execution_lock@xlang3@@YAAEAVXlangRuntimeExecutionMutex@1@XZ
+  ?xlang_runtime_execution_depth@xlang3@@YAAEAIXZ

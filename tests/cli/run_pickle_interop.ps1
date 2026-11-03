@@ -12,6 +12,7 @@
 # limitations under the License.
 param(
     [string]$XLang3,
+    [string]$CPython,
     [string]$WorkDir
 )
 
@@ -25,14 +26,10 @@ if (-not $WorkDir) {
     $WorkDir = Join-Path $PSScriptRoot "..\..\build\pickle_interop"
 }
 
-$python = "C:\Python\Python314\python.exe"
-if (-not (Test-Path $python)) {
-    $python = (Get-Command python3, python -ErrorAction SilentlyContinue | Select-Object -First 1).Source
+if (-not $CPython -or -not [IO.Path]::IsPathRooted($CPython) -or -not (Test-Path -LiteralPath $CPython -PathType Leaf)) {
+    throw "An explicit CPython oracle path is required for pickle interoperability tests"
 }
-
-if (-not $python) {
-    throw "CPython is required for pickle interoperability tests"
-}
+$python = $CPython
 
 $root = Resolve-Path (Join-Path $PSScriptRoot "..\..")
 $writer = Join-Path $root "tests\fixtures\compat_sections\pickle_interop_writer.py"

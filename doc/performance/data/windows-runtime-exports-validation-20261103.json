@@ -1,0 +1,42 @@
+{
+  "date": "2026-11-03",
+  "base": "6186ffa61203789ed8ff18669c81fff32125259c",
+  "branch": "codex/xmind-windows-exports-20261103",
+  "problem": "Windows full Release build failed to link ABI ownership and interpreter tests: runtime execution lock/depth/acquired definitions are in a /GL static component and absent from automatic DLL exports",
+  "change": "Add an MSVC 64-bit module-definition input exporting the three shared execution-guard functions; retain all compiler/optimization settings and the existing guard implementation",
+  "build_method": "Original sibling main source remained unchanged. Its existing incremental build used CMAKE_PROJECT_xlang3_INCLUDE with a deferred target_sources call adding the isolated branch's .def, equivalent to the branch CMake target_sources addition. No replacement guard implementation or separate test lock was introduced.",
+  "build": {"configuration": "Release", "full_default_build_exit": 0, "initial_default_build_exit": 1},
+  "abi": {"previous_exports": 20861, "new_exports": 20864, "removed": 0, "added": 3, "report": "windows-runtime-exports-abi-20261103.json"},
+  "correctness": {
+    "focused_tests": 5,
+    "focused_passed": 5,
+    "permitted_inventory": 57,
+    "permitted_passed": 57,
+    "elapsed_seconds": 68.58,
+    "exit_code": 0,
+    "excluded": ["xlang3_cli_pickle_interop requires CPython"],
+    "report": "windows-runtime-exports-tests-20261103.xml",
+    "source_inventory_count": 3454,
+    "source_changes_during_export_validation": 0,
+    "binary_inventory_count": 54,
+    "binary_changes_during_permitted_tests": 0
+  },
+  "performance": {
+    "runner": "xlang3 benchmarks/check_regression.py",
+    "cases": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1,
+    "exit_code": 0,
+    "status": "pass",
+    "report": "windows-runtime-exports-performance-20261103.json",
+    "baseline": "Preserved pre-export-change Release executable/DLL at the same main revision. This comparison does not replace historical accepted baselines or establish historical performance recovery."
+  },
+  "interpreter_policy_correction": {
+    "incident": "Initial unfiltered 58-test run mistakenly executed the legacy pickle wrapper, which launched CPython internally. That run is not an xlang3-only acceptance result; original log retained in xMind .agentflow/blockers-20261102/xlang3-all-tests.log.",
+    "guard": "Windows CMake registers pickle interoperability only when XLANG3_PYTHON314_EXECUTABLE is configured, and passes the exact oracle path. Wrapper rejects omitted/nonabsolute/missing oracle paths instead of searching for CPython.",
+    "guard_validation": "Omitted oracle rejected before either interpreter launch or workspace creation. Incremental overlay disables legacy registration when the interpreter variable is empty; permitted 57-test rerun explicitly excludes it.",
+    "no_interpreter_substitution": true
+  },
+  "limits": "Windows x64 Release build/export/test compatibility only. No new installed xMind release or full model-backed xMind acceptance. SDK/runtime source semantics, IPC and optimization levels remain unchanged."
+}

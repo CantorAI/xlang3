@@ -1,0 +1,381 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="(empty)"
+	tests="57"
+	failures="0"
+	disabled="0"
+	skipped="0"
+	hostname=""
+	time="68"
+	timestamp="2026-11-03T00:11:54"
+	>
+	<testcase name="xlang3_import_errors" classname="xlang3_import_errors" time="0.0489354" status="run">
+		<properties/>
+		<system-out>import-errors-passed
+</system-out>
+	</testcase>
+	<testcase name="xlang3_bytes_split" classname="xlang3_bytes_split" time="0.0445733" status="run">
+		<properties/>
+		<system-out>bytes-split-passed
+</system-out>
+	</testcase>
+	<testcase name="xlang3_ipc_native_host_tests" classname="xlang3_ipc_native_host_tests" time="0.15715" status="run">
+		<properties/>
+		<system-out>C++ registered native service hosted and called over xlang3 shared-memory LRPC
+</system-out>
+	</testcase>
+	<testcase name="xlang3_native_host_guard_tests" classname="xlang3_native_host_guard_tests" time="1.50476" status="run">
+		<properties/>
+		<system-out>c_api_set_attr blocked=1 status=0
+host_create_class blocked=1 status=0
+host_class_add_value blocked=1 status=0
+host_value_instance blocked=1 status=0
+host_module_add_value blocked=1 status=0
+runtime_create blocked=1 status=0
+runtime_destroy blocked=1 status=0
+</system-out>
+	</testcase>
+	<testcase name="xlang3_smoke" classname="xlang3_smoke" time="0.040894" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_runtime_isolation_tests" classname="xlang3_runtime_isolation_tests" time="0.680753" status="run">
+		<properties/>
+		<system-out>Two-live-runtime ctypes inheritance and 80 concurrent runtime lifetimes passed.
+</system-out>
+	</testcase>
+	<testcase name="xlang3_abi_ownership" classname="xlang3_abi_ownership" time="0.857912" status="run">
+		<properties/>
+		<system-out>ABI borrowed-reference and concurrent interning tests passed
+</system-out>
+	</testcase>
+	<testcase name="xlang3_static_runtime_shutdown" classname="xlang3_static_runtime_shutdown" time="0.0489763" status="run">
+		<properties/>
+		<system-out>global runtime retained until process teardown
+</system-out>
+	</testcase>
+	<testcase name="xlang3_embedded_package_tests" classname="xlang3_embedded_package_tests" time="0.0599324" status="run">
+		<properties/>
+		<system-out>Embedded C++ package passed
+</system-out>
+	</testcase>
+	<testcase name="xlang3_sdk_stream_call_tests" classname="xlang3_sdk_stream_call_tests" time="0.0578999" status="run">
+		<properties/>
+		<system-out>SDK streams and keyword calls passed
+</system-out>
+	</testcase>
+	<testcase name="xlang3_graph_producer" classname="xlang3_graph_producer" time="0.0623356" status="run">
+		<properties/>
+		<system-out>Graph producer passed
+</system-out>
+	</testcase>
+	<testcase name="xlang3_graph_consumer" classname="xlang3_graph_consumer" time="0.0471378" status="run">
+		<properties/>
+		<system-out>Graph consumer passed without producer source
+</system-out>
+	</testcase>
+	<testcase name="xlang3_graph_reject_BAD_VERSION" classname="xlang3_graph_reject_BAD_VERSION" time="0.043692" status="run">
+		<properties/>
+		<system-out>Native restore rejected with cleanup
+</system-out>
+	</testcase>
+	<testcase name="xlang3_graph_reject_NO_CODEC" classname="xlang3_graph_reject_NO_CODEC" time="0.0397455" status="run">
+		<properties/>
+		<system-out>Native restore rejected with cleanup
+</system-out>
+	</testcase>
+	<testcase name="xlang3_graph_reject_DECODE_FAIL" classname="xlang3_graph_reject_DECODE_FAIL" time="0.0409359" status="run">
+		<properties/>
+		<system-out>Native restore rejected with cleanup
+</system-out>
+	</testcase>
+	<testcase name="xlang3_runtime_value_tests" classname="xlang3_runtime_value_tests" time="0.176749" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_vfs_tests" classname="xlang3_vfs_tests" time="0.0343749" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_tensor_cpu" classname="xlang3_tensor_cpu" time="0.223568" status="run">
+		<properties/>
+		<system-out>tensor-cpu-passed
+</system-out>
+	</testcase>
+	<testcase name="xlang3_tensor_cpu_graph" classname="xlang3_tensor_cpu_graph" time="0.0554674" status="run">
+		<properties/>
+		<system-out>tensor-created
+tensor-graph-built
+tensor-repeated-run-passed
+tensor-arithmetic-passed
+tensor-layout-matmul-passed
+tensor-dtypes-empty-passed
+tensor-fusion-passed
+tensor-cpu-graph-passed
+</system-out>
+	</testcase>
+	<testcase name="xlang3_tensor_cpu_reference" classname="xlang3_tensor_cpu_reference" time="0.0528011" status="run">
+		<properties/>
+		<system-out>tensor-cpu-reference-passed 309
+</system-out>
+	</testcase>
+	<testcase name="xlang3_ipc_capacity_tests" classname="xlang3_ipc_capacity_tests" time="0.0168148" status="run">
+		<properties/>
+		<system-out>IPC admission fairness passed
+</system-out>
+	</testcase>
+	<testcase name="xlang3_serialized_lifetime_tests" classname="xlang3_serialized_lifetime_tests" time="0.0399297" status="run">
+		<properties/>
+		<system-out>Serialized lifetime and bounded frame retention passed
+</system-out>
+	</testcase>
+	<testcase name="xlang3_memory_tests" classname="xlang3_memory_tests" time="0.0180177" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_parser_tests" classname="xlang3_parser_tests" time="0.0169761" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_interpreter_tests" classname="xlang3_interpreter_tests" time="0.409203" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_debug_session_tests" classname="xlang3_debug_session_tests" time="0.0667705" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_dap_session_tests" classname="xlang3_dap_session_tests" time="0.0525499" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_module_slot_tests" classname="xlang3_module_slot_tests" time="0.0464586" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_task_tests" classname="xlang3_task_tests" time="0.0430339" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_ir_codec_tests" classname="xlang3_ir_codec_tests" time="0.0177903" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_native_package_real_tests" classname="xlang3_native_package_real_tests" time="0.068969" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_native_library_path" classname="xlang3_native_library_path" time="0.041683" status="run">
+		<properties/>
+		<system-out>native-library-path-single-initialization-passed
+native-library-absolute-stem-passed
+</system-out>
+	</testcase>
+	<testcase name="xlang3_expression_decorators" classname="xlang3_expression_decorators" time="0.0526165" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_expression_decorators_ipc" classname="xlang3_expression_decorators_ipc" time="0.63765" status="run">
+		<properties/>
+		<system-out>ipc lrpc smoke ok
+</system-out>
+	</testcase>
+	<testcase name="xlang3_xlang1_compat_package_tests" classname="xlang3_xlang1_compat_package_tests" time="0.0662135" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_sdk_c_header_smoke" classname="xlang3_sdk_c_header_smoke" time="0.0153589" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_cli_yaml_module_import" classname="xlang3_cli_yaml_module_import" time="0.0457561" status="run">
+		<properties/>
+		<system-out>xlang3
+2
+True
+1
+2
+</system-out>
+	</testcase>
+	<testcase name="xlang3_pydantic_core_schema_gather" classname="xlang3_pydantic_core_schema_gather" time="0.115943" status="run">
+		<properties/>
+		<system-out>pydantic-core schema gather passed
+</system-out>
+	</testcase>
+	<testcase name="xlang3_native_package_long_path" classname="xlang3_native_package_long_path" time="0.557888" status="run">
+		<properties/>
+		<system-out>long native package path verified: 2.50.1 (267 characters, native)
+long native package path verified: 2.50.1 (267 characters, forward-slash)
+</system-out>
+	</testcase>
+	<testcase name="xlang3_cli_device_module_import" classname="xlang3_cli_device_module_import" time="0.0453436" status="run">
+		<properties/>
+		<system-out>xlang3-device
+True
+</system-out>
+	</testcase>
+	<testcase name="xlang3_curmodule_probe_import" classname="xlang3_curmodule_probe_import" time="0.043627" status="run">
+		<properties/>
+		<system-out>curModule ok
+</system-out>
+	</testcase>
+	<testcase name="xlang3_cli_net_module_import" classname="xlang3_cli_net_module_import" time="0.0775966" status="run">
+		<properties/>
+		<system-out>ok
+direct
+True
+True
+a%20b
+a b
+4
+True
+bytes True
+True
+True
+smtp.example.invalid 2525 scope
+True
+index.html
+text/html
+</system-out>
+	</testcase>
+	<testcase name="xlang3_cli_real_native_imports" classname="xlang3_cli_real_native_imports" time="0.360778" status="run">
+		<properties/>
+		<system-out>real native import fixture ok
+</system-out>
+	</testcase>
+	<testcase name="xlang3_xlang1_compat_import" classname="xlang3_xlang1_compat_import" time="0.320121" status="run">
+		<properties/>
+		<system-out>xlang1 compat import fixture ok
+</system-out>
+	</testcase>
+	<testcase name="xlang3_cli_net_module_server_client" classname="xlang3_cli_net_module_server_client" time="1.17043" status="run">
+		<properties/>
+		<system-out>Starting net test server: D:\CantorAI2026\xlang3\tests\native\net\server.py
+Net test server is listening on 127.0.0.1:18173
+Running net test client: D:\CantorAI2026\xlang3\tests\native\net\client.py
+Net test client output:
+  True
+  200
+  hello
+  small
+  True
+  65536
+  True
+  4
+  True
+  True
+  True
+  True
+  200
+  hello
+  True
+  200
+Net server/client test PASS
+</system-out>
+	</testcase>
+	<testcase name="xlang3_cli_sqlite_module_imports" classname="xlang3_cli_sqlite_module_imports" time="0.397628" status="run">
+		<properties/>
+		<system-out>sqlite fixture old_xlang_sqlite_api ok
+sqlite fixture python_sqlite3_api ok
+</system-out>
+	</testcase>
+	<testcase name="xlang3_cli_fixtures" classname="xlang3_cli_fixtures" time="31.2285" status="run">
+		<properties/>
+		<system-out>fixture sorted_key_scoped_entry ok
+fixture sorted_key_iteration_owner ok
+fixture sorted_key_nested_handled_context ok
+fixture ordinary_canonical_slot_constructor ok
+fixture call_module_global_binding ok
+fixture sorted_exact_integer_keys ok
+fixture native_str_utf8_encode ok
+fixture synchronous_class_argument_lifetime ok
+fixture nested_profile_setting ok
+fixture nested_trace_setting ok
+fixture sys_monitoring_all_events ok
+fixture multiprocessing_spawn_semlock ok
+fixture frame_f_code_cache ok
+fixture coverage_tracer_native ok
+fixture trace_disable_local_events ok
+fixture class_namespace_lifetime ok
+fixture class_method_annotation_capture ok
+fixture explicit_slot_descriptor_fallback ok
+fixture slot_descriptor_owner ok
+fixture dict_get_exception_preservation ok
+fixture call_method_dict_cache_touch ok
+fixture inherited_call_ex_constructor ok
+fixture call_ex_cross_activation_constructor ok
+fixture sqlite_statement_cache ok
+fixture native_bound_zero_args ok
+fixture native_callback_frame_cache_reuse ok
+fixture call_ex...
+[This part of the test output was removed since it exceeds the threshold of 1024 bytes.]
+</system-out>
+	</testcase>
+	<testcase name="xlang3_cli_compat" classname="xlang3_cli_compat" time="0.707886" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_cli_unicode_library_path" classname="xlang3_cli_unicode_library_path" time="0.310572" status="run">
+		<properties/>
+		<system-out>Native Unicode library environment path passed
+</system-out>
+	</testcase>
+	<testcase name="xlang3_ipc_lrpc_smoke" classname="xlang3_ipc_lrpc_smoke" time="0.947545" status="run">
+		<properties/>
+		<system-out>C++ shared-memory IPC passed
+ipc lrpc smoke ok
+</system-out>
+	</testcase>
+	<testcase name="xlang3_ipc_lrpc_server_exit" classname="xlang3_ipc_lrpc_server_exit" time="0.684833" status="run">
+		<properties/>
+		<system-out>ipc lrpc server-exit ok
+</system-out>
+	</testcase>
+	<testcase name="xlang3_ipc_lrpc_backpressure" classname="xlang3_ipc_lrpc_backpressure" time="1.53221" status="run">
+		<properties/>
+		<system-out>ipc lrpc smoke ok
+</system-out>
+	</testcase>
+	<testcase name="xlang3_ipc_lrpc_timeout_recovery" classname="xlang3_ipc_lrpc_timeout_recovery" time="15.1919" status="run">
+		<properties/>
+		<system-out>ipc lrpc smoke ok
+</system-out>
+	</testcase>
+	<testcase name="xlang3_ipc_lrpc_backpressure_server_exit" classname="xlang3_ipc_lrpc_backpressure_server_exit" time="1.11579" status="run">
+		<properties/>
+		<system-out>pressure-server-exit-passed
+</system-out>
+	</testcase>
+	<testcase name="xlang3_cli_dap_stdio_smoke" classname="xlang3_cli_dap_stdio_smoke" time="0.399265" status="run">
+		<properties/>
+		<system-out></system-out>
+	</testcase>
+	<testcase name="xlang3_cli_debugpy_adapter_smoke" classname="xlang3_cli_debugpy_adapter_smoke" time="2.31799" status="run">
+		<properties/>
+		<system-out>debugpy adapter DAP initialize/disconnect passed
+D:/CantorAI2026/xlang3/tests/cli/run_debugpy_adapter_smoke.py:154: ResourceWarning: unclosed buffered file
+  print("debugpy adapter DAP initialize/disconnect passed")
+D:/CantorAI2026/xlang3/tests/cli/run_debugpy_adapter_smoke.py:154: ResourceWarning: unclosed buffered file
+  print("debugpy adapter DAP initialize/disconnect passed")
+</system-out>
+	</testcase>
+	<testcase name="xlang3_cli_visual_studio_debugpy_launch" classname="xlang3_cli_visual_studio_debugpy_launch" time="5.0789" status="run">
+		<properties/>
+		<system-out>[  0.011s] adapter started with xlang3.exe (pid 42872)
+[  0.709s] initialize response
+[  0.710s] launch request sent
+[  2.274s] initialized event
+[  2.285s] configurationDone response
+[  2.286s] launch response
+[  2.451s] stopped: breakpoint
+[  2.460s] stackTrace response
+[  2.466s] scopes response
+[  2.476s] variables response
+[  2.476s] local value inspected
+[  2.494s] hover value evaluated repeatedly
+[  2.516s] hover value evaluated at second breakpoint
+[  3.558s] asynchronous pause and stackTrace response
+[  4.301s] program output and terminated event
+Visual Studio debugpy launched XLang3, stopped, inspected locals, paused, continued, and exited
+</system-out>
+	</testcase>
+</testsuite>

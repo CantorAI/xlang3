@@ -1,0 +1,10 @@
+{
+  "baseline_count": 20861,
+  "added": [
+    "?xlang_runtime_execution_acquired@xlang3@@YAXXZ",
+    "?xlang_runtime_execution_depth@xlang3@@YAAEAIXZ",
+    "?xlang_runtime_execution_lock@xlang3@@YAAEAVXlangRuntimeExecutionMutex@1@XZ"
+  ],
+  "removed": [],
+  "candidate_count": 20864
+}
