@@ -1152,6 +1152,10 @@ int xlang3_main(int argc, char** argv) {
     return 1;
   }
   if (!config.ignore_environment) {
+    if (const char* no_bytecode = std::getenv("PYTHONDONTWRITEBYTECODE");
+        no_bytecode != nullptr && *no_bytecode != '\0') {
+      config.dont_write_bytecode = true;
+    }
     if (const char* pycache_prefix = std::getenv("PYTHONPYCACHEPREFIX");
         pycache_prefix != nullptr && *pycache_prefix != '\0') {
       config.pycache_prefix = std::filesystem::u8path(pycache_prefix);

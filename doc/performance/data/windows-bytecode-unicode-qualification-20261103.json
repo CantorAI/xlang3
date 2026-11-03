@@ -1,0 +1,74 @@
+{
+  "date": "2026-11-03",
+  "main": "6186ffa61203789ed8ff18669c81fff32125259c",
+  "compatibility_parent": "e1491db3bb5a792e26838a1668494e06d3ddcd04",
+  "fixes": [
+    "Honor nonempty PYTHONDONTWRITEBYTECODE unless environment ignored by -E/-I.",
+    "Complete main8151a334 UTF-8 package-root fix for both string/list nested __path__."
+  ],
+  "build": "Source-equivalent explicit isolated overlay; sibling main unchanged. All shared/static SDK targets rebuilt. Prior export/CLI-manifest compatibility retained.",
+  "correctness": {
+    "passed": 60,
+    "total": 60,
+    "seconds": 74.57,
+    "excluded": "xlang3_cli_pickle_interop requires CPython; probe empty and bridge OFF",
+    "log_sha256": "97272fe9e3f09216eb3eab8095a29989555290331bbc99c2f751595e5a5529a6"
+  },
+  "regression_tests": {
+    "bytecode": "Old CLI0False despite inherited policy; new CLI1True. Tests actual cache suppression and -E/-I/unset/nonempty0/explicit-B.",
+    "unicode": "Old runtime fails exact mini-package beneath Unicode root; candidate passes nested list/string paths.",
+    "consumer": "Matching Native process/actual nested-child contracts pass2/2 in13.32s; full Native189 pending."
+  },
+  "performance": {
+    "passed": 11,
+    "total": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1,
+    "baseline": {
+      "executable": "D:\\CantorAI2026\\xMind\\.agentflow\\blockers-20261102\\sdk-export-baseline\\xlang3.exe",
+      "sha256": {
+        "xlang3.exe": "67273e139330efabda656eeed6002c337e15b62a8c1cb22e946a5e95c2981a48",
+        "xlang3_runtime.dll": "057cfc154fb896cf471a3629cd62fc1bebc260e784969e3cd66858d8d8e47c80"
+      }
+    },
+    "candidate": {
+      "executable": "D:\\CantorAI2026\\xlang3\\build\\Release\\xlang3.exe",
+      "sha256": {
+        "xlang3.exe": "5c7f0f824754870bbaf3dec3db849912ef0b67fca8aed1441a5a71303ddfd897",
+        "xlang3_runtime.dll": "88388aced264c77b5be1d8c82b1d8f9192476af05fa9b25484d581ecbe2692ec"
+      }
+    },
+    "ratios": {
+      "local_slots": 0.9811707074797621,
+      "scalar_arithmetic": 0.9993756483352714,
+      "range_for": 0.9973870674649137,
+      "function_calls": 0.9962073916262676,
+      "class_construct": 0.9953259836042828,
+      "list_append": 0.9690101549694642,
+      "property_access": 0.9973077260702573,
+      "deepcopy_memo": 1.0026888616815317,
+      "json_dumps": 0.9808404651732437,
+      "gc_traversal": 0.9902568431458715,
+      "subparsers": 1.0141857655620354
+    },
+    "inputs": 23911,
+    "comparison": {
+      "inputFiles": 23911,
+      "changed": [],
+      "added": [],
+      "removed": []
+    },
+    "cache_files_before": 0,
+    "cache_files_after": 0
+  },
+  "preserved_failures": [
+    "Initial performance attempt invalid before measurements: omitted work directory.",
+    "Next full gate10/11: subparsers1.538x from asymmetric bytecode caches. Baseline had59 cached modules, candidate0.",
+    "Three-way controls: fixed baseline, previously accepted stage and new candidate all about300ms with fresh cache. Swapping only DLL does not change this; exact candidate DLL restored.",
+    "Final unchanged default gate uses fresh empty per-runtime cache prefixes and -B equally. Existing baseline binaries and old cache are untouched. No VM optimization, threshold/workload reduction or baseline reset."
+  ],
+  "input_closure": "23911 source/dependency/binary hashes unchanged across correctness and final performance; actual empty cache inventories separately recorded.",
+  "runtime_dll_changed": true,
+  "scope": "SDK compatibility/performance only; consumer full Native, real project, editor and installed package acceptance remain separate."
+}

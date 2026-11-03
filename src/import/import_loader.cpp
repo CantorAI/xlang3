@@ -449,11 +449,11 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
       if (module_get_attr(parent, "__path__", package_path, ignored)) {
         std::vector<std::filesystem::path> package_roots;
         if (auto* string = value_as_string(package_path)) {
-          package_roots.emplace_back(string_object_view(*string));
+          package_roots.push_back(std::filesystem::u8path(string_object_view(*string)));
         } else if (auto* list = value_as_list(package_path)) {
           for (const auto& item : list->items) {
             if (auto* item_string = value_as_string(item)) {
-              package_roots.emplace_back(string_object_view(*item_string));
+              package_roots.push_back(std::filesystem::u8path(string_object_view(*item_string)));
             }
           }
         }
