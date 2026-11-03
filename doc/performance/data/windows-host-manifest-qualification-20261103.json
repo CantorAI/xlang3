@@ -1,0 +1,88 @@
+{
+  "date": "2026-11-03",
+  "source_base": "6186ffa61203789ed8ff18669c81fff32125259c",
+  "compatibility_base": "87512a5ea1e31ad9d7b9178de884f583b572ebf1",
+  "prior_fix": "fcecf499 already supplies src/xlang3.exe.manifest on main, but VS_GLOBAL_ApplicationManifest does not embed it in the native executable. Extracted actual Release manifest lacked longPathAware.",
+  "separate_prior_patch": "92304c08 addresses native file opens and is absent from main; it was not duplicated or cherry-picked for this repair.",
+  "fix": "Register the existing manifest as a native target source so MSBuild embeds it. No VM, VFS, import-loader or runtime DLL changes.",
+  "build_method": "Unchanged sibling main plus explicit CMake project-include overlay equivalent to compatibility branch: three runtime exports, CLI manifest source, new test, disabled optional CPython oracle. Original source checkout remains unchanged.",
+  "correctness": {
+    "passed": 58,
+    "total": 58,
+    "elapsed_seconds": 80.83,
+    "excluded": "xlang3_cli_pickle_interop requires CPython",
+    "log_sha256": "7c221bae16233b9562352e10c5a178562dd02adf3c244a751bc3f8c0c6e4cba3"
+  },
+  "regression": {
+    "baseline": "Fails to import a real source module beyond MAX_PATH; corrected PowerShell5 harness writes a UTF-8 probe file instead of quoted -c text.",
+    "control": "Adding only the existing manifest to a copy of the baseline CLI imports the exact failing Pydantic tree and passes 329-character import/absolute-relative I/O.",
+    "candidate": "Actual rebuilt Release CLI embeds longPathAware and passes the same contract.",
+    "environment": "Windows LongPathsEnabled was already 1; no OS setting changed."
+  },
+  "performance": {
+    "passed": 11,
+    "total": 11,
+    "repeats": 21,
+    "warmup": 5,
+    "threshold": 0.1,
+    "baseline": "Existing fixed sdk-export-baseline; unchanged and not reset",
+    "ratios": [
+      {
+        "case": "local_slots",
+        "ratio": 0.989
+      },
+      {
+        "case": "scalar_arithmetic",
+        "ratio": 1.004
+      },
+      {
+        "case": "range_for",
+        "ratio": 0.983
+      },
+      {
+        "case": "function_calls",
+        "ratio": 0.995
+      },
+      {
+        "case": "class_construct",
+        "ratio": 0.996
+      },
+      {
+        "case": "list_append",
+        "ratio": 1.016
+      },
+      {
+        "case": "property_access",
+        "ratio": 0.993
+      },
+      {
+        "case": "deepcopy_memo",
+        "ratio": 0.992
+      },
+      {
+        "case": "json_dumps",
+        "ratio": 0.996
+      },
+      {
+        "case": "gc_traversal",
+        "ratio": 1.014
+      },
+      {
+        "case": "subparsers",
+        "ratio": 0.993
+      }
+    ],
+    "report": "windows-host-manifest-performance-20261103.json"
+  },
+  "inputs": {
+    "inputFiles": 23906,
+    "changed": [],
+    "added": [],
+    "removed": []
+  },
+  "runtime_dll_sha256": "0538772a80f05ac714bbe96ed08c784535a31b6c0ffcd297061b8fa0ea488d26",
+  "runtime_dll_byte_unchanged": true,
+  "cli_sha256": "dc32c9ffd6558fd55f334aff1121cee6d902f9559dbce370fd5888b7b3496209",
+  "xmind_status": "Equivalent host manifest embedding repair is in source; rebuild and real cold-start qualification pending.",
+  "scope": "SDK host build repair only; no installed xMind or full project acceptance claimed."
+}

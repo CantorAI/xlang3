@@ -1,0 +1,121 @@
+Test project D:/CantorAI2026/xlang3/build
+      Start  1: xlang3_import_errors
+ 1/58 Test  #1: xlang3_import_errors .......................   Passed    0.27 sec
+      Start  2: xlang3_bytes_split
+ 2/58 Test  #2: xlang3_bytes_split .........................   Passed    0.05 sec
+      Start  3: xlang3_ipc_native_host_tests
+ 3/58 Test  #3: xlang3_ipc_native_host_tests ...............   Passed    0.20 sec
+      Start  4: xlang3_native_host_guard_tests
+ 4/58 Test  #4: xlang3_native_host_guard_tests .............   Passed    1.64 sec
+      Start  5: xlang3_smoke
+ 5/58 Test  #5: xlang3_smoke ...............................   Passed    0.14 sec
+      Start  6: xlang3_runtime_isolation_tests
+ 6/58 Test  #6: xlang3_runtime_isolation_tests .............   Passed    0.79 sec
+      Start  7: xlang3_abi_ownership
+ 7/58 Test  #7: xlang3_abi_ownership .......................   Passed    0.99 sec
+      Start  8: xlang3_static_runtime_shutdown
+ 8/58 Test  #8: xlang3_static_runtime_shutdown .............   Passed    0.22 sec
+      Start  9: xlang3_embedded_package_tests
+ 9/58 Test  #9: xlang3_embedded_package_tests ..............   Passed    0.19 sec
+      Start 10: xlang3_sdk_stream_call_tests
+10/58 Test #10: xlang3_sdk_stream_call_tests ...............   Passed    0.20 sec
+      Start 11: xlang3_graph_producer
+11/58 Test #11: xlang3_graph_producer ......................   Passed    0.19 sec
+      Start 12: xlang3_graph_consumer
+12/58 Test #12: xlang3_graph_consumer ......................   Passed    0.05 sec
+      Start 13: xlang3_graph_reject_BAD_VERSION
+13/58 Test #13: xlang3_graph_reject_BAD_VERSION ............   Passed    0.04 sec
+      Start 14: xlang3_graph_reject_NO_CODEC
+14/58 Test #14: xlang3_graph_reject_NO_CODEC ...............   Passed    0.04 sec
+      Start 15: xlang3_graph_reject_DECODE_FAIL
+15/58 Test #15: xlang3_graph_reject_DECODE_FAIL ............   Passed    0.04 sec
+      Start 16: xlang3_runtime_value_tests
+16/58 Test #16: xlang3_runtime_value_tests .................   Passed    0.34 sec
+      Start 17: xlang3_vfs_tests
+17/58 Test #17: xlang3_vfs_tests ...........................   Passed    0.24 sec
+      Start 18: xlang3_tensor_cpu
+18/58 Test #18: xlang3_tensor_cpu ..........................   Passed    0.40 sec
+      Start 19: xlang3_tensor_cpu_graph
+19/58 Test #19: xlang3_tensor_cpu_graph ....................   Passed    0.08 sec
+      Start 20: xlang3_tensor_cpu_reference
+20/58 Test #20: xlang3_tensor_cpu_reference ................   Passed    0.06 sec
+      Start 21: xlang3_ipc_capacity_tests
+21/58 Test #21: xlang3_ipc_capacity_tests ..................   Passed    0.13 sec
+      Start 22: xlang3_serialized_lifetime_tests
+22/58 Test #22: xlang3_serialized_lifetime_tests ...........   Passed    0.13 sec
+      Start 23: xlang3_memory_tests
+23/58 Test #23: xlang3_memory_tests ........................   Passed    0.12 sec
+      Start 24: xlang3_parser_tests
+24/58 Test #24: xlang3_parser_tests ........................   Passed    0.13 sec
+      Start 25: xlang3_interpreter_tests
+25/58 Test #25: xlang3_interpreter_tests ...................   Passed    0.67 sec
+      Start 26: xlang3_debug_session_tests
+26/58 Test #26: xlang3_debug_session_tests .................   Passed    0.17 sec
+      Start 27: xlang3_dap_session_tests
+27/58 Test #27: xlang3_dap_session_tests ...................   Passed    0.24 sec
+      Start 28: xlang3_module_slot_tests
+28/58 Test #28: xlang3_module_slot_tests ...................   Passed    0.17 sec
+      Start 29: xlang3_task_tests
+29/58 Test #29: xlang3_task_tests ..........................   Passed    0.18 sec
+      Start 30: xlang3_ir_codec_tests
+30/58 Test #30: xlang3_ir_codec_tests ......................   Passed    0.16 sec
+      Start 31: xlang3_native_package_real_tests
+31/58 Test #31: xlang3_native_package_real_tests ...........   Passed    0.26 sec
+      Start 32: xlang3_native_library_path
+32/58 Test #32: xlang3_native_library_path .................   Passed    0.17 sec
+      Start 33: xlang3_expression_decorators
+33/58 Test #33: xlang3_expression_decorators ...............   Passed    0.06 sec
+      Start 34: xlang3_expression_decorators_ipc
+34/58 Test #34: xlang3_expression_decorators_ipc ...........   Passed    0.91 sec
+      Start 35: xlang3_xlang1_compat_package_tests
+35/58 Test #35: xlang3_xlang1_compat_package_tests .........   Passed    0.14 sec
+      Start 36: xlang3_sdk_c_header_smoke
+36/58 Test #36: xlang3_sdk_c_header_smoke ..................   Passed    0.13 sec
+      Start 37: xlang3_cli_yaml_module_import
+37/58 Test #37: xlang3_cli_yaml_module_import ..............   Passed    0.04 sec
+      Start 38: xlang3_pydantic_core_schema_gather
+38/58 Test #38: xlang3_pydantic_core_schema_gather .........   Passed    0.18 sec
+      Start 39: xlang3_native_package_long_path
+39/58 Test #39: xlang3_native_package_long_path ............   Passed    0.60 sec
+      Start 40: xlang3_cli_device_module_import
+40/58 Test #40: xlang3_cli_device_module_import ............   Passed    0.05 sec
+      Start 41: xlang3_curmodule_probe_import
+41/58 Test #41: xlang3_curmodule_probe_import ..............   Passed    0.05 sec
+      Start 42: xlang3_cli_net_module_import
+42/58 Test #42: xlang3_cli_net_module_import ...............   Passed    0.09 sec
+      Start 43: xlang3_cli_real_native_imports
+43/58 Test #43: xlang3_cli_real_native_imports .............   Passed    0.48 sec
+      Start 44: xlang3_xlang1_compat_import
+44/58 Test #44: xlang3_xlang1_compat_import ................   Passed    0.31 sec
+      Start 45: xlang3_cli_net_module_server_client
+45/58 Test #45: xlang3_cli_net_module_server_client ........   Passed    1.22 sec
+      Start 46: xlang3_cli_sqlite_module_imports
+46/58 Test #46: xlang3_cli_sqlite_module_imports ...........   Passed    0.40 sec
+      Start 47: xlang3_cli_fixtures
+47/58 Test #47: xlang3_cli_fixtures ........................   Passed   33.94 sec
+      Start 48: xlang3_cli_compat
+48/58 Test #48: xlang3_cli_compat ..........................   Passed    0.93 sec
+      Start 49: xlang3_cli_unicode_library_path
+49/58 Test #49: xlang3_cli_unicode_library_path ............   Passed    0.35 sec
+      Start 50: xlang3_ipc_lrpc_smoke
+50/58 Test #50: xlang3_ipc_lrpc_smoke ......................   Passed    1.08 sec
+      Start 51: xlang3_ipc_lrpc_server_exit
+51/58 Test #51: xlang3_ipc_lrpc_server_exit ................   Passed    0.62 sec
+      Start 52: xlang3_ipc_lrpc_backpressure
+52/58 Test #52: xlang3_ipc_lrpc_backpressure ...............   Passed    1.48 sec
+      Start 53: xlang3_ipc_lrpc_timeout_recovery
+53/58 Test #53: xlang3_ipc_lrpc_timeout_recovery ...........   Passed   15.17 sec
+      Start 54: xlang3_ipc_lrpc_backpressure_server_exit
+54/58 Test #54: xlang3_ipc_lrpc_backpressure_server_exit ...   Passed    1.09 sec
+      Start 55: xlang3_cli_dap_stdio_smoke
+55/58 Test #55: xlang3_cli_dap_stdio_smoke .................   Passed    0.45 sec
+      Start 56: xlang3_cli_debugpy_adapter_smoke
+56/58 Test #56: xlang3_cli_debugpy_adapter_smoke ...........   Passed    7.36 sec
+      Start 57: xlang3_cli_visual_studio_debugpy_launch
+57/58 Test #57: xlang3_cli_visual_studio_debugpy_launch ....   Passed    4.57 sec
+      Start 58: xlang3_cli_windows_long_path
+58/58 Test #58: xlang3_cli_windows_long_path ...............   Passed    0.40 sec
+
+100% tests passed, 0 tests failed out of 58
+
+Total Test time (real) =  80.83 sec
