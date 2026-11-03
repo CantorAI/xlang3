@@ -13,6 +13,7 @@ add_library(xlang_cryptography_rust_native_package SHARED
   aead_module.cpp
   hashes_module.cpp
   hmac_module.cpp
+  padding_module.cpp
   legacy_openssl_module.cpp
   oid_module.cpp
   rsa_module.cpp

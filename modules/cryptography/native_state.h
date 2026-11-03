@@ -53,10 +53,13 @@ struct CryptographyNativeState {
   X3Value aead_encrypt_class = x3_value_invalid();
   X3Value aead_decrypt_class = x3_value_invalid();
   X3Value aesgcm_class = x3_value_invalid();
+  X3Value padding_classes[4] = {x3_value_invalid(), x3_value_invalid(),
+                               x3_value_invalid(), x3_value_invalid()};
 };
 
 X3Status register_oid_class(X3Module* root, CryptographyNativeState* state);
 X3Status register_reasons_module(X3Module* root, CryptographyNativeState* state);
+X3Status register_padding_classes(X3Module* root, CryptographyNativeState* state);
 X3Status register_openssl_hashes_module(X3Module* root, CryptographyNativeState* state);
 X3Status register_legacy_openssl_module(X3Module* root, CryptographyNativeState* state);
 X3Status register_openssl_hmac_module(X3Module* openssl, CryptographyNativeState* state);

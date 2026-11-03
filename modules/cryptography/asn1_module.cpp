@@ -24,6 +24,9 @@ using PackageState = CryptographyNativeState;
 
 void cleanup_package(void* data) {
   auto* state = static_cast<PackageState*>(data);
+  if (state != nullptr)
+    for (X3Value value : state->padding_classes)
+      if (value.tag != X3_TAG_INVALID) state->host->value_release(value);
   if (state != nullptr && state->oid_class.tag != X3_TAG_INVALID)
     state->host->value_release(state->oid_class);
   if (state != nullptr && state->reasons_class.tag != X3_TAG_INVALID)
@@ -317,6 +320,8 @@ X3Status register_modules(X3PackageHost* host, PackageState* state) {
   if (register_oid_class(root, state) != X3_STATUS_OK)
     return X3_STATUS_ERROR;
   if (register_reasons_module(root, state) != X3_STATUS_OK)
+    return X3_STATUS_ERROR;
+  if (register_padding_classes(root, state) != X3_STATUS_OK)
     return X3_STATUS_ERROR;
   if (register_openssl_hashes_module(root, state) != X3_STATUS_OK)
     return X3_STATUS_ERROR;
