@@ -10,6 +10,51 @@ import weakref
 import codecs
 
 
+class ReadCount(int):
+    pass
+
+
+class ReadIndex:
+    calls = 0
+
+    def __index__(self):
+        self.calls += 1
+        return 2
+
+
+class InvalidReadIndex:
+    def __index__(self):
+        return "two"
+
+
+for factory, content in ((io.BytesIO, b"abcdef"), (io.StringIO, "abcdef")):
+    counted = factory(content)
+    assert counted.read(ReadCount(2)) == content[:2]
+    index = ReadIndex()
+    assert counted.read(index) == content[2:4] and index.calls == 1
+    assert counted.tell() == 4
+    for invalid_size in (2.5, "2", object(), InvalidReadIndex()):
+        try:
+            counted.read(invalid_size)
+        except TypeError:
+            pass
+        else:
+            raise AssertionError("Invalid read size consumed the buffer")
+        assert counted.tell() == 4
+    try:
+        counted.read(1 << 100)
+    except OverflowError:
+        pass
+    else:
+        raise AssertionError("Oversized read count was accepted")
+    assert counted.read(None) == content[4:]
+    counted.seek(0)
+    assert counted.read(ReadCount(0)) == content[:0]
+    assert counted.read(False) == content[:0]
+    assert counted.read(True) == content[:1]
+    assert counted.read(ReadCount(-1)) == content[1:]
+
+
 s = io.StringIO("ab")
 print(s.read(1))
 print(s.tell())

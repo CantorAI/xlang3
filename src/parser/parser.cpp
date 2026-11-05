@@ -467,13 +467,21 @@ bool keyword_typo_error(const LexResult& lex, bool hazardous_only, std::string& 
             }
           }
         } else if (token.text == "im") {
-          for (size_t i = token_index; i > 0; --i) {
+          // A misspelled membership keyword follows a complete loop target.
+          // The name itself is also a valid target (for im in images) or
+          // iterable (for item in im); do not reject those before parsing.
+          hazardous = false;
+          const auto previous_kind = token_index > 0
+              ? lex.tokens[token_index - 1].kind : TokenKind::Newline;
+          const bool follows_target = previous_kind == TokenKind::Identifier ||
+              previous_kind == TokenKind::RParen || previous_kind == TokenKind::RBracket;
+          for (size_t i = follows_target ? token_index : 0; i > 0; --i) {
             const auto& previous = lex.tokens[i - 1];
             if (previous.kind == TokenKind::KwFor) {
               hazardous = true;
               break;
             }
-            if (previous.kind == TokenKind::Newline) {
+            if (previous.kind == TokenKind::Newline || previous.kind == TokenKind::KwIn) {
               break;
             }
           }

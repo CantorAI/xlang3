@@ -1,0 +1,32 @@
+{
+  "affected_fixtures": [
+    {
+      "name": "io_module_streams",
+      "passed": true
+    },
+    {
+      "name": "syntax_simple_suites",
+      "passed": true
+    },
+    {
+      "name": "syntax_logical_lines",
+      "passed": true
+    },
+    {
+      "name": "statement_syntax",
+      "passed": true
+    }
+  ],
+  "parser_cpp_passed": true,
+  "unrelated_native_array_fixture": {
+    "baseline-release": {
+      "passed": false,
+      "error": "native_array_shared_buffer failed (1):\nTraceback (most recent call last):\r\r\n  File \"D:\\CantorAI\\xlang3\\tests\\fixtures\\core\\native_array_shared_buffer.py\", line 279, in <module>\r\r\n    call()\r\r\n    ~~~~^^\r\r\n  File \"D:\\CantorAI\\xlang3\\tests\\fixtures\\core\\native_array_shared_buffer.py\", line 273, in <lambda>\r\r\n    (lambda: hashlib.sha256(readonly), BufferError),\r\r\n             ~~~~~~~~~~~~~~^^^^^^^^^^\r\r\nTypeError: object supporting the buffer API required\r\r\n"
+    },
+    "candidate-release": {
+      "passed": false,
+      "error": "native_array_shared_buffer failed (1):\nTraceback (most recent call last):\r\r\n  File \"D:\\CantorAI\\xlang3\\tests\\fixtures\\core\\native_array_shared_buffer.py\", line 279, in <module>\r\r\n    call()\r\r\n    ~~~~^^\r\r\n  File \"D:\\CantorAI\\xlang3\\tests\\fixtures\\core\\native_array_shared_buffer.py\", line 273, in <lambda>\r\r\n    (lambda: hashlib.sha256(readonly), BufferError),\r\r\n             ~~~~~~~~~~~~~~^^^^^^^^^^\r\r\nTypeError: object supporting the buffer API required\r\r\n"
+    }
+  },
+  "same_existing_failure": true
+}

@@ -18,6 +18,24 @@ limitations under the License.
 
 int main() {
   xlang3::test::CaseResult result;
+  // pypdf uses `im` as a loop variable. Keyword suggestions must not reserve
+  // legal Python names in targets, iterables or single-line loop bodies.
+  for (const auto* source : {
+           "for im in images:\n    del images[im]\n",
+           "for index, im in images:\n    pass\n",
+           "for (index, im) in images:\n    pass\n",
+           "for item in im:\n    pass\n",
+           "for item in images: consume(im)\n",
+           "result = [im for im in images]\n",
+           "result = [item for item in im]\n"}) {
+    auto parsed = xlang3::parse_source(source);
+    xlang3::test::expect_true(result, parsed.errors.empty(),
+        "keyword suggestions must preserve the legal name im");
+  }
+  auto misspelled_membership = xlang3::parse_source("for item im images:\n    pass\n");
+  xlang3::test::expect_true(result, !misspelled_membership.errors.empty() &&
+      misspelled_membership.errors.front().find("Did you mean 'in'?") != std::string::npos,
+      "misspelled loop membership should retain its diagnostic");
   auto assertions = xlang3::parse_source("assert False, 'failure'\nassert (False, 'tuple')\nassert True\n");
   xlang3::test::expect_true(result, assertions.errors.empty() && assertions.module.body.size() == 3,
       "parser should accept assertion forms");

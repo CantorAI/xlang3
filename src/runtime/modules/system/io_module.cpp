@@ -1359,6 +1359,34 @@ bool stream_read(Runtime& runtime, const Value* args, uint32_t argc, Value& out,
   if (state == nullptr) {
     return raise_stream_state_error(runtime, error);
   }
+  if (argc == 2 && args[1].tag != ValueTag::Int64 && args[1].tag != ValueTag::None) {
+    // PDF stream lengths and other integer subclasses must not silently turn
+    // a bounded read into read-all. Keep exact integers on the existing path.
+    int64_t requested = 0;
+    Value converted;
+    const Value* size = &args[1];
+    if (!value_int_like_to_i64(*size, requested) && !value_bigint_to_i64(*size, requested)) {
+      if (value_as_bigint(*size) == nullptr) {
+        Value index;
+        std::string ignored;
+        if (!object_get_special_method(runtime, *size, "__index__", index, ignored)) {
+          error = "read size must be an integer or None";
+          runtime.raise_class_error("TypeError", error);
+          return false;
+        }
+        if (!runtime_call_callable(runtime, index, nullptr, 0, converted, error)) return false;
+        size = &converted;
+      }
+      if (!value_int_like_to_i64(*size, requested) && !value_bigint_to_i64(*size, requested)) {
+        const bool overflow = value_as_bigint(*size) != nullptr;
+        error = overflow ? "read size does not fit in a signed integer" : "__index__ returned non-int";
+        runtime.raise_class_error(overflow ? "OverflowError" : "TypeError", error);
+        return false;
+      }
+    }
+    Value normalized[] = {args[0], Value::int64(requested)};
+    return stream_read(runtime, normalized, 2, out, error, user_data);
+  }
   memory_stream_sync_exported_buffer(*state);
   if (state->wraps_buffer) {
     if (state->binary) {
