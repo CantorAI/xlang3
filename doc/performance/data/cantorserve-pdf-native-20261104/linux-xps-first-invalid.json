@@ -1,0 +1,27 @@
+{
+  "schema": 2,
+  "host": "Linux-7.0.0-38-generic-x86_64-with-glibc2.39",
+  "machine": "shawn-XPS-15-9570",
+  "threshold": 0.1,
+  "repeats": 21,
+  "warmup": 5,
+  "measurement_method": "21 order-balanced paired samples; each measured pair runs both baseline-candidate and candidate-baseline orders",
+  "cases": {},
+  "status": "invalid",
+  "baseline": {
+    "executable": "/home/shawn/CantorServeAzureBuild/20261029/validation/native-pdf-v94/baseline-release/xlang3",
+    "sha256": {
+      "xlang3": "8a64dda34a38cee93f8986c4854f7415ecd3dd85e354ed3519c29bedead92ab7",
+      "libxlang3_runtime.so": "4e301465c4cc184bd1a4a7a3d518e6682a49ea126edd35c4d5577f3aac49d01a"
+    }
+  },
+  "candidate": {
+    "executable": "/home/shawn/CantorServeAzureBuild/20261029/validation/native-pdf-v94/xlang3",
+    "sha256": {
+      "xlang3": "8a64dda34a38cee93f8986c4854f7415ecd3dd85e354ed3519c29bedead92ab7",
+      "libxlang3_runtime.so": "4b587bbaddab2b51705a7327722041bf6d2a399cc9ab59e0617bde8cfc7cb541",
+      "libxlang3_runtime.so.gz": "a70944128cdc91a009ddb06357cd18f4637da6beef9964538c6e784595e4a2ef"
+    }
+  },
+  "error": "/home/shawn/CantorServeAzureBuild/20261029/validation/native-pdf-v94/baseline-release/xlang3 failed (1): runtime: cannot initialize site: No module named 'site'\n"
+}

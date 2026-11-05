@@ -1,0 +1,21 @@
+{
+  "passed": true,
+  "rows": [
+    {
+      "label": "baseline",
+      "runtime": "xlang3",
+      "cores": [
+        "/home/shawn/CantorServeAzureBuild/20261029/validation/native-pdf-v94/baseline-release/libxlang3_runtime.so"
+      ],
+      "libpython_mapped": false
+    },
+    {
+      "label": "candidate",
+      "runtime": "xlang3",
+      "cores": [
+        "/home/shawn/CantorServeAzureBuild/20261029/validation/native-pdf-v94/libxlang3_runtime.so"
+      ],
+      "libpython_mapped": false
+    }
+  ]
+}

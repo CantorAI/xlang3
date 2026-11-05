@@ -1,0 +1,12 @@
+{
+  "started_at": 1793864702.0768151,
+  "driver_pid": 248790,
+  "host": "shawn-XPS-15-9570",
+  "affinity": [
+    4
+  ],
+  "baseline_sha256": "4e301465c4cc184bd1a4a7a3d518e6682a49ea126edd35c4d5577f3aac49d01a",
+  "candidate_sha256": "4b587bbaddab2b51705a7327722041bf6d2a399cc9ab59e0617bde8cfc7cb541",
+  "exit_code": 0,
+  "finished_at": 1793864810.7983823
+}
