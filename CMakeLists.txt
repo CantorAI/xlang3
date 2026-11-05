@@ -460,6 +460,14 @@ function(add_xlang3_cpp_test name source)
   add_executable(${name} ${source})
   target_link_libraries(${name} PRIVATE xlang3_runtime)
   target_compile_definitions(${name} PRIVATE XLANG3_USE_SHARED)
+  # Upstream Clang before 22 incorrectly assumes unique vtable addresses for
+  # final types across Darwin shared libraries (llvm-project#120129). These
+  # tests inspect AST objects returned by the runtime DSO. Keep their casts
+  # correct without changing runtime code generation or Release optimization.
+  if(APPLE AND CMAKE_CXX_COMPILER_ID STREQUAL "Clang" AND
+      CMAKE_CXX_COMPILER_VERSION VERSION_LESS "22.0")
+    target_compile_options(${name} PRIVATE -fno-assume-unique-vtables)
+  endif()
   target_include_directories(${name} PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_CURRENT_SOURCE_DIR}/src/internal
