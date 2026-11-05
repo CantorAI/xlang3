@@ -1506,6 +1506,9 @@ bool file_close_method(Runtime& runtime, const Value* args, uint32_t argc, Value
 }
 
 void file_adopt_state(FileObject& target, FileObject& source) {
+  // Reinitialization installs the new file's name while preserving unrelated
+  // user attributes on the FileIO instance.
+  target.attrs.erase("name");
   target.runtime = source.runtime;
   target.fs = source.fs;
   target.path = std::move(source.path);
