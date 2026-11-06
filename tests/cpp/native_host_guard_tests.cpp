@@ -44,6 +44,7 @@ int main(){try{
     X3Module* module=nullptr;if(host->add_module(host,"guard_module",&module)!=X3_STATUS_OK)throw std::runtime_error("Module setup failed");
     const auto integer=x3_value_int64(17);std::vector<Observation> observed;
     observed.push_back(observe("c_api_set_attr",[&]{return Call{x3_set_attr(runtime.get(),klass,"control",integer)};}));
+    observed.push_back(observe("c_api_add_import_root",[&]{return Call{x3_runtime_add_import_root(runtime.get(),".")};}));
     observed.push_back(observe("host_create_class",[&]{X3Value value=x3_value_invalid();const auto status=host->create_class(host,"CreatedProbe",nullptr,0,&value);return Call{status,value};}));
     observed.push_back(observe("host_class_add_value",[&]{return Call{host->class_add_value(klass,"native_field",integer)};}));
     observed.push_back(observe("host_value_instance",[&]{auto value=host->value_instance(runtime.get(),klass);return Call{value.tag==X3_TAG_INVALID?X3_STATUS_ERROR:X3_STATUS_OK,value};}));

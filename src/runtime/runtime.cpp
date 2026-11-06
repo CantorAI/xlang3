@@ -39,6 +39,7 @@ limitations under the License.
 #include <cstring>
 #include <iostream>
 #include <mutex>
+#include <stdexcept>
 #include <thread>
 #include <unordered_map>
 #include <unordered_set>
@@ -830,6 +831,12 @@ void Runtime::initialize() {
     }
   }
   add_default_python_lib_roots(*this);
+  // Embedded hosts may invoke deserialized functions without the CLI or
+  // EvalFile. Publish their real search roots before any Python task runs.
+  std::string sys_path_error;
+  if (!publish_sys_path(sys_path_error)) {
+    throw std::runtime_error("cannot initialize sys.path: " + sys_path_error);
+  }
   auto sys_it = modules_.find("sys");
   if (sys_it != modules_.end()) {
     for (const auto& root : import_roots_) {

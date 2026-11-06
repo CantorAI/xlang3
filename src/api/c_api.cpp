@@ -207,11 +207,28 @@ const char* x3_runtime_last_error(X3Runtime* runtime) {
 }
 
 X3Status x3_runtime_add_import_root(X3Runtime* runtime, const char* path) {
+  xlang3::XlangRuntimeExecutionGuard guard;
   auto* rt = as_runtime(runtime);
   if (rt == nullptr || path == nullptr) {
     return fail(rt, "runtime/path is null");
   }
+  const auto previous_size = rt->import_roots().size();
   rt->add_import_root(std::filesystem::u8path(path));
+  if (rt->import_roots().size() != previous_size) {
+    // Extend the existing list, preserving application entries and aliases.
+    // A host adding a root must not republish and replace a customized path.
+    if (const auto* sys = rt->find_module("sys")) {
+      xlang3::Value search_path;
+      std::string error;
+      if (xlang3::module_get_attr(*sys, "path", search_path, error) &&
+          xlang3::value_as_list(search_path) != nullptr) {
+        const auto encoded = rt->import_roots().back().u8string();
+        const std::string root(reinterpret_cast<const char*>(encoded.data()), encoded.size());
+        if (!xlang3::sequence_list_append(search_path, xlang3::Value::string(root), error))
+          return fail(rt, error);
+      }
+    }
+  }
   return X3_STATUS_OK;
 }
 

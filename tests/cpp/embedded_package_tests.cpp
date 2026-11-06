@@ -1,6 +1,61 @@
 #include "xlang3/xlang3.h"
+#include <chrono>
+#include <filesystem>
+#include <fstream>
 #include <iostream>
 #include <stdexcept>
+
+static void check_embedded_import_path() {
+  // A Cantor worker deserializes and invokes its task without EvalFile or the
+  // CLI's startup code. Its sys module must already expose the host's roots.
+  X::Runtime runtime;
+  X::Module sys(runtime, "sys");
+  auto path = sys["path"];
+  if (!path.IsList() || path.Size() == 0)
+    throw std::runtime_error("fresh embedded runtime has no populated sys.path");
+  const auto initial_size = path.Size();
+  if (!path.Append(X::Value(runtime, "application-custom-import-root")))
+    throw std::runtime_error("cannot customize embedded sys.path");
+
+  const auto folder = std::filesystem::temp_directory_path() /
+      ("xlang3-embedded-import-" + std::to_string(
+          std::chrono::steady_clock::now().time_since_epoch().count()));
+  if (!std::filesystem::create_directory(folder))
+    throw std::runtime_error("cannot create embedded import fixture");
+  struct Fixture {
+    std::filesystem::path folder;
+    ~Fixture() {
+      std::error_code ignored;
+      std::filesystem::remove(folder / "embedded_path_fixture.py", ignored);
+      std::filesystem::remove(folder, ignored);
+    }
+  } fixture{folder};
+  {
+    std::ofstream file(folder / "embedded_path_fixture.py");
+    file << "answer = 42\n";
+    if (!file) throw std::runtime_error("cannot write embedded import fixture");
+  }
+  const auto encoded = folder.generic_u8string();
+  const std::string root(reinterpret_cast<const char*>(encoded.data()), encoded.size());
+  runtime.AddImportRoot(root);
+  runtime.AddImportRoot(root);
+  const auto updated = sys["path"];
+  if (updated.raw().as.obj != path.raw().as.obj || updated.Size() != initial_size + 2 ||
+      updated[initial_size].ToString() != "application-custom-import-root" ||
+      std::filesystem::u8path(updated[initial_size + 1].ToString()) != folder.lexically_normal())
+    throw std::runtime_error("host import root replaced, duplicated, or lost application sys.path");
+  X::Module imported(runtime, "embedded_path_fixture");
+  if (imported["answer"].ToInt64() != 42)
+    throw std::runtime_error("host-added embedded import root did not resolve its module");
+  auto replacement = runtime.List();
+  replacement.Append(X::Value(runtime, "replacement-application-root"));
+  if (!sys.SetAttr("path", replacement))
+    throw std::runtime_error("cannot replace application sys.path");
+  runtime.AddImportRoot(root + "/secondary");
+  if (sys["path"].raw().as.obj != replacement.raw().as.obj || replacement.Size() != 2 ||
+      replacement[0].ToString() != "replacement-application-root" || path.Size() != initial_size + 2)
+    throw std::runtime_error("host import root did not preserve a replacement sys.path list");
+}
 
 struct Counter {
   int count = 0;
@@ -145,6 +200,7 @@ struct Service {
 
 int main() {
   try {
+    check_embedded_import_path();
     Service service;
     {
       Objects objects;
