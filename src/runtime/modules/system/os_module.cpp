@@ -49,12 +49,15 @@ limitations under the License.
 #else
 #include <fcntl.h>
 #include <sys/stat.h>
+#include <sys/statvfs.h>
+#include <limits.h>
 #include <utime.h>
 #include <unistd.h>
 #include <sys/utsname.h>
 #include <signal.h>
 #if defined(__APPLE__)
 #include <crt_externs.h>
+#include <sys/mount.h>
 #include <SystemConfiguration/SystemConfiguration.h>
 #else
 extern char** environ;
@@ -229,6 +232,7 @@ struct OsModuleState {
   Value times_result_class;
 #if !defined(_WIN32)
   Value uname_result_class;
+  Value statvfs_result_class;
 #endif
 };
 
@@ -2362,6 +2366,8 @@ Value make_terminal_size(const Value& klass, int64_t columns, int64_t lines) {
 }
 
 #if !defined(_WIN32)
+#include "os_statvfs.inc"
+
 constexpr const char* kUnameFields[] = {"sysname", "nodename", "release", "version", "machine"};
 
 bool os_uname_result_new(Runtime& runtime, const Value* args, uint32_t argc,
@@ -4981,6 +4987,7 @@ void register_os_module(Runtime& runtime) {
   os_state->times_result_class = make_times_result_class(runtime);
 #if !defined(_WIN32)
   os_state->uname_result_class = make_uname_result_class(runtime);
+  os_state->statvfs_result_class = make_statvfs_result_class(runtime);
 #endif
   os_state->dir_entry_class = make_dir_entry_class(runtime, os_state);
   os_state->scandir_iterator_class = make_scandir_iterator_class(runtime);
@@ -5066,6 +5073,12 @@ void register_os_module(Runtime& runtime) {
 #if !defined(_WIN32)
       .value("uname_result", os_state->uname_result_class)
       .value("uname", runtime.make_native_function("os.uname", os_uname, os_state))
+      .value("statvfs", runtime.make_native_function("os.statvfs", os_statvfs, os_state, nullptr, nullptr, false, os_statvfs_kw))
+      .value("fstatvfs", runtime.make_native_function("os.fstatvfs", os_fstatvfs, os_state))
+      .value("statvfs_result", os_state->statvfs_result_class)
+      .value("_have_functions", Value::list({Value::string("HAVE_FSTATVFS")}))
+      .value("ST_RDONLY", Value::int64(ST_RDONLY))
+      .value("ST_NOSUID", Value::int64(ST_NOSUID))
 #endif
       .function("fspath", os_fspath, builtin_fast_adapter<os_fspath, 1>, true)
 #if defined(_WIN32)

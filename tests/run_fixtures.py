@@ -97,6 +97,7 @@ CORE_CASES.append("ast_alias_source_locations")
 
 
 if sys.platform != "win32":
+    CORE_CASES.append("os_statvfs")
     CORE_CASES.remove("multiprocessing_spawn_semlock")
 
 SECTION_CASES = """

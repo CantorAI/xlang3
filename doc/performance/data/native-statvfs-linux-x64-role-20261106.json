@@ -1,0 +1,33 @@
+{
+  "passed": true,
+  "at": 1793986578.4523911,
+  "default_performance_cases": 11,
+  "repeats": 21,
+  "warmup": 5,
+  "threshold": 0.1,
+  "public_c_exports_preserved": 90,
+  "removed_public_c_exports": [],
+  "production_runtime_unchanged": true,
+  "cpu_admission_restored": {
+    "passed": true,
+    "at": 1793986445.2445893,
+    "main_pid": 271101,
+    "restored": {
+      "max": 4.0,
+      "min": 0.0,
+      "cur": 4.0
+    }
+  },
+  "retention": {
+    "passed": true,
+    "at": 1793986223.2468793,
+    "runtime": "xlang3",
+    "cpython_mapped": false,
+    "actual_filesystem_free_space_used": true,
+    "native_sqlite_index_updated": true,
+    "only_expired_complete_recording_removed": true,
+    "active_protected_and_unindexed_preserved": true,
+    "reserve_pressure_blocks_recording": true,
+    "production_media_changed": false
+  }
+}
