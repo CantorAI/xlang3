@@ -1023,6 +1023,11 @@ std::vector<std::filesystem::path> collect_native_library_candidates(
     out.push_back(std::filesystem::absolute(explicit_path).lexically_normal());
     return out;
   }
+  if (explicit_path.has_parent_path()) {
+    // Filesystem references are relative to the caller's working directory,
+    // independently of Python's import roots and namespace-prefix fallbacks.
+    return native_library_candidates({}, path_utf8(std::filesystem::absolute(explicit_path)));
+  }
   std::vector<std::filesystem::path> roots;
   Value sys;
   std::string ignored;

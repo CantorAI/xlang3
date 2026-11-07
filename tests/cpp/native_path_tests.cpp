@@ -55,6 +55,32 @@ int main(int argc, char** argv) {
     if (!repeated["package_initializations"].Call({}, result) || result.ToLongLong() != 2)
       throw std::runtime_error("extensionless import initialized its package twice");
     std::cout << "native-library-absolute-stem-passed\n";
+    auto dotted_stem = stem.parent_path() / "." / stem.filename();
+    X::Runtime dotted_runtime;
+    for (int i = 0; i < 2; ++i) {
+      X::Module dotted(dotted_runtime, "xlang1_compat_sample", dotted_stem.string().c_str());
+      if (!dotted["package_initializations"].Call({}, result) || result.ToLongLong() != 3)
+        throw std::runtime_error("dotted-directory native stem failed or initialized twice");
+    }
+    std::cout << "native-library-dotted-directory-stem-passed\n";
+    {
+      struct RestoreWorkingDirectory {
+        std::filesystem::path original = std::filesystem::current_path();
+        ~RestoreWorkingDirectory() {
+          std::error_code ignored;
+          std::filesystem::current_path(original, ignored);
+        }
+      } working_directory;
+      std::filesystem::current_path(stem.parent_path());
+      auto relative_stem = std::filesystem::path(".") / stem.filename();
+      X::Runtime relative_runtime;
+      for (int i = 0; i < 2; ++i) {
+        X::Module relative(relative_runtime, "xlang1_compat_sample", relative_stem.string().c_str());
+        if (!relative["package_initializations"].Call({}, result) || result.ToLongLong() != 4)
+          throw std::runtime_error("relative native stem failed or initialized twice");
+      }
+    }
+    std::cout << "native-library-relative-stem-passed\n";
     return 0;
   } catch (const std::exception& error) {
     std::cerr << error.what() << '\n';

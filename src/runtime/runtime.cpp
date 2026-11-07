@@ -2601,9 +2601,16 @@ bool Runtime::import_module(const std::string& name, Value& out, std::string& er
     }
     const auto dot = name.rfind('.');
     const auto extension = dot == std::string::npos ? std::string_view{} : std::string_view(name).substr(dot);
-    const bool native_library_path = extension == ".dll" || extension == ".so" || extension == ".dylib";
+    const bool native_library_path = extension == ".dll" || extension == ".so" || extension == ".dylib" ||
+        name.find('/') != std::string::npos
+#if defined(_WIN32)
+        || name.find('\\') != std::string::npos
+#endif
+        ;
     // A library suffix is not a Python child module; loading its stem first
     // would execute the same native initializer twice.
+    // Explicit filesystem stems also bypass Python parent lookup: a dot in
+    // their directory must not turn the directory prefix into a module name.
 #if !defined(XLANG3_EMBEDDED)
     if (native_library_path) {
       bool library_found = false;
