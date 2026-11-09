@@ -88,6 +88,13 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
 #ifndef XLANG3_EMBEDDED
   GeneratorObject* logical_generator = frame.coroutine_owner != nullptr
       ? frame.coroutine_owner : active_generator;
+  // A thrown exception can complete the awaitable. Its return value is
+  // already in this frame's result register.
+  if (logical_generator != nullptr && logical_generator->delegated_result_ready) {
+    logical_generator->delegated_result_ready = false;
+    value_set_invalid(logical_generator->awaiting);
+    return XlangVMOpFlow::Next;
+  }
   auto* awaited_generator = value_as_generator(regs[in.a]);
   auto* awaited_async_generator = value_as_async_generator_awaitable(regs[in.a]);
   bool protocol_await_iterator = false;
@@ -127,11 +134,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
     }
   }
   if (protocol_await_iterator) {
-    if (logical_generator != nullptr && logical_generator->delegated_result_ready) {
-      logical_generator->delegated_result_ready = false;
-      value_set_invalid(logical_generator->awaiting);
-      return XlangVMOpFlow::Next;
-    }
     const Value sent = regs[in.dst].tag == ValueTag::Invalid ? Value::none() : regs[in.dst];
     value_set_invalid(regs[in.dst]);
     bool done = false;
@@ -200,13 +202,6 @@ XLANG3_HOT_INLINE XlangVMOpFlow await_op(
   }
   if (awaited_generator != nullptr &&
       (awaited_generator->is_coroutine || awaited_generator->is_await_iterator || iterable_coroutine)) {
-    // generator_throw() can finish a delegated awaitable while handling an
-    // exception. Its return value is already in the await-result register.
-    if (logical_generator != nullptr && logical_generator->delegated_result_ready) {
-      logical_generator->delegated_result_ready = false;
-      value_set_invalid(logical_generator->awaiting);
-      return XlangVMOpFlow::Next;
-    }
 #if !defined(XLANG3_DISABLE_AWAIT_COROUTINE_INLINE)
     auto* child_function = awaited_generator->is_coroutine && awaited_generator->args_bound &&
             awaited_generator->runtime == &runtime && !awaited_generator->started &&

@@ -617,8 +617,17 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
   }
   bool delegated_completed = false;
   Value delegated_return;
-  if (!obj->done && obj->awaiting.tag != ValueTag::Invalid) {
-    Value awaiting = obj->awaiting;
+  // Inline children share the root's saved frames. Forward the exception to
+  // the deepest frame's external awaitable, then resume those frames together.
+  GeneratorObject* delegate_owner = obj;
+  if (!obj->done) {
+    while (auto* child = value_as_generator(delegate_owner->awaiting)) {
+      if (child->inline_parent != delegate_owner) break;
+      delegate_owner = child;
+    }
+  }
+  if (!obj->done && delegate_owner->awaiting.tag != ValueTag::Invalid) {
+    Value awaiting = delegate_owner->awaiting;
     Value delegated_out;
     std::string delegated_error;
     bool delegated_resumed = false;
@@ -706,7 +715,7 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
     } else if (!delegated_completed && obj->runtime->active_exception().tag != ValueTag::Invalid) {
       value_assign_fast(exception, obj->runtime->active_exception());
     }
-    value_set_invalid(obj->awaiting);
+    value_set_invalid(delegate_owner->awaiting);
   }
   if (obj->done || obj->vm_state == nullptr) {
     if (!obj->done && !obj->started) {
@@ -721,7 +730,7 @@ bool generator_throw(Value& generator, const Value* args, uint32_t argc, Value& 
   if (delegated_completed) {
     value_assign_fast(obj->pending_send, delegated_return);
     obj->has_pending_send = true;
-    obj->delegated_result_ready = true;
+    delegate_owner->delegated_result_ready = true;
     value_set_invalid(obj->pending_throw);
     obj->has_pending_throw = false;
   } else {

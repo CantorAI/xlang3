@@ -1,4 +1,6 @@
 first 1
 generator-cancelled
+cleanup-resumed
 exhausted
 result 9
+timeout-result 17
