@@ -417,6 +417,7 @@ target_include_directories(xlang3_charconv_compat_tests PRIVATE ${CMAKE_CURRENT_
 target_link_libraries(xlang3 PRIVATE xlang3_runtime)
 target_compile_definitions(xlang3 PRIVATE XLANG3_USE_SHARED)
 target_include_directories(xlang3 PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/src/internal)
+add_subdirectory(examples/native_package)
 if(WIN32)
   # The unmodified Python 3.14 venv redirector resolves python.exe in the
   # base interpreter directory. Ship that name as the same XLang3 executable

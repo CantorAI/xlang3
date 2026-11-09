@@ -23,6 +23,12 @@ xlang3 --dump-ir script.py
 
 `--dump-ir` writes a readable IR dump beside the source file under `.xlang3/ir/`.
 
+## Native packages
+
+The [native package example](examples/native_package/README.md) shows how to
+export a C++ API, create an Xlang3 runtime, and import the package from C++
+or an Xlang3 script.
+
 ## Copyright
 
 Copyright (C) 2026 CantorAI Inc. and The XLang Foundation.
