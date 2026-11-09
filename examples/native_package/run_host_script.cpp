@@ -6,13 +6,13 @@
 #include <exception>
 #include <iostream>
 
-class CantorHost {
+class HostService {
 public:
   void MarkReady() { ready_ = true; }
   bool IsReady() const { return ready_; }
 
-  BEGIN_PACKAGE(CantorHost)
-    APISET().AddFunc<0>("mark_ready", &CantorHost::MarkReady);
+  BEGIN_PACKAGE(HostService)
+    APISET().AddFunc<0>("mark_ready", &HostService::MarkReady);
   END_PACKAGE
 
 private:
@@ -26,9 +26,9 @@ int main(int argc, char** argv) {
   }
 
   try {
-    CantorHost host;
+    HostService host;
     X::Runtime runtime;
-    runtime.RegisterPackage("cantor", host);
+    runtime.RegisterPackage("host_api", host);
     runtime.EvalFile(argv[1]);
 
     std::cout << "Host ready: " << std::boolalpha << host.IsReady() << '\n';

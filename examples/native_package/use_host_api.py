@@ -1,6 +1,6 @@
 # Copyright (C) 2026 CantorAI Inc. and The XLang Foundation
 # SPDX-License-Identifier: Apache-2.0
 
-import cantor
+import host_api
 
-cantor.mark_ready()
+host_api.mark_ready()
