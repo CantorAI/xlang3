@@ -47,8 +47,6 @@ native library and use `X::Module garnet(runtime, "garnet")` in the same way.
 ## Import the host API from an embedded script
 
 [run_host_script.cpp](run_host_script.cpp) follows the Cantor host pattern.
-It registers a small C++ object as the `cantor` module, then runs the script
-through the same `X::Runtime`.
 
 ```cpp
 CantorHost host;
@@ -57,8 +55,7 @@ runtime.RegisterPackage("cantor", host);
 runtime.EvalFile(script_path);
 ```
 
-[use_host_api.py](use_host_api.py) imports the registered module and calls
-the C++ method on the host object.
+[use_host_api.py](use_host_api.py) runs inside that host process.
 
 ```python
 import cantor
@@ -66,10 +63,21 @@ import cantor
 cantor.mark_ready()
 ```
 
-The import resolves in the same runtime, and the call updates the original
-C++ object directly. The host then prints `Host ready: true`.
-`RegisterPackage` borrows the host object, so declare it before the runtime
-to keep it alive until the runtime is destroyed.
+1. `APISET().AddFunc<0>("mark_ready", &CantorHost::MarkReady)` exposes
+   `MarkReady` under the script-facing name `mark_ready`.
+2. `RegisterPackage("cantor", host)` puts a module named `cantor` in this
+   runtime's module registry and binds the exposed method to the existing
+   C++ object. The registration name is the name the script imports.
+3. `EvalFile(script_path)` executes the script through that same runtime.
+   `import cantor` finds the registered module there. If the host creates
+   several runtimes in one process, register the API in the runtime that
+   will execute the script.
+4. `cantor.mark_ready()` calls `MarkReady` on the live C++ object in
+   process. When `EvalFile` returns, C++ reads the updated object and prints
+   `Host ready: true`.
+
+`RegisterPackage` borrows the host object. Declare the object before the
+runtime so C++ destroys the runtime first.
 
 ## Build and run
 
