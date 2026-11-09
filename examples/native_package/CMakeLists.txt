@@ -15,3 +15,10 @@ set_target_properties(xlang3_import_demo PROPERTIES
   RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:xlang3_runtime>"
 )
 add_dependencies(xlang3_import_demo xlang3_demo_package xlang_yaml_native_package)
+
+add_executable(xlang3_run_host_script EXCLUDE_FROM_ALL run_host_script.cpp)
+target_link_libraries(xlang3_run_host_script PRIVATE xlang3_runtime)
+target_compile_definitions(xlang3_run_host_script PRIVATE XLANG3_USE_SHARED)
+set_target_properties(xlang3_run_host_script PROPERTIES
+  RUNTIME_OUTPUT_DIRECTORY "$<TARGET_FILE_DIR:xlang3_runtime>"
+)

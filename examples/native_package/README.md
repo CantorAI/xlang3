@@ -44,6 +44,33 @@ host, including error handling.
 For a compatible Garnet installation, add the directory containing the Garnet
 native library and use `X::Module garnet(runtime, "garnet")` in the same way.
 
+## Import the host API from an embedded script
+
+[run_host_script.cpp](run_host_script.cpp) follows the Cantor host pattern.
+It registers a small C++ object as the `cantor` module, then runs the script
+through the same `X::Runtime`.
+
+```cpp
+CantorHost host;
+X::Runtime runtime;
+runtime.RegisterPackage("cantor", host);
+runtime.EvalFile(script_path);
+```
+
+[use_host_api.py](use_host_api.py) imports the registered module and calls
+the C++ method on the host object.
+
+```python
+import cantor
+
+cantor.mark_ready()
+```
+
+The import resolves in the same runtime, and the call updates the original
+C++ object directly. The host then prints `Host ready: true`.
+`RegisterPackage` borrows the host object, so declare it before the runtime
+to keep it alive until the runtime is destroyed.
+
 ## Build and run
 
 From the Xlang3 checkout, configure and build the runtime, CLI, and example.
@@ -53,10 +80,11 @@ On Windows with a Visual Studio generator, run the following in PowerShell.
 
 ```powershell
 cmake -S . -B build
-cmake --build build --config Release --target xlang3 xlang3_import_demo
+cmake --build build --config Release --target xlang3 xlang3_import_demo xlang3_run_host_script
 & ./build/Release/xlang3_import_demo.exe ./build/Release/native_package_demo
 cmake -E env "PYTHONPATH=$PWD/build/Release/native_package_demo" `
   ./build/Release/xlang3.exe ./examples/native_package/use_demo.py
+& ./build/Release/xlang3_run_host_script.exe ./examples/native_package/use_host_api.py
 ```
 
 With a single-config generator on Linux or macOS, use the build directory
@@ -64,13 +92,14 @@ for the executables and pass the YAML output directory explicitly.
 
 ```sh
 cmake -S . -B build -DCMAKE_BUILD_TYPE=Release
-cmake --build build --target xlang3 xlang3_import_demo
+cmake --build build --target xlang3 xlang3_import_demo xlang3_run_host_script
 ./build/xlang3_import_demo ./build/native_package_demo ./build/Release/modules
 PYTHONPATH="$PWD/build/native_package_demo:$PWD/build/Release/modules" \
   ./build/xlang3 ./examples/native_package/use_demo.py
+./build/xlang3_run_host_script ./examples/native_package/use_host_api.py
 ```
 
-Both programs print:
+The two shared-library import examples print:
 
 ```text
 42

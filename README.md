@@ -27,7 +27,8 @@ xlang3 --dump-ir script.py
 
 The [native package example](examples/native_package/README.md) shows how to
 export a C++ API, create an Xlang3 runtime, and import the package from C++
-or an Xlang3 script.
+or an Xlang3 script. It also shows how an embedded script can import an API
+registered by its C++ host in the same process.
 
 ## Copyright
 
