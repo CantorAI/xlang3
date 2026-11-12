@@ -35,6 +35,7 @@ $env:SETUPTOOLS_USE_DISTUTILS = 'stdlib'
 
 $root = $PSScriptRoot
 $cases = @(
+    "re_optional_anchored_prefix",
     "sorted_key_scoped_entry",
     "sorted_key_iteration_owner",
     "sorted_key_nested_handled_context",

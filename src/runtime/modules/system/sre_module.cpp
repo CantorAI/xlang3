@@ -328,6 +328,13 @@ bool pattern_anchored_literal_miss(const PatternState& state, const Value& subje
     return false;
   }
   if (literal_offset >= state.pattern.size()) return false;
+  // A quantified first atom may be absent, and an alternative may bypass
+  // the anchored branch altogether. Only reject on a mandatory prefix.
+  if (state.pattern.find('|') != std::string::npos ||
+      (literal_offset + 1 < state.pattern.size() &&
+       std::string_view("?*{").find(state.pattern[literal_offset + 1]) != std::string_view::npos)) {
+    return false;
+  }
   const unsigned char literal = static_cast<unsigned char>(state.pattern[literal_offset]);
   if (literal >= 0x80u || std::string_view(R"(\.^$|()[]{}*+?)").find(static_cast<char>(literal)) != std::string_view::npos) {
     return false;
