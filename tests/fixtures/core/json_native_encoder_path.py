@@ -57,3 +57,13 @@ assert len(results[3]) > 300_000
 assert native_factory_calls == len(results)
 print("native encoder calls", native_factory_calls)
 print("pyperformance huge output bytes", len(results[3]))
+
+compact = json.dumps(
+    {"tokens": [0, -1, 9223372036854775808, 2.5, None, True], "text": "\x7f\u00e9\U0001f600"},
+    separators=(",", ":"),
+)
+assert compact == (
+    '{"tokens":[0,-1,9223372036854775808,2.5,null,true],'
+    '"text":"\\u007f\\u00e9\\ud83d\\ude00"}'
+)
+assert native_factory_calls == len(results) + 1

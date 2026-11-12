@@ -510,6 +510,7 @@ bool json_floatstr(Runtime& runtime, const Value* args, uint32_t argc,
 struct JsonEncoderState {
   Value iterencode;
   bool native_fast_path = false;
+  bool compact_separators = false;
   Value bound[9];
 };
 
@@ -527,7 +528,7 @@ void append_json_ascii_string(std::string_view input, std::string& out) {
     const auto c = static_cast<uint8_t>(input[i]);
     if (c == '"' || c == '\\') {
       out.push_back('\\'); out.push_back(static_cast<char>(c)); ++i;
-    } else if (c < 0x20) {
+    } else if (c < 0x20 || c == 0x7f) {
       switch (c) {
         case '\b': out += "\\b"; break;
         case '\f': out += "\\f"; break;
@@ -593,6 +594,7 @@ struct JsonActiveStack {
   }
 };
 
+template <bool Compact>
 bool append_json_builtin(const Value& value, std::string& out,
                          JsonActiveStack& active, bool& supported,
                          size_t depth = 0) {
@@ -635,9 +637,9 @@ bool append_json_builtin(const Value& value, std::string& out,
     out.push_back('[');
     const size_t count = list ? list->items.size() : tuple->items.size();
     for (size_t i = 0; i < count; ++i) {
-      if (i) out += ", ";
+      if (i) out += Compact ? "," : ", ";
       const Value& item = list ? list->items[i] : tuple->items[i];
-      if (!append_json_builtin(item, out, active, supported, depth + 1)) { active.pop(); return false; }
+      if (!append_json_builtin<Compact>(item, out, active, supported, depth + 1)) { active.pop(); return false; }
     }
     out.push_back(']'); active.pop(); return true;
   }
@@ -652,9 +654,11 @@ bool append_json_builtin(const Value& value, std::string& out,
     for (const auto& [key, item] : dict->entries) {
       auto* key_string = value_as_string(key);
       if (!key_string) { supported = false; active.pop(); return false; }
-      if (!first) out += ", "; first = false;
-      append_json_ascii_string(string_object_view(*key_string), out); out += ": ";
-      if (!append_json_builtin(item, out, active, supported, depth + 1)) { active.pop(); return false; }
+      if (!first) out += Compact ? "," : ", ";
+      first = false;
+      append_json_ascii_string(string_object_view(*key_string), out);
+      out += Compact ? ":" : ": ";
+      if (!append_json_builtin<Compact>(item, out, active, supported, depth + 1)) { active.pop(); return false; }
     }
     out.push_back('}'); active.pop(); return true;
   }
@@ -750,7 +754,7 @@ bool json_encoder_call(
     std::string encoded;
     JsonActiveStack active;
     bool supported = true;
-    if (append_json_builtin(args[0], encoded, active, supported)) {
+    if (append_json_builtin<false>(args[0], encoded, active, supported)) {
       out = Value::list({noninterned_string_value(encoded)});
       return true;
     }
@@ -778,7 +782,10 @@ bool json_encoder_call(
     std::string encoded;
     JsonActiveStack active;
     bool supported = true;
-    if (append_json_builtin(args[0], encoded, active, supported)) {
+    const bool encoded_builtin = state.compact_separators
+        ? append_json_builtin<true>(args[0], encoded, active, supported)
+        : append_json_builtin<false>(args[0], encoded, active, supported);
+    if (encoded_builtin) {
       out = Value::list({noninterned_string_value(encoded)});
       return true;
     }
@@ -908,12 +915,15 @@ bool json_make_encoder_impl(
   // dictionary traffic.
   const bool standard_markers = bound[0].tag == ValueTag::None ||
       (value_as_dict(bound[0]) != nullptr && value_as_dict(bound[0])->entries.empty());
+  const bool default_separators =
+      string_equals(bound[4], ": ") && string_equals(bound[5], ", ");
+  const bool compact_separators =
+      !default_separators && string_equals(bound[4], ":") && string_equals(bound[5], ",");
   const bool native_fast_path = standard_markers &&
-      bound[3].tag == ValueTag::None && string_equals(bound[4], ": ") &&
-      string_equals(bound[5], ", ") && !value_truthy(bound[6]) && !value_truthy(bound[7]) &&
-      value_truthy(bound[8]) &&
+      bound[3].tag == ValueTag::None && (default_separators || compact_separators) &&
+      !value_truthy(bound[6]) && !value_truthy(bound[7]) && value_truthy(bound[8]) &&
       standard_ascii_encoder;
-  if (native_fast_path) {
+  if (native_fast_path && default_separators) {
     // _json.make_encoder is called once for each default dumps() invocation.
     // Reuse a stateless native callable so shallow inputs avoid allocating an
     // Encoder object and heap state for every call.
@@ -923,10 +933,11 @@ bool json_make_encoder_impl(
     }
   }
   // Avoid allocating the Python recursive encoder closure per json.dumps call
-  // when the native path owns the whole default built-in data graph. Keep the
-  // bound arguments so custom and unsupported values can initialize it lazily.
+  // when the native path handles all values. Keep the bound arguments so
+  // unsupported values or options can initialize it lazily.
   auto* state = new JsonEncoderState{};
   state->native_fast_path = native_fast_path;
+  state->compact_separators = compact_separators;
   for (size_t index = 0; index < 9; ++index) state->bound[index] = bound[index];
   out = runtime.make_native_function(
       "_json.Encoder.__call__", json_encoder_call, state,
