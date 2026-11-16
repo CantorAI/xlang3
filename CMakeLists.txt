@@ -180,7 +180,6 @@ else()
 endif()
 
 set(XLANG3_THREAD_RUNTIME_SOURCES
-  src/runtime/modules/thread/runtime_lock.cpp
   src/runtime/modules/thread/thread_module.cpp
   src/runtime/modules/thread/thread_objects.cpp
 )
@@ -297,6 +296,9 @@ target_compile_features(xlang3_runtime_embedded PUBLIC cxx_std_17)
 return()
 endif()
 
+# Compile the execution lock into the runtime so the Windows DLL's export
+# scanner sees its symbols before the optimized static thread library is linked.
+list(APPEND XLANG3_RUNTIME_SOURCES src/runtime/modules/thread/runtime_lock.cpp)
 add_library(xlang3_runtime SHARED ${XLANG3_RUNTIME_SOURCES})
 add_library(xlang3_runtime_static STATIC ${XLANG3_RUNTIME_SOURCES})
 add_library(xlang3_thread_runtime STATIC ${XLANG3_THREAD_RUNTIME_SOURCES})
