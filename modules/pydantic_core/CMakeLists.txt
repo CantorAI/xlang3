@@ -52,7 +52,7 @@ target_compile_definitions(xlang_pydantic_core_native_package PRIVATE
 add_dependencies(xlang_pydantic_core_native_package xlang_pydantic_regex_bridge)
 target_link_libraries(xlang_pydantic_core_native_package PRIVATE "${PYDANTIC_REGEX_STATIC_LIB}")
 if(WIN32)
-  target_link_libraries(xlang_pydantic_core_native_package PRIVATE bcrypt ntdll userenv ws2_32)
+  target_link_libraries(xlang_pydantic_core_native_package PRIVATE bcrypt ntdll userenv ws2_32 synchronization)
 else()
   target_link_libraries(xlang_pydantic_core_native_package PRIVATE ${CMAKE_DL_LIBS})
 endif()
