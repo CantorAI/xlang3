@@ -31,8 +31,9 @@ void xlang_runtime_execution_acquired() {
 }
 
 XlangRuntimeExecutionMutex& xlang_runtime_execution_lock() {
-  static XlangRuntimeExecutionMutex lock;
-  return lock;
+  // Static host runtimes may release values after ordinary static destructors.
+  static auto* const lock = new XlangRuntimeExecutionMutex;
+  return *lock;
 }
 
 uint32_t& xlang_runtime_execution_depth() {

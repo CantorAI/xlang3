@@ -39,6 +39,7 @@ function Get-ExtendedPath([string]$Path) {
 
 $segment = 'longseg'
 $fixtureRoot = [IO.Path]::GetFullPath($OutputRoot)
+$childScript = Join-Path $fixtureRoot 'wait-for-native-package-inspection.py'
 $targetModules = Join-Path $fixtureRoot 'native-modules'
 $targetDll = Join-Path $targetModules 'pydantic_core._pydantic_core.x3pkg.dll'
 while ($targetDll.Length -lt 262) {
@@ -59,6 +60,22 @@ $sourceSchemaGather = Join-Path (Join-Path $Modules 'pydantic_core') '_schema_ga
     'from ._pydantic_core import __version__ as __version__' + "`n",
     [Text.UTF8Encoding]::new($false)
 )
+
+# The CLI drains redirected standard input before it runs user code.
+# Let the parent inspect the mapped DLL while the child waits on a file.
+[IO.File]::WriteAllText($childScript, @'
+import os
+from pathlib import Path
+import time
+
+import pydantic_core
+
+release = Path(os.environ["XLANG3_LONG_PATH_TEST_RELEASE"])
+version = Path(str(release) + ".version")
+version.write_text(pydantic_core.__version__, encoding="utf-8")
+while not release.is_file():
+    time.sleep(0.05)
+'@, [Text.UTF8Encoding]::new($false))
 
 if ($targetDll.Length -lt 262 -or $targetDll.Length -ge 280) {
     throw "Native package fixture path must exercise a path beyond MAX_PATH (262-279 characters): $($targetDll.Length)"
@@ -84,26 +101,31 @@ foreach ($pathStyle in @('native', 'forward-slash')) {
     $stdoutPath = Join-Path $OutputRoot "pydantic-core-long-path-$pathStyle.stdout"
     $stderrPath = Join-Path $OutputRoot "pydantic-core-long-path-$pathStyle.stderr"
     $originPath = Join-Path $OutputRoot "pydantic-core-long-path-$pathStyle.origin.json"
+    $releasePath = Join-Path $fixtureRoot ('release-' + [Guid]::NewGuid().ToString('N'))
+    $versionPath = "$releasePath.version"
     $startInfo = [Diagnostics.ProcessStartInfo]::new()
     $startInfo.FileName = [IO.Path]::GetFullPath($XLang3)
-    $startInfo.Arguments = '-B -c "import sys;import pydantic_core;print(pydantic_core.__version__,flush=True);sys.stdin.readline()"'
+    $startInfo.Arguments = '-B "' + $childScript + '"'
     $startInfo.WorkingDirectory = [IO.Path]::GetDirectoryName([IO.Path]::GetFullPath($XLang3))
     $startInfo.UseShellExecute = $false
     $startInfo.CreateNoWindow = $true
-    $startInfo.RedirectStandardOutput = $true
     $startInfo.RedirectStandardError = $true
     $startInfo.RedirectStandardInput = $true
     $startInfo.EnvironmentVariables['PYTHONPATH'] = "$pythonSite;$searchModules"
+    $startInfo.EnvironmentVariables['XLANG3_LONG_PATH_TEST_RELEASE'] = $releasePath
 
     $process = [Diagnostics.Process]::Start($startInfo)
+    $process.StandardInput.Close()
     $stderrTask = $process.StandardError.ReadToEndAsync()
     $output = ''
     try {
-        $versionTask = $process.StandardOutput.ReadLineAsync()
-        if (-not $versionTask.Wait(10000)) {
-            throw "Timed out waiting for pydantic_core import ($pathStyle)"
+        $clock = [Diagnostics.Stopwatch]::StartNew()
+        while (-not $output -and -not $process.HasExited -and $clock.ElapsedMilliseconds -lt 10000) {
+            if ([IO.File]::Exists($versionPath)) {
+                $output = [IO.File]::ReadAllText($versionPath)
+            }
+            if (-not $output) { Start-Sleep -Milliseconds 50 }
         }
-        $output = $versionTask.Result
         if (-not $output) {
             $startupError = if ($stderrTask.IsCompleted) { $stderrTask.GetAwaiter().GetResult() } else { '' }
             throw "xlang3 produced no pydantic_core version ($pathStyle): $startupError"
@@ -128,13 +150,14 @@ foreach ($pathStyle in @('native', 'forward-slash')) {
     }
     finally {
         if (-not $process.HasExited) {
-            $process.StandardInput.WriteLine('done')
-            $process.StandardInput.Close()
+            [IO.File]::WriteAllText($releasePath, '')
             if (-not $process.WaitForExit(5000)) {
                 $process.Kill()
                 $process.WaitForExit()
             }
         }
+        [IO.File]::Delete($versionPath)
+        [IO.File]::Delete($releasePath)
         [IO.File]::WriteAllText($stdoutPath, [string]$output)
         [IO.File]::WriteAllText($stderrPath, $stderrTask.GetAwaiter().GetResult())
     }
