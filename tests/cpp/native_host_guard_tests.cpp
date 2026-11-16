@@ -17,9 +17,9 @@ limitations under the License.
 #include <chrono>
 #include <future>
 #include <iostream>
+#include <mutex>
 #include <stdexcept>
 #include <string>
-#include <thread>
 #include <vector>
 using namespace std::chrono_literals;
 struct Service { BEGIN_PACKAGE(Service) END_PACKAGE };
@@ -29,10 +29,28 @@ template<class F> Observation observe(const char* name,F invoke){
     std::promise<void> held,release,attempting;auto held_signal=held.get_future();auto release_signal=release.get_future().share();auto attempt_signal=attempting.get_future();
     // The holder does not call any other SDK operation while locked. Both
     // callers use the same runtime mutex through static test linkage.
-    std::jthread holder([&]{auto& mutex=xlang3::xlang_runtime_execution_lock();mutex.lock();held.set_value();release_signal.wait();mutex.unlock();});
-    held_signal.wait();auto call=std::async(std::launch::async,[&]{attempting.set_value();return invoke();});attempt_signal.wait();
-    const bool blocked=call.wait_for(200ms)==std::future_status::timeout;
-    release.set_value();holder.join();auto result=call.get();
+    auto holder = std::async(std::launch::async, [&] {
+        std::lock_guard lock(xlang3::xlang_runtime_execution_lock());
+        held.set_value();
+        release_signal.wait();
+    });
+    held_signal.wait();
+    std::future<Call> call;
+    try {
+        call = std::async(std::launch::async, [&] {
+            attempting.set_value();
+            return invoke();
+        });
+    } catch (...) {
+        release.set_value();
+        holder.get();
+        throw;
+    }
+    attempt_signal.wait();
+    const bool blocked = call.wait_for(200ms) == std::future_status::timeout;
+    release.set_value();
+    holder.get();
+    auto result = call.get();
     if(result.value.tag!=X3_TAG_INVALID)x3_value_release(result.value);
     std::cout<<name<<" blocked="<<(blocked?1:0)<<" status="<<static_cast<int>(result.status)<<std::endl;
     return {name,blocked,result.status};
