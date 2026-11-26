@@ -119,12 +119,12 @@ std::string bytecode_cache_path(Runtime& runtime, const std::string& source) {
       std::filesystem::path mirrored = std::filesystem::u8path(string_object_view(*prefix_string));
       if (!root_name.empty()) mirrored /= root_name;
       mirrored /= absolute_source.relative_path().parent_path();
-      mirrored /= source_path.stem().string() + ".xlang3-314.pyc";
+      mirrored /= std::filesystem::u8path(python_path_string(source_path.stem()) + ".xlang3-314.pyc");
       return python_path_string(mirrored);
     }
   }
   return python_path_string(source_path.parent_path() / "__pycache__" /
-          (source_path.stem().string() + ".xlang3-314.pyc"));
+          std::filesystem::u8path(python_path_string(source_path.stem()) + ".xlang3-314.pyc"));
 }
 
 std::string module_member_base(const std::vector<std::string>& parts) {

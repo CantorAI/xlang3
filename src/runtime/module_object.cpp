@@ -62,7 +62,7 @@ std::filesystem::path module_relative_source_path(const std::string& name) {
     const size_t dot = name.find('.', start);
     const auto part = name.substr(start, dot == std::string::npos ? std::string::npos : dot - start);
     if (!part.empty()) {
-      path /= part;
+      path /= std::filesystem::u8path(part);
     }
     if (dot == std::string::npos) {
       break;
@@ -79,7 +79,7 @@ std::string native_module_source_file(Runtime& runtime, const std::string& name)
     const auto candidate = root / relative_file;
     std::error_code ec;
     if (std::filesystem::is_regular_file(candidate, ec)) {
-      return candidate.generic_string();
+      return candidate.generic_u8string();
     }
     auto package_path = root;
     size_t start = 0;
@@ -87,7 +87,7 @@ std::string native_module_source_file(Runtime& runtime, const std::string& name)
       const size_t dot = name.find('.', start);
       const auto part = name.substr(start, dot == std::string::npos ? std::string::npos : dot - start);
       if (!part.empty()) {
-        package_path /= part;
+        package_path /= std::filesystem::u8path(part);
       }
       if (dot == std::string::npos) {
         break;
@@ -96,7 +96,7 @@ std::string native_module_source_file(Runtime& runtime, const std::string& name)
     }
     const auto package_init = package_path / "__init__.py";
     if (std::filesystem::is_regular_file(package_init, ec)) {
-      return package_init.generic_string();
+      return package_init.generic_u8string();
     }
   }
   return {};

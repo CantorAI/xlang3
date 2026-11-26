@@ -554,7 +554,7 @@ bool publish_process_sys_attrs(
   std::string ignored;
   if (xlang3::module_get_attr(sys, "_stdlib_dir", stdlib_value, ignored)) {
     if (auto* stdlib_text = xlang3::value_as_string(stdlib_value)) {
-      const std::filesystem::path stdlib_path(
+      const auto stdlib_path = std::filesystem::u8path(
           xlang3::string_object_to_string(*stdlib_text));
 #if defined(_WIN32)
       if (stdlib_path.filename() == "Lib") prefix_path = stdlib_path.parent_path();
@@ -1152,6 +1152,10 @@ int xlang3_main(int argc, char** argv) {
     return 1;
   }
   if (!config.ignore_environment) {
+    if (const char* no_bytecode = std::getenv("PYTHONDONTWRITEBYTECODE");
+        no_bytecode != nullptr && *no_bytecode != '\0') {
+      config.dont_write_bytecode = true;
+    }
     if (const char* pycache_prefix = std::getenv("PYTHONPYCACHEPREFIX");
         pycache_prefix != nullptr && *pycache_prefix != '\0') {
       config.pycache_prefix = std::filesystem::u8path(pycache_prefix);

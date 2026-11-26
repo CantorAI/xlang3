@@ -114,10 +114,10 @@ Value make_zip_module_spec(
   object_set_attr(spec, "loader", loader, ignored);
   object_set_attr(spec, "origin", Value::string(origin), ignored);
   std::string cached = origin;
-  const std::filesystem::path origin_path(origin);
+  const auto origin_path = std::filesystem::u8path(origin);
   if (origin_path.extension() == ".py") {
     cached = (origin_path.parent_path() / "__pycache__" /
-              (origin_path.stem().string() + ".xlang3-314.pyc")).string();
+              std::filesystem::u8path(origin_path.stem().u8string() + ".xlang3-314.pyc")).u8string();
   }
   object_set_attr(spec, "cached", Value::string(cached), ignored);
   const auto dot = fullname.rfind('.');
@@ -237,7 +237,7 @@ bool zipimporter_init(Runtime& runtime, const Value* args, uint32_t argc, Value&
   for (auto candidate = std::filesystem::u8path(archive);
        !candidate.empty(); candidate = candidate.parent_path()) {
     if (std::filesystem::is_regular_file(candidate, filesystem_error)) {
-      select_archive(candidate.string());
+      select_archive(candidate.u8string());
       break;
     }
     filesystem_error.clear();
@@ -247,8 +247,8 @@ bool zipimporter_init(Runtime& runtime, const Value* args, uint32_t argc, Value&
     error.clear();
     for (auto candidate = std::filesystem::u8path(archive).parent_path();
          !candidate.empty(); candidate = candidate.parent_path()) {
-      if (runtime.vfs().read_file(candidate.string(), archive_bytes, error)) {
-        select_archive(candidate.string());
+      if (runtime.vfs().read_file(candidate.u8string(), archive_bytes, error)) {
+        select_archive(candidate.u8string());
         break;
       }
       archive_bytes.clear();

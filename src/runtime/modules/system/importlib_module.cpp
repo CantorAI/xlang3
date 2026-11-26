@@ -34,6 +34,11 @@ limitations under the License.
 namespace xlang3 {
 
 namespace {
+std::string import_path_utf8(const std::filesystem::path& path) {
+  const auto bytes = path.u8string();
+  return {reinterpret_cast<const char*>(bytes.data()), bytes.size()};
+}
+
 
 void preserve_or_raise_import_error(
     Runtime& runtime,
@@ -154,10 +159,10 @@ Value make_module_spec_for_file(
   object_set_attr(spec, "loader", loader, ignored);
   object_set_attr(spec, "origin", Value::string(path), ignored);
   std::string cached = path;
-  const std::filesystem::path file_path(path);
+  const auto file_path = std::filesystem::u8path(path);
   if (file_path.extension() == ".py") {
-    cached = (file_path.parent_path() / "__pycache__" /
-              (file_path.stem().string() + ".xlang3-314.pyc")).string();
+    cached = import_path_utf8(file_path.parent_path() / "__pycache__" /
+              std::filesystem::u8path(import_path_utf8(file_path.stem()) + ".xlang3-314.pyc"));
   }
   object_set_attr(spec, "cached", Value::string(cached), ignored);
   const auto dot = name.rfind('.');
@@ -358,7 +363,7 @@ bool importlib_loader_get_code(Runtime& runtime, const Value* args, uint32_t arg
   if (!runtime.vfs().read_file(path, bytes, error)) {
     return false;
   }
-  if (std::filesystem::path(path).extension() == ".pyc") {
+  if (std::filesystem::u8path(path).extension() == ".pyc") {
     if (bytes.size() < 16 || !std::equal(std::begin(kPycMagic), std::end(kPycMagic), bytes.begin())) {
       error = "bad magic number in bytecode file '" + path + "'";
       return false;
@@ -610,24 +615,24 @@ bool importlib_finder_find_spec(Runtime& runtime, const Value* args, uint32_t ar
       if (!get_string_arg(finder_path, "finder path", root, error)) return false;
       const auto dot = name.rfind('.');
       const std::string leaf = dot == std::string::npos ? name : name.substr(dot + 1);
-      const auto base = std::filesystem::path(root) / leaf;
+      const auto base = std::filesystem::u8path(root) / std::filesystem::u8path(leaf);
       VfsStat stat;
       std::string stat_error;
       auto source = base;
       source += ".py";
-      if (runtime.vfs().stat(source.string(), stat, stat_error) && stat.kind == VfsNodeKind::File) {
-        Value loader = make_source_file_loader(runtime, name, Value::string(source.string()));
-        out = make_module_spec_for_file(name, source.string(), loader);
+      if (runtime.vfs().stat(import_path_utf8(source), stat, stat_error) && stat.kind == VfsNodeKind::File) {
+        Value loader = make_source_file_loader(runtime, name, Value::string(import_path_utf8(source)));
+        out = make_module_spec_for_file(name, import_path_utf8(source), loader);
         return true;
       }
       const auto init = base / "__init__.py";
-      if (runtime.vfs().stat(init.string(), stat, stat_error) && stat.kind == VfsNodeKind::File) {
-        Value loader = make_source_file_loader(runtime, name, Value::string(init.string()));
-        out = make_module_spec_for_file(name, init.string(), loader, true, base.string());
+      if (runtime.vfs().stat(import_path_utf8(init), stat, stat_error) && stat.kind == VfsNodeKind::File) {
+        Value loader = make_source_file_loader(runtime, name, Value::string(import_path_utf8(init)));
+        out = make_module_spec_for_file(name, import_path_utf8(init), loader, true, import_path_utf8(base));
         return true;
       }
-      if (runtime.vfs().stat(base.string(), stat, stat_error) && stat.kind == VfsNodeKind::Directory) {
-        out = make_module_spec_for_file(name, base.string(), Value::none(), true, base.string());
+      if (runtime.vfs().stat(import_path_utf8(base), stat, stat_error) && stat.kind == VfsNodeKind::Directory) {
+        out = make_module_spec_for_file(name, import_path_utf8(base), Value::none(), true, import_path_utf8(base));
         object_set_attr(out, "origin", Value::none(), ignored);
         object_set_attr(out, "cached", Value::none(), ignored);
         object_set_attr(out, "has_location", Value::boolean(false), ignored);
@@ -1229,11 +1234,11 @@ bool importlib_spec_from_file_location(Runtime& runtime, const Value* args, uint
   if (loader.tag == ValueTag::None || loader.tag == ValueTag::Invalid) {
     loader = make_source_file_loader(runtime, name, Value::string(path));
   }
-  const std::filesystem::path file_path(path);
+  const auto file_path = std::filesystem::u8path(path);
   const bool is_package = file_path.filename() == "__init__.py";
   out = make_module_spec_for_file(
       name, path, loader, is_package,
-      is_package ? file_path.parent_path().string() : std::string());
+      is_package ? import_path_utf8(file_path.parent_path()) : std::string());
   return true;
 }
 
@@ -1292,8 +1297,8 @@ bool importlib_spec_from_file_location_kw(
       std::string path;
       if (!get_path_arg(runtime, args[1], "spec location", path, error))
         return false;
-      const std::filesystem::path file_path(path);
-      locations = Value::list({Value::string(file_path.parent_path().string())});
+      const auto file_path = std::filesystem::u8path(path);
+      locations = Value::list({Value::string(import_path_utf8(file_path.parent_path()))});
     }
     if (!object_set_attr(out, "submodule_search_locations", locations, error)) return false;
     std::string name;
@@ -1473,14 +1478,14 @@ bool bootstrap_external_cache_from_source(Runtime&, const Value* args, uint32_t 
     error = "cache_from_source() path must be str";
     return false;
   }
-  const std::filesystem::path path(string_object_to_string(*path_string));
-  const std::string stem = path.stem().string();
+  const auto path = std::filesystem::u8path(string_object_to_string(*path_string));
+  const std::string stem = import_path_utf8(path.stem());
   if (stem.empty()) {
     error = "cache_from_source() path has no filename";
     return false;
   }
-  const auto cached = path.parent_path() / "__pycache__" / (stem + ".xlang3-314.pyc");
-  out = Value::string(cached.string());
+  const auto cached = path.parent_path() / "__pycache__" / std::filesystem::u8path(stem + ".xlang3-314.pyc");
+  out = Value::string(import_path_utf8(cached));
   return true;
 }
 
@@ -1495,18 +1500,18 @@ bool bootstrap_external_source_from_cache(
     error = "source_from_cache() path must be str";
     return false;
   }
-  const std::filesystem::path path(string_object_to_string(*path_string));
+  const auto path = std::filesystem::u8path(string_object_to_string(*path_string));
   if (path.parent_path().filename() != "__pycache__") {
     error = "__pycache__ not bottom-level directory in bytecode path";
     return false;
   }
-  const std::string filename = path.filename().string();
+  const std::string filename = import_path_utf8(path.filename());
   const size_t dot = filename.find('.');
   if (dot == std::string::npos || path.extension() != ".pyc") {
     error = "invalid bytecode cache path";
     return false;
   }
-  out = Value::string((path.parent_path().parent_path() / (filename.substr(0, dot) + ".py")).string());
+  out = Value::string(import_path_utf8(path.parent_path().parent_path() / std::filesystem::u8path(filename.substr(0, dot) + ".py")));
   return true;
 }
 
@@ -1572,7 +1577,7 @@ bool package_base_path(Runtime& runtime, const Value& package_arg, std::string& 
   }
   if (module_get_attr(module, "__file__", path_attr, ignored)) {
     if (auto* file_text = value_as_string(path_attr)) {
-      out = std::filesystem::path(string_object_to_string(*file_text)).parent_path().string();
+      out = import_path_utf8(std::filesystem::u8path(string_object_to_string(*file_text)).parent_path());
       return true;
     }
   }

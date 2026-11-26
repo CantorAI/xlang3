@@ -3045,11 +3045,11 @@ bool os_mkdir_impl(
       mode = kwargs[i].value->as.i64;
     }
   }
-  std::filesystem::path target_path(path.text);
+  auto target_path = std::filesystem::u8path(path.text);
   // A trailing separator names the directory itself.  Strip that empty path
   // component before checking the parent, as the platform mkdir primitive does.
   if (target_path.filename().empty()) target_path = target_path.parent_path();
-  const std::string parent = target_path.parent_path().string();
+  const std::string parent = target_path.parent_path().u8string();
   if (!parent.empty()) {
     VfsStat stat;
     if (!runtime.vfs().stat(parent, stat, error)) {
