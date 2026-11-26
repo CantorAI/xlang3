@@ -24,6 +24,10 @@ library = root / 'library 雪'
 work.mkdir()
 library.mkdir()
 shutil.copyfile(site.__file__, library / 'site.py')
+package = library / 'probe_package'
+package.mkdir()
+(package / '__init__.py').write_text('', encoding='utf-8')
+(package / 'child.py').write_text('VALUE = 42\n', encoding='utf-8')
 env = dict(os.environ)
 env['PYTHONDONTWRITEBYTECODE'] = '1'
 
@@ -40,4 +44,8 @@ run('unicode-library', 'import os,site; assert os.path.samefile(site.__file__, '
     + repr(str(library / 'site.py')) + '); print(site.__file__)', root, unicode_env)
 run('inherited-bytecode-policy', 'import sys; assert sys.dont_write_bytecode; print("enabled")', root, env)
 run('ignore-environment', 'import sys; assert not sys.dont_write_bytecode; print("ignored")', root, env, ('-E', '-S'))
-print(json.dumps({'passed': 4, 'retained_fixture': str(root)}))
+run('unicode-package-child', 'import probe_package.child as child; assert child.VALUE == 42; print(child.__file__)', root, unicode_env)
+cache_env = dict(unicode_env)
+cache_env.pop('PYTHONDONTWRITEBYTECODE', None)
+run('unicode-package-cache', 'import os,sys,probe_package.child as child; assert not sys.dont_write_bytecode; assert os.path.isfile(child.__cached__), child.__cached__; print(child.__cached__)', root, cache_env)
+print(json.dumps({'passed': 6, 'retained_fixture': str(root)}))

@@ -393,7 +393,7 @@ bool find_filesystem_module_in_directory(
                       const std::shared_ptr<const std::unordered_set<std::string>>& available,
                       const std::string& filename, bool bytecode, bool package) {
     if (available->find(filename) == available->end()) return false;
-    const auto path = base / filename;
+    const auto path = base / std::filesystem::u8path(filename);
     error.clear();
     if (!runtime.vfs().kind(python_path_string(path), kind, error) || kind != VfsNodeKind::File) return false;
     out.path = python_path_string(path);
@@ -410,7 +410,7 @@ bool find_filesystem_module_in_directory(
   }
 
   if (entries->find(leaf) == entries->end()) return false;
-  const auto package_dir = directory / leaf;
+  const auto package_dir = directory / std::filesystem::u8path(leaf);
   auto package_entries = runtime.python_import_directory_entries(python_path_string(package_dir), error);
   if (package_entries == nullptr) return false;
   if (use_file(package_dir, package_entries, "__init__.py", false, true) ||
@@ -449,11 +449,11 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
       if (module_get_attr(parent, "__path__", package_path, ignored)) {
         std::vector<std::filesystem::path> package_roots;
         if (auto* string = value_as_string(package_path)) {
-          package_roots.emplace_back(string_object_view(*string));
+          package_roots.push_back(std::filesystem::u8path(string_object_view(*string)));
         } else if (auto* list = value_as_list(package_path)) {
           for (const auto& item : list->items) {
             if (auto* item_string = value_as_string(item)) {
-              package_roots.emplace_back(string_object_view(*item_string));
+              package_roots.push_back(std::filesystem::u8path(string_object_view(*item_string)));
             }
           }
         }
@@ -465,7 +465,7 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
               return true;
             }
             for (const auto& directory : zip_candidate.namespace_dirs) {
-              namespace_dirs.emplace_back(directory);
+              namespace_dirs.push_back(std::filesystem::u8path(directory));
             }
             continue;
           }
@@ -522,12 +522,12 @@ bool find_module_file(Runtime& runtime, const std::string& name, ModuleFile& out
         return true;
       }
       for (const auto& directory : zip_candidate.namespace_dirs) {
-        namespace_dirs.emplace_back(directory);
+        namespace_dirs.push_back(std::filesystem::u8path(directory));
       }
       continue;
     }
     auto search_directory = root;
-    for (size_t i = 0; i + 1 < parts.size(); ++i) search_directory /= parts[i];
+    for (size_t i = 0; i + 1 < parts.size(); ++i) search_directory /= std::filesystem::u8path(parts[i]);
     if (find_filesystem_module_in_directory(
             runtime, search_directory, parts.back(), out, namespace_dirs)) {
       return true;
@@ -652,7 +652,7 @@ void write_source_bytecode_cache(
   append_pyc_u32(pyc, static_cast<uint32_t>(stat.size));
   pyc.append(bytes_object_view(*marshaled_bytes));
 
-  const std::filesystem::path cache_path(bytecode_cache_path(runtime, module_file.path));
+  const auto cache_path = std::filesystem::u8path(bytecode_cache_path(runtime, module_file.path));
   const std::filesystem::path cache_dir = cache_path.parent_path();
   if (!runtime.vfs().make_dirs(python_path_string(cache_dir), true, ignored)) {
     return;
