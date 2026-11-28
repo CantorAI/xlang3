@@ -22,6 +22,10 @@ limitations under the License.
 
 #include <algorithm>
 #include <atomic>
+#include <array>
+#include <cerrno>
+#include <climits>
+#include <cstring>
 #include <mutex>
 #include <utility>
 #include <unordered_map>
@@ -31,6 +35,7 @@ limitations under the License.
 #ifdef _WIN32
 #include <winsock2.h>
 #else
+#include <fcntl.h>
 #include <unistd.h>
 #endif
 
@@ -44,12 +49,16 @@ struct SignalState {
   std::vector<int64_t> signals = {2, 4, 6, 8, 11, 15, 21};
   int64_t wakeup_fd = -1;
   bool warn_on_full_buffer = true;
+#ifndef _WIN32
+  Runtime* owner = nullptr;
+  std::unordered_map<int, struct sigaction> original_actions;
+#endif
 };
 
+std::atomic<SignalState*> active_signal_state{nullptr};
 #ifdef _WIN32
 // The console handler runs on a Windows-created thread. It can only record an
 // event and wake the interpreter; Python callbacks run on the main VM thread.
-std::atomic<SignalState*> active_signal_state{nullptr};
 std::atomic<uint32_t> pending_console_signals{0};
 std::atomic<int64_t> console_wakeup_fd{-1};
 std::atomic<int> console_int_mode{0};
@@ -89,6 +98,59 @@ void ensure_console_handler() {
         std::memory_order_release);
   });
 }
+#else
+// No Python, locks, allocation or blocking I/O may run in the OS handler.
+// Delivery uses the existing VM event poll; ordinary instruction dispatch is
+// unchanged. Each signal has its own bit so realtime signal numbers also fit.
+static_assert(std::atomic<bool>::is_always_lock_free);
+static_assert(std::atomic<int>::is_always_lock_free);
+static_assert(std::atomic<uint32_t>::is_always_lock_free);
+std::array<std::atomic<bool>, NSIG> pending_posix_signals{};
+std::atomic<int> posix_wakeup_fd{-1};
+std::atomic<int> posix_wakeup_error{0};
+std::atomic<bool> posix_warn_on_full_buffer{true};
+std::mutex posix_actions_mutex;
+
+void posix_signal_handler(int signum) {
+  const int saved_errno = errno;
+  pending_posix_signals[signum].store(true, std::memory_order_release);
+  interpreter_set_pending_event(kInterpreterEventSignals);
+  const int fd = posix_wakeup_fd.load(std::memory_order_relaxed);
+  if (fd >= 0) {
+    const unsigned char byte = static_cast<unsigned char>(signum);
+    if (::write(fd, &byte, 1) != 1 &&
+        posix_warn_on_full_buffer.load(std::memory_order_relaxed))
+      posix_wakeup_error.store(errno, std::memory_order_relaxed);
+  }
+  errno = saved_errno;
+}
+
+bool install_posix_handler(SignalState& state, int signum,
+                           const Value& handler) {
+  std::lock_guard<std::mutex> guard(posix_actions_mutex);
+  struct sigaction action{};
+  sigemptyset(&action.sa_mask);
+  action.sa_handler = handler.tag == ValueTag::Int64
+      ? (handler.as.i64 == 0 ? SIG_DFL : SIG_IGN) : posix_signal_handler;
+  // Match Python: interrupt blocking calls so the VM/selector can deliver the
+  // callback. Native call sites retain their own EINTR retry contracts.
+  action.sa_flags = 0;
+  struct sigaction previous{};
+  if (::sigaction(signum, &action, &previous) != 0) return false;
+  state.original_actions.emplace(signum, previous);
+  return true;
+}
+
+bool signal_os_error(Runtime& runtime, std::string& error) {
+  const int code = errno;
+  error = std::strerror(code);
+  Value exception = runtime.make_exception("OSError", error);
+  std::string ignored;
+  object_set_attr(exception, "errno", Value::int64(code), ignored);
+  object_set_attr(exception, "strerror", Value::string(error), ignored);
+  runtime.set_pending_exception(std::move(exception));
+  return false;
+}
 #endif
 
 SignalState* signal_state(void* user_data) {
@@ -108,8 +170,34 @@ bool signal_number(const Value& value, int64_t& out, std::string& error) {
 }
 
 Value default_handler_for(const SignalState& state, int64_t signum) {
+#ifndef _WIN32
+  struct sigaction action{};
+  if (::sigaction(static_cast<int>(signum), nullptr, &action) == 0) {
+    if (action.sa_handler == SIG_IGN) return Value::int64(1);
+    if (action.sa_handler == SIG_DFL) return Value::int64(0);
+  }
+  return Value::none();  // A handler installed by the embedding native host.
+#else
   return signum == 2 ? state.default_int_handler : Value::int64(0);
+#endif
 }
+
+#ifndef _WIN32
+bool valid_handler(const Value& value) {
+  if (value.tag == ValueTag::Int64)
+    return value.as.i64 == 0 || value.as.i64 == 1;
+  if (value_as_function(value) || value_as_native_function(value) ||
+      value_as_bound_method(value) || value_as_static_method(value) ||
+      value_as_class(value) || value_as_event(value) ||
+      value_as_generic_alias(value)) return true;
+  if (value_as_instance(value)) {
+    Value call;
+    std::string ignored;
+    return object_get_class_attr_for_instance(value, "__call__", call, ignored);
+  }
+  return false;
+}
+#endif
 
 bool signal_signal(Runtime& runtime, const Value* args, uint32_t argc, Value& out, std::string& error, void* user_data) {
   if (argc != 2) {
@@ -131,9 +219,18 @@ bool signal_signal(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     runtime.raise_class_error("ValueError", error);
     return false;
   }
+  Value handler = args[1];
+#ifndef _WIN32
+  int64_t disposition = 0;
+  if (value_int_like_to_i64(handler, disposition)) handler = Value::int64(disposition);
+  if (!valid_handler(handler)) {
+    error = "signal handler must be signal.SIG_IGN, signal.SIG_DFL, or a callable object";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+#endif
   auto it = state->handlers.find(signum);
   out = it == state->handlers.end() ? default_handler_for(*state, signum) : it->second;
-  state->handlers[signum] = args[1];
 #ifdef _WIN32
   if (signum == 2 || signum == 21) {
     ensure_console_handler();
@@ -150,7 +247,17 @@ bool signal_signal(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     (signum == 2 ? console_int_mode : console_break_mode)
         .store(disposition, std::memory_order_release);
   }
+#else
+  if (active_signal_state.load(std::memory_order_acquire) != state) {
+    error = "signal only works in main thread of the main interpreter";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  if (!install_posix_handler(*state, static_cast<int>(signum), handler)) {
+    return signal_os_error(runtime, error);
+  }
 #endif
+  state->handlers[signum] = handler;
   return true;
 }
 
@@ -215,6 +322,15 @@ bool raise_signal(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     runtime.raise_class_error("ValueError", error);
     return false;
   }
+#ifndef _WIN32
+  // Actually raise the OS signal. In particular SIG_DFL must terminate the
+  // process after uvicorn restores and re-raises its captured termination.
+  if (::raise(static_cast<int>(signum)) != 0) {
+    return signal_os_error(runtime, error);
+  }
+  value_set_none(out);
+  return signal_dispatch_pending(runtime, error);
+#else
   if (state->wakeup_fd >= 0) {
     const char byte = static_cast<char>(signum & 0xff);
 #ifdef _WIN32
@@ -237,6 +353,7 @@ bool raise_signal(Runtime& runtime, const Value* args, uint32_t argc, Value& out
     }
   }
   return invoke_signal_handler(runtime, state, signum, out, error);
+#endif
 }
 
 bool valid_signals(Runtime&, const Value*, uint32_t argc, Value& out, std::string& error, void* user_data) {
@@ -271,12 +388,39 @@ bool set_wakeup_fd(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     return false;
   }
   auto* state = signal_state(user_data);
+#ifndef _WIN32
+  if (active_signal_state.load(std::memory_order_acquire) != state) {
+    error = "set_wakeup_fd only works in main thread of the main interpreter";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  const int64_t fd = args[0].as.i64;
+  if (fd < -1 || fd > INT_MAX) {
+    error = "invalid file descriptor";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  const int flags = fd >= 0 ? ::fcntl(static_cast<int>(fd), F_GETFL) : 0;
+  if (fd >= 0 && flags < 0) {
+    return signal_os_error(runtime, error);
+  }
+  if (fd >= 0 && (flags & O_NONBLOCK) == 0) {
+    error = "the fd must be in non-blocking mode";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+#endif
   out = Value::int64(state->wakeup_fd);
   state->wakeup_fd = args[0].as.i64;
 #ifdef _WIN32
   console_wakeup_fd.store(state->wakeup_fd, std::memory_order_release);
+#else
+  posix_wakeup_fd.store(static_cast<int>(state->wakeup_fd), std::memory_order_release);
 #endif
   state->warn_on_full_buffer = argc == 2 ? value_truthy(args[1]) : true;
+#ifndef _WIN32
+  posix_warn_on_full_buffer.store(state->warn_on_full_buffer, std::memory_order_release);
+#endif
   return true;
 }
 
@@ -292,6 +436,55 @@ bool set_wakeup_fd_kw(Runtime& runtime, const Value* args, uint32_t argc,
   const Value positional[] = {args[0], *kwargs[0].value};
   return set_wakeup_fd(runtime, positional, 2, out, error, user_data);
 }
+
+#ifndef _WIN32
+bool siginterrupt(Runtime& runtime, const Value* args, uint32_t argc,
+                  Value& out, std::string& error, void*) {
+  if (argc != 2) {
+    error = "signal.siginterrupt() expected signal number and flag";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  int64_t signum = 0, flag = 0;
+  if (!value_int_like_to_i64(args[0], signum) ||
+      !value_int_like_to_i64(args[1], flag)) {
+    error = "signal.siginterrupt() arguments must be integers";
+    runtime.raise_class_error("TypeError", error);
+    return false;
+  }
+  if (flag < INT_MIN || flag > INT_MAX) {
+    error = "Python int too large to convert to C int";
+    runtime.raise_class_error("OverflowError", error);
+    return false;
+  }
+  if (signum < 1 || signum >= NSIG) {
+    error = "signal number out of range";
+    runtime.raise_class_error("ValueError", error);
+    return false;
+  }
+  int failure = 0;
+  {
+    // This API is also valid on worker threads. Serialize the OS read/modify
+    // pair with registrations without taking a lock in the OS signal handler.
+    std::lock_guard<std::mutex> guard(posix_actions_mutex);
+    struct sigaction action{};
+    if (::sigaction(static_cast<int>(signum), nullptr, &action) != 0) {
+      failure = errno;
+    } else {
+      if (flag != 0) action.sa_flags &= ~SA_RESTART;
+      else action.sa_flags |= SA_RESTART;
+      if (::sigaction(static_cast<int>(signum), &action, nullptr) != 0)
+        failure = errno;
+    }
+  }
+  if (failure != 0) {
+    errno = failure;
+    return signal_os_error(runtime, error);
+  }
+  value_set_none(out);
+  return true;
+}
+#endif
 
 bool strsignal(Runtime&, const Value* args, uint32_t argc, Value& out, std::string& error, void*) {
   if (argc != 1) {
@@ -361,7 +554,8 @@ void fill_signal_module(Runtime& runtime, NativeModuleBuilder& builder, SignalSt
       .value("SIGQUIT", Value::int64(SIGQUIT))
       .value("SIGALRM", Value::int64(SIGALRM))
       .value("SIGUSR1", Value::int64(SIGUSR1))
-      .value("SIGUSR2", Value::int64(SIGUSR2));
+      .value("SIGUSR2", Value::int64(SIGUSR2))
+      .function("siginterrupt", siginterrupt);
 #endif
 }
 
@@ -386,8 +580,26 @@ bool signal_dispatch_pending(Runtime& runtime, std::string& error) {
     if (!invoke_signal_handler(runtime, state, signum, ignored, error)) return false;
   }
 #else
-  (void)runtime;
-  (void)error;
+  if (xlang_thread_current_ident() != xlang_thread_main_ident()) return true;
+  auto* state = active_signal_state.load(std::memory_order_acquire);
+  if (state == nullptr || state->owner != &runtime) return true;
+  interpreter_clear_pending_event(kInterpreterEventSignals);
+  for (int signum = 1; signum < NSIG; ++signum) {
+    if (!pending_posix_signals[signum].exchange(false, std::memory_order_acq_rel))
+      continue;
+    Value ignored;
+    if (!invoke_signal_handler(runtime, state, signum, ignored, error)) {
+      // Preserve undelivered signals if this callback raises.
+      interpreter_set_pending_event(kInterpreterEventSignals);
+      return false;
+    }
+  }
+  if (posix_wakeup_error.exchange(0, std::memory_order_relaxed) != 0) {
+    const Value* category = runtime.find_builtin("RuntimeWarning");
+    if (category && !runtime_warn(runtime,
+        Value::string("signal wakeup fd write failed"), *category, 1, error))
+      return false;
+  }
 #endif
   return true;
 }
@@ -406,11 +618,50 @@ void register_signal_module(Runtime& runtime) {
       console_wakeup_fd.store(-1);
       pending_console_signals.store(0);
     }
+#else
+    SignalState* expected = retiring;
+    if (active_signal_state.compare_exchange_strong(expected, nullptr)) {
+      posix_wakeup_fd.store(-1, std::memory_order_release);
+      std::lock_guard<std::mutex> guard(posix_actions_mutex);
+      for (const auto& entry : retiring->original_actions) {
+        struct sigaction current{};
+        if (::sigaction(entry.first, nullptr, &current) != 0) continue;
+        const auto it = retiring->handlers.find(entry.first);
+        const auto expected_handler = it != retiring->handlers.end() &&
+            it->second.tag == ValueTag::Int64
+            ? (it->second.as.i64 == 0 ? SIG_DFL : SIG_IGN) : posix_signal_handler;
+        // Respect a native host that deliberately changed its disposition
+        // after Python's last registration.
+        if (current.sa_handler == expected_handler)
+          (void)::sigaction(entry.first, &entry.second, nullptr);
+      }
+      for (auto& pending : pending_posix_signals) pending.store(false);
+      posix_wakeup_error.store(0);
+      posix_warn_on_full_buffer.store(true);
+      interpreter_clear_pending_event(kInterpreterEventSignals);
+    }
 #endif
     delete retiring;
   });
 #ifdef _WIN32
   active_signal_state.store(state, std::memory_order_release);
+#else
+  state->owner = &runtime;
+  state->signals.clear();
+  for (int signum = 1; signum < NSIG; ++signum) {
+    struct sigaction action{};
+    if (::sigaction(signum, nullptr, &action) == 0)
+      state->signals.push_back(signum);
+  }
+  SignalState* expected = nullptr;
+  if (xlang_thread_current_ident() == xlang_thread_main_ident() &&
+      active_signal_state.compare_exchange_strong(expected, state)) {
+    struct sigaction action{};
+    if (::sigaction(SIGINT, nullptr, &action) == 0 &&
+        action.sa_handler == SIG_DFL &&
+        install_posix_handler(*state, SIGINT, state->default_int_handler))
+      state->handlers[SIGINT] = state->default_int_handler;
+  }
 #endif
 
   NativeModuleBuilder private_module(runtime, "_signal");

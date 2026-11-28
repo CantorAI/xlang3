@@ -1,0 +1,11 @@
+[
+  "/usr/bin/clang++-19",
+  "-O3",
+  "-DNDEBUG",
+  "-fuse-ld=lld-19",
+  "CMakeFiles/xlang3_embedded_package_tests.dir/tests/cpp/embedded_package_tests.cpp.o",
+  "-o",
+  "/home/shawn/mira-posix-signals-20261128/hybrid-build/bin/xlang3_embedded_package_tests",
+  "-Wl,-rpath,$ORIGIN",
+  "/home/shawn/mira-posix-signals-20261128/hybrid-build/bin/libxlang3_runtime.so"
+]

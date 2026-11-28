@@ -1,0 +1,67 @@
+{
+  "outcome": "passed",
+  "phase": "finished",
+  "pid": 448,
+  "pidStartTicks": "262018",
+  "started": 1795874965.0911615,
+  "baseSourceCommit": "75d6b8db81399f8476ecd4bd2dc5ab20fd8932a1",
+  "acceptedBaseRuntimeSha256": "cfc86af2f4c5a8f2f51aa37fc3dacd1692c2b780d9c9e17cddffaceec5b5f081",
+  "compiler": "Clang19 non-VM with GCC13 VM, LLD19",
+  "compilerWorkaroundFlags": [
+    "GCC VM only: -fno-tree-pta; Clang non-VM: unchanged Release -O3"
+  ],
+  "buildProfileSha256": "bba9fbe1c3e8bf8298317343e147f3bec7af1d01d8ed9a9bd58ea1d6d87ec303",
+  "sdkHeadersUnchanged": true,
+  "sdkHeaderCount": 16,
+  "runtimeFiles": {
+    "xlang3": "97ec927d7c40f4f8e01d770a1b16b3babc6b15a140accead48f56be0f2be429c",
+    "libxlang3_runtime.so": "677cf3af25e5eecb75a3ab6d27a0adc50d70af2d3cc4b8707e81b3c2b26888e8"
+  },
+  "applicationRuntime": "native xlang3",
+  "driverPid": 1065,
+  "separateNativeRuntimeLibrariesVerified": true,
+  "focusedNativePasses": [
+    "posix_signal_delivery",
+    "signal_main_thread",
+    "signal_wakeup_fd",
+    "posix_process_signals",
+    "gc_generic_cycles"
+  ],
+  "focusedBaselineFailures": [
+    "os_kill_intenum",
+    "asyncio_runtime_edges"
+  ],
+  "embeddedSignalOwnershipPassed": true,
+  "retainedNativeHostContractsPassed": true,
+  "publicApiSymbolsUnchanged": true,
+  "publicApiSymbols": 90,
+  "relativeNativeCorrectnessPassed": true,
+  "differentialNativeCases": 456,
+  "candidateGoldenPasses": 440,
+  "existingBaselineFailureCases": [
+    "subprocess_inherits_chdir",
+    "abc_runtime",
+    "ctypes_pointer_return",
+    "ctypes_cast_errcheck_array",
+    "ast_match_patterns",
+    "match_protocol_semantics",
+    "oserror_subclass_errno",
+    "os_process_windows",
+    "zipimport_module",
+    "socket_bytes_hostname",
+    "regex_lookbehind_capture",
+    "socket_select_modules",
+    "file_io_compat",
+    "filesystem_io_edges",
+    "threading_runtime_edges",
+    "asyncio_runtime_edges"
+  ],
+  "newNativeRegressions": 0,
+  "completeGoldenSuitePassed": false,
+  "nativeFixtureSuitePassed": false,
+  "equalChildCpuAffinity": 4,
+  "performanceGateExitCode": 0,
+  "correctnessPassed": true,
+  "sourceInputsUnchanged": true,
+  "finished": 1795875043.507193
+}

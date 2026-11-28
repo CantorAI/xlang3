@@ -2993,7 +2993,11 @@ bool select_select(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
     return false;
   }
 
-  if (read_entries.empty() && write_entries.empty() && except_entries.empty()) {
+  if (read_entries.empty() && write_entries.empty() && except_entries.empty()
+#ifndef _WIN32
+      && timeout == 0.0
+#endif
+      ) {
     if (timeout > 0.0) {
       without_runtime_execution_lock([&] {
         std::this_thread::sleep_for(std::chrono::duration<double>(timeout));
@@ -3016,9 +3020,48 @@ bool select_select(Runtime& runtime, const Value* args, uint32_t argc, Value& ou
   const int ready = without_runtime_execution_lock(
       [&] { return ::select(0, &read_set, &write_set, &except_set, tv_ptr); });
 #else
-  const int ready = without_runtime_execution_lock([&] {
-    return ::select(static_cast<int>(max_fd) + 1, &read_set, &write_set, &except_set, tv_ptr);
-  });
+  const fd_set original_read = read_set;
+  const fd_set original_write = write_set;
+  const fd_set original_except = except_set;
+  const auto started = timeout > 0.0 ? std::chrono::steady_clock::now()
+                                    : std::chrono::steady_clock::time_point{};
+  double remaining = timeout;
+  int ready = 0;
+  for (;;) {
+    // POSIX may change both the sets and timeval on interruption. Retry from
+    // the original descriptors with one monotonic deadline (PEP 475).
+    read_set = original_read;
+    write_set = original_write;
+    except_set = original_except;
+    if (timeout >= 0.0) {
+      tv.tv_sec = static_cast<long>(remaining);
+      tv.tv_usec = static_cast<long>((remaining - static_cast<double>(tv.tv_sec)) * 1000000.0);
+    }
+    int failure = 0;
+    ready = without_runtime_execution_lock([&] {
+      const int result = ::select(static_cast<int>(max_fd) + 1,
+          &read_set, &write_set, &except_set, tv_ptr);
+      if (result < 0) failure = errno;
+      return result;
+    });
+    if (ready >= 0) break;
+    if (failure != EINTR)
+      return raise_socket_code_error(runtime, "select", failure, error);
+    // Execute Python callbacks only after reacquiring the runtime guard.
+    // An exception from a handler must escape instead of being retried.
+    if (!signal_dispatch_pending(runtime, error)) return false;
+    if (timeout >= 0.0) {
+      remaining = timeout == 0.0 ? 0.0 : timeout -
+          std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
+      if (remaining <= 0.0) {
+        FD_ZERO(&read_set);
+        FD_ZERO(&write_set);
+        FD_ZERO(&except_set);
+        ready = 0;
+        break;
+      }
+    }
+  }
 #endif
   if (ready < 0) {
     error = socket_last_error_text("select");

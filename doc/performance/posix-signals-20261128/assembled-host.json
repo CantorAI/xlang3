@@ -1,0 +1,118 @@
+{
+  "date": "2026-11-28",
+  "scope": "Actual isolated Core/database/uvicorn lifecycle with POSIX runtime and explicit script join",
+  "operation": "/data/mira/ops/embedding-release-stage-20261128T105541Z-01169f/host-qualification-20261128T143844Z-56d623",
+  "outcome": "passed",
+  "observed": {
+    "result": {
+      "outcome": "passed",
+      "modelInvoked": false,
+      "sharedServiceChanged": false,
+      "sharedPointersChanged": false,
+      "qualifiedRuntimeFiles": {
+        "xlang3": "97ec927d7c40f4f8e01d770a1b16b3babc6b15a140accead48f56be0f2be429c",
+        "libxlang3_runtime.so": "677cf3af25e5eecb75a3ab6d27a0adc50d70af2d3cc4b8707e81b3c2b26888e8"
+      },
+      "qualifiedCoreSha256": "424a1ff357a368331e1f3288e879ada408af80e676b5aa7c1ec5e98428156da4",
+      "runtime": "xlang3",
+      "realCoreDatabaseAndHttpHost": true,
+      "backendListener": "loopback HTTP behind the production TLS-proxy contract",
+      "actualLifespanStarted": true,
+      "modelWorkerConfigured": false,
+      "providerUsedUnits": 0,
+      "providerReservedUnits": 0,
+      "periodicGcCalls": 1,
+      "periodicRetentionCalls": 2,
+      "knownZeroWorkSettlementDelivered": true,
+      "httpRequests": 960,
+      "invalidBodiesRejected": 300,
+      "warmRssBytes": 178606080,
+      "afterRssBytes": 201080832,
+      "rssGrowthBytes": 22474752,
+      "httpMedianSeconds": 0.014125003974186257,
+      "httpP95Seconds": 0.022967378987232223,
+      "gcFinalizableCycleSupportQualified": false,
+      "publicModelEndpointQualified": false,
+      "ownedApiExitCode": -15,
+      "actualLifespanShutdownJoined": true,
+      "privatePersistentStorage": true,
+      "nativeClientSourceSha256": "c41a12ad8be15a0e9af890b4cebba3445eef0a6d5187d5c593af33bac9c6e33d",
+      "candidateSiteInventorySha256": "d0557d249bd1eb3fd094684a3783bd530d719507e5eaab0d75a2b49a18f92973",
+      "sourceInputsUnchanged": true,
+      "sharedServicesUnchanged": true,
+      "sharedPointersUnchanged": true,
+      "ownedCoreExitCode": 0,
+      "ownedApiStopped": true,
+      "ownedCoreStopped": true,
+      "ownedDatabaseAndRoleRemoved": true,
+      "temporaryCredentialsRemoved": true
+    },
+    "resultSha256": "f731c58c38c5646fde9af962b4d14e93d05a3ac94b14b0d93fe9d96efa7abf7d",
+    "cleanupAudit": {
+      "ownedProcessGroupsEmpty": true,
+      "checkedAt": 1795876851.836386,
+      "azureCoreBuildRefusedRootAbsent": true
+    },
+    "lifespan": {
+      "runtime": "xlang3",
+      "gcCalls": 1,
+      "gcFailures": 0,
+      "retentionCalls": 2,
+      "settleCalls": 1,
+      "bridgeClosed": true,
+      "gcTaskJoined": true,
+      "uvicornReturned": false,
+      "shutdownCompleteSent": true
+    }
+  },
+  "coreBuild": {
+    "outcome": "built-and-native-tests-passed",
+    "sourceCommits": {
+      "Cantor": "436a89cb43c36c7fe071eba14ac02bc41004e302",
+      "Galaxy": "fb36969e3a6b17c9481ab14402863151519da4d2"
+    },
+    "sourceFiles": 3617,
+    "coreSha256": "424a1ff357a368331e1f3288e879ada408af80e676b5aa7c1ec5e98428156da4",
+    "nativeTests": 7,
+    "testLogSha256": {
+      "CantorScriptServiceTests": "495e53578c824e1d29d8aaf67f5c8b5fbb09bb7ea0b0d928d5042b7550ed02fb",
+      "CantorWorkerStartupTests": "2100b546462a585425202677cdf0e18082068420f205c62dba724bc100eddd4a",
+      "CantorWorkerWatchTests": "d687499c0479bab3e5be02c641108ecc7bbb94a1162faaf19593dcab40ff61c5",
+      "CantorTaskRetryPolicyTests": "4039a7149fd9cc85c29d7fa649aec4fd93ed5ab452f2751bed946d6787dfea34",
+      "CantorTaskRetryJournalTests": "dedd51a5057ced6add85a95fc29b6a9dd37514f69af3b7d11d873586d016ce98",
+      "CantorFrameSerializationTests": "8457a9b6a3e7e131c5095f85176bf4b364efd648a5bb1a094e6a398ab4ac4fc6",
+      "CantorRegistryWireTests": "d09478df0368d3d8a74b19512ae65907a3d8b40e45503fd2b9d4abd9e080d6c5"
+    },
+    "sdkHeadersUnchanged": true,
+    "sdkFiles": 16,
+    "runtimeUnchanged": true,
+    "generatedSourceChanges": [],
+    "originalHarnessFailure": "Retry journal test requires a private test directory; original failed receipt retained.",
+    "actualAssembledHostQualified": false,
+    "productionActivated": false,
+    "finished": 1795876614.5054367
+  },
+  "productionActivated": false,
+  "fullProductionGoalComplete": false,
+  "priorFailures": [
+    {
+      "operation": "host-qualification-20261128T141326Z-eb9f6b",
+      "coreExitCode": -7,
+      "apiCleanupPassed": true,
+      "receiptReclassifiedFailed": true,
+      "originalReceiptBytesPreserved": true
+    },
+    {
+      "operation": "host-qualification-20261128T141825Z-b2a68a",
+      "installedRuntimeComparison": true,
+      "coreExitCode": -11,
+      "apiCleanupPassed": false
+    }
+  ],
+  "rootCause": "Debugger shows background script releasing Galaxy objects during static destruction after Galaxy teardown. Core now closes script admission before shutdown event and joins/releases scripts before dependent services.",
+  "limits": [
+    "No actual model worker or public model endpoint is qualified by this lifecycle test.",
+    "Short sequential functional HTTP measurements do not establish load capacity, long-running memory behavior or finalizable-cycle support.",
+    "Full legacy model compatibility, eligible embedding worker, actual public semantic delivery and final cutover/restore gates remain open."
+  ]
+}

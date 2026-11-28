@@ -1,0 +1,11 @@
+{
+  "vmObject": "/home/shawn/mira-posix-signals-20261128/build-gcc/CMakeFiles/xlang3_runtime.dir/src/executor/xlang_vm/xlang_vm_loop.cpp.o",
+  "vmObjectSha256": "d556e37ae53848a85dd902c41407b4710b9a83ac52e7d604cb8f8fa7a6e12931",
+  "vmCompiler": "GCC13.3.0 Release -O3 -DNDEBUG -fPIC -fno-tree-pta",
+  "remainingObjects": "Clang19.1.1 Release -O3 -DNDEBUG -fPIC",
+  "linker": "LLD19",
+  "sourceCommit": "75d6b8db81399f8476ecd4bd2dc5ab20fd8932a1",
+  "sourceAndHeadersIdenticalAcrossCompilerInputs": true,
+  "baselineUnchanged": true,
+  "hypothesis": "GCC native candidate improves scalar/range/property paths but regresses subparsers; Clang candidate preserves subparsers but leaves arithmetic inconclusive. Isolate compiler effects by changing only the VM object in the Clang link; require all correctness and full fixed performance gates again."
+}
